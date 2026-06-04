@@ -271,10 +271,10 @@ import { useState, useEffect } from "react";
         <section className="bg-[#0a0a16] border-y border-blue-500/10 py-8">
           <div className="max-w-7xl mx-auto px-5 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { val: `+${stats?.streamersRepresented ?? 5000}`, label: "Streamers registradas ganando desde casa" },
-              { val: `+${stats?.yearsActive ?? 5} Años`, label: "De experiencia en la industria del streaming" },
-              { val: "+10 Apps", label: "Y plataformas internacionales disponibles" },
-              { val: "+20 Países", label: "De alcance internacional" },
+              { val: "Soporte 24/7", label: "Siempre disponibles para ayudarte" },
+              { val: "Pagos Semanales", label: "Cobras puntual cada semana en dólares" },
+              { val: "$0 Inversión", label: "Empieza sin gastar nada" },
+              { val: "Todos los Países", label: "Operamos a nivel mundial" },
             ].map((s, i) => (
               <div key={i}>
                 <p className="text-blue-400 font-extrabold text-3xl md:text-4xl">{s.val}</p>
