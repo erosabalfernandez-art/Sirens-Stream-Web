@@ -91,7 +91,7 @@ import { useState } from "react";
     },
     {
       id: "layla", Icon: LaylaIcon, name: "Layla",
-      tagline: "Mensajes · Salas de Audio · Llamadas de Voz · Videollamadas opcionales · Meta $10",
+      tagline: "Mensajes · Salas de Audio · Llamadas de Voz · Videollamadas opcionales",
       badge: "Retiros acumulativos",
       badgeColor: "bg-purple-500/15 text-purple-300 border-purple-500/30",
       borderOpen: "border-purple-500/30",
@@ -482,6 +482,11 @@ import { useState } from "react";
                         {app.type === "waha" && (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 whitespace-nowrap">
                             Meta mín. $2.50 USD
+                          </span>
+                        )}
+                        {app.type === "layla" && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 whitespace-nowrap">
+                            Meta mín. $10 USD
                           </span>
                         )}
                       </div>
