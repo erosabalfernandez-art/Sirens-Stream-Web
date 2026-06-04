@@ -129,7 +129,7 @@ WhatsApp: https://wa.me/5595984381686`,
 📸 Instagram: @eclipse_angels.agency
 🎵 TikTok: @eclipse_angels1
 📘 Facebook: eclipse_angels.agency
-📧 Email: eclipseangelsagency@gmail.com
+📧 Email: eclipse_angels@outlook.com
 
 ⏰ Atención: lunes a domingo, 9 AM a 11 PM
 ¡Te respondemos lo antes posible! 😊`,
