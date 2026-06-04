@@ -1,5 +1,5 @@
 import { Clock, MessageCircle } from "lucide-react";
-import { FaWhatsapp, FaInstagram, FaTelegram, FaTiktok } from "react-icons/fa";
+import { FaWhatsapp, FaInstagram, FaTiktok } from "react-icons/fa";
 
 const channels = [
   {
@@ -23,17 +23,6 @@ const channels = [
     border: "rgba(225,48,108,0.2)",
     href: "https://www.instagram.com/eclipse_angels.agency?igsh=bW9mczJiNG1lOG1h",
     cta: "Ir a Instagram",
-  },
-  {
-    icon: FaTelegram,
-    name: "Telegram",
-    handle: "@ingresos_waha",
-    desc: "Canal oficial con novedades, bonos exclusivos y comunicados importantes de la agencia.",
-    color: "#2CA5E0",
-    bg: "rgba(44,165,224,0.1)",
-    border: "rgba(44,165,224,0.2)",
-    href: "https://t.me/ingresos_waha",
-    cta: "Ir a Telegram",
   },
   {
     icon: FaTiktok,
