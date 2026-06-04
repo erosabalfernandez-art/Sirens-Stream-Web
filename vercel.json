@@ -1,12 +1,9 @@
 {
-  "buildCommand": "pnpm install --no-frozen-lockfile && PORT=3000 BASE_PATH=/ pnpm --filter @workspace/sirens-stream run build",
+  "installCommand": "NODE_ENV=development pnpm install --no-frozen-lockfile",
+  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/sirens-stream run build",
   "outputDirectory": "artifacts/sirens-stream/dist/public",
-  "installCommand": "pnpm install --no-frozen-lockfile",
   "framework": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
 }
