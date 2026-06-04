@@ -90,12 +90,12 @@ import { useState } from "react";
     },
     {
       id: "layla", Icon: LaylaIcon, name: "Layla",
-      tagline: "Solo Mensajes · Acumulable · Horario Flexible · Meta $10",
-      badge: "Solo mensajes",
+      tagline: "Mensajes + Videollamadas · Retiro Acumulable · Horario Flexible · Meta $10",
+      badge: "Retiros acumulativos",
       badgeColor: "bg-purple-500/15 text-purple-300 border-purple-500/30",
       borderOpen: "border-purple-500/30",
       accentText: "text-purple-300",
-      desc: "Plataforma sin obligación de videollamada, con horarios completamente flexibles. También permite llamadas de voz, match y videollamadas opcionales. Retiro acumulable desde $10 USD.",
+      desc: "Plataforma enfocada en mensajes, con horarios completamente flexibles. Sí acepta videollamadas, llamadas de voz y match — pero no son obligatorias. Su mayor ventaja es el retiro acumulable desde $10 USD.",
       specs: [
         { l: "Android", v: "Layla" }, { l: "iOS", v: "Nivi" },
         { l: "Tiempo diario", v: "Flexible (Pocas horas)" }, { l: "Modo", v: "Solo Mensajes (Sin videollamada)" },
