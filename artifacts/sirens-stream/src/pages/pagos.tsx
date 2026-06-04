@@ -134,7 +134,7 @@ import { Link } from "wouter";
               {[
                 { icon: Clock, text: "Pagos cada semana" },
                 { icon: Shield, text: "100% seguro y garantizado" },
-                { icon: DollarSign, text: "Siempre en dólares (USD)" },
+                { icon: DollarSign, text: "Recíbelo desde donde estés" },
                 { icon: CheckCircle2, text: "Todos los países" },
               ].map((item, i) => (
                 <span key={i} className="flex items-center gap-2">
