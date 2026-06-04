@@ -124,27 +124,27 @@ import { useState } from "react";
               </div>
               {/* Hero title */}
               <div className="px-5 pt-8 pb-6 text-center border-b border-white/5">
-                <h1 className="text-5xl font-black text-amber-400 tracking-widest mb-2">WAHA</h1>
+                <h1 className="text-5xl font-black text-blue-400 tracking-widest mb-2">WAHA</h1>
                 <p className="text-white/50 font-bold text-xs uppercase tracking-widest">Guía de Instalación Paso a Paso</p>
               </div>
               {/* Steps */}
               <div className="px-5 py-6 space-y-3">
                 <div className="flex items-center gap-2 mb-5">
-                  <div className="w-1 h-4 bg-amber-400 rounded-full" />
+                  <div className="w-1 h-4 bg-blue-500 rounded-full" />
                   <p className="text-white/70 text-sm font-bold">Pasos para Instalar</p>
                 </div>
                 {/* Paso 1 — Download buttons */}
                 <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4">
                   <p className="text-sm text-white/80 mb-3">
-                    <span className="text-amber-400 font-black">Paso 1</span>{"  "}Selecciona el botón de descarga según tu dispositivo:
+                    <span className="text-blue-400 font-black">Paso 1</span>{"  "}Selecciona el botón de descarga según tu dispositivo:
                   </p>
                   <div className="space-y-2.5">
                     <a href="https://play.google.com/store/apps/details?id=com.phx.waha" target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-amber-500/30 text-amber-400 font-bold py-3 rounded-xl text-sm hover:bg-amber-500/10 transition-colors underline underline-offset-2">
+                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-blue-500/30 text-blue-300 font-bold py-3 rounded-xl text-sm hover:bg-blue-500/10 transition-colors underline underline-offset-2">
                       🤖 Descargar para Android
                     </a>
                     <a href="https://apps.apple.com/us/app/liyo-emotions-find-echo/id6746777859?l=es-MX" target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-amber-500/30 text-amber-400 font-bold py-3 rounded-xl text-sm hover:bg-amber-500/10 transition-colors underline underline-offset-2">
+                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-blue-500/30 text-blue-300 font-bold py-3 rounded-xl text-sm hover:bg-blue-500/10 transition-colors underline underline-offset-2">
                       🍎 Descargar para iOS
                     </a>
                   </div>
@@ -157,12 +157,12 @@ import { useState } from "react";
                   { n: 5, t: "Crea tu perfil: agrega una foto de perfil y completa la información." },
                 ].map(s => (
                   <div key={s.n} className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
-                    <span className="text-amber-400 font-black">Paso {s.n}</span>{"  "}{s.t}
+                    <span className="text-blue-400 font-black">Paso {s.n}</span>{"  "}{s.t}
                   </div>
                 ))}
                 {/* Paso 6 — Screenshot button */}
                 <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80 leading-relaxed">
-                  <span className="text-amber-400 font-black">Paso 6</span>{"  "}Haz una{" "}
+                  <span className="text-blue-400 font-black">Paso 6</span>{"  "}Haz una{" "}
                   <button onClick={() => setImgExpanded(true)}
                     className="inline-flex items-center gap-1.5 bg-purple-600/25 border border-purple-500/40 text-purple-300 font-bold px-3 py-1 rounded-full text-xs hover:bg-purple-600/40 transition-colors mx-1 align-middle">
                     🖼️ Captura de pantalla
@@ -170,16 +170,16 @@ import { useState } from "react";
                   {" "}completa de tu perfil, copia tu ID de usuario y envíalo todo por WhatsApp.
                 </div>
                 {/* Tip */}
-                <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-4 flex gap-3 items-start">
-                  <span className="text-amber-400 text-base shrink-0 mt-0.5">💡</span>
+                <div className="bg-blue-500/8 border border-blue-500/20 rounded-2xl p-4 flex gap-3 items-start">
+                  <span className="text-blue-400 text-base shrink-0 mt-0.5">💡</span>
                   <p className="text-sm">
-                    <span className="text-amber-400 font-bold">¿Dónde ver tu ID?</span>{" "}
+                    <span className="text-blue-400 font-bold">¿Dónde ver tu ID?</span>{" "}
                     <span className="text-white/55">Dentro de tu perfil, justo debajo de tu nombre o foto, aparecerá tu código único de usuario.</span>
                   </p>
                 </div>
                 {/* Thumbnail image */}
                 <div className="pt-1">
-                  <button onClick={() => setImgExpanded(true)} className="w-full rounded-2xl overflow-hidden border border-white/10 hover:border-amber-500/30 transition-colors block">
+                  <button onClick={() => setImgExpanded(true)} className="w-full rounded-2xl overflow-hidden border border-white/10 hover:border-blue-500/30 transition-colors block">
                     <img src="/images/waha-guide-captura.png" alt="Guía visual Waha" className="w-full object-cover" />
                   </button>
                   <p className="text-center text-white/35 text-xs mt-2">👆 Toca la imagen para ampliar</p>
@@ -414,27 +414,6 @@ import { useState } from "react";
                           <p className="mt-2 text-xs text-white/35 px-1">* Requisito adicional: 5 días con más de 200 minutos en línea.</p>
                         </div>
 
-                        {/* Waha registration steps */}
-                        <div>
-                          <SectionTitle>Pasos para Registrarse en Waha</SectionTitle>
-                          <div className="space-y-2">
-                            {[
-                              { n: 1, t: "Descarga la app", d: 'Busca "Waha" en Google Play (Android) o "Liyo" en App Store (iOS).' },
-                              { n: 2, t: "Inicia sesión con Google", d: "Al abrir la app por primera vez, inicia sesión con tu cuenta de Google." },
-                              { n: 3, t: "Encuentra la invitación", d: "Ve a Mensajes de la app y busca la cuenta regresiva con la invitación de la agencia." },
-                              { n: 4, t: "Envía tu ID al administrador", d: 'Dentro de tu perfil, debajo de tu nombre aparece tu código único. Envía captura + ID por WhatsApp al administrador para convertirte en PRE-VIP.' },
-                            ].map((s, i) => (
-                              <div key={i} className="flex gap-3 bg-[#0a0a14] border border-white/5 rounded-xl px-4 py-3">
-                                <span className="text-red-400 font-extrabold text-sm shrink-0 w-6">0{s.n}</span>
-                                <div>
-                                  <p className="font-bold text-white text-sm">{s.t}</p>
-                                  <p className="text-white/45 text-xs leading-relaxed mt-0.5">{s.d}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <p className="mt-2 text-xs text-white/35 px-1">💡 ¿Dónde ver tu ID? Dentro de tu perfil, justo debajo de tu nombre o foto aparecerá tu código único de usuario.</p>
-                        </div>
                       </>)}
 
                       {/* ══ LAYLA DETAILS ══ */}
