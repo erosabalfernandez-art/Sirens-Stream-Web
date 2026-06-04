@@ -246,7 +246,6 @@ import { useState, useEffect } from "react";
                       <p className="font-extrabold text-2xl text-white mb-1">{slide.highlight}</p>
                       <p className="text-white/50 text-sm">{slide.sub}</p>
                     </div>
-                  </div>
                   {/* Stats mini cards */}
                   <div className="grid grid-cols-3 gap-3">
                     {[
@@ -286,7 +285,6 @@ import { useState, useEffect } from "react";
               <button onClick={next} className="w-9 h-9 rounded-full bg-white/8 border border-white/12 flex items-center justify-center hover:bg-white/15 transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
-              </div>
             </div>
           </div>
         </section>
