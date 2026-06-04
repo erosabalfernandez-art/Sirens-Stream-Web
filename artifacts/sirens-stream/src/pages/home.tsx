@@ -119,7 +119,7 @@ import { useState, useEffect } from "react";
       <div className="min-h-screen bg-[#07070f] text-white">
 
         {/* ── HERO SLIDER ── */}
-        <section className="relative min-h-screen flex items-center overflow-hidden">
+        <section className="relative flex items-center overflow-hidden" style={{ minHeight: "60vh" }}>
           {/* Animated background glow that changes per slide */}
           <AnimatePresence mode="wait">
             <motion.div
@@ -151,7 +151,7 @@ import { useState, useEffect } from "react";
           </div>
 
           {/* Slide content */}
-          <div className="relative z-10 max-w-7xl mx-auto px-5 py-28 w-full">
+          <div className="relative z-10 max-w-7xl mx-auto px-5 py-14 w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               {/* Left: text */}
               <AnimatePresence mode="wait" custom={direction}>
@@ -167,7 +167,7 @@ import { useState, useEffect } from "react";
                     <Zap className="w-3.5 h-3.5 text-blue-400" />
                     <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">{slide.badge}</span>
                   </div>
-                  <h1 className="text-5xl md:text-6xl font-extrabold leading-[1.08] tracking-tight mb-3">
+                  <h1 className="text-3xl md:text-4xl font-extrabold leading-[1.08] tracking-tight mb-3">
                     {slide.title}<br />
                     <span className={`bg-gradient-to-r ${slide.accent} bg-clip-text text-transparent`}>{slide.highlight}</span>
                   </h1>
@@ -245,7 +245,7 @@ import { useState, useEffect } from "react";
             </div>
 
             {/* Slider controls */}
-            <div className="flex items-center gap-4 mt-12">
+            <div className="flex items-center gap-4 mt-6">
               <button onClick={prev} className="w-9 h-9 rounded-full bg-white/8 border border-white/12 flex items-center justify-center hover:bg-white/15 transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
