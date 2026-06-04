@@ -27,7 +27,7 @@ import { Link, useLocation } from "wouter";
           <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 group shrink-0">
               <img
-                src="/images/eclipse-icon.svg"
+                src="/images/eclipse-angels-logo.png"
                 alt="Eclipse Angels Agency"
                 className="w-9 h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.6)] group-hover:drop-shadow-[0_0_18px_rgba(168,85,247,0.9)] transition-all duration-300"
               />
