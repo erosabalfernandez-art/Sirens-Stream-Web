@@ -18,11 +18,11 @@ import { useState } from "react";
 
   const faqs = [
     {
-      q: "¿Qué es Sirens Stream?",
-      a: "Sirens Stream es una agencia de streamers y chat hostess que conecta a mujeres mayores de 18 años con las mejores plataformas internacionales de videochat y mensajería. Generamos ingresos reales en dólares sin inversión inicial."
+      q: "¿Qué es Eclipse Angels Agency?",
+      a: "Eclipse Angels Agency es una agencia de streamers y chat hostess que conecta a mujeres mayores de 18 años con las mejores plataformas internacionales de videochat y mensajería. Generamos ingresos reales en dólares sin inversión inicial."
     },
     {
-      q: "¿Es seguro trabajar con Sirens Stream?",
+      q: "¿Es seguro trabajar con Eclipse Angels Agency?",
       a: "Sí, completamente. Trabajamos únicamente con plataformas verificadas y de confianza a nivel internacional. Nunca pedimos dinero para empezar, y toda la información de nuestras streamers es manejada con total privacidad y discreción."
     },
     {
@@ -80,7 +80,7 @@ import { useState } from "react";
               <span className="gradient-text">mujeres con oportunidades reales</span>
             </h1>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              Sirens Stream nació con la misión de empoderar económicamente a mujeres de toda Latinoamérica, conectándolas con las mejores plataformas internacionales de streaming y chat. Sin inversión, sin riesgos, con resultados reales.
+              Eclipse Angels Agency nació con la misión de empoderar económicamente a mujeres de toda Latinoamérica, conectándolas con las mejores plataformas internacionales de streaming y chat. Sin inversión, sin riesgos, con resultados reales.
             </p>
           </div>
         </section>
@@ -107,7 +107,7 @@ import { useState } from "react";
                   Empoderamiento económico<br /><span className="gradient-text">para cada mujer</span>
                 </h2>
                 <p className="text-white/50 text-sm leading-relaxed mb-4">
-                  Creemos que toda mujer merece acceso a una fuente de ingresos digna, flexible y en dólares. En Sirens Stream hacemos eso posible conectándote con las mejores apps internacionales de la industria, brindando capacitación gratuita y soporte constante.
+                  Creemos que toda mujer merece acceso a una fuente de ingresos digna, flexible y en dólares. En Eclipse Angels Agency hacemos eso posible conectándote con las mejores apps internacionales de la industria, brindando capacitación gratuita y soporte constante.
                 </p>
                 <p className="text-white/50 text-sm leading-relaxed">
                   No somos una promesa vacía. Somos un equipo real, con streamers reales, generando resultados reales cada semana. Únete y compruébalo tú misma.
