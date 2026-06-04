@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
       cta: { label: "Unirme a la Agencia", href: "/ser-streamer" },
       accent: "from-blue-600 to-purple-600",
       glow: "bg-blue-600/10",
+      bg: "/images/slide-bg-1.png",
       items: ["Sin inversión inicial", "Pagos semanales garantizados", "Soporte 24/7"],
     },
     {
@@ -41,6 +42,7 @@ import { useState, useEffect } from "react";
       cta: { label: "Ver Apps Disponibles", href: "/apps" },
       accent: "from-pink-500 to-red-500",
       glow: "bg-pink-600/10",
+      bg: "/images/slide-bg-3.png",
       items: ["Waha: mensajes + videollamadas", "Layla: solo mensajes, horario libre", "Retiro desde $2 USD"],
     },
     {
