@@ -113,17 +113,6 @@ import { useState } from "react";
       guideImages: ["/images/layla-guide.png", "/images/layla-agency-guide.png"],
       type: "layla",
     },
-    { l: "Público", v: "Internacional" }, { l: "Requisito", v: "Mayor de 18 años" },
-      ],
-      requisitos: ["Mayor de 18 años", "Experiencia previa recomendada", "WiFi estable", "Compromiso alto"],
-      guideImages: [],
-      type: "other",
-    },
-  ],
-      requisitos: ["Mayor de 18 años", "Buena iluminación y cámara", "WiFi estable", "Disponibilidad para lives"],
-      guideImages: [],
-      type: "other",
-    },
   ];
 
   /* ── Image Guide Modal ── */
