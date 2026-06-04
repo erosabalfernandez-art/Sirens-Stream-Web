@@ -97,10 +97,10 @@ import { Link } from "wouter";
               Conviértete en manager, lidera un equipo de streamers y genera ingresos pasivos por las ganancias de tu equipo. Una oportunidad de negocio real con respaldo total de Eclipse Angels Agency.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <Link href="/contacto"
+              <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20ser%20Manager%20en%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-7 py-3.5 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(245,158,11,0.4)]">
                 Quiero ser Manager <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
               <Link href="/nosotros"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
                 Conocer más
@@ -211,10 +211,10 @@ import { Link } from "wouter";
               Da el primer paso hoy. Contáctanos y te explicamos todo el proceso para empezar a construir tu equipo de streamers con el respaldo de Eclipse Angels Agency.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <Link href="/contacto"
+              <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20aplicar%20como%20Manager%20en%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(245,158,11,0.4)]">
                 Aplicar como Manager <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
               <Link href="/ser-streamer"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-4 rounded-xl text-sm hover:bg-white/10 transition-colors">
                 Ser Streamer primero
