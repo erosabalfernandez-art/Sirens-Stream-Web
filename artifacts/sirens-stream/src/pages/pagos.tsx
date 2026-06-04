@@ -11,11 +11,12 @@ import { Link } from "wouter";
             <stop offset="1" stopColor="#4f46e5"/>
           </linearGradient>
         </defs>
-        <path d="M20 8l3.1 3.1-9.5 9.5-3.1-3.1L20 8z" fill="white" fillOpacity="0.9"/>
-        <path d="M26.9 14.9l3.1 3.1-13 13-3.1-3.1 13-13z" fill="white" fillOpacity="0.9"/>
-        <path d="M10 17.9l3.1 3.1-3.1 3.1-3.1-3.1 3.1-3.1z" fill="white" fillOpacity="0.9"/>
-        <path d="M30 17.9l3.1 3.1-3.1 3.1-3.1-3.1 3.1-3.1z" fill="white" fillOpacity="0.9"/>
-        <path d="M20 26.9l3.1 3.1-9.5-9.5-3.1 3.1L20 26.9z" fill="white" fillOpacity="0.7"/>
+        {/* BNB real logo — 5 diamonds in cross pattern */}
+        <polygon points="20,5 23.5,8.5 20,12 16.5,8.5" fill="white"/>
+        <polygon points="7,20 10.5,16.5 14,20 10.5,23.5" fill="white"/>
+        <polygon points="16.5,20 20,16.5 23.5,20 20,23.5" fill="white"/>
+        <polygon points="26,20 29.5,16.5 33,20 29.5,23.5" fill="white"/>
+        <polygon points="20,28 23.5,31.5 20,35 16.5,31.5" fill="white"/>
       </svg>
     );
 
@@ -28,7 +29,15 @@ import { Link } from "wouter";
             <stop offset="1" stopColor="#7c3aed"/>
           </linearGradient>
         </defs>
-        <path d="M16.5 11.5l3.5 3.5 3.5-3.5a2.5 2.5 0 013.5 0l1 1a2.5 2.5 0 010 3.5L24.5 20l3.5 3.5a2.5 2.5 0 010 3.5l-1 1a2.5 2.5 0 01-3.5 0L20 24.5l-3.5 3.5a2.5 2.5 0 01-3.5 0l-1-1a2.5 2.5 0 010-3.5L15.5 20l-3.5-3.5a2.5 2.5 0 010-3.5l1-1a2.5 2.5 0 013.5 0z" fill="white" fillOpacity="0.9"/>
+        {/* Pix real logo — 4-blade pinwheel */}
+        <path d="M20,20 L22,13 Q24,8 29,11 Q26,16 20,20Z" fill="white"/>
+        <path d="M20,20 L27,18 Q32,16 29,11 Q24,14 20,20Z" fill="white" fillOpacity="0.75"/>
+        <path d="M20,20 L18,27 Q16,32 11,29 Q14,24 20,20Z" fill="white"/>
+        <path d="M20,20 L13,22 Q8,24 11,29 Q16,26 20,20Z" fill="white" fillOpacity="0.75"/>
+        <path d="M20,20 L22,27 Q24,32 29,29 Q26,24 20,20Z" fill="white"/>
+        <path d="M20,20 L27,22 Q32,24 29,29 Q24,26 20,20Z" fill="white" fillOpacity="0.75"/>
+        <path d="M20,20 L18,13 Q16,8 11,11 Q14,16 20,20Z" fill="white"/>
+        <path d="M20,20 L13,18 Q8,16 11,11 Q16,14 20,20Z" fill="white" fillOpacity="0.75"/>
       </svg>
     );
 
