@@ -16,7 +16,7 @@ export default function About() {
               The <span className="text-primary">Agency</span>
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              We are architects of digital influence. Sirens Stream was founded on a singular principle: top-tier talent deserves top-tier representation.
+              We are architects of digital influence. Eclipse Angels Agency was founded on a singular principle: top-tier talent deserves top-tier representation.
             </p>
           </motion.div>
         </div>
