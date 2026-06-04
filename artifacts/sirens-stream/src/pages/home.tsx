@@ -29,6 +29,7 @@ import { useState, useEffect } from "react";
       cta: { label: "Ver cómo funciona", href: "/ser-streamer" },
       accent: "from-emerald-500 to-teal-600",
       glow: "bg-emerald-600/10",
+      bg: "/images/slide-bg-2.png",
       items: ["$10–$50 USD por día", "$100–$500 USD semanales", "$1,000–$2,000 USD/mes"],
     },
     {
@@ -51,6 +52,7 @@ import { useState, useEffect } from "react";
       cta: { label: "Crear mi Agencia", href: "/crear-agencia" },
       accent: "from-amber-500 to-orange-500",
       glow: "bg-amber-600/10",
+      bg: "/images/slide-bg-4.png",
       items: ["Capacitación completa", "Bonos por rendimiento", "Herramientas de gestión"],
     },
   ];
@@ -120,17 +122,34 @@ import { useState, useEffect } from "react";
 
         {/* ── HERO SLIDER ── */}
         <section className="relative flex items-center overflow-hidden" style={{ minHeight: "60vh" }}>
-          {/* Animated background glow that changes per slide */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current + "-bg"}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
-              className={`absolute inset-0 pointer-events-none ${slide.glow} blur-[120px] scale-150`}
-            />
-          </AnimatePresence>
+          {/* Animated background image */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current + "-bg-img"}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1 }}
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: `url(${slide.bg})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  filter: "brightness(0.25) saturate(0.7)",
+                }}
+              />
+            </AnimatePresence>
+            {/* Animated glow overlay */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current + "-bg"}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8 }}
+                className={`absolute inset-0 pointer-events-none ${slide.glow} blur-[120px] scale-150`}
+              />
+            </AnimatePresence>
 
           {/* Grid overlay */}
           <div className="absolute inset-0 opacity-[0.025] pointer-events-none"
