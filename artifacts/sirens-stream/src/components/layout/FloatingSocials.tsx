@@ -1,4 +1,4 @@
-import { motion, useMotionValue } from "framer-motion";
+import { motion } from "framer-motion";
 import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebook } from "react-icons/fa";
 
 const WA = "https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency";
@@ -35,17 +35,8 @@ const socials = [
 ];
 
 export function FloatingSocials() {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
   return (
-    <motion.div
-      drag
-      dragMomentum={false}
-      dragElastic={0}
-      style={{ x, y }}
-      className="fixed bottom-24 right-4 z-50 flex flex-col gap-3 cursor-grab active:cursor-grabbing"
-    >
+    <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-3">
       {socials.map((s, i) => (
         <motion.a
           key={s.label}
@@ -61,7 +52,6 @@ export function FloatingSocials() {
             delay: i * 0.35,
           }}
           whileHover={{ scale: 1.18, y: -10 }}
-          onClick={(e) => e.stopPropagation()}
           className={`w-11 h-11 rounded-full ${s.bg} flex items-center justify-center text-white`}
           style={{
             boxShadow: `0 4px 18px ${s.shadow}, 0 0 0 2px rgba(255,255,255,0.08)`,
@@ -70,6 +60,6 @@ export function FloatingSocials() {
           <s.icon className="w-5 h-5" />
         </motion.a>
       ))}
-    </motion.div>
+    </div>
   );
 }
