@@ -199,10 +199,10 @@ import { Link } from "wouter";
                     className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold px-7 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
                     Quiero ser Streamer <ArrowRight className="w-4 h-4" />
                   </Link>
-                  <Link href="/contacto"
+                  <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
                     Contactar
-                  </Link>
+                  </a>
                 </div>
               </div>
             </div>
