@@ -68,10 +68,10 @@ import { Link } from "wouter";
               En Eclipse Angels Agency puedes generar ingresos reales en dólares desde la comodidad de tu hogar usando únicamente tu smartphone. Sin inversión, sin experiencia previa, con total acompañamiento.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <Link href="/contacto"
+              <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
                 Quiero unirme <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
               <Link href="/apps"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
                 Ver Apps Disponibles
@@ -191,10 +191,10 @@ import { Link } from "wouter";
               Miles de mujeres ya generan ingresos reales en dólares con Eclipse Angels Agency. Tu momento es ahora. Escríbenos y empieza esta semana.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <Link href="/contacto"
+              <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
                 Contactar ahora <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
               <Link href="/apps"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-4 rounded-xl text-sm hover:bg-white/10 transition-colors">
                 Ver Apps <ArrowRight className="w-4 h-4" />
