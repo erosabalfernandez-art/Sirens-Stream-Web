@@ -14,7 +14,7 @@ router.post("/chat", async (req, res) => {
   const lowerMsg = message.toLowerCase();
 
   let reply =
-    "¡Hola! Soy Sirena, la asistente de Sirens Stream 🌊 ¿En qué puedo ayudarte? Puedo contarte sobre nuestras apps (Waha y Layla), cómo unirte a la agencia, métodos de pago, o responder cualquier duda.";
+    "¡Hola! Soy Ángela, la asistente de Eclipse Angels Agency ✨ ¿En qué puedo ayudarte? Puedo contarte sobre nuestras apps (Waha y Layla), cómo unirte a la agencia, métodos de pago, o responder cualquier duda.";
 
   if (lowerMsg.includes("layla")) {
     reply =
@@ -24,7 +24,7 @@ router.post("/chat", async (req, res) => {
       "Waha es una app de mensajería, salas de audio y videollamadas opcionales. El pago es semanal, la meta mínima es $2 y necesitas al menos 4 horas diarias de disponibilidad. En iOS se llama Liyo. ¿Quieres saber cuánto puedes ganar?";
   } else if (lowerMsg.includes("app") || lowerMsg.includes("plataforma")) {
     reply =
-      "En Sirens Stream trabajamos con dos apps principales: 💜 Layla (solo mensajes, ganancias acumulables, retiro mínimo $10) y 🔴 Waha (mensajes, salas de audio y videollamadas opcionales, retiro semanal mínimo $2). ¡Visita la sección de Apps para ver todos los detalles!";
+      "En Eclipse Angels Agency trabajamos con dos apps principales: 💜 Layla (solo mensajes, ganancias acumulables, retiro mínimo $10) y 🔴 Waha (mensajes, salas de audio y videollamadas opcionales, retiro semanal mínimo $2). ¡Visita la sección de Apps para ver todos los detalles!";
   } else if (lowerMsg.includes("requisito") || lowerMsg.includes("unir") || lowerMsg.includes("aplicar") || lowerMsg.includes("entrar")) {
     reply =
       "Para unirte solo necesitas: ✓ Ser mayor de 18 años ✓ Un smartphone con buena cámara ✓ Conexión WiFi estable ✓ Disponibilidad de 4-5 horas diarias ✓ ¡Actitud positiva! No necesitas experiencia previa, nosotros te capacitamos gratis.";
