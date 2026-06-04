@@ -477,7 +477,14 @@ import { useState } from "react";
                         <h2 className="font-extrabold text-xl">{app.name}</h2>
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${app.badgeColor}`}>{app.badge}</span>
                       </div>
-                      <p className="text-white/45 text-sm">{app.tagline}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-white/45 text-sm">{app.tagline}</p>
+                        {app.type === "waha" && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 whitespace-nowrap">
+                            Meta mín. $2.50 USD
+                          </span>
+                        )}
+                      </div>
                       <p className="text-white/25 text-xs mt-1.5 line-clamp-2">{app.desc}</p>
                     </div>
                     <div className="shrink-0 mt-1 text-white/30">
