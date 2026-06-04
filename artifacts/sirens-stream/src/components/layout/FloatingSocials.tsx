@@ -36,7 +36,7 @@ const socials = [
 
 export function FloatingSocials() {
   return (
-    <div className="fixed bottom-6 right-4 z-50 flex flex-col gap-3">
+    <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-3">
       {socials.map((s, i) => (
         <motion.a
           key={s.label}
