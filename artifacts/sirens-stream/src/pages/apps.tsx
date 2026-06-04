@@ -1,236 +1,242 @@
 import { useState } from "react";
   import { Link } from "wouter";
-  import { ChevronDown, ChevronUp, CheckCircle2, Smartphone, Clock, DollarSign, MessageCircle, ArrowRight, X, BookOpen, ExternalLink } from "lucide-react";
+  import { ChevronDown, ChevronUp, CheckCircle2, Smartphone, Clock, DollarSign, MessageCircle, ArrowRight, X, BookOpen, Copy, Check } from "lucide-react";
 
-  /* ── SVG Icons for apps ── */
+  /* ── SVG Icons ── */
   const WahaIcon = () => (
     <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="waha-g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff4e6a"/>
-          <stop offset="100%" stopColor="#c62a47"/>
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" rx="22" fill="url(#waha-g)"/>
-      <text x="50" y="62" textAnchor="middle" fontSize="52" fontWeight="900" fontFamily="Arial,sans-serif" fill="white">W</text>
+      <defs><linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ff4e6a"/><stop offset="100%" stopColor="#c62a47"/></linearGradient></defs>
+      <rect width="100" height="100" rx="22" fill="url(#wg)"/>
+      <text x="50" y="64" textAnchor="middle" fontSize="54" fontWeight="900" fontFamily="Arial,sans-serif" fill="white">W</text>
     </svg>
   );
 
   const LaylaIcon = () => (
     <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="layla-g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#a855f7"/>
-          <stop offset="100%" stopColor="#7c3aed"/>
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" rx="22" fill="url(#layla-g)"/>
-      <text x="50" y="55" textAnchor="middle" fontSize="22" fontWeight="900" fontFamily="Arial,sans-serif" fill="white" letterSpacing="1">LAYLA</text>
+      <defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#a855f7"/><stop offset="100%" stopColor="#7c3aed"/></linearGradient></defs>
+      <rect width="100" height="100" rx="22" fill="url(#lg)"/>
+      <text x="50" y="58" textAnchor="middle" fontSize="21" fontWeight="900" fontFamily="Arial,sans-serif" fill="white" letterSpacing="1">LAYLA</text>
     </svg>
   );
 
   const DatesIcon = () => (
     <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="dates-g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f59e0b"/>
-          <stop offset="100%" stopColor="#d97706"/>
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" rx="22" fill="url(#dates-g)"/>
-      <text x="50" y="62" textAnchor="middle" fontSize="42" fontFamily="Arial,sans-serif" fill="white">💛</text>
+      <defs><linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6"/><stop offset="50%" stopColor="#8b5cf6"/><stop offset="100%" stopColor="#ec4899"/></linearGradient></defs>
+      <rect width="100" height="100" rx="22" fill="url(#dg)"/>
+      <circle cx="35" cy="42" r="14" fill="white" opacity="0.9"/>
+      <circle cx="65" cy="42" r="14" fill="white" opacity="0.7"/>
+      <circle cx="50" cy="62" r="14" fill="white" opacity="0.5"/>
+      <text x="50" y="46" textAnchor="middle" fontSize="11" fontWeight="900" fontFamily="Arial,sans-serif" fill="#7c3aed">D</text>
     </svg>
   );
 
   const MangoIcon = () => (
     <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="mango-g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#84cc16"/>
-          <stop offset="100%" stopColor="#16a34a"/>
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" rx="22" fill="url(#mango-g)"/>
-      <text x="50" y="62" textAnchor="middle" fontSize="42" fontFamily="Arial,sans-serif" fill="white">🥭</text>
+      <defs><linearGradient id="mg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#f59e0b"/></linearGradient></defs>
+      <rect width="100" height="100" rx="22" fill="url(#mg)"/>
+      <text x="50" y="64" textAnchor="middle" fontSize="46" fontFamily="Arial,sans-serif" fill="#92400e">🥭</text>
     </svg>
   );
 
-  /* ── Data ── */
+  /* ── Data: WAHA ── */
   const WAHA_GANANCIAS = [
-    { categoria: "Mensajes", items: [
-      { tipo: "Usuarios VIP", val: "70 diamantes" },
-      { tipo: "Usuarios Free", val: "5 puntos" },
-    ]},
-    { categoria: "Videollamadas Match", items: [
-      { tipo: "Usuarios VIP", val: "350 diamantes" },
-      { tipo: "Usuarios Free", val: "120 puntos" },
-    ]},
-    { categoria: "Videollamadas Privadas", items: [
-      { tipo: "Por minuto", val: "700 diamantes" },
-    ]},
-    { categoria: "Regalos", items: [
-      { tipo: "Streamers reciben", val: "100% del valor" },
-    ]},
+    { cat: "Mensajes", rows: [{ t: "Usuarios VIP", v: "70 diamantes" }, { t: "Usuarios Free", v: "5 puntos" }] },
+    { cat: "Videollamadas Match", rows: [{ t: "Usuarios VIP", v: "350 diamantes" }, { t: "Usuarios Free", v: "120 puntos" }] },
+    { cat: "Videollamadas Privadas", rows: [{ t: "Por minuto", v: "700 diamantes" }] },
+    { cat: "Regalos", rows: [{ t: "Streamers reciben", v: "100% del valor" }] },
   ];
-
   const WAHA_PAGOS = [
-    { concepto: "Meta mínima diamantes", valor: "10,000 = $2.50 USD" },
-    { concepto: "Meta mínima puntos", valor: "10,000 = $1.80 USD" },
-    { concepto: "Pago semanal", valor: "Martes a Viernes (por agencia)" },
+    { c: "Meta mínima diamantes", v: "10,000 = $2.50 USD" },
+    { c: "Meta mínima puntos", v: "10,000 = $1.80 USD" },
+    { c: "Pago semanal", v: "Martes a Viernes (por agencia)" },
   ];
-
   const WAHA_SALARIO = [
-    { meta: "Tiempo en línea", requisito: "+200 minutos/día" },
-    { meta: "Saludos a usuarios", requisito: "+150 usuarios/día" },
-    { meta: "Tasa de respuesta", requisito: "+30% en chat" },
+    { m: "Tiempo en línea", r: "+200 minutos/día" },
+    { m: "Saludos a usuarios", r: "+150 usuarios/día" },
+    { m: "Tasa de respuesta", r: "+30% en chat" },
   ];
-
   const WAHA_BONOS = [
-    { nombre: "Diamantes en Chat", items: [
-      { cant: "10,000 diamantes", usd: "+$0.50 USD" },
-      { cant: "30,000 diamantes", usd: "+$2.00 USD" },
-      { cant: "100,000 diamantes", usd: "+$10.00 USD" },
-    ]},
-    { nombre: "Diamantes en Salas de Voz", items: [
-      { cant: "2,000 diamantes", usd: "+$0.30 USD" },
-      { cant: "10,000 diamantes", usd: "+$1.00 USD" },
-      { cant: "30,000 diamantes", usd: "+$3.00 USD" },
-      { cant: "100,000 diamantes", usd: "+$15.00 USD" },
-    ]},
+    { nombre: "Diamantes en Chat", items: [{ c: "10,000 diamantes", v: "+$0.50 USD" }, { c: "30,000 diamantes", v: "+$2.00 USD" }, { c: "100,000 diamantes", v: "+$10.00 USD" }] },
+    { nombre: "Diamantes en Salas de Voz", items: [{ c: "2,000 diamantes", v: "+$0.30 USD" }, { c: "10,000 diamantes", v: "+$1.00 USD" }, { c: "30,000 diamantes", v: "+$3.00 USD" }, { c: "100,000 diamantes", v: "+$15.00 USD" }] },
   ];
 
+  /* ── Data: LAYLA ── */
   const LAYLA_COINS = [
-    { monedas: "15,500", usd: "$1" },
-    { monedas: "155,000", usd: "$10" },
-    { monedas: "465,000", usd: "$30" },
-    { monedas: "775,000", usd: "$50" },
-    { monedas: "1,240,000", usd: "$80" },
-    { monedas: "1,550,500", usd: "$100" },
-    { monedas: "3,101,000", usd: "$200" },
+    { m: "15,500", u: "$1" }, { m: "155,000", u: "$10" }, { m: "465,000", u: "$30" },
+    { m: "775,000", u: "$50" }, { m: "1,240,000", u: "$80" }, { m: "1,550,500", u: "$100" }, { m: "3,101,000", u: "$200" },
   ];
-
   const LAYLA_PRICES = [
-    { concepto: "Ticket chat mensajes", monedas: "45" },
-    { concepto: "SayHi", monedas: "14" },
-    { concepto: "Enviar mensaje", monedas: "90" },
+    { c: "Ticket chat mensajes", v: "45" },
+    { c: "SayHi", v: "14" },
+    { c: "Enviar mensaje", v: "90" },
+    { c: "Regalo normal", v: "100%" },
+    { c: "Regalo suerte", v: "10%" },
+    { c: "Llamada voz / min", v: "1,350" },
+    { c: "Videollamada / min", v: "2,700" },
+    { c: "Match voz / min", v: "270" },
+    { c: "Video Match / min", v: "540" },
+    { c: "Ticket Match/Llamada", v: "20%" },
+  ];
+  const LAYLA_FUNCIONES = [
+    { f: "Llamadas de voz", rows: [{ k: "Ganancia por minuto", v: "1,350 monedas" }, { k: "Equivalente USD", v: "$0.087 / minuto" }] },
+    { f: "Match de video", rows: [{ k: "Ganancia por minuto", v: "540 monedas" }, { k: "Videollamada premium", v: "2,700 / minuto" }] },
+    { f: "Mensajería privada", rows: [{ k: "Por mensaje", v: "90 monedas" }, { k: "Ticket entrada chat", v: "45 monedas" }] },
+    { f: "Regalos y recompensas", rows: [{ k: "Regalo normal", v: "100% del valor" }, { k: "Regalo de la suerte", v: "10% adicional" }] },
+  ];
+  const LAYLA_BONOS = [
+    { k: "Bonos exclusivos", v: "Cupones y promociones" },
+    { k: "Meta diaria sugerida", v: "155,000 monedas → $10 USD" },
+  ];
+  const LAYLA_GUIDE_STEPS = [
+    { n: 1, t: "Descarga la App", d: "Selecciona el botón de descarga según tu dispositivo (Android o iOS)." },
+    { n: 2, t: "Instala la Aplicación", d: "Instala la aplicación desde el enlace descargado." },
+    { n: 3, t: "Selección de Género ⚠️", d: 'Selecciona "Femenino" como tu sexo. Esta elección es permanente y no se puede modificar.' },
+    { n: 4, t: "Configuración Inicial", d: "Foto de perfil: imagen real, alta calidad (no IA). Nombre y etiquetas: ingresa nombre y etiquetas de interés." },
+    { n: 5, t: "Código de Agencia 🔑", d: "Agrega el código para habilitar monetización. Sin este código NO se puede monetizar la app." },
+    { n: 6, t: "Verificación de Identidad", d: "Completa la verificación para autenticar tu perfil. Usa tu foto real, alta calidad." },
+    { n: 7, t: "Completa tu Perfil", d: "Álbum: imágenes reales variadas. Audio: voz clara y auténtica. Descripción: biografía completa." },
   ];
 
+  /* ── Apps list ── */
   const apps = [
     {
-      id: "waha",
-      Icon: WahaIcon,
-      name: "Waha",
-      tagline: "Mensajes · Salas de Audio · Videollamadas (opcionales)",
-      badge: "Solo mensajes",
+      id: "waha", Icon: WahaIcon, name: "Waha",
+      tagline: "Mensajería · Salas de Audio · Videollamadas (opcionales)",
+      badge: "Retiro semanal",
       badgeColor: "bg-red-500/15 text-red-300 border-red-500/30",
-      borderColor: "border-red-500/30",
-      accentColor: "text-red-400",
-      desc: "Plataforma de interacción completa con usuarios de todo el mundo. Compatible con mensajes de texto, salas de audio grupales y videollamadas opcionales. Alta meta de retiro semanal.",
+      borderOpen: "border-red-500/30",
+      accentText: "text-red-300",
+      desc: "Plataforma completa de interacción con usuarios de todo el mundo. Mensajes de texto, salas de audio grupales, videollamadas match y videollamadas privadas opcionales.",
       specs: [
-        { label: "Android", val: "Waha" },
-        { label: "iOS", val: "Liyo" },
-        { label: "Tiempo diario", val: "+4 horas" },
-        { label: "Retiro", val: "Semanal (no acumulable)" },
-        { label: "Meta mínima", val: "$2 USD" },
-        { label: "Modo", val: "Mensajes, Salas Audio, Videollamadas" },
+        { l: "Android", v: "Waha" }, { l: "iOS", v: "Liyo" },
+        { l: "Tiempo diario", v: "+4 Horas" }, { l: "Modo", v: "Mensajes, Salas Audio, Videollamadas, Zona Match" },
+        { l: "Retiro mínimo", v: "Semanal (No acumulable)" }, { l: "Meta mínima", v: "$2 USD" },
       ],
-      requisitos: ["Mayor de 18 años", "WiFi estable o datos móviles", "Disponible 4–5 horas al día", "Actitud positiva y responsable"],
-      guideImage: "/images/waha-guide.png",
+      requisitos: ["Ser mayor de edad", "Contar con buen WiFi/datos", "Disponible 4–5 horas diarias"],
       guideImages: ["/images/waha-guide.png"],
       type: "waha",
     },
     {
-      id: "layla",
-      Icon: LaylaIcon,
-      name: "Layla",
-      tagline: "Solo Mensajes · Ganancias acumulables · Horario libre",
+      id: "layla", Icon: LaylaIcon, name: "Layla",
+      tagline: "Solo Mensajes · Acumulable · Horario Flexible · Meta $10",
       badge: "Solo mensajes",
       badgeColor: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-      borderColor: "border-purple-500/30",
-      accentColor: "text-purple-400",
-      desc: "Plataforma de mensajería sin obligación de videollamada, con horarios completamente flexibles y retiro acumulable desde $10 USD. Ideal para quienes buscan trabajar a su propio ritmo.",
+      borderOpen: "border-purple-500/30",
+      accentText: "text-purple-300",
+      desc: "Plataforma sin obligación de videollamada, con horarios completamente flexibles. También permite llamadas de voz, match y videollamadas opcionales. Retiro acumulable desde $10 USD.",
       specs: [
-        { label: "Android", val: "Layla" },
-        { label: "iOS", val: "Nivi" },
-        { label: "Tiempo diario", val: "Flexible (pocas horas)" },
-        { label: "Retiro", val: "Acumulable" },
-        { label: "Meta mínima", val: "$10 USD" },
-        { label: "Modo", val: "Solo Mensajes (sin videollamada)" },
+        { l: "Android", v: "Layla" }, { l: "iOS", v: "Nivi" },
+        { l: "Tiempo diario", v: "Flexible (Pocas horas)" }, { l: "Modo", v: "Solo Mensajes (Sin videollamada)" },
+        { l: "Retiro", v: "Acumulable" }, { l: "Meta mínima", v: "$10 USD" },
       ],
-      requisitos: ["Mayor de 18 años", "Smartphone con buena cámara", "WiFi / datos estables", "4–5 horas diarias recomendadas"],
-      guideImage: "/images/layla-guide.png",
+      requisitos: ["Mayor de edad", "WiFi / Datos estables", "4–5 horas diarias"],
       guideImages: ["/images/layla-guide.png", "/images/layla-agency-guide.png"],
       type: "layla",
     },
     {
-      id: "dates",
-      Icon: DatesIcon,
-      name: "Dates",
-      tagline: "Contenido explícito · Meta mínima de retiro $100",
+      id: "dates", Icon: DatesIcon, name: "Dates",
+      tagline: "Contenido Explícito · Meta mínima de retiro $100",
       badge: "Explícito",
-      badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-      borderColor: "border-amber-500/30",
-      accentColor: "text-amber-400",
-      desc: "Plataforma de contenido explícito con alta rentabilidad. Requiere mayor compromiso y tiene una meta mínima de retiro de $100 USD. Solo para streamers mayores de 18 años con experiencia previa.",
+      badgeColor: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+      borderOpen: "border-blue-500/30",
+      accentText: "text-blue-300",
+      desc: "Plataforma de contenido para adultos con alta rentabilidad. Requiere mayor compromiso y tiene una meta mínima de retiro de $100 USD. Solo para streamers mayores de 18 años.",
       specs: [
-        { label: "Tipo", val: "Contenido explícito" },
-        { label: "Meta mínima", val: "$100 USD" },
-        { label: "Público", val: "Internacional" },
-        { label: "Requisito", val: "Mayor de 18 años" },
+        { l: "Tipo", v: "Contenido explícito" }, { l: "Meta mínima", v: "$100 USD" },
+        { l: "Público", v: "Internacional" }, { l: "Requisito", v: "Mayor de 18 años" },
       ],
       requisitos: ["Mayor de 18 años", "Experiencia previa recomendada", "WiFi estable", "Compromiso alto"],
-      guideImage: null,
       guideImages: [],
       type: "other",
     },
     {
-      id: "mango",
-      Icon: MangoIcon,
-      name: "Mango Live",
-      tagline: "Videollamadas en vivo · Alto rendimiento",
+      id: "mango", Icon: MangoIcon, name: "Mango Live",
+      tagline: "Videollamadas en Vivo · Alto Rendimiento",
       badge: "Videollamada",
-      badgeColor: "bg-green-500/15 text-green-300 border-green-500/30",
-      borderColor: "border-green-500/30",
-      accentColor: "text-green-400",
-      desc: "Aplicación de alto rendimiento enfocada en videollamadas en vivo. Permite transmitir en directo, interactuar con usuarios y generar ingresos por regalos virtuales y tiempo de transmisión.",
+      badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+      borderOpen: "border-amber-500/30",
+      accentText: "text-amber-300",
+      desc: "Aplicación de alto rendimiento enfocada en transmisiones en vivo y videollamadas. Genera ingresos por regalos virtuales, tiempo de transmisión y llamadas. Compatible con Android e iOS.",
       specs: [
-        { label: "Tipo", val: "Lives y videollamadas" },
-        { label: "Modo", val: "Transmisión en vivo" },
-        { label: "Ingresos", val: "Regalos + tiempo" },
-        { label: "Plataforma", val: "Android / iOS" },
+        { l: "Tipo", v: "Lives y videollamadas" }, { l: "Modo", v: "Transmisión en vivo" },
+        { l: "Ingresos", v: "Regalos + tiempo live" }, { l: "Plataforma", v: "Android / iOS" },
       ],
       requisitos: ["Mayor de 18 años", "Buena iluminación y cámara", "WiFi estable", "Disponibilidad para lives"],
-      guideImage: null,
       guideImages: [],
       type: "other",
     },
   ];
 
-  /* ── Image Modal ── */
+  /* ── Image Guide Modal ── */
   function GuideModal({ images, onClose }: { images: string[]; onClose: () => void }) {
-    const [imgIdx, setImgIdx] = useState(0);
+    const [idx, setIdx] = useState(0);
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
-        <div className="relative max-w-2xl w-full max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
-          <button onClick={onClose}
-            className="absolute -top-10 right-0 w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm" onClick={onClose}>
+        <div className="relative max-w-lg w-full max-h-[90vh] flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+          <button onClick={onClose} className="absolute -top-10 right-0 w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors">
             <X className="w-4 h-4 text-white" />
           </button>
-          <img src={images[imgIdx]} alt="Guía de instalación" className="rounded-2xl max-h-[80vh] w-auto object-contain shadow-2xl" />
+          <img src={images[idx]} alt="Guía" className="rounded-2xl max-h-[78vh] w-auto object-contain shadow-2xl" />
           {images.length > 1 && (
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-2">
               {images.map((_, i) => (
-                <button key={i} onClick={() => setImgIdx(i)}
-                  className={`h-2 rounded-full transition-all ${i === imgIdx ? "w-8 bg-blue-400" : "w-4 bg-white/30"}`} />
+                <button key={i} onClick={() => setIdx(i)}
+                  className={`h-2 rounded-full transition-all ${i === idx ? "w-8 bg-blue-400" : "w-4 bg-white/30"}`} />
               ))}
             </div>
           )}
-          <p className="text-white/40 text-xs mt-3">Toca fuera para cerrar</p>
+          <p className="text-white/35 text-xs">Toca fuera para cerrar · {idx + 1}/{images.length}</p>
         </div>
       </div>
     );
   }
 
+  /* ── Agency Code Copy ── */
+  function CodeCopy({ code }: { code: string }) {
+    const [copied, setCopied] = useState(false);
+    const copy = () => {
+      navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+    return (
+      <div className="bg-[#0d0d20] border border-purple-500/30 rounded-xl p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-purple-300/60 text-xs mb-1">Código de Agencia (Obligatorio)</p>
+          <p className="font-mono font-extrabold text-2xl text-purple-200 tracking-widest">{code}</p>
+        </div>
+        <button onClick={copy}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${copied ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30"}`}>
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? "Copiado!" : "Copiar"}
+        </button>
+      </div>
+    );
+  }
+
+  /* ── Table helper ── */
+  function InfoTable({ rows, accent = "text-blue-300" }: { rows: { l?: string; r?: string; k?: string; v?: string; c?: string }[]; accent?: string }) {
+    return (
+      <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+        {rows.map((row, i) => {
+          const label = row.l ?? row.k ?? row.c ?? "";
+          const value = row.r ?? row.v ?? "";
+          return (
+            <div key={i} className={`flex justify-between items-center px-4 py-2.5 text-sm ${i > 0 ? "border-t border-white/5" : ""} ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
+              <span className="text-white/55">{label}</span>
+              <span className={`font-bold ${accent}`}>{value}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function SectionTitle({ children }: { children: React.ReactNode }) {
+    return <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">{children}</h3>;
+  }
+
+  /* ── Main component ── */
   export default function Apps() {
     const [open, setOpen] = useState<string | null>("waha");
     const [guideModal, setGuideModal] = useState<string[] | null>(null);
@@ -251,7 +257,7 @@ import { useState } from "react";
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Catálogo de <span className="gradient-text">Apps</span></h1>
             <p className="text-white/50 max-w-xl mx-auto">
-              Trabajamos únicamente con las mejores plataformas internacionales verificadas. Cada app ha sido seleccionada para garantizar pagos seguros y el mayor potencial de ganancias.
+              Trabajamos únicamente con plataformas internacionales verificadas, seleccionadas para garantizar pagos seguros y el mayor potencial de ganancias.
             </p>
           </div>
         </section>
@@ -262,10 +268,9 @@ import { useState } from "react";
             {apps.map((app) => {
               const isOpen = open === app.id;
               return (
-                <div key={app.id}
-                  className={`bg-[#0d0d1e] border rounded-2xl overflow-hidden transition-all ${isOpen ? `${app.borderColor} shadow-lg` : "border-blue-500/10"}`}>
+                <div key={app.id} className={`bg-[#0d0d1e] border rounded-2xl overflow-hidden transition-all ${isOpen ? `${app.borderOpen} shadow-lg` : "border-blue-500/10"}`}>
 
-                  {/* ── Accordion header ── */}
+                  {/* Header */}
                   <button className="w-full flex items-start gap-4 p-6 text-left hover:bg-white/[0.02] transition-colors"
                     onClick={() => setOpen(isOpen ? null : app.id)}>
                     <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 shadow-md">
@@ -284,14 +289,14 @@ import { useState } from "react";
                     </div>
                   </button>
 
-                  {/* ── Accordion content ── */}
+                  {/* Content */}
                   {isOpen && (
                     <div className="border-t border-white/5 p-6 space-y-7">
-                      {/* Guide + CTA buttons */}
+
+                      {/* Action buttons */}
                       <div className="flex flex-wrap gap-3">
                         {app.guideImages.length > 0 && (
-                          <button
-                            onClick={() => setGuideModal(app.guideImages)}
+                          <button onClick={() => setGuideModal(app.guideImages)}
                             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                             <BookOpen className="w-4 h-4" /> Guía de Instalación
                           </button>
@@ -305,22 +310,22 @@ import { useState } from "react";
                       {/* Description */}
                       <p className="text-white/55 text-sm leading-relaxed">{app.desc}</p>
 
-                      {/* Specs grid */}
+                      {/* Specs */}
                       <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">Información General</h3>
+                        <SectionTitle>Información General</SectionTitle>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {app.specs.map((s, i) => (
                             <div key={i} className="bg-[#0a0a14] border border-white/5 rounded-xl px-4 py-3">
-                              <p className="text-white/30 text-xs mb-1">{s.label}</p>
-                              <p className="font-semibold text-sm text-white/85">{s.val}</p>
+                              <p className="text-white/30 text-xs mb-1">{s.l}</p>
+                              <p className="font-semibold text-sm text-white/85">{s.v}</p>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      {/* Requirements */}
+                      {/* Requisitos */}
                       <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">Requisitos Esenciales</h3>
+                        <SectionTitle>Requisitos Esenciales</SectionTitle>
                         <div className="flex flex-wrap gap-2">
                           {app.requisitos.map((r, i) => (
                             <span key={i} className="flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-full px-3 py-1.5 text-xs text-white/60">
@@ -330,119 +335,153 @@ import { useState } from "react";
                         </div>
                       </div>
 
-                      {/* ── WAHA specific ── */}
-                      {app.type === "waha" && (
-                        <>
-                          <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">Ganancias por Actividad</h3>
-                            <div className="space-y-3">
-                              {WAHA_GANANCIAS.map((cat, ci) => (
-                                <div key={ci} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
-                                  <div className="px-4 py-2.5 bg-white/3 border-b border-white/5">
-                                    <span className="text-white/70 text-sm font-bold">{cat.categoria}</span>
-                                  </div>
-                                  {cat.items.map((item, ii) => (
-                                    <div key={ii} className={`flex justify-between items-center px-4 py-3 text-sm ${ii > 0 ? "border-t border-white/5" : ""}`}>
-                                      <span className="text-white/50">{item.tipo}</span>
-                                      <span className="text-red-300 font-bold">{item.val}</span>
-                                    </div>
-                                  ))}
+                      {/* ══ WAHA DETAILS ══ */}
+                      {app.type === "waha" && (<>
+                        <div>
+                          <SectionTitle>Ganancias por Actividad</SectionTitle>
+                          <div className="space-y-3">
+                            {WAHA_GANANCIAS.map((cat, ci) => (
+                              <div key={ci} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+                                <div className="px-4 py-2.5 bg-white/3 border-b border-white/5">
+                                  <span className="text-white/70 text-sm font-bold">{cat.cat}</span>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">Metas y Pagos</h3>
-                            <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
-                              <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
-                                <span>Concepto</span><span className="text-right">Valor</span>
+                                <InfoTable rows={cat.rows.map(r => ({ l: r.t, r: r.v }))} accent="text-red-300" />
                               </div>
-                              {WAHA_PAGOS.map((row, i) => (
-                                <div key={i} className={`grid grid-cols-2 px-4 py-3 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
-                                  <span className="text-white/55">{row.concepto}</span>
-                                  <span className="text-right text-red-300 font-semibold">{row.valor}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <p className="mt-2 text-xs text-white/35 px-1">⚠️ Si el dispositivo ya tuvo cuenta WAHA, no aplica el salario base.</p>
+                            ))}
                           </div>
+                        </div>
 
-                          <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-1">Salario Base Inicial</h3>
-                            <p className="text-white/40 text-xs mb-3">Disponible solo las primeras 2 semanas — <span className="text-red-300 font-semibold">$1 USD diario</span> por cumplir metas</p>
-                            <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
-                              <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
-                                <span>Meta</span><span className="text-right">Requisito</span>
+                        <div>
+                          <SectionTitle>Metas y Pagos</SectionTitle>
+                          <InfoTable rows={WAHA_PAGOS.map(r => ({ l: r.c, r: r.v }))} accent="text-red-300" />
+                          <p className="mt-2 text-xs text-white/35 px-1">⚠️ Si el dispositivo ya tuvo cuenta WAHA, no aplica el salario base.</p>
+                        </div>
+
+                        <div>
+                          <SectionTitle>Salario Base Inicial</SectionTitle>
+                          <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 mb-3 text-sm text-white/60">
+                            Disponible solo las <strong className="text-white/80">primeras 2 semanas</strong> — <span className="text-red-300 font-bold">$1 USD diario</span> por cumplir estas metas:
+                          </div>
+                          <InfoTable rows={WAHA_SALARIO.map(r => ({ l: r.m, r: r.r }))} accent="text-red-300" />
+                        </div>
+
+                        <div>
+                          <SectionTitle>Bonos Diarios</SectionTitle>
+                          <div className="space-y-3">
+                            {WAHA_BONOS.map((bono, bi) => (
+                              <div key={bi} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+                                <div className="px-4 py-2.5 bg-white/3 border-b border-white/5">
+                                  <span className="text-white/70 text-sm font-bold">{bono.nombre}</span>
+                                </div>
+                                <InfoTable rows={bono.items.map(r => ({ l: r.c, r: r.v }))} accent="text-red-300" />
                               </div>
-                              {WAHA_SALARIO.map((row, i) => (
-                                <div key={i} className={`grid grid-cols-2 px-4 py-3 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
-                                  <span className="text-white/55">{row.meta}</span>
-                                  <span className="text-right text-red-300 font-semibold">{row.requisito}</span>
-                                </div>
-                              ))}
-                            </div>
+                            ))}
                           </div>
+                          <p className="mt-2 text-xs text-white/35 px-1">* Requisito adicional: 5 días con más de 200 minutos en línea.</p>
+                        </div>
 
-                          <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">Bonos Diarios</h3>
-                            <div className="space-y-3">
-                              {WAHA_BONOS.map((bono, bi) => (
-                                <div key={bi} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
-                                  <div className="px-4 py-2.5 bg-white/3 border-b border-white/5">
-                                    <span className="text-white/70 text-sm font-bold">{bono.nombre}</span>
-                                  </div>
-                                  {bono.items.map((item, ii) => (
-                                    <div key={ii} className={`flex justify-between items-center px-4 py-3 text-sm ${ii > 0 ? "border-t border-white/5" : ""}`}>
-                                      <span className="text-white/50">{item.cant}</span>
-                                      <span className="text-red-300 font-bold">{item.usd}</span>
-                                    </div>
-                                  ))}
+                        {/* Waha registration steps */}
+                        <div>
+                          <SectionTitle>Pasos para Registrarse en Waha</SectionTitle>
+                          <div className="space-y-2">
+                            {[
+                              { n: 1, t: "Descarga la app", d: 'Busca "Waha" en Google Play (Android) o "Liyo" en App Store (iOS).' },
+                              { n: 2, t: "Inicia sesión con Google", d: "Al abrir la app por primera vez, inicia sesión con tu cuenta de Google." },
+                              { n: 3, t: "Encuentra la invitación", d: "Ve a Mensajes de la app y busca la cuenta regresiva con la invitación de la agencia." },
+                              { n: 4, t: "Envía tu ID al administrador", d: 'Dentro de tu perfil, debajo de tu nombre aparece tu código único. Envía captura + ID por WhatsApp al administrador para convertirte en PRE-VIP.' },
+                            ].map((s, i) => (
+                              <div key={i} className="flex gap-3 bg-[#0a0a14] border border-white/5 rounded-xl px-4 py-3">
+                                <span className="text-red-400 font-extrabold text-sm shrink-0 w-6">0{s.n}</span>
+                                <div>
+                                  <p className="font-bold text-white text-sm">{s.t}</p>
+                                  <p className="text-white/45 text-xs leading-relaxed mt-0.5">{s.d}</p>
                                 </div>
-                              ))}
-                              <p className="text-xs text-white/35 px-1">* Requisito adicional: 5 días con más de 200 minutos en línea.</p>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* ── LAYLA specific ── */}
-                      {app.type === "layla" && (
-                        <>
-                          <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">Conversión · Monedas → USD</h3>
-                            <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
-                              <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
-                                <span>Monedas</span><span className="text-right">USD</span>
                               </div>
-                              {LAYLA_COINS.map((row, i) => (
-                                <div key={i} className={`grid grid-cols-2 px-4 py-2.5 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
-                                  <span className="text-white/55">{row.monedas}</span>
-                                  <span className="text-right text-purple-300 font-bold">{row.usd}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="mt-2 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2.5 text-xs text-purple-300 font-semibold">
-                              META MÍNIMA: 155,000 monedas = $10 USD
-                            </div>
+                            ))}
                           </div>
+                          <p className="mt-2 text-xs text-white/35 px-1">💡 ¿Dónde ver tu ID? Dentro de tu perfil, justo debajo de tu nombre o foto aparecerá tu código único de usuario.</p>
+                        </div>
+                      </>)}
 
-                          <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">Precios por Actividad</h3>
-                            <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
-                              <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
-                                <span>Concepto</span><span className="text-right">Monedas</span>
-                              </div>
-                              {LAYLA_PRICES.map((row, i) => (
-                                <div key={i} className={`grid grid-cols-2 px-4 py-3 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
-                                  <span className="text-white/55">{row.concepto}</span>
-                                  <span className="text-right text-purple-300 font-bold">{row.monedas}</span>
-                                </div>
-                              ))}
+                      {/* ══ LAYLA DETAILS ══ */}
+                      {app.type === "layla" && (<>
+
+                        {/* Agency code highlight */}
+                        <CodeCopy code="G-8U3JADTLH" />
+
+                        <div>
+                          <SectionTitle>Conversión · Monedas → USD</SectionTitle>
+                          <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+                            <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
+                              <span>Monedas</span><span className="text-right">USD</span>
                             </div>
+                            {LAYLA_COINS.map((row, i) => (
+                              <div key={i} className={`grid grid-cols-2 px-4 py-2.5 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
+                                <span className="text-white/55">{row.m}</span>
+                                <span className="text-right text-purple-300 font-bold">{row.u}</span>
+                              </div>
+                            ))}
                           </div>
-                        </>
-                      )}
+                          <div className="mt-2 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2.5 text-xs text-purple-300 font-semibold">
+                            META MÍNIMA: 155,000 monedas = $10 USD
+                          </div>
+                        </div>
+
+                        <div>
+                          <SectionTitle>Precios por Actividad</SectionTitle>
+                          <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+                            <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
+                              <span>Concepto</span><span className="text-right">Monedas</span>
+                            </div>
+                            {LAYLA_PRICES.map((row, i) => (
+                              <div key={i} className={`grid grid-cols-2 px-4 py-2.5 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
+                                <span className="text-white/55">{row.c}</span>
+                                <span className="text-right text-purple-300 font-bold">{row.v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <SectionTitle>Funciones Principales</SectionTitle>
+                          <div className="space-y-3">
+                            {LAYLA_FUNCIONES.map((func, fi) => (
+                              <div key={fi} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+                                <div className="px-4 py-2.5 bg-white/3 border-b border-white/5">
+                                  <span className="text-white/70 text-sm font-bold">{func.f}</span>
+                                </div>
+                                <InfoTable rows={func.rows} accent="text-purple-300" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <SectionTitle>Tareas Diarias + Bonos</SectionTitle>
+                          <InfoTable rows={LAYLA_BONOS} accent="text-purple-300" />
+                          <div className="mt-3 bg-purple-500/8 border border-purple-500/20 rounded-xl px-4 py-3 text-xs text-purple-200/70 leading-relaxed">
+                            💡 <strong>Potencial de ingresos:</strong> 4h de llamadas de voz activas = 324,000 monedas (~$20 USD). Combinando match de video y mensajes, el rendimiento diario puede superar los <span className="text-purple-300 font-bold">$30–$50 USD</span>.
+                          </div>
+                        </div>
+
+                        {/* Layla registration steps */}
+                        <div>
+                          <SectionTitle>Pasos para Registrarse en Layla</SectionTitle>
+                          <div className="space-y-2">
+                            {LAYLA_GUIDE_STEPS.map((s, i) => (
+                              <div key={i} className="flex gap-3 bg-[#0a0a14] border border-white/5 rounded-xl px-4 py-3">
+                                <span className="text-purple-400 font-extrabold text-sm shrink-0 w-6">0{s.n}</span>
+                                <div className="flex-1">
+                                  <p className="font-bold text-white text-sm">{s.t}</p>
+                                  <p className="text-white/45 text-xs leading-relaxed mt-0.5">{s.d}</p>
+                                  {s.n === 5 && <CodeCopy code="G-8U3JADTLH" />}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>)}
+
                     </div>
                   )}
                 </div>
