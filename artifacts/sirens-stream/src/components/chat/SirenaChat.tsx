@@ -102,6 +102,10 @@ function fuzzyHas(text: string, keywords: string[]): boolean {
 // ── Knowledge base with multiple variants ──────────────────
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 
+const LINK_KEYWORDS = ["descarg", "bajar", "instalar", "play store", "app store", "google play", "apk", "link", "enlace", "download", "tienda", "donde bajo", "como bajo", "como descargo", "donde descargo", "obtener", "conseguir"];
+const TELEGRAM_KEYWORDS = ["telegram", "t.me", "canal", "group", "grupo", "comunidad", "chat de telegram"];
+const SOCIAL_KEYWORDS = ["instagram", "tiktok", "facebook", "redes", "redes sociales", "ig", "fb", "tt", "perfil", "perfiles", "social", "siguen", "siguenos", "encontrarte", "encontrarlos", "redes de", "donde estan", "donde los encuentro", "encontrar en", "como les sigo"];
+
 const R = {
   greeting: [
     "¡Hola! Soy Ángela ✨, tu asistente en Eclipse Angels Agency. Estoy aquí para contarte todo sobre cómo ganar dólares desde tu celular. ¿Por dónde quieres empezar? 😊",
@@ -355,23 +359,92 @@ Estamos disponibles todos los días de 9 AM a 11 PM ✅`,
   ],
 
   links: [
-    `📲 Links de descarga de las apps:
+    `📲 Links de descarga de todas las apps:
 
-*WAHA (Android):*
+*WAHA — Android:*
 https://play.google.com/store/apps/details?id=com.phx.waha
 
-*WAHA / LIYO (iPhone iOS):*
+*LIYO (Waha en iPhone/iOS):*
 https://apps.apple.com/us/app/liyo-emotions-find-echo/id6746777859
 
-*Layla (Android e iOS):*
-Próximamente — por ahora contáctanos y te guiamos con la instalación.
+*LAYLA — Android:*
+https://play.google.com/store/apps/details?id=com.heytango.layla
 
-📢 Canales de Telegram:
-• Waha: https://t.me/ingresos_waha
-• Layla: https://t.me/ingresos_layla
+*NIVI (Layla en iPhone/iOS):*
+https://apps.apple.com/us/app/nivi/id6502905584
 
-🌐 Nuestra web:
-https://eclipse-angels-webb.onrender.com`,
+📢 Canales de Telegram por app:
+• Waha/Liyo → https://t.me/ingresos_waha
+• Layla/Nivi → https://t.me/ingresos_layla
+
+¿Necesitas ayuda con la instalación? ¡Escríbenos! 😊`,
+  ],
+
+  linksWaha: [
+    `📲 Descarga WAHA / LIYO aquí:
+
+*Android (Waha):*
+https://play.google.com/store/apps/details?id=com.phx.waha
+
+*iPhone / iOS (Liyo):*
+https://apps.apple.com/us/app/liyo-emotions-find-echo/id6746777859
+
+📢 Canal de Telegram de Waha:
+https://t.me/ingresos_waha
+
+¿Necesitas ayuda con el registro o el código de agencia? Dime y te explico paso a paso 😊`,
+
+    `¡Aquí tienes! 🔗
+
+Waha en Android → https://play.google.com/store/apps/details?id=com.phx.waha
+Liyo (Waha en iOS) → https://apps.apple.com/us/app/liyo-emotions-find-echo/id6746777859
+
+Canal Telegram Waha → https://t.me/ingresos_waha
+
+Una vez instalada, te explico cómo registrarte con el código de agencia para poder monetizar. ¿Tienes Android o iPhone? 😊`,
+  ],
+
+  linksLayla: [
+    `📲 Descarga LAYLA / NIVI aquí:
+
+*Android (Layla):*
+https://play.google.com/store/apps/details?id=com.heytango.layla
+
+*iPhone / iOS (Nivi):*
+https://apps.apple.com/us/app/nivi/id6502905584
+
+📢 Canal de Telegram de Layla:
+https://t.me/ingresos_layla
+
+🔑 Recuerda registrarte con el código de agencia: *G-84Y3AG7HL* (sin esto no puedes monetizar)
+
+¿Tienes alguna duda con la instalación? 😊`,
+
+    `¡Claro! Aquí tienes los links de Layla: 🔗
+
+Layla en Android → https://play.google.com/store/apps/details?id=com.heytango.layla
+Nivi (Layla en iOS) → https://apps.apple.com/us/app/nivi/id6502905584
+
+Canal Telegram Layla → https://t.me/ingresos_layla
+
+🔑 Código de agencia obligatorio: *G-84Y3AG7HL*
+Sin ese código no podrás monetizar, así que no te olvides al registrarte. ¿Necesitas más ayuda? 😊`,
+  ],
+
+  telegram: [
+    `📢 Canales de Telegram por app:
+
+• Waha / Liyo → https://t.me/ingresos_waha
+• Layla / Nivi → https://t.me/ingresos_layla
+
+En estos canales encontrarás consejos, novedades y soporte de nuestra comunidad. ¡Únete! 😊`,
+
+    `¡Aquí están nuestros canales de Telegram! 📱
+
+Waha → https://t.me/ingresos_waha
+Layla → https://t.me/ingresos_layla
+
+¿Hay algo más que quieras saber? 🌟`,
   ],
 
   comparacion: [
@@ -443,89 +516,92 @@ Cada chica tiene una tutora personal que la acompaña en todo el proceso. No est
 function getResponse(rawText: string): string {
   const t = normalize(rawText);
 
-  // Saludo
+  const isWaha = fuzzyHas(t, ["waha", "liyo", "diamante"]);
+  const isLayla = fuzzyHas(t, ["layla", "nivi", "acumulable"]);
+  const isLinkIntent = fuzzyHas(t, LINK_KEYWORDS);
+  const isTelegramIntent = fuzzyHas(t, TELEGRAM_KEYWORDS);
+  const isSocialIntent = fuzzyHas(t, SOCIAL_KEYWORDS);
+
+  // ── 1. Saludo ───────────────────────────────────────────────
   if (/^(hola|buenas|buenos|hey|hi|ola|saludos|buen dia|que tal|como estas|que hay|buenas tardes|buenas noches|buenos dias|wenas|wena|ola ola)\b/.test(t)
     || (t.length < 20 && /hola|hey|wenas|buenas/.test(t))) {
     return pick(R.greeting);
   }
 
-  // Sí / afirmaciones sueltas
+  // ── 2. Telegram (antes que cualquier app) ──────────────────
+  if (isTelegramIntent) {
+    if (isWaha && !isLayla) return pick(R.linksWaha);
+    if (isLayla && !isWaha) return pick(R.linksLayla);
+    return pick(R.telegram);
+  }
+
+  // ── 3. Descargas / links de app específica ─────────────────
+  if (isLinkIntent && isWaha && !isLayla) return pick(R.linksWaha);
+  if (isLinkIntent && isLayla && !isWaha) return pick(R.linksLayla);
+  if (isLinkIntent) return pick(R.links);
+
+  // ── 4. Redes sociales / contacto ───────────────────────────
+  if (isSocialIntent || fuzzyHas(t, ["contacto", "whatsapp", "telefono", "donde los encuentro", "como los contacto", "email", "correo", "donde te encuentro", "como te contacto", "como les escribo", "como les hablo"])) {
+    return pick(R.contacto);
+  }
+
+  // ── 5. Sí / afirmaciones sueltas ───────────────────────────
   if (/^(si|ok|dale|claro|obvio|porfa|por favor|ayuda|ayudame|dimelo|cuentame|quisiera|quisiera saber|me gustaria|quiero saber|dime|cuent|info)\b/.test(t)) {
     return pick(R.positivo);
   }
 
-  // Comparación Waha vs Layla
-  if (fuzzyHas(t, ["cual mejor", "diferencia", "waha layla", "layla waha", "cual recomienda", "que app", "cual app", "cual plataforma", "cual elijo", "cual me conviene", "mejor opcion", "cuál elegir", "recomiendas"])) {
+  // ── 6. Comparación Waha vs Layla ───────────────────────────
+  if (fuzzyHas(t, ["cual mejor", "diferencia", "waha layla", "layla waha", "cual recomienda", "que app", "cual app", "cual plataforma", "cual elijo", "cual me conviene", "mejor opcion", "cual elegir", "recomiendas"])) {
     return pick(R.comparacion);
   }
 
-  // Waha / Liyo
-  if (fuzzyHas(t, ["waha", "liyo", "diamante"]) && !fuzzyHas(t, ["layla", "nivi"])) {
-    return pick(R.waha);
-  }
+  // ── 7. App específica ──────────────────────────────────────
+  if (isWaha && !isLayla) return pick(R.waha);
+  if (isLayla && !isWaha) return pick(R.layla);
+  if (isWaha && isLayla) return pick(R.comparacion);
 
-  // Layla / Nivi
-  if (fuzzyHas(t, ["layla", "nivi", "acumulable"]) && !fuzzyHas(t, ["waha", "liyo"])) {
-    return pick(R.layla);
-  }
-
-  // Ambas apps mencionadas sin comparar → comparación
-  if (fuzzyHas(t, ["waha", "liyo"]) && fuzzyHas(t, ["layla", "nivi"])) {
-    return pick(R.comparacion);
-  }
-
-  // Apps en general
-  if (fuzzyHas(t, ["app", "aplicacion", "plataforma", "plataformas", "que usan", "que apps"])) {
+  // ── 8. Apps en general ─────────────────────────────────────
+  if (fuzzyHas(t, ["app", "aplicacion", "plataforma", "plataformas", "que usan", "que apps", "con que trabajan", "que plataformas"])) {
     return `Trabajamos con dos plataformas principales:\n\n📱 *Waha* (iOS: Liyo) — mensajes, salas de audio y videollamadas opcionales. Meta mín. $2.50 USD. Pago semanal.\n\n📱 *Layla* (iOS: Nivi) — mensajes, salas de audio, llamadas y videollamadas opcionales. Meta mín. $10 USD. Retiro acumulable.\n\n¿Quieres que te cuente más de alguna? 😊`;
   }
 
-  // Ganancias / dinero
-  if (fuzzyHas(t, ["ganar", "dinero", "cuanto", "sueldo", "salario", "ingreso", "cobrar", "beneficio", "plata", "billete", "real", "cuanto se gana", "cuanto pagan", "vale la pena"])) {
+  // ── 9. Ganancias / dinero ──────────────────────────────────
+  if (fuzzyHas(t, ["ganar", "dinero", "cuanto", "sueldo", "salario", "ingreso", "cobrar", "beneficio", "plata", "billete", "cuanto se gana", "cuanto pagan", "vale la pena", "cuanto puedo", "gana uno", "pagan bien", "se gana bien"])) {
     return pick(R.ganancias);
   }
 
-  // Pagos / retiros
-  if (fuzzyHas(t, ["pago", "retiro", "binance", "pix", "banco", "transferencia", "cobro", "cuando pagan", "forma de pago", "metodo", "monedero"])) {
+  // ── 10. Pagos / retiros ────────────────────────────────────
+  if (fuzzyHas(t, ["pago", "retiro", "binance", "pix", "banco", "transferencia", "cobro", "cuando pagan", "forma de pago", "metodo", "monedero", "como me pagan", "cuando cobro", "cuando retiro"])) {
     return pick(R.pagos);
   }
 
-  // Requisitos / condiciones
-  if (fuzzyHas(t, ["requisito", "necesito", "edad", "mayor", "condicion", "que necesita", "que se pide", "que se necesita", "cuales son los requisitos"])) {
+  // ── 11. Requisitos ─────────────────────────────────────────
+  if (fuzzyHas(t, ["requisito", "necesito", "edad", "mayor", "condicion", "que necesita", "que se pide", "que se necesita", "cuales son los requisitos", "que hace falta", "que piden", "que requieren"])) {
     return pick(R.requisitos);
   }
 
-  // Cómo unirse / empezar
-  if (fuzzyHas(t, ["unir", "empezar", "comenzar", "inscribir", "registrar", "como entro", "quiero entrar", "quiero unirme", "quiero empezar", "donde me registro", "como me uno", "inicio", "como empiezo", "como empezar", "proceso", "pasos"])) {
+  // ── 12. Cómo unirse / empezar ──────────────────────────────
+  if (fuzzyHas(t, ["unir", "empezar", "comenzar", "inscribir", "registrar", "como entro", "quiero entrar", "quiero unirme", "quiero empezar", "donde me registro", "como me uno", "inicio", "como empiezo", "como empezar", "proceso", "pasos", "quiero trabajar", "quiero ganar", "como puedo empezar", "que hago para entrar"])) {
     return pick(R.unirse);
   }
 
-  // Seguridad / privacidad / estafa
-  if (fuzzyHas(t, ["segur", "privacidad", "cara", "foto", "datos", "confid", "peligro", "estafa", "scam", "legal", "legitim", "confianza", "real", "mentira", "verdad", "funcionan"])) {
+  // ── 13. Seguridad / privacidad / estafa ────────────────────
+  if (fuzzyHas(t, ["segur", "privacidad", "cara", "foto", "datos", "confid", "peligro", "estafa", "scam", "legal", "legitim", "confianza", "mentira", "verdad", "funcionan", "es real", "es verdad", "es confiable", "es seguro", "me pueden ver", "saben quien soy"])) {
     return pick(R.seguridad);
   }
 
-  // Hombres
-  if (fuzzyHas(t, ["hombre", "chico", "masculino", "hombres", "reclutador", "referir", "chicos"])) {
+  // ── 14. Hombres ────────────────────────────────────────────
+  if (fuzzyHas(t, ["hombre", "chico", "masculino", "hombres", "reclutador", "referir", "chicos", "puedo si soy hombre", "acepta hombres"])) {
     return pick(R.hombres);
   }
 
-  // Links / descargas / apps stores / Telegram
-  if (fuzzyHas(t, ["descarg", "bajar", "instalar", "play store", "app store", "google play", "apk", "link", "enlace", "telegram", "t.me", "donde descargo", "como descargo", "download", "tienda"])) {
-    return pick(R.links);
-  }
-
-  // Contacto
-  if (fuzzyHas(t, ["contacto", "whatsapp", "instagram", "tiktok", "facebook", "email", "correo", "redes", "telefono", "donde los encuentro", "como los contacto"])) {
-    return pick(R.contacto);
-  }
-
-  // Agencia / quiénes son
-  if (fuzzyHas(t, ["agencia", "eclipse", "angels", "que es", "de que trata", "empresa", "quienes son", "quienes somos", "de que se trata", "informacion"])) {
+  // ── 15. Agencia / quiénes son ──────────────────────────────
+  if (fuzzyHas(t, ["agencia", "eclipse", "angels", "que es", "de que trata", "empresa", "quienes son", "quienes somos", "de que se trata", "informacion", "cuéntame de", "cuentame de", "de que va", "que hacen"])) {
     return pick(R.agencia);
   }
 
-  // Horario / disponibilidad
-  if (fuzzyHas(t, ["hora", "disponibilidad", "horario", "cuantas horas", "tiempo", "dedicar"])) {
+  // ── 16. Horario / disponibilidad ───────────────────────────
+  if (fuzzyHas(t, ["hora", "disponibilidad", "horario", "cuantas horas", "tiempo", "dedicar", "cuanto tiempo", "que horario", "horas al dia", "cuando conecto"])) {
     return `⏰ Sobre el horario:
 
 No hay horario fijo — tú decides cuándo conectarte. Lo ideal es estar al menos 4 horas al día para alcanzar las metas de las plataformas.
@@ -535,8 +611,8 @@ Muchas chicas trabajan en sus ratos libres: mañana, tarde o noche. Tú organiza
 ¿Tienes alguna otra duda?`;
   }
 
-  // Inversión / gratis
-  if (fuzzyHas(t, ["inversion", "pagar", "cuesta", "gratis", "cobran", "hay que pagar", "cuanto cuesta unirse"])) {
+  // ── 17. Inversión / gratis ─────────────────────────────────
+  if (fuzzyHas(t, ["inversion", "pagar", "cuesta", "gratis", "cobran", "hay que pagar", "cuanto cuesta unirse", "es gratis", "hay costo", "cuanto vale", "tienen costo"])) {
     return `✅ No hay ninguna inversión para empezar.
 
 Registrarte con nosotros, la capacitación y el soporte son completamente GRATIS. Nunca te vamos a pedir dinero. 
@@ -546,7 +622,7 @@ Si alguien te dice que tienes que pagar para unirte, no somos nosotros. 😊
 ¿Quieres saber cómo es el proceso para empezar?`;
   }
 
-  // Fallback
+  // ── 18. Fallback ───────────────────────────────────────────
   return pick(R.noEntiendo);
 }
 
