@@ -4,7 +4,7 @@ import {
   CheckCircle2, Zap, Star, CreditCard, MessageCircle, ArrowRight,
   Play, Globe, Award, HeartHandshake
 } from "lucide-react";
-import { useGetAgencyStats } from "@workspace/api-client-react";
+import { useGetAgencyStats } from "@/lib/api-client";
 
 const benefits = [
   { icon: DollarSign, title: "Pagos Semanales en Dólares", desc: "Recibe tus ganancias cada semana puntualmente. Sin retrasos, sin excusas." },
