@@ -65,10 +65,10 @@ import { useState, useEffect } from "react";
   ];
 
   const steps = [
-    { n: "01", title: "Contáctanos", desc: "Escríbenos por WhatsApp. Te respondemos en menos de 24 horas." },
-    { n: "02", title: "Capacitación Gratis", desc: "Nuestras tutoras te guían paso a paso desde la instalación hasta las primeras estrategias." },
-    { n: "03", title: "Empieza a Trabajar", desc: "Te registras en la app y comienzas a interactuar con usuarios de todo el mundo." },
-    { n: "04", title: "Cobra tus Ganancias", desc: "Cada semana recibes tu pago en el método que prefieras." },
+    { n: "01", title: "Escríbenos", desc: "Mándanos un mensaje por WhatsApp. Te contestamos en menos de 24 horas." },
+    { n: "02", title: "Te enseñamos todo", desc: "Una de nuestras guías te explica cómo instalar la app y cómo empezar a ganar desde el primer día." },
+    { n: "03", title: "Empieza a ganar", desc: "Abres la app, chateas con personas de cualquier parte del mundo y empiezas a acumular dinero." },
+    { n: "04", title: "Recibes tu pago", desc: "Cada semana te mandamos lo que ganaste, al método de cobro que más te convenga." },
   ];
 
   const earnings = [
@@ -371,10 +371,10 @@ import { useState, useEffect } from "react";
             <div className="text-center mb-14">
               <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-4">
                 <Zap className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Proceso simple</span>
+                <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Así de fácil es</span>
               </div>
-              <h2 className="text-4xl font-bold mb-4">¿Cómo funciona?</h2>
-              <p className="text-white/50">En solo 4 pasos empiezas a generar ingresos reales</p>
+              <h2 className="text-4xl font-bold mb-4">¿Cómo empiezo?</h2>
+              <p className="text-white/50">En 4 pasos sencillos ya estás ganando dinero real</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {steps.map((s, i) => (
