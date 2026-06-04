@@ -189,12 +189,23 @@ import { useState } from "react";
           </div>
           {/* Full-screen image overlay */}
           {imgExpanded && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm" onClick={() => setImgExpanded(false)}>
-              <img src="/images/waha-guide-captura.png" alt="Guía visual ampliada" className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" />
-              <button onClick={() => setImgExpanded(false)} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center hover:bg-white/25 transition-colors">
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+              onClick={() => setImgExpanded(false)}
+            >
+              <img
+                src="/images/waha-guide-captura.png"
+                alt="Guía visual ampliada"
+                style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
+                onClick={e => e.stopPropagation()}
+              />
+              <button
+                onClick={() => setImgExpanded(false)}
+                style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
                 <X className="w-4 h-4 text-white" />
               </button>
-              <p className="absolute bottom-6 left-0 right-0 text-center text-white/30 text-xs">Toca fuera para cerrar</p>
+              <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>Toca fuera para cerrar</p>
             </div>
           )}
         </>
