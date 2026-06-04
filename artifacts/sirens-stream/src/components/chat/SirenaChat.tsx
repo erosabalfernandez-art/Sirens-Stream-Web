@@ -268,23 +268,60 @@ export function SirenaChat() {
   const openChat = useCallback(() => { setShowBubble(false); setIsOpen(true); }, []);
   const closeChat = useCallback(() => setIsOpen(false), []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const msg = input.trim();
-    if (!msg || isTyping) return;
+  const sendMessage = useCallback((msg: string) => {
+    if (!msg.trim() || isTyping) return;
     setMessages(prev => [...prev, { role: "user", content: msg }]);
     setInput("");
     setIsTyping(true);
-    // Simulate natural typing delay
     const delay = 600 + Math.random() * 800;
     setTimeout(() => {
       const reply = getResponse(msg);
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
       setIsTyping(false);
     }, delay);
+  }, [isTyping]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(input.trim());
   };
 
-  const quickReplies = ["¿Qué app me recomiendas?", "¿Cuánto puedo ganar?", "¿Cómo me uno?", "Métodos de pago"];
+  // Contextual quick replies — change based on last AI message topic
+  const getContextualReplies = (): string[] => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
+    if (!lastAssistant) return ["¿Qué app me recomiendas?", "¿Cuánto puedo ganar?", "¿Cómo me uno?", "¿Es seguro?"];
+    const t = lastAssistant.content.toLowerCase();
+    if (t.includes("waha") && t.includes("layla") && t.includes("diamante")) {
+      // Comparación mostrada
+      return ["Cuéntame más de Waha", "Cuéntame más de Layla", "¿Cuánto se gana?", "Quiero unirme"];
+    }
+    if (t.includes("waha") || t.includes("diamante") || t.includes("liyo")) {
+      return ["¿Cuánto puedo ganar en Waha?", "¿Cómo me registro en Waha?", "¿Y Layla cómo es?", "Métodos de pago"];
+    }
+    if (t.includes("layla") || t.includes("nivi") || t.includes("moneda")) {
+      return ["¿Cuánto se gana en Layla?", "¿Cómo me registro en Layla?", "¿Y Waha cómo es?", "Métodos de pago"];
+    }
+    if (t.includes("10–$50") || t.includes("ganar") || t.includes("ganancias")) {
+      return ["¿Cuándo me pagan?", "¿Cómo me uno?", "¿Qué app es mejor?", "¿Es seguro?"];
+    }
+    if (t.includes("binance") || t.includes("pago") || t.includes("retiro")) {
+      return ["¿Cuánto se gana?", "¿Cómo me uno?", "Info sobre Waha", "Info sobre Layla"];
+    }
+    if (t.includes("requisito") || t.includes("mayor de 18") || t.includes("smartphone")) {
+      return ["¿Cómo me registro?", "¿Cuánto ganaré?", "¿Es seguro?", "Hablar con alguien"];
+    }
+    if (t.includes("whatsapp") || t.includes("inscrib") || t.includes("empez")) {
+      return ["Contactar por WhatsApp", "Info sobre Waha", "Info sobre Layla", "¿Cuánto se gana?"];
+    }
+    if (t.includes("privacidad") || t.includes("cara") || t.includes("segur")) {
+      return ["¿Cómo me uno?", "¿Cuánto se gana?", "Info sobre Waha", "Info sobre Layla"];
+    }
+    if (t.includes("hombre") || t.includes("reclutador")) {
+      return ["Contactar por WhatsApp", "¿Cuánto se gana reclutando?", "¿Cómo me registro?"];
+    }
+    // Default after greeting or generic
+    return ["Info sobre Waha", "Info sobre Layla", "¿Cuánto puedo ganar?", "¿Cómo me uno?", "¿Es seguro?"];
+  };
 
   return (
     <div className="fixed bottom-6 right-5 z-50 flex flex-col items-end">
@@ -371,12 +408,12 @@ export function SirenaChat() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick replies */}
-            {messages.length <= 1 && (
+            {/* Contextual quick replies — always visible, never while typing */}
+            {!isTyping && (
               <div className="px-3 pb-2 flex flex-wrap gap-1.5 shrink-0">
-                {quickReplies.map((q) => (
+                {getContextualReplies().map((q) => (
                   <button key={q}
-                    onClick={() => { setMessages(prev => [...prev, { role: "user", content: q }]); setIsTyping(true); setTimeout(() => { setMessages(prev => [...prev, { role: "assistant", content: getResponse(q) }]); setIsTyping(false); }, 700 + Math.random() * 500); }}
+                    onClick={() => sendMessage(q)}
                     className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-blue-500/15 border border-blue-500/25 text-blue-300 hover:bg-blue-500/25 transition-colors">
                     {q}
                   </button>
