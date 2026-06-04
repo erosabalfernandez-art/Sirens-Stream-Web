@@ -24,7 +24,7 @@ import { Link } from "wouter";
 
   const socials = [
     { href: "https://www.instagram.com/eclipse_angels.agency?igsh=bW9mczJiNG1lOG1h", icon: <FaInstagram />, label: "Instagram", color: "text-[#E1306C] hover:opacity-80" },
-    { href: "https://wa.me/1234567890", icon: <FaWhatsapp />, label: "WhatsApp", color: "text-[#25D366] hover:opacity-80" },
+    { href: "https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency", icon: <FaWhatsapp />, label: "WhatsApp", color: "text-[#25D366] hover:opacity-80" },
     { href: "https://www.tiktok.com/@eclipse_angels1?_r=1&_t=ZS-96vSGdq3JZ4", icon: <FaTiktok />, label: "TikTok", color: "text-white hover:opacity-80" },
     { href: "https://facebook.com/eclipseangelsagency", icon: <FaFacebook />, label: "Facebook", color: "text-[#1877F2] hover:opacity-80" },
   ];
@@ -39,10 +39,10 @@ import { Link } from "wouter";
               <h3 className="text-xl font-bold text-white mb-1">¿Lista para empezar a ganar desde casa?</h3>
               <p className="text-white/40 text-sm">Sin inversión · Sin experiencia · Solo tu celular</p>
             </div>
-            <Link href="/contacto"
+            <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
               className="shrink-0 bg-purple-600 hover:bg-purple-500 text-white font-bold px-7 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)]">
               Contactar Ahora →
-            </Link>
+            </a>
           </div>
         </div>
 
