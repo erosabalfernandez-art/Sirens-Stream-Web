@@ -91,7 +91,7 @@ import { useState } from "react";
     },
     {
       id: "layla", Icon: LaylaIcon, name: "Layla",
-      tagline: "Mensajes + Videollamadas · Retiro Acumulable · Horario Flexible · Meta $10",
+      tagline: "Mensajes · Salas de Audio · Llamadas de Voz · Videollamadas opcionales · Meta $10",
       badge: "Retiros acumulativos",
       badgeColor: "bg-purple-500/15 text-purple-300 border-purple-500/30",
       borderOpen: "border-purple-500/30",
