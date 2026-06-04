@@ -99,7 +99,7 @@ import { useState } from "react";
       desc: "Plataforma enfocada en mensajes, con horarios completamente flexibles. Sí acepta videollamadas, llamadas de voz y match — pero no son obligatorias. Su mayor ventaja es el retiro acumulable desde $10 USD.",
       specs: [
         { l: "Android", v: "Layla" }, { l: "iOS", v: "Nivi" },
-        { l: "Tiempo diario", v: "Flexible (Pocas horas)" }, { l: "Modo", v: "Solo Mensajes (Sin videollamada)" },
+        { l: "Tiempo diario", v: "+4 Horas" }, { l: "Modo", v: "Mensajes, Salas de Audio, Llamadas de Voz, Videollamadas opcionales" },
         { l: "Retiro", v: "Acumulable" }, { l: "Meta mínima", v: "$10 USD" },
       ],
       requisitos: ["Mayor de edad", "WiFi / Datos estables", "4–5 horas diarias"],
