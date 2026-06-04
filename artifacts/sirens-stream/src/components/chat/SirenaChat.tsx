@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Sparkles, User, Loader2 } from "lucide-react";
-import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSendChatMessage } from "@/lib/api-client";
 import type { ChatMessage } from "@/lib/api-client";
 
@@ -15,10 +15,6 @@ export function SirenaChat() {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatMutation = useSendChatMessage();
-
-  // Drag state for the whole widget
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
 
   // Show welcome bubble after 1s, hide after 6s — never opens chat automatically
   useEffect(() => {
@@ -65,10 +61,7 @@ export function SirenaChat() {
   const quickReplies = ["¿Qué app me recomiendas?", "¿Cuánto puedo ganar?", "¿Cómo me uno?", "Métodos de pago"];
 
   return (
-    <motion.div
-      drag
-      dragMomentum={false}
-      dragElastic={0}
+    <div
       style={{
         position: "fixed",
         bottom: 24,
@@ -77,9 +70,6 @@ export function SirenaChat() {
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-end",
-        x,
-        y,
-        touchAction: "none",
       }}
     >
       {/* Welcome bubble — only shows automatically, doesn't open chat */}
@@ -211,6 +201,6 @@ export function SirenaChat() {
           </>
         )}
       </motion.button>
-    </motion.div>
+    </div>
   );
 }
