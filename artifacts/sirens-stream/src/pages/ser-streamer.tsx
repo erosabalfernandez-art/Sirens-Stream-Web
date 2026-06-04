@@ -85,7 +85,7 @@ import { Link } from "wouter";
           <div className="max-w-4xl mx-auto px-5">
             <div className="text-center mb-12">
               <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">¿En qué consiste el trabajo?</span>
-              <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-3">Lo que hace una Streamer en Sirens</h2>
+              <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-3">Lo que hace una Streamer en Eclipse Angels</h2>
               <p className="text-white/45 max-w-xl mx-auto text-sm">Interactúas con usuarios desde tu celular a través de mensajes, audio y video opcionales, y recibes diamantes y monedas que se convierten en dólares.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
@@ -178,6 +178,35 @@ import { Link } from "wouter";
                   <p className="text-white/40 text-xs leading-relaxed">{s.d}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Hombres bienvenidos */}
+        <section className="py-14 bg-[#07070f]">
+          <div className="max-w-4xl mx-auto px-5">
+            <div className="relative bg-gradient-to-r from-purple-900/30 to-blue-900/20 border border-purple-500/25 rounded-3xl p-8 overflow-hidden">
+              <div className="absolute top-0 right-0 w-[300px] h-[200px] rounded-full bg-purple-600/10 blur-[80px] pointer-events-none" />
+              <div className="relative flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+                  <Users className="w-7 h-7 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="inline-flex items-center gap-2 bg-purple-500/15 border border-purple-500/25 rounded-full px-3 py-1 mb-3">
+                    <span className="text-purple-300 text-[11px] font-bold uppercase tracking-wider">¿Eres hombre? También tienes lugar aquí</span>
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-extrabold text-white mb-2">
+                    Los hombres también pueden ganar en <span className="text-purple-400">Eclipse Angels Agency</span>
+                  </h3>
+                  <p className="text-white/55 text-sm leading-relaxed mb-4">
+                    Puedes unirte como <strong className="text-white/80">reclutador</strong> — refiere chicas a la agencia y gana comisión por cada una que empiece a trabajar. También puedes registrarte en algunas de nuestras aplicaciones. Sea como sea, siendo parte de nuestro equipo, siempre saldrás beneficiado.
+                  </p>
+                  <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency%20como%20reclutador" target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                    Quiero ser reclutador <ArrowRight className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </section>
