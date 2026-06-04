@@ -66,7 +66,7 @@ import { Link } from "wouter";
               </p>
               <div className="flex items-center gap-1 mt-4 text-white/30 text-xs">
                 <Mail className="w-3 h-3" />
-                <span>eclipseangelsagency@gmail.com</span>
+                <span>eclipse_angels@outlook.com</span>
               </div>
             </div>
 
