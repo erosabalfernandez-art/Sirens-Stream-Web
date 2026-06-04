@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
     CheckCircle2, Zap, Star, CreditCard, MessageCircle, ArrowRight,
     Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart
   } from "lucide-react";
+  import { FaWhatsapp, FaInstagram, FaTelegramPlane } from "react-icons/fa";
   import { useGetAgencyStats } from "@/lib/api-client";
 
   const slides = [
@@ -160,13 +161,14 @@ import { useState, useEffect } from "react";
           {/* Floating social sidebar */}
           <div className="absolute right-5 top-1/2 -translate-y-1/2 z-20 hidden xl:flex flex-col gap-3">
             {[
-              { href: "https://wa.me/1234567890", color: "bg-[#25D366]", label: "WA" },
-              { href: "https://instagram.com/eclipseangelsagency", color: "bg-gradient-to-br from-purple-500 to-pink-600", label: "IG" },
-              { href: "https://t.me/eclipseangelsagency", color: "bg-[#2CA5E0]", label: "TG" },
+              { href: "https://wa.me/1234567890", color: "bg-[#25D366]", label: "WhatsApp", icon: <FaWhatsapp className="w-5 h-5" /> },
+              { href: "https://www.instagram.com/eclipse_angels.agency?igsh=bW9mczJiNG1lOG1h", color: "bg-gradient-to-br from-purple-500 to-pink-600", label: "Instagram", icon: <FaInstagram className="w-5 h-5" /> },
+              { href: "https://t.me/eclipseangelsagency", color: "bg-[#2CA5E0]", label: "Telegram", icon: <FaTelegramPlane className="w-5 h-5" /> },
             ].map((s) => (
               <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                className={`w-10 h-10 ${s.color} rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-lg hover:scale-110 transition-transform`}>
-                {s.label}
+                className={`w-10 h-10 ${s.color} rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform`}
+                aria-label={s.label}>
+                {s.icon}
               </a>
             ))}
           </div>
