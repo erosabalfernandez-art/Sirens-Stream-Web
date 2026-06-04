@@ -1,4 +1,4 @@
-import { useListTutorials } from "@workspace/api-client-react";
+import { useListTutorials } from "@/lib/api-client";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Play } from "lucide-react";
