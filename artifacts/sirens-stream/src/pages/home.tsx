@@ -72,18 +72,18 @@ import { useState, useEffect } from "react";
   ];
 
   const earnings = [
-    { label: "$10 – $50", sub: "USD por día en promedio" },
-    { label: "$100 – $500", sub: "USD semanales con constancia" },
-    { label: "$1,000 – $2,000", sub: "USD mensuales con dedicación" },
+    { label: "$10 – $50", sub: "lo que puedes ganar en un día" },
+    { label: "$100 – $500", sub: "a la semana si eres constante" },
+    { label: "$1,000 – $2,000", sub: "al mes si le dedicas tiempo" },
   ];
 
   const requirements = [
-    { icon: Heart, text: "Ser mujer mayor de 18 años" },
-    { icon: Camera, text: "Smartphone con buena cámara" },
-    { icon: Wifi, text: "Conexión WiFi o datos estables" },
-    { icon: Clock, text: "4–5 horas disponibles al día" },
-    { icon: Star, text: "Actitud positiva y compromiso" },
-    { icon: Shield, text: "Sin experiencia previa requerida" },
+    { icon: Heart, text: "Tener 18 años o más" },
+    { icon: Camera, text: "Un celular con buena cámara" },
+    { icon: Wifi, text: "Tener WiFi o datos en tu celular" },
+    { icon: Clock, text: "4–5 horas libres al día" },
+    { icon: Star, text: "Ganas de aprender y mejorar" },
+    { icon: Shield, text: "No necesitas experiencia" },
   ];
 
   const infoCards = [
@@ -317,13 +317,13 @@ import { useState, useEffect } from "react";
               <div>
                 <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-6">
                   <Users className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">¿A quién buscamos?</span>
+                  <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">¿Esta oportunidad es para ti?</span>
                 </div>
                 <h2 className="text-4xl font-bold mb-4">
-                  Trabaja como <span className="gradient-text">Modelo de Videochat</span><br />o Novia Virtual desde Casa
+                  Gana dinero real desde casa <span className="gradient-text">siendo tú misma</span>
                 </h2>
                 <p className="text-white/50 mb-6 leading-relaxed">
-                  En Eclipse Angels Agency te conectamos con las mejores plataformas internacionales de videochat y streaming. Gana dinero en dólares sin inversión, sin experiencia previa y con total discreción, trabajando desde tu celular.
+                  En Eclipse Angels Agency te ayudamos a ganar dinero en dólares desde tu celular. Sin poner un peso, sin saber nada del tema y con total discreción.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
                   {requirements.map((r, i) => (
@@ -335,12 +335,12 @@ import { useState, useEffect } from "react";
                 </div>
                 <Link href="/ser-streamer"
                   className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all">
-                  Quiero unirme <ArrowRight className="w-4 h-4" />
+                  Me uno ahora <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
               <div className="space-y-4">
                 <div className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-6">
-                  <p className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-4">Potencial de Ganancias</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-4">¿Cuánto puedes ganar?</p>
                   {earnings.map((e, i) => (
                     <div key={i} className={`flex items-center justify-between py-3 ${i > 0 ? "border-t border-white/5" : ""}`}>
                       <span className="text-white/50 text-sm">{e.sub}</span>
@@ -350,9 +350,9 @@ import { useState, useEffect } from "react";
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: "Libertad de Horarios", icon: Clock },
-                    { label: "Privacidad Total", icon: Shield },
-                    { label: "Pagos Semanales", icon: DollarSign },
+                    { label: "Tu horario, tus reglas", icon: Clock },
+                    { label: "Nadie sabe que trabajas", icon: Shield },
+                    { label: "Cobras cada semana", icon: DollarSign },
                   ].map((c, i) => (
                     <div key={i} className="bg-[#0d0d1e] border border-blue-500/10 rounded-xl p-4 text-center">
                       <c.icon className="w-5 h-5 text-blue-400 mx-auto mb-2" />
