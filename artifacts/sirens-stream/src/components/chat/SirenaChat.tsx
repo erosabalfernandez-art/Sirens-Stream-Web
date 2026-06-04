@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Sparkles, User, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSendChatMessage } from "@/lib/api-client";
 import type { ChatMessage } from "@/lib/api-client";
 
@@ -16,7 +16,6 @@ export function SirenaChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatMutation = useSendChatMessage();
 
-  // Show welcome bubble after 1s, hide after 6s — never opens chat automatically
   useEffect(() => {
     const show = setTimeout(() => setShowBubble(true), 1000);
     const hide = setTimeout(() => setShowBubble(false), 7000);
@@ -27,11 +26,7 @@ export function SirenaChat() {
     if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isOpen]);
 
-  const openChat = useCallback(() => {
-    setShowBubble(false);
-    setIsOpen(true);
-  }, []);
-
+  const openChat = useCallback(() => { setShowBubble(false); setIsOpen(true); }, []);
   const closeChat = useCallback(() => setIsOpen(false), []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,19 +34,21 @@ export function SirenaChat() {
     const msg = input.trim();
     if (!msg || chatMutation.isPending) return;
     const history = messages.slice(-10);
-    const next: ChatMessage[] = [...messages, { role: "user", content: msg }];
-    setMessages(next);
+    setMessages(prev => [...prev, { role: "user", content: msg }]);
     setInput("");
     chatMutation.mutate(
       { data: { message: msg, history } },
       {
         onSuccess: (res) => {
-          setMessages(prev => [...prev, { role: "assistant", content: res.reply ?? "Sin respuesta" }]);
+          const reply = typeof res === "object" && res !== null && "reply" in res
+            ? String((res as { reply: unknown }).reply ?? "Sin respuesta")
+            : "Sin respuesta";
+          setMessages(prev => [...prev, { role: "assistant", content: reply }]);
         },
         onError: () => {
           setMessages(prev => [...prev, {
             role: "assistant",
-            content: "Tengo problemas de conexión. Escríbenos por WhatsApp o Instagram directamente 💬"
+            content: "Tengo problemas de conexión. Escríbenos por WhatsApp o Instagram directamente 💬",
           }]);
         },
       }
@@ -61,27 +58,18 @@ export function SirenaChat() {
   const quickReplies = ["¿Qué app me recomiendas?", "¿Cuánto puedo ganar?", "¿Cómo me uno?", "Métodos de pago"];
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 24,
-        right: 20,
-        zIndex: 50,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-      }}
-    >
-      {/* Welcome bubble — only shows automatically, doesn't open chat */}
+    <div className="fixed bottom-6 right-5 z-50 flex flex-col items-end">
+      {/* Welcome bubble */}
       <AnimatePresence>
         {showBubble && !isOpen && (
           <motion.button
-            initial={{ opacity: 0, y: 10, scale: 0.92 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.92 }}
-            transition={{ duration: 0.22 }}
+            key="bubble"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={openChat}
-            className="mb-3 max-w-[250px] text-left bg-[#0a0a16] border border-blue-500/30 rounded-2xl rounded-br-sm px-4 py-3 shadow-xl shadow-blue-950/50 text-[13px] text-white/85 leading-relaxed cursor-pointer hover:border-blue-400/50 transition-colors"
+            className="mb-3 max-w-[250px] text-left bg-[#0a0a16] border border-blue-500/30 rounded-2xl rounded-br-sm px-4 py-3 shadow-xl text-[13px] text-white/85 leading-relaxed cursor-pointer hover:border-blue-400/50 transition-colors"
           >
             {WELCOME_MSG}
             <span className="block mt-1.5 text-[11px] text-blue-400 font-semibold">Toca para chatear →</span>
@@ -93,15 +81,16 @@ export function SirenaChat() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.94 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            style={{ width: 350, height: 520, marginBottom: 12 }}
-            className="bg-[#0a0a16] border border-blue-500/20 rounded-2xl shadow-2xl shadow-blue-950/40 overflow-hidden flex flex-col"
+            key="chatwindow"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="mb-3 bg-[#0a0a16] border border-blue-500/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            style={{ width: 350, height: 520 }}
           >
             {/* Header */}
-            <div className="px-4 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between select-none">
+            <div className="px-4 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between select-none shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-white" />
@@ -155,7 +144,7 @@ export function SirenaChat() {
 
             {/* Quick replies */}
             {messages.length <= 1 && (
-              <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+              <div className="px-3 pb-2 flex flex-wrap gap-1.5 shrink-0">
                 {quickReplies.map((q) => (
                   <button key={q}
                     onClick={() => setInput(q)}
@@ -167,7 +156,7 @@ export function SirenaChat() {
             )}
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className="p-3 border-t border-blue-500/10 bg-[#080812]">
+            <form onSubmit={handleSubmit} className="p-3 border-t border-blue-500/10 bg-[#080812] shrink-0">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
