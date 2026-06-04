@@ -18,6 +18,18 @@ import { useState } from "react";
 
     const faqs = [
       {
+        q: "¿Los hombres pueden trabajar con Eclipse Angels Agency?",
+        a: "¡Sí, absolutamente! Los hombres también tienen un lugar en nuestro equipo. Pueden participar de dos formas: creándose cuentas en algunas de nuestras aplicaciones asociadas, o como reclutadores, refiriendo chicas a la agencia y ganando comisión por cada una que se una y empiece a generar. Siendo parte de Eclipse Angels Agency, siempre saldrán beneficiados."
+      },
+      {
+        q: "¿Cómo puede ganar dinero un hombre en la agencia?",
+        a: "Hay dos caminos claros. El primero es registrarse en ciertas aplicaciones de nuestra red y generar ingresos propios. El segundo es convertirse en reclutador: presentar chicas interesadas a la agencia y cobrar una comisión por cada incorporación exitosa. Es una forma flexible de ganar sin límite de horario ni de ingresos."
+      },
+      {
+        q: "¿Los hombres reciben el mismo soporte que las chicas?",
+        a: "Sí. Cualquier persona que forme parte de nuestro equipo recibe capacitación, guías y acompañamiento constante. No importa cómo decidas participar, siempre tendrás a alguien disponible para ayudarte a crecer y maximizar tus ganancias."
+      },
+      {
         q: "¿Qué es Eclipse Angels Agency?",
         a: "Eclipse Angels Agency es una agencia de streamers y chat hostess que conecta a mujeres mayores de 18 años con plataformas internacionales de videochat y mensajería. Puedes ganar dinero en dólares desde tu celular, sin invertir nada y sin experiencia previa."
       },
