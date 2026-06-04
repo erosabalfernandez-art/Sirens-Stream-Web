@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-  import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebook, FaTelegram } from "react-icons/fa";
+  import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebook } from "react-icons/fa";
   import { Mail } from "lucide-react";
 
   const navCols = [
@@ -23,11 +23,10 @@ import { Link } from "wouter";
   ];
 
   const socials = [
-    { href: "https://wa.me/1234567890", icon: <FaWhatsapp />, label: "WhatsApp", color: "hover:text-[#25D366]" },
-    { href: "https://instagram.com/eclipseangelsagency", icon: <FaInstagram />, label: "Instagram", color: "hover:text-[#E1306C]" },
-    { href: "https://t.me/eclipseangelsagency", icon: <FaTelegram />, label: "Telegram", color: "hover:text-[#2CA5E0]" },
-    { href: "https://tiktok.com/@eclipseangelsagency", icon: <FaTiktok />, label: "TikTok", color: "hover:text-white" },
-    { href: "https://facebook.com/eclipseangelsagency", icon: <FaFacebook />, label: "Facebook", color: "hover:text-[#1877F2]" },
+    { href: "https://instagram.com/eclipseangelsagency", icon: <FaInstagram />, label: "Instagram", color: "text-[#E1306C] hover:opacity-80" },
+    { href: "https://wa.me/1234567890", icon: <FaWhatsapp />, label: "WhatsApp", color: "text-[#25D366] hover:opacity-80" },
+    { href: "https://tiktok.com/@eclipseangelsagency", icon: <FaTiktok />, label: "TikTok", color: "text-white hover:opacity-80" },
+    { href: "https://facebook.com/eclipseangelsagency", icon: <FaFacebook />, label: "Facebook", color: "text-[#1877F2] hover:opacity-80" },
   ];
 
   export function Footer() {
@@ -92,7 +91,7 @@ import { Link } from "wouter";
             <div className="flex items-center gap-3">
               {socials.map((s) => (
                 <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                  className={`text-white/30 ${s.color} text-lg transition-colors`} aria-label={s.label}>
+                  className={`${s.color} text-xl transition-opacity`} aria-label={s.label}>
                   {s.icon}
                 </a>
               ))}
