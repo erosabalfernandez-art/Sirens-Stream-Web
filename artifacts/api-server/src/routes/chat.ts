@@ -48,8 +48,8 @@ REQUISITOS para Waha: Mayor de edad · Buen WiFi/datos · 4–5 horas diarias di
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📱 APP 2: LAYLA (iOS: Nivi)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DESCRIPCIÓN: Plataforma de mensajes con horarios flexibles. SÍ acepta videollamadas, llamadas de voz y match, pero NO son obligatorias. Su mayor ventaja es el retiro ACUMULABLE.
-IDEAL PARA: Chicas que prefieren solo chatear o que quieren flexibilidad de horario. También para quienes no quieren presión de retiro semanal y prefieren acumular hasta tener más.
+DESCRIPCIÓN: Plataforma completa — mensajes, salas de audio, llamadas de voz, videollamadas y match. Las videollamadas y llamadas de voz son opcionales. Requiere +4 horas diarias. Su mayor ventaja es el retiro ACUMULABLE.
+IDEAL PARA: Chicas que prefieren mensajes y salas de audio sin presión de videollamadas. También para quienes no quieren presión de retiro semanal y prefieren acumular hasta tener más.
 
 GANANCIAS:
 • Llamadas de voz: 1,350 monedas/min = ~$0.087 USD/min
@@ -90,10 +90,10 @@ Usa esta guía para recomendar:
 
 ✅ Recomienda LAYLA si la chica:
 → Solo quiere chatear (mensajes), sin presión de videollamadas
-→ Quiere horario muy flexible (pocas horas al día)
+→ Puede dedicar +4 horas diarias pero prefiere retiro acumulable sin presión semanal
 → Prefiere acumular ganancias sin presión de retiro semanal
 → Está empezando y quiere algo más tranquilo y sencillo
-→ No quiere hacer salas de audio ni lives
+→ Le interesan salas de audio y mensajes más que videollamadas
 
 ✅ Recomienda WAHA si la chica:
 → Le gusta interactuar de muchas formas (chat, audio, video)
