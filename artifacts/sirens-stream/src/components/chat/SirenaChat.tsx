@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Sparkles, User, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSendChatMessage } from "@workspace/api-client-react";
-import type { ChatMessage } from "@workspace/api-client-react";
+import { useSendChatMessage } from "@/lib/api-client";
+import type { ChatMessage } from "@/lib/api-client";
 
 export function SirenaChat() {
   const [isOpen, setIsOpen] = useState(false);
