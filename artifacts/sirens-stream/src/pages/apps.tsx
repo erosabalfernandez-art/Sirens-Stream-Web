@@ -73,7 +73,7 @@ import { useState } from "react";
   const apps = [
     {
       id: "waha", Icon: WahaIcon, name: "Waha",
-      tagline: "Mensajería · Salas de Audio · Videollamadas (opcionales)",
+      tagline: "Mensajería · Salas de Audio · Videollamadas",
       badge: "Retiro semanal",
       badgeColor: "bg-red-500/15 text-red-300 border-red-500/30",
       borderOpen: "border-red-500/30",
