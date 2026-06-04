@@ -19,7 +19,7 @@ import { Link } from "wouter";
     },
     {
       icon: Shield,
-      title: "Respaldo de Sirens Stream",
+      title: "Respaldo de Eclipse Angels Agency",
       desc: "No estás solo/a. Contamos con soporte técnico, asesoría de managers experimentados y actualizaciones constantes.",
     },
     {
@@ -94,7 +94,7 @@ import { Link } from "wouter";
               <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Agencia de Streamers</span>
             </h1>
             <p className="text-white/55 max-w-2xl mx-auto text-lg leading-relaxed mb-8">
-              Conviértete en manager, lidera un equipo de streamers y genera ingresos pasivos por las ganancias de tu equipo. Una oportunidad de negocio real con respaldo total de Sirens Stream.
+              Conviértete en manager, lidera un equipo de streamers y genera ingresos pasivos por las ganancias de tu equipo. Una oportunidad de negocio real con respaldo total de Eclipse Angels Agency.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link href="/contacto"
@@ -115,7 +115,7 @@ import { Link } from "wouter";
             <div className="text-center mb-12">
               <span className="text-xs font-bold uppercase tracking-widest text-amber-400/70">¿Qué hace un Manager?</span>
               <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-3">Tu rol como líder de agencia</h2>
-              <p className="text-white/45 text-sm max-w-xl mx-auto">Como manager de Sirens Stream, eres la persona que recluta, capacita y acompaña a un equipo de streamers, y ganas por sus resultados.</p>
+              <p className="text-white/45 text-sm max-w-xl mx-auto">Como manager de Eclipse Angels Agency, eres la persona que recluta, capacita y acompaña a un equipo de streamers, y ganas por sus resultados.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
@@ -143,7 +143,7 @@ import { Link } from "wouter";
             <div className="text-center mb-12">
               <span className="text-xs font-bold uppercase tracking-widest text-amber-400/70">Lo que ofrecemos</span>
               <h2 className="text-3xl font-extrabold mt-2 mb-3">Todo lo que necesitas para triunfar</h2>
-              <p className="text-white/45 text-sm">Como manager de Sirens Stream tendrás acceso a todos estos recursos y más</p>
+              <p className="text-white/45 text-sm">Como manager de Eclipse Angels Agency tendrás acceso a todos estos recursos y más</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {ofertas.map((o, i) => (
@@ -195,7 +195,7 @@ import { Link } from "wouter";
                     <TrendingUp className="w-5 h-5 text-amber-400" />
                     <span className="font-bold text-sm text-amber-300">¿Por qué ser manager?</span>
                   </div>
-                  <p className="text-white/45 text-xs leading-relaxed">Los managers de Sirens Stream generan ingresos recurrentes semanales por las ganancias de su equipo. Es una fuente de ingresos escalable y sostenible a largo plazo.</p>
+                  <p className="text-white/45 text-xs leading-relaxed">Los managers de Eclipse Angels Agency generan ingresos recurrentes semanales por las ganancias de su equipo. Es una fuente de ingresos escalable y sostenible a largo plazo.</p>
                 </div>
               </div>
             </div>
@@ -208,7 +208,7 @@ import { Link } from "wouter";
             <Users className="w-12 h-12 text-amber-400 mx-auto mb-5" />
             <h2 className="text-3xl font-extrabold mb-3">¿Listo para liderar tu agencia?</h2>
             <p className="text-white/50 text-sm mb-7 leading-relaxed">
-              Da el primer paso hoy. Contáctanos y te explicamos todo el proceso para empezar a construir tu equipo de streamers con el respaldo de Sirens Stream.
+              Da el primer paso hoy. Contáctanos y te explicamos todo el proceso para empezar a construir tu equipo de streamers con el respaldo de Eclipse Angels Agency.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link href="/contacto"
