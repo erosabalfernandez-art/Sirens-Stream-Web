@@ -1,6 +1,6 @@
 import { useState } from "react";
   import { Link } from "wouter";
-  import { ChevronDown, ChevronUp, CheckCircle2, Smartphone, Clock, DollarSign, MessageCircle, ArrowRight, X, BookOpen, Copy, Check } from "lucide-react";
+  import { ChevronDown, ChevronUp, CheckCircle2, Smartphone, Clock, DollarSign, MessageCircle, ArrowRight, X, BookOpen, Copy, Check, Send } from "lucide-react";
 
   /* ── SVG Icons ── */
   const WahaIcon = () => (
@@ -87,6 +87,7 @@ import { useState } from "react";
       requisitos: ["Ser mayor de edad", "Contar con buen WiFi/datos", "Disponible 4–5 horas diarias"],
       guideImages: ["/images/waha-guide.png"],
       type: "waha",
+      telegramUrl: "https://t.me/ingresos_waha",
     },
     {
       id: "layla", Icon: LaylaIcon, name: "Layla",
@@ -104,6 +105,7 @@ import { useState } from "react";
       requisitos: ["Mayor de edad", "WiFi / Datos estables", "4–5 horas diarias"],
       guideImages: ["/images/layla-guide.png", "/images/layla-agency-guide.png"],
       type: "layla",
+      telegramUrl: "https://t.me/ingresos_layla",
     },
   ];
 
@@ -493,6 +495,10 @@ import { useState } from "react";
                               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                               <BookOpen className="w-4 h-4" /> Guía de Instalación
                             </button>
+                        <a href={app.telegramUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-[#2CA5E0]/15 border border-[#2CA5E0]/30 text-[#2CA5E0] font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-[#2CA5E0]/25 transition-colors">
+                          <Send className="w-4 h-4" /> Canal de Telegram
+                        </a>
                         <Link href="/contacto"
                           className="flex items-center gap-2 bg-white/6 border border-white/12 text-white/80 font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
                           <MessageCircle className="w-4 h-4" /> Contactar Tutora
