@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 
   const slides = [
     {
-      badge: "Bienvenida a Sirens Stream",
+      badge: "Bienvenida a Eclipse Angels Agency",
       title: "Agencia de Streamers",
       highlight: "& Chat Hostess",
       sub: "Cero Inversión · Desde Casa · En Dólares",
@@ -140,8 +140,8 @@ import { useState, useEffect } from "react";
           <div className="absolute right-5 top-1/2 -translate-y-1/2 z-20 hidden xl:flex flex-col gap-3">
             {[
               { href: "https://wa.me/1234567890", color: "bg-[#25D366]", label: "WA" },
-              { href: "https://instagram.com/sirensstream", color: "bg-gradient-to-br from-purple-500 to-pink-600", label: "IG" },
-              { href: "https://t.me/sirensstream", color: "bg-[#2CA5E0]", label: "TG" },
+              { href: "https://instagram.com/eclipseangelsagency", color: "bg-gradient-to-br from-purple-500 to-pink-600", label: "IG" },
+              { href: "https://t.me/eclipseangelsagency", color: "bg-[#2CA5E0]", label: "TG" },
             ].map((s) => (
               <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
                 className={`w-10 h-10 ${s.color} rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-lg hover:scale-110 transition-transform`}>
@@ -297,7 +297,7 @@ import { useState, useEffect } from "react";
                 <span className="gradient-text">generar ingresos online</span>
               </h2>
               <p className="text-white/50 max-w-2xl mx-auto">
-                En Sirens Stream conectamos a mujeres mayores de 18 años con las mejores apps de streaming y chat en vivo, para que generen ingresos reales en dólares desde casa, sin experiencia y con total acompañamiento.
+                En Eclipse Angels Agency conectamos a mujeres mayores de 18 años con las mejores apps de streaming y chat en vivo, para que generen ingresos reales en dólares desde casa, sin experiencia y con total acompañamiento.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -327,7 +327,7 @@ import { useState, useEffect } from "react";
                   Trabaja como <span className="gradient-text">Modelo de Videochat</span><br />o Novia Virtual desde Casa
                 </h2>
                 <p className="text-white/50 mb-6 leading-relaxed">
-                  En Sirens Stream te conectamos con las mejores plataformas internacionales de videochat y streaming. Gana dinero en dólares sin inversión, sin experiencia previa y con total discreción, trabajando desde tu celular.
+                  En Eclipse Angels Agency te conectamos con las mejores plataformas internacionales de videochat y streaming. Gana dinero en dólares sin inversión, sin experiencia previa y con total discreción, trabajando desde tu celular.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
                   {requirements.map((r, i) => (
@@ -399,7 +399,7 @@ import { useState, useEffect } from "react";
         <section className="py-20 bg-[#0a0a16]">
           <div className="max-w-7xl mx-auto px-5">
             <div className="text-center mb-10">
-              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Únete a Sirens Stream</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Únete a Eclipse Angels Agency</span>
               <h2 className="text-4xl font-bold mt-2 mb-4">Elige tu camino</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
