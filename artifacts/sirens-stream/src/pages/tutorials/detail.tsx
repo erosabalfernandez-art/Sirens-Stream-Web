@@ -51,7 +51,7 @@ export default function TutorialDetail() {
           <div className="prose prose-invert max-w-none">
             <p className="text-xl text-muted-foreground leading-relaxed mb-8">{tutorial.description}</p>
             {/* Extended content would go here, using description as placeholder */}
-            <p>Welcome to this comprehensive guide from Sirens Stream. We'll walk you through the essential steps to master this topic, providing industry secrets used by top creators.</p>
+            <p>Welcome to this comprehensive guide from Eclipse Angels Agency. We'll walk you through the essential steps to master this topic, providing industry secrets used by top creators.</p>
           </div>
           
           {tutorial.tags && tutorial.tags.length > 0 && (
