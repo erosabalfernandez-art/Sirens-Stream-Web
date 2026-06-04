@@ -18,26 +18,6 @@ import { useState } from "react";
       <text x="50" y="58" textAnchor="middle" fontSize="21" fontWeight="900" fontFamily="Arial,sans-serif" fill="white" letterSpacing="1">LAYLA</text>
     </svg>
   );
-
-  const DatesIcon = () => (
-    <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6"/><stop offset="50%" stopColor="#8b5cf6"/><stop offset="100%" stopColor="#ec4899"/></linearGradient></defs>
-      <rect width="100" height="100" rx="22" fill="url(#dg)"/>
-      <circle cx="35" cy="42" r="14" fill="white" opacity="0.9"/>
-      <circle cx="65" cy="42" r="14" fill="white" opacity="0.7"/>
-      <circle cx="50" cy="62" r="14" fill="white" opacity="0.5"/>
-      <text x="50" y="46" textAnchor="middle" fontSize="11" fontWeight="900" fontFamily="Arial,sans-serif" fill="#7c3aed">D</text>
-    </svg>
-  );
-
-  const MangoIcon = () => (
-    <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="mg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#fde68a"/><stop offset="100%" stopColor="#f59e0b"/></linearGradient></defs>
-      <rect width="100" height="100" rx="22" fill="url(#mg)"/>
-      <text x="50" y="64" textAnchor="middle" fontSize="46" fontFamily="Arial,sans-serif" fill="#92400e">🥭</text>
-    </svg>
-  );
-
   /* ── Data: WAHA ── */
   const WAHA_GANANCIAS = [
     { cat: "Mensajes", rows: [{ t: "Usuarios VIP", v: "70 diamantes" }, { t: "Usuarios Free", v: "5 puntos" }] },
@@ -133,34 +113,13 @@ import { useState } from "react";
       guideImages: ["/images/layla-guide.png", "/images/layla-agency-guide.png"],
       type: "layla",
     },
-    {
-      id: "dates", Icon: DatesIcon, name: "Dates",
-      tagline: "Contenido Explícito · Meta mínima de retiro $100",
-      badge: "Explícito",
-      badgeColor: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-      borderOpen: "border-blue-500/30",
-      accentText: "text-blue-300",
-      desc: "Plataforma de contenido para adultos con alta rentabilidad. Requiere mayor compromiso y tiene una meta mínima de retiro de $100 USD. Solo para streamers mayores de 18 años.",
-      specs: [
-        { l: "Tipo", v: "Contenido explícito" }, { l: "Meta mínima", v: "$100 USD" },
-        { l: "Público", v: "Internacional" }, { l: "Requisito", v: "Mayor de 18 años" },
+    { l: "Público", v: "Internacional" }, { l: "Requisito", v: "Mayor de 18 años" },
       ],
       requisitos: ["Mayor de 18 años", "Experiencia previa recomendada", "WiFi estable", "Compromiso alto"],
       guideImages: [],
       type: "other",
     },
-    {
-      id: "mango", Icon: MangoIcon, name: "Mango Live",
-      tagline: "Videollamadas en Vivo · Alto Rendimiento",
-      badge: "Videollamada",
-      badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-      borderOpen: "border-amber-500/30",
-      accentText: "text-amber-300",
-      desc: "Aplicación de alto rendimiento enfocada en transmisiones en vivo y videollamadas. Genera ingresos por regalos virtuales, tiempo de transmisión y llamadas. Compatible con Android e iOS.",
-      specs: [
-        { l: "Tipo", v: "Lives y videollamadas" }, { l: "Modo", v: "Transmisión en vivo" },
-        { l: "Ingresos", v: "Regalos + tiempo live" }, { l: "Plataforma", v: "Android / iOS" },
-      ],
+  ],
       requisitos: ["Mayor de 18 años", "Buena iluminación y cámara", "WiFi estable", "Disponibilidad para lives"],
       guideImages: [],
       type: "other",
@@ -407,7 +366,7 @@ import { useState } from "react";
                       {app.type === "layla" && (<>
 
                         {/* Agency code highlight */}
-                        <CodeCopy code="G-8U3JADTLH" />
+                        <CodeCopy code="G-84Y3AG7HL" />
 
                         <div>
                           <SectionTitle>Conversión · Monedas → USD</SectionTitle>
@@ -474,7 +433,7 @@ import { useState } from "react";
                                 <div className="flex-1">
                                   <p className="font-bold text-white text-sm">{s.t}</p>
                                   <p className="text-white/45 text-xs leading-relaxed mt-0.5">{s.d}</p>
-                                  {s.n === 5 && <CodeCopy code="G-8U3JADTLH" />}
+                                  {s.n === 5 && <CodeCopy code="G-84Y3AG7HL" />}
                                 </div>
                               </div>
                             ))}
