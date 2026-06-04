@@ -1,147 +1,208 @@
 import { Link } from "wouter";
-import { CheckCircle2, MessageCircle, Video, Radio, DollarSign, Shield, Smartphone, Users, Clock, ArrowRight, Star } from "lucide-react";
+  import { CheckCircle2, MessageCircle, Video, Radio, DollarSign, Shield, Smartphone, Users, Clock, ArrowRight, Star, Zap, TrendingUp } from "lucide-react";
 
-const activities = [
-  { icon: MessageCircle, title: "Chat & Mensajes", desc: "Conversa de forma personalizada con usuarios de todo el mundo. Crea conexiones auténticas y genera ingresos por cada interacción." },
-  { icon: Video, title: "Videollamadas", desc: "Interacción cara a cara en tiempo real. Transmite tu personalidad y conecta a un nivel más profundo con los usuarios." },
-  { icon: Radio, title: "Salas de Audio / Lives", desc: "Transmisiones en vivo donde cantas, juegas, entretienen y construyes una comunidad fiel que te apoya." },
-];
+  const activities = [
+    {
+      icon: MessageCircle,
+      title: "Chat & Mensajes",
+      desc: "Tu herramienta principal de trabajo. Conversa de forma personalizada con usuarios de todo el mundo enviando mensajes, audios y respondiendo a tiempo para maximizar tus ganancias.",
+      color: "bg-blue-500/15 border-blue-500/20 text-blue-400",
+    },
+    {
+      icon: Video,
+      title: "Videollamadas Match (opcionales)",
+      desc: "En apps como Waha puedes hacer videollamadas match y privadas de manera completamente opcional. A mayor tiempo en video, mayor ganancia por minuto.",
+      color: "bg-purple-500/15 border-purple-500/20 text-purple-400",
+    },
+    {
+      icon: Radio,
+      title: "Salas de Audio y Lives",
+      desc: "Participa en salas grupales de voz o transmisiones en vivo. Los usuarios te regalan diamantes y monedas mientras interactúas con ellos en tiempo real.",
+      color: "bg-pink-500/15 border-pink-500/20 text-pink-400",
+    },
+  ];
 
-const benefits = [
-  { icon: DollarSign, title: "Pagos Semanales Garantizados", desc: "Al finalizar cada semana procesamos tu pago de forma puntual. Múltiples métodos de cobro disponibles: Binance, Zelle, PayPal, Pix y más." },
-  { icon: Shield, title: "Cero Inversión Inicial", desc: "No necesitas pagar absolutamente nada para empezar. Sin costos ocultos, sin cuotas, sin riesgos. Solo tu tiempo y ganas." },
-  { icon: Smartphone, title: "Solo tu Celular desde Casa", desc: "Trabaja desde cualquier lugar con conexión a internet. Tu smartphone es toda la herramienta que necesitas. Tú defines tu horario." },
-  { icon: Users, title: "Tutoras y Soporte 24/7", desc: "No estarás sola. Un equipo de expertas te guiará desde el primer día con capacitación, estrategias y soporte constante." },
-  { icon: Clock, title: "Horarios 100% Flexibles", desc: "Trabaja las horas que quieras. Muchas de nuestras streamers compaginan este trabajo con estudios u otros empleos." },
-  { icon: Star, title: "Bonos y Ascensos", desc: "Premiamos tu esfuerzo con bonos especiales por cumplimiento de metas y la posibilidad de convertirte en tutora o manager." },
-];
+  const tips = [
+    "Sé constante: más tiempo en línea = más ganancias",
+    "Responde rápido: la tasa de respuesta mejora tus bonos",
+    "Personaliza cada conversación: los usuarios VIP pagan más",
+    "Establece un horario fijo para crear hábito",
+    "Aprovecha las metas diarias y bonos de bonificación",
+    "Pide ayuda a tu tutora cuando tengas dudas — estamos aquí",
+  ];
 
-const requirements = [
-  "Ser mujer mayor de 18 años",
-  "Smartphone con cámara de buena calidad",
-  "Conexión WiFi estable o datos móviles",
-  "Disponibilidad mínima de 4–5 horas diarias",
-  "Actitud positiva, comprometida y responsable",
-  "Sin experiencia previa — te capacitamos gratis",
-];
+  const requisitos = [
+    { icon: Users, text: "Ser mujer mayor de 18 años" },
+    { icon: Smartphone, text: "Smartphone con buena cámara" },
+    { icon: Shield, text: "Conexión WiFi estable o datos" },
+    { icon: Clock, text: "4–5 horas disponibles al día" },
+    { icon: Star, text: "Actitud positiva y compromiso" },
+    { icon: Zap, text: "Sin experiencia previa requerida" },
+  ];
 
-export default function SerStreamer() {
-  return (
-    <div className="min-h-screen bg-[#07070f] text-white pt-16">
-      {/* Hero */}
-      <section className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-blue-600/8 blur-[100px]" />
-        </div>
-        <div className="relative max-w-4xl mx-auto px-5 text-center">
-          <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 rounded-full px-4 py-1.5 mb-6">
-            <Star className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Únete como Streamer</span>
-          </div>
-          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-5">
-            Tu celular es tu<br />
-            <span className="gradient-text">herramienta de trabajo</span>
-          </h1>
-          <p className="text-white/55 text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
-            Buscamos mujeres mayores de 18 años interesadas en trabajar como streamers o chat hostess en apps internacionales. Sin inversión, sin experiencia previa, con ingresos reales en dólares desde casa.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/contacto"
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
-              Quiero Unirme <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link href="/apps"
-              className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider hover:bg-white/10 transition-colors">
-              Ver Apps Disponibles
-            </Link>
-          </div>
-        </div>
-      </section>
+  const earnings = [
+    { val: "$10–$50 USD", label: "por día en promedio" },
+    { val: "$100–$500 USD", label: "semanales con constancia" },
+    { val: "$1,000–$2,000 USD", label: "mensuales con dedicación" },
+  ];
 
-      {/* What does a streamer do */}
-      <section className="py-16 bg-[#0a0a16]">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-3">¿Qué hace una Streamer o Chat Hostess?</h2>
-            <p className="text-white/50 max-w-2xl mx-auto text-sm">
-              Una streamer o chat hostess interactúa en tiempo real con usuarios de todo el mundo dentro de aplicaciones de videochat y mensajería. Su objetivo es entretener, acompañar y crear conexiones genuinas, generando ingresos con cada interacción.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {activities.map((a, i) => (
-              <div key={i} className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-6 card-hover">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mb-4">
-                  <a.icon className="w-5 h-5 text-blue-400" />
-                </div>
-                <h3 className="font-bold mb-2">{a.title}</h3>
-                <p className="text-white/45 text-sm leading-relaxed">{a.desc}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 bg-blue-500/8 border border-blue-500/15 rounded-2xl p-5 text-sm text-white/50 text-center">
-            Interactuarás con usuarios masculinos de distintos países. El trabajo es completamente digital, discreto y dentro de los límites marcados por cada plataforma. <span className="text-blue-400 font-medium">Tú decides hasta dónde llegas.</span>
-          </div>
-        </div>
-      </section>
+  export default function SerStreamer() {
+    return (
+      <div className="min-h-screen bg-[#07070f] text-white pt-16">
 
-      {/* Benefits */}
-      <section className="py-16 bg-[#07070f]">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-3">Beneficios de trabajar con Sirens Stream</h2>
-            <p className="text-white/50">Todo lo que necesitas para empezar y crecer</p>
+        {/* Header */}
+        <section className="relative py-20 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/4 left-1/3 w-[600px] h-[400px] rounded-full bg-blue-600/7 blur-[100px]" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {benefits.map((b, i) => (
-              <div key={i} className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-6 card-hover">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/15 flex items-center justify-center mb-4">
-                  <b.icon className="w-5 h-5 text-blue-400" />
-                </div>
-                <h3 className="font-bold text-sm mb-2">{b.title}</h3>
-                <p className="text-white/45 text-sm leading-relaxed">{b.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Requirements + CTA */}
-      <section className="py-16 bg-[#0a0a16]">
-        <div className="max-w-4xl mx-auto px-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Requisitos para empezar</h2>
-              <div className="space-y-3">
-                {requirements.map((r, i) => (
-                  <div key={i} className="flex items-center gap-3 bg-[#0d0d1e] border border-blue-500/10 rounded-xl px-4 py-3.5">
-                    <CheckCircle2 className="w-5 h-5 text-blue-400 shrink-0" />
-                    <span className="text-white/70 text-sm">{r}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="relative max-w-4xl mx-auto px-5 text-center">
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 rounded-full px-4 py-1.5 mb-5">
+              <Zap className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Ser Streamer</span>
             </div>
-            <div className="flex flex-col gap-4">
-              <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/10 border border-blue-500/25 rounded-2xl p-7 text-center flex-1 flex flex-col justify-center">
-                <DollarSign className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-                <h3 className="text-xl font-bold mb-2">¿Cuánto puedes ganar?</h3>
-                <div className="space-y-2 mb-5">
-                  {[["$10 – $50", "por día en promedio"], ["$100 – $500", "semanales con constancia"], ["$1,000 – $2,000+", "mensuales con dedicación"]].map(([v, l], i) => (
-                    <div key={i} className="text-center">
-                      <span className="text-blue-300 font-bold">{v} USD</span>
-                      <span className="text-white/40 text-xs ml-2">{l}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-white/40 text-xs">Los resultados dependen de tu dedicación y estrategia.</p>
-              </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold mb-5 leading-[1.1]">
+              Tu Celular es tu<br />
+              <span className="gradient-text">Herramienta de Trabajo</span>
+            </h1>
+            <p className="text-white/55 max-w-2xl mx-auto text-lg leading-relaxed mb-8">
+              En Sirens Stream puedes generar ingresos reales en dólares desde la comodidad de tu hogar usando únicamente tu smartphone. Sin inversión, sin experiencia previa, con total acompañamiento.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
               <Link href="/contacto"
-                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl text-sm transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                Contactar Ahora y Empezar <ArrowRight className="w-4 h-4" />
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
+                Quiero unirme <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link href="/apps"
+                className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
+                Ver Apps Disponibles
               </Link>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
-  );
-}
+        </section>
+
+        {/* ¿Qué hace una streamer? */}
+        <section className="py-20 bg-[#0a0a16]">
+          <div className="max-w-4xl mx-auto px-5">
+            <div className="text-center mb-12">
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">¿En qué consiste el trabajo?</span>
+              <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-3">Lo que hace una Streamer en Sirens</h2>
+              <p className="text-white/45 max-w-xl mx-auto text-sm">Interactúas con usuarios desde tu celular a través de mensajes, audio y video opcionales, y recibes diamantes y monedas que se convierten en dólares.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+              {activities.map((a, i) => (
+                <div key={i} className={`bg-[#0d0d1e] border ${a.color.split(' ')[1]} rounded-2xl p-6`}>
+                  <div className={`w-12 h-12 rounded-xl ${a.color.split(' ')[0]} border ${a.color.split(' ')[1]} flex items-center justify-center mb-4`}>
+                    <a.icon className={`w-5 h-5 ${a.color.split(' ')[2]}`} />
+                  </div>
+                  <h3 className="font-bold text-white mb-2">{a.title}</h3>
+                  <p className="text-white/45 text-sm leading-relaxed">{a.desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-blue-500/8 border border-blue-500/20 rounded-2xl p-5 text-center">
+              <p className="text-blue-200/70 text-sm">
+                ✨ <strong>Privacidad garantizada:</strong> No necesitas exponer tus redes sociales personales. Usas un perfil exclusivo para la app con nombre y foto distintos a los tuyos.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Requisitos */}
+        <section className="py-20 bg-[#07070f]">
+          <div className="max-w-4xl mx-auto px-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">¿A quién buscamos?</span>
+                <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">Requisitos para <span className="gradient-text">unirte</span></h2>
+                <p className="text-white/50 text-sm mb-7 leading-relaxed">
+                  No necesitas experiencia previa. Solo necesitas las ganas de trabajar y crecer. Nosotras te capacitamos desde cero y te acompañamos en cada paso.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {requisitos.map((r, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/6 rounded-xl px-4 py-3 text-sm text-white/65">
+                      <r.icon className="w-4 h-4 text-blue-400 shrink-0" />
+                      {r.text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-5">
+                    <TrendingUp className="w-5 h-5 text-blue-400" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Potencial de Ganancias</span>
+                  </div>
+                  {earnings.map((e, i) => (
+                    <div key={i} className={`flex items-center justify-between py-3 ${i > 0 ? "border-t border-white/5" : ""}`}>
+                      <span className="text-white/45 text-sm">{e.label}</span>
+                      <span className="text-blue-400 font-extrabold">{e.val}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-5">
+                  <h4 className="font-bold text-white text-sm mb-3">Consejos para maximizar tus ganancias</h4>
+                  <div className="space-y-2">
+                    {tips.slice(0, 4).map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-white/50">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                        {tip}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Steps */}
+        <section className="py-20 bg-[#0a0a16]">
+          <div className="max-w-4xl mx-auto px-5">
+            <div className="text-center mb-12">
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Proceso de Ingreso</span>
+              <h2 className="text-3xl font-extrabold mt-2 mb-3">¿Cómo empiezo?</h2>
+              <p className="text-white/45 text-sm">En pocos pasos estarás generando ingresos desde tu celular</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { n: "01", t: "Contáctanos", d: "Escríbenos por WhatsApp o Instagram. Respondemos en menos de 24h." },
+                { n: "02", t: "Entrevista Express", d: "Una breve conversación para conocerte y explicarte todo sin compromiso." },
+                { n: "03", t: "Instalación y Registro", d: "Tu tutora te guía paso a paso en la instalación y registro en la app." },
+                { n: "04", t: "¡Empieza a Ganar!", d: "Comienzas a interactuar y recibes tu primer pago en la semana." },
+              ].map((s, i) => (
+                <div key={i} className="relative bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-5 hover:border-blue-500/25 transition-colors">
+                  {i < 3 && <div className="hidden lg:block absolute top-6 -right-2.5 text-blue-500/30 text-lg z-10">→</div>}
+                  <p className="text-blue-500/35 font-extrabold text-4xl mb-3">{s.n}</p>
+                  <h3 className="font-bold text-white mb-1.5 text-sm">{s.t}</h3>
+                  <p className="text-white/40 text-xs leading-relaxed">{s.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA final */}
+        <section className="py-20 bg-[#07070f]">
+          <div className="max-w-xl mx-auto px-5 text-center">
+            <DollarSign className="w-12 h-12 text-blue-400 mx-auto mb-5" />
+            <h2 className="text-3xl font-extrabold mb-3">¿Lista para empezar?</h2>
+            <p className="text-white/50 text-sm mb-7 leading-relaxed">
+              Miles de mujeres ya generan ingresos reales en dólares con Sirens Stream. Tu momento es ahora. Escríbenos y empieza esta semana.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Link href="/contacto"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
+                Contactar ahora <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link href="/apps"
+                className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-4 rounded-xl text-sm hover:bg-white/10 transition-colors">
+                Ver Apps <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+  
