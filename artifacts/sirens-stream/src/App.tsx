@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { FloatingSocials } from "@/components/layout/FloatingSocials";
 import { SirenaChat } from "@/components/chat/SirenaChat";
 
 import Home from "@/pages/home";
@@ -41,6 +42,7 @@ function Router() {
         </Switch>
       </main>
       <Footer />
+      <FloatingSocials />
       <SirenaChat />
     </div>
   );
