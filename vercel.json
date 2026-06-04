@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install -g pnpm@9 && pnpm install --no-frozen-lockfile",
+  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile",
   "buildCommand": "BASE_PATH=/ pnpm --filter @workspace/sirens-stream run build",
   "outputDirectory": "artifacts/sirens-stream/dist/public",
   "framework": null,
