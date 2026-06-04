@@ -147,6 +147,10 @@ import { useState } from "react";
                       className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-blue-500/30 text-blue-300 font-bold py-3 rounded-xl text-sm hover:bg-blue-500/10 transition-colors underline underline-offset-2">
                       🍎 Descargar para iOS
                     </a>
+                    <a href="#"
+                        className="flex items-center justify-center gap-2 w-full bg-green-600/20 border border-green-500/30 text-green-300 font-bold py-3 rounded-xl text-sm hover:bg-green-600/30 transition-colors underline underline-offset-2">
+                        💬 Enviar Captura + ID por WhatsApp
+                      </a>
                   </div>
                 </div>
                 {/* Steps 2–5 */}
@@ -212,6 +216,147 @@ import { useState } from "react";
       );
     }
 
+
+      /* ── Layla Guide Modal ── */
+      function LaylaGuideModal({ onClose }: { onClose: () => void }) {
+        const [imgExpanded, setImgExpanded] = useState<number | null>(null);
+        return (
+          <>
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm" onClick={onClose}>
+              <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-[#0d0d1e] rounded-t-3xl sm:rounded-2xl border border-white/8 shadow-2xl" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-[#0d0d1e]/95 backdrop-blur-sm border-b border-white/8">
+                  <p className="text-white/60 text-sm font-semibold">Guia de instalacion — Layla</p>
+                  <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+                {/* Hero */}
+                <div className="px-5 pt-8 pb-6 text-center border-b border-white/5">
+                  <h1 className="text-5xl font-black text-purple-400 tracking-widest mb-2">LAYLA</h1>
+                  <p className="text-white/50 font-bold text-xs uppercase tracking-widest">Guía de Instalación Paso a Paso</p>
+                </div>
+                {/* Steps */}
+                <div className="px-5 py-6 space-y-3">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-1 h-4 bg-purple-500 rounded-full" />
+                    <p className="text-white/70 text-sm font-bold">Registro en LAYLA</p>
+                  </div>
+                  {/* Paso 1 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <span className="text-purple-400 font-black">Paso 1</span>{"  "}Selecciona el botón de descarga según tu dispositivo (botones al final).
+                  </div>
+                  {/* Paso 2 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <span className="text-purple-400 font-black">Paso 2</span>{"  "}Instala la aplicación desde el enlace descargado.
+                  </div>
+                  {/* Paso 3 — Género */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-purple-300 mb-1.5"><span className="text-purple-400 font-black">Paso 3</span>{"  "}Selección de Género</p>
+                    <p>Selecciona <strong className="text-white">"Femenino"</strong> como tu sexo.</p>
+                    <div className="mt-2.5 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 text-xs text-amber-300">
+                      ⚠️ Elección permanente, no modificable.
+                    </div>
+                  </div>
+                  {/* Paso 4 — Config inicial */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-purple-300 mb-2"><span className="text-purple-400 font-black">Paso 4</span>{"  "}Configuración Inicial</p>
+                    <p><strong className="text-white">Foto de perfil:</strong> imagen real, alta calidad (no IA).</p>
+                    <p className="mt-1"><strong className="text-white">Nombre y etiquetas:</strong> ingresa nombre y etiquetas.</p>
+                  </div>
+                  {/* Paso 5 — Código de Agencia */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-purple-300 mb-2"><span className="text-purple-400 font-black">Paso 5</span>{"  "}Código de Agencia</p>
+                    <p className="mb-3">Agrega el código para habilitar monetización:</p>
+                    <CodeCopy code="G-84Y3AG7HL" />
+                    <div className="mt-2.5 flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-2 text-xs text-purple-300">
+                      🔑 Obligatorio para monetización.
+                    </div>
+                  </div>
+                  {/* Paso 6 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-purple-300 mb-1"><span className="text-purple-400 font-black">Paso 6</span>{"  "}Verificación de Identidad</p>
+                    <p>Completa la verificación para autenticar tu perfil.</p>
+                  </div>
+                  {/* Paso 7 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-purple-300 mb-2"><span className="text-purple-400 font-black">Paso 7</span>{"  "}Completa tu Perfil</p>
+                    <p><strong className="text-white">Álbum:</strong> imágenes reales variadas.</p>
+                    <p className="mt-1"><strong className="text-white">Audio:</strong> voz clara y auténtica.</p>
+                    <p className="mt-1"><strong className="text-white">Descripción:</strong> biografía completa.</p>
+                  </div>
+                  {/* Guía agencia */}
+                  <div className="bg-purple-500/8 border border-purple-500/20 rounded-2xl p-4 text-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-purple-400">🏆</span>
+                      <span className="text-purple-300 font-bold">Guía Eclipse Angels Agency</span>
+                    </div>
+                    <div className="space-y-1.5 text-white/70">
+                      <p><strong className="text-white/90">Paso 1:</strong> Accede a "Perfil".</p>
+                      <p><strong className="text-white/90">Paso 2:</strong> Ingresa a sección "Agencia".</p>
+                      <p><strong className="text-white/90">Paso 3:</strong> Verifica que aparezca nuestra agencia.</p>
+                      <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2 text-xs text-green-300 my-2">
+                        ✅ Registro exitoso
+                      </div>
+                      <p><strong className="text-white/90">Paso 4:</strong> Captura de pantalla mostrando la agencia.</p>
+                      <p><strong className="text-white/90">Paso 5:</strong> Envía la captura al administrador.</p>
+                    </div>
+                  </div>
+                  {/* Imágenes expandibles */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button onClick={() => setImgExpanded(0)} className="rounded-xl overflow-hidden border border-white/10 hover:border-purple-500/30 transition-colors block">
+                      <img src="/images/layla-guide-visual1.png" alt="Visual 1" className="w-full object-cover" />
+                      <p className="text-center text-white/40 text-xs py-2">🖼️ Visual 1</p>
+                    </button>
+                    <button onClick={() => setImgExpanded(1)} className="rounded-xl overflow-hidden border border-white/10 hover:border-purple-500/30 transition-colors block">
+                      <img src="/images/layla-guide-visual2.png" alt="Visual 2" className="w-full object-cover" />
+                      <p className="text-center text-white/40 text-xs py-2">🖼️ Visual 2</p>
+                    </button>
+                  </div>
+                  <p className="text-center text-white/35 text-xs">👆 Toca imágenes para ampliar</p>
+                  {/* Botones descarga + WhatsApp */}
+                  <div className="space-y-2.5 pt-2">
+                    <a href="#" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-purple-500/30 text-purple-300 font-bold py-3 rounded-xl text-sm hover:bg-purple-500/10 transition-colors underline underline-offset-2">
+                      🤖 Descargar Android
+                    </a>
+                    <a href="#" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-purple-500/30 text-purple-300 font-bold py-3 rounded-xl text-sm hover:bg-purple-500/10 transition-colors underline underline-offset-2">
+                      🍎 Descargar iOS
+                    </a>
+                    <a href="#"
+                      className="flex items-center justify-center gap-2 w-full bg-green-600/20 border border-green-500/30 text-green-300 font-bold py-3 rounded-xl text-sm hover:bg-green-600/30 transition-colors underline underline-offset-2">
+                      💬 Enviar Captura + ID por WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Full-screen image overlay */}
+            {imgExpanded !== null && (
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+                onClick={() => setImgExpanded(null)}
+              >
+                <img
+                  src={imgExpanded === 0 ? "/images/layla-guide-visual1.png" : "/images/layla-guide-visual2.png"}
+                  alt="Guía visual ampliada"
+                  style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
+                  onClick={e => e.stopPropagation()}
+                />
+                <button
+                  onClick={() => setImgExpanded(null)}
+                  style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+                <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>Toca fuera para cerrar</p>
+              </div>
+            )}
+          </>
+        );
+      }
+  
     /* ── Image Guide Modal ── */
   function GuideModal({ images, onClose }: { images: string[]; onClose: () => void }) {
     const [idx, setIdx] = useState(0);
@@ -286,11 +431,13 @@ import { useState } from "react";
     const [open, setOpen] = useState<string | null>(null);
     const [guideModal, setGuideModal] = useState<string[] | null>(null);
     const [wahaGuide, setWahaGuide] = useState(false);
+    const [laylaGuide, setLaylaGuide] = useState(false);
 
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-16">
         {guideModal && <GuideModal images={guideModal} onClose={() => setGuideModal(null)} />}
         {wahaGuide && <WahaGuideModal onClose={() => setWahaGuide(false)} />}
+      {laylaGuide && <LaylaGuideModal onClose={() => setLaylaGuide(false)} />}
 
         {/* Header */}
         <section className="relative py-16 overflow-hidden">
@@ -342,7 +489,7 @@ import { useState } from "react";
 
                       {/* Action buttons */}
                       <div className="flex flex-wrap gap-3">
-                        <button onClick={() => app.type === "waha" ? setWahaGuide(true) : setGuideModal(app.guideImages)}
+                        <button onClick={() => app.type === "waha" ? setWahaGuide(true) : app.type === "layla" ? setLaylaGuide(true) : setGuideModal(app.guideImages)}
                               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                               <BookOpen className="w-4 h-4" /> Guía de Instalación
                             </button>
