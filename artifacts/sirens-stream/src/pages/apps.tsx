@@ -82,7 +82,7 @@ import { useState } from "react";
       specs: [
         { l: "Android", v: "Waha" }, { l: "iOS", v: "Liyo" },
         { l: "Tiempo diario", v: "+4 Horas" }, { l: "Modo", v: "Mensajes, Salas Audio, Videollamadas, Zona Match" },
-        { l: "Retiro mínimo", v: "Semanal (No acumulable)" }, { l: "Meta mínima", v: "$2 USD" },
+        { l: "Retiro mínimo", v: "Semanal (No acumulable)" }, { l: "Meta mínima", v: "$2.50 USD (10,000 diamantes)" },
       ],
       requisitos: ["Ser mayor de edad", "Contar con buen WiFi/datos", "Disponible 4–5 horas diarias"],
       guideImages: ["/images/waha-guide.png"],
