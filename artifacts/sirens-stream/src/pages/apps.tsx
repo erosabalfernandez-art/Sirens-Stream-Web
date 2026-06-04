@@ -139,11 +139,11 @@ import { useState } from "react";
                     <span className="text-amber-400 font-black">Paso 1</span>{"  "}Selecciona el botón de descarga según tu dispositivo:
                   </p>
                   <div className="space-y-2.5">
-                    <a href="ANDROID_LINK" target="_blank" rel="noopener noreferrer"
+                    <a href="https://play.google.com/store/apps/details?id=com.phx.waha" target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-amber-500/30 text-amber-400 font-bold py-3 rounded-xl text-sm hover:bg-amber-500/10 transition-colors underline underline-offset-2">
                       🤖 Descargar para Android
                     </a>
-                    <a href="IOS_LINK" target="_blank" rel="noopener noreferrer"
+                    <a href="https://apps.apple.com/us/app/liyo-emotions-find-echo/id6746777859?l=es-MX" target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-amber-500/30 text-amber-400 font-bold py-3 rounded-xl text-sm hover:bg-amber-500/10 transition-colors underline underline-offset-2">
                       🍎 Descargar para iOS
                     </a>
