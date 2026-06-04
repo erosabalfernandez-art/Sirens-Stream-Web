@@ -3,6 +3,69 @@ import { SendChatMessageBody } from "@workspace/api-zod";
 
 const router = Router();
 
+const SYSTEM_PROMPT = `Eres Ángela, la asistente virtual de Eclipse Angels Agency. Tu trabajo es responder preguntas de chicas interesadas en unirse a la agencia o de personas que quieran saber más sobre nosotros.
+
+SOBRE LA AGENCIA:
+- Eclipse Angels Agency es una agencia de streamers y chat hostess
+- Ayudamos a mujeres a ganar dinero en dólares desde casa, sin inversión ni experiencia previa
+- También ofrecemos oportunidad para hombres como managers/reclutadores de su propio equipo
+
+APPS CON LAS QUE TRABAJAMOS:
+1. Layla (en iOS se llama Nivi):
+   - Solo mensajes (sin videollamada obligatoria)
+   - Ganancias acumulables sin fecha límite
+   - Retiro mínimo: $10 USD
+   - Plataforma internacional de gran prestigio
+
+2. Waha (en iOS se llama Liyo):
+   - Mensajes, salas de audio y videollamadas (opcionales)
+   - Pago semanal
+   - Retiro mínimo: $2.50 USD (10,000 diamantes)
+   - Disponibilidad mínima: 4 horas diarias
+
+GANANCIAS:
+- $10–$50 USD por día en promedio
+- $100–$500 USD semanales con constancia
+- Hasta $2,000 USD mensuales con dedicación
+- Sin inversión inicial
+
+MÉTODOS DE PAGO:
+- Binance, Zelle, PayPal, transferencia bancaria y más
+- Pagos semanales
+
+REQUISITOS PARA UNIRSE:
+- Ser mayor de 18 años
+- Tener un smartphone con buena cámara
+- Conexión WiFi estable
+- Disponibilidad de 4-5 horas diarias
+- Actitud positiva y ganas de aprender
+- No se necesita experiencia previa, la agencia capacita gratis
+
+SEGURIDAD Y PRIVACIDAD:
+- No es necesario exponer redes sociales personales
+- No se comparten datos personales
+- Todo el trabajo es dentro de las plataformas de forma privada
+- Apps de prestigio internacional
+
+OPORTUNIDAD PARA HOMBRES (MANAGER/RECLUTADOR):
+- Pueden unirse como managers y crear su propio equipo
+- Reclutan y guían a streamers
+- Reciben capacitación completa
+- Ganan comisiones semanales
+
+CONTACTO:
+- Email: eclipseangelsagency@gmail.com
+- WhatsApp, Instagram y Telegram disponibles en la sección Contacto
+- Atención de lunes a domingo, 9 AM a 11 PM
+
+INSTRUCCIONES DE COMPORTAMIENTO:
+- Responde siempre en español, de forma amigable, cercana y profesional
+- Sé entusiasta pero honesta
+- Si no sabes algo específico, invita a contactar directamente por WhatsApp o Instagram
+- Respuestas concisas (máximo 3-4 oraciones) a menos que el usuario pida más detalle
+- Usa emojis con moderación para dar calidez
+- Nunca inventes datos que no estén en esta información`;
+
 router.post("/chat", async (req, res) => {
   const parsed = SendChatMessageBody.safeParse(req.body);
   if (!parsed.success) {
@@ -10,39 +73,49 @@ router.post("/chat", async (req, res) => {
     return;
   }
 
-  const { message } = parsed.data;
-  const lowerMsg = message.toLowerCase();
-
-  let reply =
-    "¡Hola! Soy Ángela, la asistente de Eclipse Angels Agency ✨ ¿En qué puedo ayudarte? Puedo contarte sobre nuestras apps (Waha y Layla), cómo unirte a la agencia, métodos de pago, o responder cualquier duda.";
-
-  if (lowerMsg.includes("layla")) {
-    reply =
-      "Layla es una app de mensajes en donde interactúas con usuarios de todo el mundo. Funciona solo por mensajes (sin videollamada), la meta mínima de retiro es $10 USD y las ganancias son acumulables. En Android se llama Layla y en iOS se llama Nivi. ¿Te gustaría saber más detalles?";
-  } else if (lowerMsg.includes("waha")) {
-    reply =
-      "Waha es una app de mensajería, salas de audio y videollamadas opcionales. El pago es semanal, la meta mínima es $2 y necesitas al menos 4 horas diarias de disponibilidad. En iOS se llama Liyo. ¿Quieres saber cuánto puedes ganar?";
-  } else if (lowerMsg.includes("app") || lowerMsg.includes("plataforma")) {
-    reply =
-      "En Eclipse Angels Agency trabajamos con dos apps principales: 💜 Layla (solo mensajes, ganancias acumulables, retiro mínimo $10) y 🔴 Waha (mensajes, salas de audio y videollamadas opcionales, retiro semanal mínimo $2). ¡Visita la sección de Apps para ver todos los detalles!";
-  } else if (lowerMsg.includes("requisito") || lowerMsg.includes("unir") || lowerMsg.includes("aplicar") || lowerMsg.includes("entrar")) {
-    reply =
-      "Para unirte solo necesitas: ✓ Ser mayor de 18 años ✓ Un smartphone con buena cámara ✓ Conexión WiFi estable ✓ Disponibilidad de 4-5 horas diarias ✓ ¡Actitud positiva! No necesitas experiencia previa, nosotros te capacitamos gratis.";
-  } else if (lowerMsg.includes("gan") || lowerMsg.includes("dinero") || lowerMsg.includes("pag") || lowerMsg.includes("sueldo")) {
-    reply =
-      "💵 Las ganancias dependen de tu dedicación: $10–$50 USD por día en promedio, $100–$500 USD semanales con constancia, y hasta $2000 USD mensuales. Los pagos son semanales vía Binance, Zelle, PayPal y más métodos. ¡Y sin inversión inicial!";
-  } else if (lowerMsg.includes("segur") || lowerMsg.includes("privac") || lowerMsg.includes("discre")) {
-    reply =
-      "🔒 Tu seguridad es nuestra prioridad. Trabajamos con apps de prestigio internacional. No necesitas exponer tus redes sociales ni compartir datos personales. Todo el trabajo es dentro de las plataformas de manera privada y controlada.";
-  } else if (lowerMsg.includes("contact") || lowerMsg.includes("whatsapp") || lowerMsg.includes("ayuda")) {
-    reply =
-      "Puedes contactarnos por WhatsApp, Instagram o Telegram. Nuestro equipo responde en menos de 24 horas, de lunes a domingo de 9 AM a 11 PM. ¡Visita la sección de Contacto para encontrar todos los enlaces!";
-  } else if (lowerMsg.includes("agencia") || lowerMsg.includes("manager") || lowerMsg.includes("lider")) {
-    reply =
-      "💼 ¡También puedes crear tu propia agencia con nosotros! Como manager, reclutarás y guiarás a tu propio equipo de streamers. Recibirás capacitación completa, acceso a nuestras apps y comisiones semanales. Visita la sección 'Crear Agencia' para más info.";
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    res.status(500).json({ error: "AI service not configured" });
+    return;
   }
 
-  res.json({ reply });
+  const { message } = parsed.data;
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: message },
+        ],
+        max_tokens: 300,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      req.log.error({ status: response.status, err }, "Groq API error");
+      res.status(502).json({ error: "AI service error, try again" });
+      return;
+    }
+
+    const data = await response.json() as {
+      choices: Array<{ message: { content: string } }>;
+    };
+    const reply = data.choices?.[0]?.message?.content ?? "Lo siento, no pude procesar tu mensaje. Intenta de nuevo.";
+
+    res.json({ reply });
+  } catch (err) {
+    req.log.error({ err }, "Groq fetch failed");
+    res.status(502).json({ error: "AI service unavailable, try again" });
+  }
 });
 
 export default router;
