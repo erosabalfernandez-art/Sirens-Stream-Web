@@ -178,7 +178,7 @@ import { useState } from "react";
 
   /* ── Main component ── */
   export default function Apps() {
-    const [open, setOpen] = useState<string | null>("waha");
+    const [open, setOpen] = useState<string | null>(null);
     const [guideModal, setGuideModal] = useState<string[] | null>(null);
 
     return (
