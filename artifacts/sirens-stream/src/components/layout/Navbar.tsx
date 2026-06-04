@@ -3,11 +3,11 @@ import { Link, useLocation } from "wouter";
   import { useState, useEffect } from "react";
 
   const links = [
-    { href: "/", label: "Inicio" },
-    { href: "/ser-streamer", label: "Ser Streamer" },
-    { href: "/crear-agencia", label: "Crear Agencia" },
+    { href: "/", label: "Home" },
+    { href: "/ser-streamer", label: "Únete" },
+    { href: "/crear-agencia", label: "Agencia" },
     { href: "/apps", label: "Apps" },
-    { href: "/nosotros", label: "Nosotros" },
+    { href: "/nosotros", label: "Equipo" },
     { href: "/pagos", label: "Pagos" },
   ];
 
