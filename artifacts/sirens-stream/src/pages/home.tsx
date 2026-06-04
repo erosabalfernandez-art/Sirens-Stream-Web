@@ -258,10 +258,6 @@ import { useState, useEffect } from "react";
               <button onClick={next} className="w-9 h-9 rounded-full bg-white/8 border border-white/12 flex items-center justify-center hover:bg-white/15 transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
-              <div className="ml-auto hidden sm:flex flex-wrap gap-5 text-xs text-white/35">
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> Sin inversión</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> Pagos semanales</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> Soporte 24/7</span>
               </div>
             </div>
           </div>
