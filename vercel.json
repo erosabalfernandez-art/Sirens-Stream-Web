@@ -1,6 +1,6 @@
 {
-  "installCommand": "NODE_ENV=development pnpm install --no-frozen-lockfile",
-  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/sirens-stream run build",
+  "installCommand": "cd artifacts/sirens-stream && npm install",
+  "buildCommand": "cd artifacts/sirens-stream && PORT=3000 BASE_PATH=/ npm run build",
   "outputDirectory": "artifacts/sirens-stream/dist/public",
   "framework": null,
   "rewrites": [
