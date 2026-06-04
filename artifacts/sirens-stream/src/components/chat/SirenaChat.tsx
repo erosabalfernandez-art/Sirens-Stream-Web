@@ -7,7 +7,7 @@ import type { ChatMessage } from "@/lib/api-client";
 export function SirenaChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: "¡Hola! Soy Sirena ✨, tu asistente en Sirens Stream. Estoy aquí para resolver todas tus dudas sobre cómo trabajar con nosotros, las apps disponibles, pagos y mucho más. ¿En qué te puedo ayudar?" }
+    { role: "assistant", content: "¡Hola! Soy Sirena ✨, tu asistente en Eclipse Angels Agency. Estoy aquí para resolver todas tus dudas sobre cómo trabajar con nosotros, las apps disponibles, pagos y mucho más. ¿En qué te puedo ayudar?" }
   ]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,7 +54,7 @@ export function SirenaChat() {
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm text-white leading-none">Sirena IA</p>
+                  <p className="font-bold text-sm text-white leading-none">Sirena — Eclipse Angels IA</p>
                   <p className="text-[11px] text-blue-100/80 mt-0.5 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block" /> En línea ahora
                   </p>
