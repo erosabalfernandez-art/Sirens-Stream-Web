@@ -52,7 +52,7 @@ import { Link } from "wouter";
             <div className="md:col-span-2">
               <Link href="/" className="flex items-center gap-3 mb-5 w-fit group">
                 <img
-                  src="/images/eclipse-logo-nobg.png"
+                  src="/images/eclipse-icon.svg"
                   alt="Eclipse Angels Agency"
                   className="w-10 h-10 object-contain drop-shadow-[0_0_6px_rgba(168,85,247,0.4)] group-hover:drop-shadow-[0_0_12px_rgba(168,85,247,0.7)] transition-all"
                 />
