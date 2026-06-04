@@ -1,180 +1,228 @@
 import { Link } from "wouter";
-import { Users, TrendingUp, DollarSign, CheckCircle2, ArrowRight, Star, Zap, Globe } from "lucide-react";
+  import { Users, TrendingUp, DollarSign, CheckCircle2, ArrowRight, Star, Zap, Globe, Shield, Clock, Award } from "lucide-react";
 
-const ofertas = [
-  { icon: Zap, title: "Capacitación Completa", desc: "Te enseñamos todo lo que necesitas saber para gestionar un equipo de streamers exitosas." },
-  { icon: Globe, title: "Acceso a Nuestras Apps", desc: "Tendrás acceso a Waha y Layla con las mejores condiciones para tu equipo." },
-  { icon: Users, title: "Soporte Permanente", desc: "Nuestro equipo está disponible para ayudarte a resolver cualquier duda o situación." },
-  { icon: DollarSign, title: "Comisiones Semanales", desc: "Ganas un porcentaje de las ganancias de cada streamer activa en tu equipo." },
-  { icon: TrendingUp, title: "Bonos por Rendimiento", desc: "Bonos adicionales cuando tu equipo cumple metas de productividad establecidas." },
-  { icon: Star, title: "Materiales Exclusivos", desc: "Acceso a recursos, guías, estrategias y materiales de trabajo actualizados." },
-];
+  const ofertas = [
+    {
+      icon: Zap,
+      title: "Capacitación Completa",
+      desc: "Te enseñamos todo lo que necesitas saber para gestionar un equipo de streamers exitosas. Desde cero hasta avanzado.",
+    },
+    {
+      icon: DollarSign,
+      title: "Comisiones por Equipo",
+      desc: "Gana un porcentaje de las ganancias de cada streamer que reclutes y gestiones. A mayor equipo, mayor ingreso pasivo.",
+    },
+    {
+      icon: Users,
+      title: "Herramientas de Gestión",
+      desc: "Acceso a dashboards, materiales de capacitación, plantillas de comunicación y todo lo que necesitas para liderar tu agencia.",
+    },
+    {
+      icon: Shield,
+      title: "Respaldo de Sirens Stream",
+      desc: "No estás solo/a. Contamos con soporte técnico, asesoría de managers experimentados y actualizaciones constantes.",
+    },
+    {
+      icon: Globe,
+      title: "Red Internacional",
+      desc: "Conecta con streamers de toda Latinoamérica. Construye un equipo diverso con alcance en múltiples países.",
+    },
+    {
+      icon: Award,
+      title: "Bonos por Desempeño",
+      desc: "Recibe bonificaciones adicionales cuando tu equipo supera metas. El éxito de tus streamers es tu éxito.",
+    },
+  ];
 
-const buscamos = [
-  "Ganas de aprender y crecer profesionalmente",
-  "Habilidades de comunicación y liderazgo",
-  "Responsabilidad, compromiso y seriedad",
-  "Disponibilidad para gestionar y motivar a un equipo",
-  "Capacidad de resolución de problemas",
-  "Actitud proactiva y orientada a resultados",
-];
+  const requisitos = [
+    "Mayor de 18 años",
+    "Conocimiento básico de apps de streaming (o disposición para aprender)",
+    "Disponibilidad para gestionar y apoyar a tu equipo",
+    "Habilidades de comunicación y liderazgo",
+    "Acceso a redes sociales para reclutar streamers",
+    "Compromiso y responsabilidad",
+  ];
 
-const steps = [
-  { n: "01", title: "Contáctanos", desc: "Escríbenos por WhatsApp o Instagram indicando que te interesa crear tu agencia." },
-  { n: "02", title: "Evaluación Inicial", desc: "Una coordinadora te entrevistará para conocer tu perfil y objetivos." },
-  { n: "03", title: "Capacitación de Manager", desc: "Recibes formación completa sobre gestión de equipos, apps y estrategias." },
-  { n: "04", title: "Recluta tu Equipo", desc: "Empiezas a incorporar streamers a tu agencia con nuestro apoyo." },
-  { n: "05", title: "Genera Ingresos", desc: "Cobras comisiones semanales basadas en el rendimiento de tu equipo." },
-];
+  const queHaces = [
+    {
+      n: "01",
+      title: "Recluta Streamers",
+      desc: "Buscas y contactas a mujeres interesadas en generar ingresos desde casa. Las orientas sobre el trabajo y las motivas a unirse.",
+    },
+    {
+      n: "02",
+      title: "Registras y Acompañas",
+      desc: "Guías a cada streamer nueva en su registro e instalación de la app. Estás disponible para resolver dudas en las primeras semanas.",
+    },
+    {
+      n: "03",
+      title: "Monitoreas el Equipo",
+      desc: "Revisas el rendimiento de tu equipo, motivas a quienes estén bajas y compartes estrategias para mejorar ganancias.",
+    },
+    {
+      n: "04",
+      title: "Cobras tus Comisiones",
+      desc: "Recibes semanalmente un porcentaje de las ganancias de cada streamer de tu equipo, además de bonos por cumplimiento de metas.",
+    },
+  ];
 
-export default function CrearAgencia() {
-  return (
-    <div className="min-h-screen bg-[#07070f] text-white pt-16">
-      {/* Hero */}
-      <section className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-blue-600/7 blur-[100px]" />
-        </div>
-        <div className="relative max-w-4xl mx-auto px-5 text-center">
-          <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 rounded-full px-4 py-1.5 mb-6">
-            <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Oportunidad de liderazgo</span>
+  const perfil = [
+    "Personas organizadas y comprometidas",
+    "Con habilidad para motivar y liderar equipos",
+    "Proactivas en redes sociales",
+    "Con experiencia previa como streamer (no obligatorio pero valorado)",
+    "Disponibles para atender a su equipo y resolver dudas",
+    "Con visión de negocio a largo plazo",
+  ];
+
+  export default function CrearAgencia() {
+    return (
+      <div className="min-h-screen bg-[#07070f] text-white pt-16">
+
+        {/* Header */}
+        <section className="relative py-20 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-amber-500/6 blur-[120px]" />
           </div>
-          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-5">
-            ¡Conviértete en<br />
-            <span className="gradient-text">Líder de Agencia!</span>
-          </h1>
-          <p className="text-white/55 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-            Forma tu propia agencia de streamers, lidera un equipo de mujeres talentosas y genera ingresos semanales a través de las comisiones de tu equipo. Trabajamos contigo para garantizar tu éxito.
-          </p>
-
-          {/* Key numbers */}
-          <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto mb-10">
-            {[["$0", "Inversión inicial"], ["100%", "Trabajo remoto"], ["Semanal", "Frecuencia de pago"]].map(([v, l], i) => (
-              <div key={i} className="bg-[#0d0d1e] border border-blue-500/12 rounded-2xl p-4">
-                <p className="text-blue-400 font-extrabold text-xl">{v}</p>
-                <p className="text-white/40 text-xs mt-1">{l}</p>
-              </div>
-            ))}
-          </div>
-
-          <Link href="/contacto"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
-            Quiero ser Manager <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </section>
-
-      {/* What does a manager do */}
-      <section className="py-14 bg-[#0a0a16]">
-        <div className="max-w-5xl mx-auto px-5">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <h2 className="text-3xl font-bold mb-4">¿Qué hace un Manager de Agencia?</h2>
-              <p className="text-white/55 mb-5 leading-relaxed">
-                Un manager o líder de agencia es la persona responsable de <strong className="text-white">reclutar, capacitar, motivar y acompañar</strong> a su equipo de streamers para que alcancen sus metas y generen los mejores resultados.
-              </p>
-              <p className="text-white/55 mb-6 leading-relaxed">
-                Como manager, serás el puente entre la agencia y tu equipo. Trabajarás de forma remota, gestionando desde tu celular o computador, sin necesidad de estar en un lugar físico.
-              </p>
-              <div className="space-y-3">
-                {["Reclutar nuevas streamers para tu equipo","Capacitar y guiar a cada integrante en su trabajo","Motivar y hacer seguimiento del rendimiento del equipo","Resolver dudas y gestionar el bienestar del equipo","Reportar resultados y coordinar con la agencia principal"].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 text-sm text-white/65">
-                    <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />{item}
-                  </div>
-                ))}
-              </div>
+          <div className="relative max-w-4xl mx-auto px-5 text-center">
+            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 rounded-full px-4 py-1.5 mb-5">
+              <Users className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-amber-300 text-xs font-semibold uppercase tracking-wider">Crear Agencia</span>
             </div>
-            <div className="grid grid-cols-1 gap-4">
-              {[
-                { icon: DollarSign, title: "Ingresos pasivos escalables", desc: "Cuanto más crezca tu equipo y mejor rindan, más ganas. Tus ingresos crecen con tu agencia." },
-                { icon: Users, title: "Lidera tu propio equipo", desc: "Sé el referente para un grupo de mujeres que quieren cambiar su situación económica." },
-                { icon: Globe, title: "100% remoto", desc: "Trabaja desde cualquier lugar del mundo. Solo necesitas internet y tu teléfono." },
-              ].map((item, i) => (
-                <div key={i} className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-5 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
-                    <item.icon className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm mb-1">{item.title}</h3>
-                    <p className="text-white/45 text-sm">{item.desc}</p>
-                  </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold mb-5 leading-[1.1]">
+              Construye tu Propia<br />
+              <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Agencia de Streamers</span>
+            </h1>
+            <p className="text-white/55 max-w-2xl mx-auto text-lg leading-relaxed mb-8">
+              Conviértete en manager, lidera un equipo de streamers y genera ingresos pasivos por las ganancias de tu equipo. Una oportunidad de negocio real con respaldo total de Sirens Stream.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Link href="/contacto"
+                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-7 py-3.5 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(245,158,11,0.4)]">
+                Quiero ser Manager <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link href="/nosotros"
+                className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
+                Conocer más
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ¿Qué hace un manager? */}
+        <section className="py-20 bg-[#0a0a16]">
+          <div className="max-w-4xl mx-auto px-5">
+            <div className="text-center mb-12">
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-400/70">¿Qué hace un Manager?</span>
+              <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-3">Tu rol como líder de agencia</h2>
+              <p className="text-white/45 text-sm max-w-xl mx-auto">Como manager de Sirens Stream, eres la persona que recluta, capacita y acompaña a un equipo de streamers, y ganas por sus resultados.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+              {queHaces.map((s, i) => (
+                <div key={i} className="relative bg-[#0d0d1e] border border-amber-500/10 rounded-2xl p-5 hover:border-amber-500/25 transition-colors">
+                  {i < queHaces.length - 1 && <div className="hidden lg:block absolute top-6 -right-2.5 text-amber-500/30 text-lg z-10">→</div>}
+                  <p className="text-amber-500/35 font-extrabold text-4xl mb-3">{s.n}</p>
+                  <h3 className="font-bold text-white mb-1.5 text-sm">{s.title}</h3>
+                  <p className="text-white/40 text-xs leading-relaxed">{s.desc}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* What we offer + what we look for */}
-      <section className="py-14 bg-[#07070f]">
-        <div className="max-w-5xl mx-auto px-5 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Star className="w-6 h-6 text-blue-400" /> ¿Qué te Ofrecemos?
-            </h2>
-            <div className="space-y-4">
+            <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-5 text-center">
+              <p className="text-amber-200/70 text-sm">
+                💡 <strong>Ingresos escalables:</strong> Cuantas más streamers tenga tu equipo, más ganas. No hay límite de equipo ni de ingresos.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Lo que ofrecemos */}
+        <section className="py-20 bg-[#07070f]">
+          <div className="max-w-5xl mx-auto px-5">
+            <div className="text-center mb-12">
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-400/70">Lo que ofrecemos</span>
+              <h2 className="text-3xl font-extrabold mt-2 mb-3">Todo lo que necesitas para triunfar</h2>
+              <p className="text-white/45 text-sm">Como manager de Sirens Stream tendrás acceso a todos estos recursos y más</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {ofertas.map((o, i) => (
-                <div key={i} className="flex items-start gap-4 bg-[#0d0d1e] border border-blue-500/8 rounded-2xl px-5 py-4">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
-                    <o.icon className="w-4 h-4 text-blue-400" />
+                <div key={i} className="group bg-[#0d0d1e] border border-amber-500/10 rounded-2xl p-6 hover:border-amber-500/25 hover:bg-[#0f0f1a] transition-all">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/25 transition-colors">
+                    <o.icon className="w-5 h-5 text-amber-400" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-sm mb-0.5">{o.title}</h3>
-                    <p className="text-white/45 text-sm">{o.desc}</p>
-                  </div>
+                  <h3 className="font-bold text-white mb-2">{o.title}</h3>
+                  <p className="text-white/45 text-sm leading-relaxed">{o.desc}</p>
                 </div>
               ))}
             </div>
           </div>
+        </section>
 
-          <div>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <CheckCircle2 className="w-6 h-6 text-blue-400" /> ¿Qué Buscamos en Ti?
-            </h2>
-            <div className="space-y-3 mb-8">
-              {buscamos.map((b, i) => (
-                <div key={i} className="flex items-center gap-3 bg-[#0d0d1e] border border-blue-500/8 rounded-xl px-4 py-3.5">
-                  <div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
-                  <span className="text-white/65 text-sm">{b}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Steps */}
-      <section className="py-14 bg-[#0a0a16]">
-        <div className="max-w-5xl mx-auto px-5">
-          <h2 className="text-2xl font-bold text-center mb-10">¿Cómo funciona el proceso?</h2>
-          <div className="space-y-4">
-            {steps.map((s, i) => (
-              <div key={i} className="flex items-start gap-5 bg-[#0d0d1e] border border-blue-500/8 rounded-2xl p-5">
-                <span className="text-blue-500/40 font-extrabold text-3xl shrink-0">{s.n}</span>
-                <div>
-                  <h3 className="font-bold mb-1">{s.title}</h3>
-                  <p className="text-white/45 text-sm">{s.desc}</p>
+        {/* Perfil buscado */}
+        <section className="py-20 bg-[#0a0a16]">
+          <div className="max-w-4xl mx-auto px-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-amber-400/70">¿A quién buscamos?</span>
+                <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">El perfil del<br /><span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Manager ideal</span></h2>
+                <p className="text-white/50 text-sm mb-6 leading-relaxed">
+                  No necesitas experiencia en management. Si tienes las actitudes correctas y las ganas de construir algo propio, nosotras te enseñamos todo.
+                </p>
+                <div className="space-y-3">
+                  {requisitos.map((r, i) => (
+                    <div key={i} className="flex items-start gap-3 text-sm text-white/60">
+                      <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      {r}
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+              <div className="space-y-4">
+                <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-6">
+                  <p className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-4">Buscamos personas que sean...</p>
+                  <div className="space-y-3">
+                    {perfil.map((p, i) => (
+                      <div key={i} className="flex items-start gap-3 text-sm text-white/55">
+                        <Star className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        {p}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <TrendingUp className="w-5 h-5 text-amber-400" />
+                    <span className="font-bold text-sm text-amber-300">¿Por qué ser manager?</span>
+                  </div>
+                  <p className="text-white/45 text-xs leading-relaxed">Los managers de Sirens Stream generan ingresos recurrentes semanales por las ganancias de su equipo. Es una fuente de ingresos escalable y sostenible a largo plazo.</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA */}
-      <section className="py-16 bg-[#07070f]">
-        <div className="max-w-2xl mx-auto px-5 text-center">
-          <div className="bg-gradient-to-br from-blue-600/15 to-blue-800/8 border border-blue-500/25 rounded-3xl p-10">
+        {/* CTA final */}
+        <section className="py-20 bg-[#07070f]">
+          <div className="max-w-xl mx-auto px-5 text-center">
+            <Users className="w-12 h-12 text-amber-400 mx-auto mb-5" />
             <h2 className="text-3xl font-extrabold mb-3">¿Listo para liderar tu agencia?</h2>
-            <p className="text-white/50 mb-8 max-w-md mx-auto">Da el primer paso hacia la independencia económica y el liderazgo digital. Nuestro equipo te guiará en todo el proceso.</p>
-            <Link href="/contacto"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-10 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_30px_rgba(59,130,246,0.4)]">
-              Comenzar Ahora <ArrowRight className="w-4 h-4" />
-            </Link>
+            <p className="text-white/50 text-sm mb-7 leading-relaxed">
+              Da el primer paso hoy. Contáctanos y te explicamos todo el proceso para empezar a construir tu equipo de streamers con el respaldo de Sirens Stream.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Link href="/contacto"
+                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(245,158,11,0.4)]">
+                Aplicar como Manager <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link href="/ser-streamer"
+                className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-4 rounded-xl text-sm hover:bg-white/10 transition-colors">
+                Ser Streamer primero
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
-    </div>
-  );
-}
+        </section>
+      </div>
+    );
+  }
+  
