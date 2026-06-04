@@ -1,15 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Sparkles, User, Loader2 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import { useSendChatMessage } from "@/lib/api-client";
 import type { ChatMessage } from "@/lib/api-client";
 
-const WELCOME_MESSAGE = "✨ ¡Bienvenida a Eclipse Angels Agency! Soy Ángela, tu asistente virtual. ¿Tienes dudas sobre cómo ganar dinero desde casa? ¡Estoy aquí para ayudarte!";
+const WELCOME_MSG = "✨ ¡Bienvenida a Eclipse Angels Agency! Soy Ángela. ¿Tienes dudas sobre cómo ganar dinero desde casa? ¡Toca aquí para chatear!";
 
 export function SirenaChat() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [showBubble, setShowBubble] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", content: "¡Hola! Soy Ángela ✨, tu asistente en Eclipse Angels Agency. Estoy aquí para resolver todas tus dudas sobre cómo trabajar con nosotros, las apps disponibles, pagos y mucho más. ¿En qué te puedo ayudar?" }
   ]);
@@ -17,52 +16,48 @@ export function SirenaChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatMutation = useSendChatMessage();
 
+  // Drag state for the whole widget
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
+  // Show welcome bubble after 1s, hide after 6s — never opens chat automatically
   useEffect(() => {
-    const timer1 = setTimeout(() => {
-      setShowWelcome(true);
-      setIsOpen(true);
-    }, 800);
-    const timer2 = setTimeout(() => {
-      if (!hasInteracted) {
-        setIsOpen(false);
-        setShowWelcome(false);
-      }
-    }, 5800);
-    return () => { clearTimeout(timer1); clearTimeout(timer2); };
+    const show = setTimeout(() => setShowBubble(true), 1000);
+    const hide = setTimeout(() => setShowBubble(false), 7000);
+    return () => { clearTimeout(show); clearTimeout(hide); };
   }, []);
 
   useEffect(() => {
     if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isOpen]);
 
-  const handleOpen = () => {
+  const openChat = useCallback(() => {
+    setShowBubble(false);
     setIsOpen(true);
-    setHasInteracted(true);
-    setShowWelcome(false);
-  };
+  }, []);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    setHasInteracted(true);
-  };
+  const closeChat = useCallback(() => setIsOpen(false), []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || chatMutation.isPending) return;
-    setHasInteracted(true);
-    const userMsg = input.trim();
-    const newMessages: ChatMessage[] = [...messages, { role: "user", content: userMsg }];
-    setMessages(newMessages);
+    const msg = input.trim();
+    if (!msg || chatMutation.isPending) return;
+    const history = messages.slice(-10);
+    const next: ChatMessage[] = [...messages, { role: "user", content: msg }];
+    setMessages(next);
     setInput("");
-    const history = messages.filter(m => m.role === "user" || m.role === "assistant");
     chatMutation.mutate(
-      { data: { message: userMsg, history } },
+      { data: { message: msg, history } },
       {
-        onSuccess: (res) => setMessages(prev => [...prev, { role: "assistant", content: res.reply }]),
-        onError: () => setMessages(prev => [...prev, { role: "assistant", content: "Tengo problemas de conexión en este momento. Por favor escríbenos directamente por WhatsApp o Instagram." }])
+        onSuccess: (res) => {
+          setMessages(prev => [...prev, { role: "assistant", content: res.reply ?? "Sin respuesta" }]);
+        },
+        onError: () => {
+          setMessages(prev => [...prev, {
+            role: "assistant",
+            content: "Tengo problemas de conexión. Escríbenos por WhatsApp o Instagram directamente 💬"
+          }]);
+        },
       }
     );
   };
@@ -74,23 +69,33 @@ export function SirenaChat() {
       drag
       dragMomentum={false}
       dragElastic={0}
-      style={{ x, y }}
-      className="fixed bottom-6 right-5 z-50 flex flex-col items-end"
+      style={{
+        position: "fixed",
+        bottom: 24,
+        right: 20,
+        zIndex: 50,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        x,
+        y,
+        touchAction: "none",
+      }}
     >
-      {/* Welcome bubble (auto-open, closes after 5s) */}
+      {/* Welcome bubble — only shows automatically, doesn't open chat */}
       <AnimatePresence>
-        {showWelcome && !isOpen && (
-          <motion.div
+        {showBubble && !isOpen && (
+          <motion.button
             initial={{ opacity: 0, y: 10, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.92 }}
             transition={{ duration: 0.22 }}
-            className="mb-3 max-w-[260px] bg-[#0a0a16] border border-blue-500/25 rounded-2xl rounded-br-sm px-4 py-3 shadow-xl shadow-blue-950/40 text-[13px] text-white/85 leading-relaxed cursor-pointer"
-            onClick={handleOpen}
+            onClick={openChat}
+            className="mb-3 max-w-[250px] text-left bg-[#0a0a16] border border-blue-500/30 rounded-2xl rounded-br-sm px-4 py-3 shadow-xl shadow-blue-950/50 text-[13px] text-white/85 leading-relaxed cursor-pointer hover:border-blue-400/50 transition-colors"
           >
-            {WELCOME_MESSAGE}
-            <div className="mt-2 text-[11px] text-blue-400 font-semibold">Toca para chatear →</div>
-          </motion.div>
+            {WELCOME_MSG}
+            <span className="block mt-1.5 text-[11px] text-blue-400 font-semibold">Toca para chatear →</span>
+          </motion.button>
         )}
       </AnimatePresence>
 
@@ -102,10 +107,11 @@ export function SirenaChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.94 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="w-[340px] sm:w-[370px] h-[520px] bg-[#0a0a16] border border-blue-500/20 rounded-2xl shadow-2xl shadow-blue-950/40 overflow-hidden flex flex-col mb-4"
+            style={{ width: 350, height: 520, marginBottom: 12 }}
+            className="bg-[#0a0a16] border border-blue-500/20 rounded-2xl shadow-2xl shadow-blue-950/40 overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="px-4 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
+            <div className="px-4 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between select-none">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-white" />
@@ -117,7 +123,7 @@ export function SirenaChat() {
                   </p>
                 </div>
               </div>
-              <button onClick={handleClose} className="text-white/70 hover:text-white p-1 transition-colors">
+              <button onClick={closeChat} className="text-white/70 hover:text-white p-1 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -161,7 +167,8 @@ export function SirenaChat() {
             {messages.length <= 1 && (
               <div className="px-3 pb-2 flex flex-wrap gap-1.5">
                 {quickReplies.map((q) => (
-                  <button key={q} onClick={() => { setInput(q); setHasInteracted(true); }}
+                  <button key={q}
+                    onClick={() => setInput(q)}
                     className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-blue-500/15 border border-blue-500/25 text-blue-300 hover:bg-blue-500/25 transition-colors">
                     {q}
                   </button>
@@ -194,7 +201,7 @@ export function SirenaChat() {
       <motion.button
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.94 }}
-        onClick={() => isOpen ? handleClose() : handleOpen()}
+        onClick={() => isOpen ? closeChat() : openChat()}
         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-2xl shadow-[0_0_25px_rgba(59,130,246,0.45)] hover:shadow-[0_0_35px_rgba(59,130,246,0.6)] transition-all text-sm"
       >
         {isOpen ? <X className="w-5 h-5" /> : (
