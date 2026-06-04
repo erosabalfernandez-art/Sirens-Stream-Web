@@ -56,12 +56,12 @@ import { useState, useEffect } from "react";
   ];
 
   const benefits = [
-    { icon: DollarSign, title: "Pagos Semanales en Dólares", desc: "Recibe tus ganancias cada semana puntualmente. Sin retrasos, sin excusas." },
-    { icon: Shield, title: "Sin Inversión Inicial", desc: "Cero costos de entrada. No pedimos dinero para empezar, solo tu tiempo y dedicación." },
-    { icon: Smartphone, title: "Solo tu Celular desde Casa", desc: "Tu smartphone es toda la herramienta que necesitas. Trabaja desde donde quieras." },
-    { icon: Users, title: "Soporte Personalizado 24/7", desc: "Tutoras disponibles para guiarte en cada paso. Nunca estarás sola en el proceso." },
-    { icon: Clock, title: "Horarios Totalmente Flexibles", desc: "Tú decides cuándo y cuánto trabajar. Adapta el trabajo a tu vida." },
-    { icon: TrendingUp, title: "Crecimiento Continuo", desc: "Capacitación gratuita, bonos por rendimiento y ascensos dentro de la agencia." },
+    { icon: DollarSign, title: "Cobras cada semana", desc: "Tus ganancias llegan en dólares cada semana, sin esperas ni excusas." },
+    { icon: Shield, title: "Empiezas sin poner dinero", desc: "No necesitas invertir nada. Solo tu celular y tus ganas de trabajar." },
+    { icon: Smartphone, title: "Solo necesitas tu celular", desc: "Trabaja desde tu casa, a cualquier hora, sin salir ni comprar nada." },
+    { icon: Users, title: "Siempre tienes a alguien", desc: "Hay una persona disponible para ayudarte en cualquier momento del día." },
+    { icon: Clock, title: "Tú pones tu horario", desc: "Decides cuándo trabajar y cuánto tiempo. El trabajo se adapta a ti." },
+    { icon: TrendingUp, title: "Creces con nosotras", desc: "Entrenamiento gratis, bonos por resultados y más oportunidades cuanto mejor te va." },
   ];
 
   const steps = [
