@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
     CheckCircle2, Zap, Star, CreditCard, MessageCircle, ArrowRight,
     Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart
   } from "lucide-react";
-  import { FaWhatsapp, FaInstagram, FaTelegramPlane } from "react-icons/fa";
   import { useGetAgencyStats } from "@/lib/api-client";
 
   const slides = [
@@ -158,20 +157,7 @@ import { useState, useEffect } from "react";
           <div className="absolute inset-0 opacity-[0.025] pointer-events-none"
             style={{ backgroundImage: "linear-gradient(rgba(59,130,246,1) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,1) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
 
-          {/* Floating social sidebar */}
-          <div className="absolute right-5 top-1/2 -translate-y-1/2 z-20 hidden xl:flex flex-col gap-3">
-            {[
-              { href: "https://wa.me/1234567890", color: "bg-[#25D366]", label: "WhatsApp", icon: <FaWhatsapp className="w-5 h-5" /> },
-              { href: "https://www.instagram.com/eclipse_angels.agency?igsh=bW9mczJiNG1lOG1h", color: "bg-gradient-to-br from-purple-500 to-pink-600", label: "Instagram", icon: <FaInstagram className="w-5 h-5" /> },
-              { href: "https://t.me/eclipseangelsagency", color: "bg-[#2CA5E0]", label: "Telegram", icon: <FaTelegramPlane className="w-5 h-5" /> },
-            ].map((s) => (
-              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                className={`w-10 h-10 ${s.color} rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform`}
-                aria-label={s.label}>
-                {s.icon}
-              </a>
-            ))}
-          </div>
+          {/* Floating social sidebar removed — global FloatingSocials used instead */}
 
           {/* Slide content */}
           <div className="relative z-10 max-w-7xl mx-auto px-5 py-14 w-full">
@@ -211,10 +197,10 @@ import { useState, useEffect } from "react";
                       className={`flex items-center gap-2 bg-gradient-to-r ${slide.accent} text-white font-bold px-7 py-3.5 rounded-xl text-sm uppercase tracking-wider transition-all hover:opacity-90 shadow-lg`}>
                       {slide.cta.label} <ArrowRight className="w-4 h-4" />
                     </Link>
-                    <Link href="/contacto"
+                    <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
                       Contactar
-                    </Link>
+                    </a>
                   </div>
                 </motion.div>
               </AnimatePresence>
