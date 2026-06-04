@@ -499,10 +499,10 @@ import { useState } from "react";
                           className="flex items-center gap-2 bg-[#2CA5E0]/15 border border-[#2CA5E0]/30 text-[#2CA5E0] font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-[#2CA5E0]/25 transition-colors">
                           <Send className="w-4 h-4" /> Canal de Telegram
                         </a>
-                        <Link href="/contacto"
+                        <a href="https://wa.me/5595984381686?text=Hola%2C%20necesito%20ayuda%20con%20una%20app" target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-2 bg-white/6 border border-white/12 text-white/80 font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
                           <MessageCircle className="w-4 h-4" /> Contactar Tutora
-                        </Link>
+                        </a>
                       </div>
 
                       {/* Description */}
@@ -668,10 +668,10 @@ import { useState } from "react";
 
           <div className="max-w-3xl mx-auto px-5 mt-8 text-center">
             <p className="text-white/40 text-sm mb-4">¿No sabes qué app elegir? Nuestro equipo te orienta sin compromiso</p>
-            <Link href="/contacto"
+            <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20asesor%C3%ADa%20sobre%20qu%C3%A9%20app%20usar" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]">
               Asesoría Gratuita <ArrowRight className="w-4 h-4" />
-            </Link>
+            </a>
           </div>
         </section>
       </div>
