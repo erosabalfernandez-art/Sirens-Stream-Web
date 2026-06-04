@@ -4,19 +4,11 @@ import { useState } from "react";
 
   /* ── SVG Icons ── */
   const WahaIcon = () => (
-    <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ff4e6a"/><stop offset="100%" stopColor="#c62a47"/></linearGradient></defs>
-      <rect width="100" height="100" rx="22" fill="url(#wg)"/>
-      <text x="50" y="64" textAnchor="middle" fontSize="54" fontWeight="900" fontFamily="Arial,sans-serif" fill="white">W</text>
-    </svg>
+    <img src="/images/waha-icon.png" alt="Waha" className="w-full h-full object-cover rounded-full ring-2 ring-[#ff4e6a]/40 shadow-[0_0_16px_rgba(255,78,106,0.4)]" />
   );
 
   const LaylaIcon = () => (
-    <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#a855f7"/><stop offset="100%" stopColor="#7c3aed"/></linearGradient></defs>
-      <rect width="100" height="100" rx="22" fill="url(#lg)"/>
-      <text x="50" y="58" textAnchor="middle" fontSize="21" fontWeight="900" fontFamily="Arial,sans-serif" fill="white" letterSpacing="1">LAYLA</text>
-    </svg>
+    <img src="/images/layla-icon.png" alt="Layla" className="w-full h-full object-cover rounded-full ring-2 ring-[#a855f7]/40 shadow-[0_0_16px_rgba(168,85,247,0.4)]" />
   );
   /* ── Data: WAHA ── */
   const WAHA_GANANCIAS = [
