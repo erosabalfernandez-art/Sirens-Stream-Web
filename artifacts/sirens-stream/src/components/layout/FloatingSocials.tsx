@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FaWhatsapp, FaInstagram, FaTiktok, FaTelegramPlane, FaFacebook } from "react-icons/fa";
+import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebook } from "react-icons/fa";
 
 const WA = "https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency";
 
@@ -24,13 +24,6 @@ const socials = [
     label: "TikTok",
     bg: "bg-[#010101]",
     shadow: "rgba(255,255,255,0.2)",
-  },
-  {
-    href: "https://t.me/ingresos_waha",
-    icon: FaTelegramPlane,
-    label: "Telegram",
-    bg: "bg-[#2CA5E0]",
-    shadow: "rgba(44,165,224,0.5)",
   },
   {
     href: "https://facebook.com/eclipseangelsagency",
