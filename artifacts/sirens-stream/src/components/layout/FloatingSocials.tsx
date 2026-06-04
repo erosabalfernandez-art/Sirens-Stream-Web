@@ -26,7 +26,7 @@ const socials = [
     shadow: "rgba(255,255,255,0.2)",
   },
   {
-    href: "https://t.me/eclipseangelsagency",
+    href: "https://t.me/ingresos_waha",
     icon: FaTelegramPlane,
     label: "Telegram",
     bg: "bg-[#2CA5E0]",
