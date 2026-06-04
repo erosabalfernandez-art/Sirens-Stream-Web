@@ -40,7 +40,7 @@ export default function Contact() {
               <div className="space-y-8 mb-12">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded bg-secondary flex items-center justify-center"><Mail className="w-5 h-5 text-primary" /></div>
-                  <div><p className="font-bold uppercase tracking-wider">Email</p><p className="text-muted-foreground">eclipseangelsagency@gmail.com</p></div>
+                  <div><p className="font-bold uppercase tracking-wider">Email</p><p className="text-muted-foreground">eclipse_angels@outlook.com</p></div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded bg-secondary flex items-center justify-center"><MapPin className="w-5 h-5 text-primary" /></div>
