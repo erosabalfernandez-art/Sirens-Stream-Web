@@ -23,6 +23,7 @@ import Apps from "@/pages/apps";
 import Nosotros from "@/pages/nosotros";
 import Pagos from "@/pages/pagos";
 import Contacto from "@/pages/contacto";
+import ErroresComunes from "@/pages/errores-comunes";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ function Router() {
           <Route path="/nosotros" component={Nosotros} />
           <Route path="/pagos" component={Pagos} />
           <Route path="/contacto" component={Contacto} />
+          <Route path="/errores-comunes" component={ErroresComunes} />
           <Route component={NotFound} />
         </Switch>
       </main>
