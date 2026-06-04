@@ -107,7 +107,101 @@ import { useState } from "react";
     },
   ];
 
-  /* ── Image Guide Modal ── */
+
+    /* ── Waha Step-by-Step Guide Modal ── */
+    function WahaGuideModal({ onClose }: { onClose: () => void }) {
+      const [imgExpanded, setImgExpanded] = useState(false);
+      return (
+        <>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm" onClick={onClose}>
+            <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-[#0d0d1e] rounded-t-3xl sm:rounded-2xl border border-white/8 shadow-2xl" onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-[#0d0d1e]/95 backdrop-blur-sm border-b border-white/8">
+                <p className="text-white/60 text-sm font-semibold">Guia de instalacion — Waha</p>
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+              {/* Hero title */}
+              <div className="px-5 pt-8 pb-6 text-center border-b border-white/5">
+                <h1 className="text-5xl font-black text-amber-400 tracking-widest mb-2">WAHA</h1>
+                <p className="text-white/50 font-bold text-xs uppercase tracking-widest">Guía de Instalación Paso a Paso</p>
+              </div>
+              {/* Steps */}
+              <div className="px-5 py-6 space-y-3">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-1 h-4 bg-amber-400 rounded-full" />
+                  <p className="text-white/70 text-sm font-bold">Pasos para Instalar</p>
+                </div>
+                {/* Paso 1 — Download buttons */}
+                <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4">
+                  <p className="text-sm text-white/80 mb-3">
+                    <span className="text-amber-400 font-black">Paso 1</span>{"  "}Selecciona el botón de descarga según tu dispositivo:
+                  </p>
+                  <div className="space-y-2.5">
+                    <a href="ANDROID_LINK" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-amber-500/30 text-amber-400 font-bold py-3 rounded-xl text-sm hover:bg-amber-500/10 transition-colors underline underline-offset-2">
+                      🤖 Descargar para Android
+                    </a>
+                    <a href="IOS_LINK" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-amber-500/30 text-amber-400 font-bold py-3 rounded-xl text-sm hover:bg-amber-500/10 transition-colors underline underline-offset-2">
+                      🍎 Descargar para iOS
+                    </a>
+                  </div>
+                </div>
+                {/* Steps 2–5 */}
+                {[
+                  { n: 2, t: "Instala la aplicación desde el enlace descargado." },
+                  { n: 3, t: 'Abre la app y selecciona "Entrar con Google".' },
+                  { n: 4, t: "Elige una cuenta de correo Gmail para registrarte." },
+                  { n: 5, t: "Crea tu perfil: agrega una foto de perfil y completa la información." },
+                ].map(s => (
+                  <div key={s.n} className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <span className="text-amber-400 font-black">Paso {s.n}</span>{"  "}{s.t}
+                  </div>
+                ))}
+                {/* Paso 6 — Screenshot button */}
+                <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80 leading-relaxed">
+                  <span className="text-amber-400 font-black">Paso 6</span>{"  "}Haz una{" "}
+                  <button onClick={() => setImgExpanded(true)}
+                    className="inline-flex items-center gap-1.5 bg-purple-600/25 border border-purple-500/40 text-purple-300 font-bold px-3 py-1 rounded-full text-xs hover:bg-purple-600/40 transition-colors mx-1 align-middle">
+                    🖼️ Captura de pantalla
+                  </button>
+                  {" "}completa de tu perfil, copia tu ID de usuario y envíalo todo por WhatsApp.
+                </div>
+                {/* Tip */}
+                <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-4 flex gap-3 items-start">
+                  <span className="text-amber-400 text-base shrink-0 mt-0.5">💡</span>
+                  <p className="text-sm">
+                    <span className="text-amber-400 font-bold">¿Dónde ver tu ID?</span>{" "}
+                    <span className="text-white/55">Dentro de tu perfil, justo debajo de tu nombre o foto, aparecerá tu código único de usuario.</span>
+                  </p>
+                </div>
+                {/* Thumbnail image */}
+                <div className="pt-1">
+                  <button onClick={() => setImgExpanded(true)} className="w-full rounded-2xl overflow-hidden border border-white/10 hover:border-amber-500/30 transition-colors block">
+                    <img src="/images/waha-guide-captura.png" alt="Guía visual Waha" className="w-full object-cover" />
+                  </button>
+                  <p className="text-center text-white/35 text-xs mt-2">👆 Toca la imagen para ampliar</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Full-screen image overlay */}
+          {imgExpanded && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm" onClick={() => setImgExpanded(false)}>
+              <img src="/images/waha-guide-captura.png" alt="Guía visual ampliada" className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" />
+              <button onClick={() => setImgExpanded(false)} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center hover:bg-white/25 transition-colors">
+                <X className="w-4 h-4 text-white" />
+              </button>
+              <p className="absolute bottom-6 left-0 right-0 text-center text-white/30 text-xs">Toca fuera para cerrar</p>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    /* ── Image Guide Modal ── */
   function GuideModal({ images, onClose }: { images: string[]; onClose: () => void }) {
     const [idx, setIdx] = useState(0);
     return (
@@ -180,10 +274,12 @@ import { useState } from "react";
   export default function Apps() {
     const [open, setOpen] = useState<string | null>(null);
     const [guideModal, setGuideModal] = useState<string[] | null>(null);
+    const [wahaGuide, setWahaGuide] = useState(false);
 
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-16">
         {guideModal && <GuideModal images={guideModal} onClose={() => setGuideModal(null)} />}
+        {wahaGuide && <WahaGuideModal onClose={() => setWahaGuide(false)} />}
 
         {/* Header */}
         <section className="relative py-16 overflow-hidden">
@@ -235,12 +331,10 @@ import { useState } from "react";
 
                       {/* Action buttons */}
                       <div className="flex flex-wrap gap-3">
-                        {app.guideImages.length > 0 && (
-                          <button onClick={() => setGuideModal(app.guideImages)}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                            <BookOpen className="w-4 h-4" /> Guía de Instalación
-                          </button>
-                        )}
+                        <button onClick={() => app.type === "waha" ? setWahaGuide(true) : setGuideModal(app.guideImages)}
+                              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                              <BookOpen className="w-4 h-4" /> Guía de Instalación
+                            </button>
                         <Link href="/contacto"
                           className="flex items-center gap-2 bg-white/6 border border-white/12 text-white/80 font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
                           <MessageCircle className="w-4 h-4" /> Contactar Tutora
