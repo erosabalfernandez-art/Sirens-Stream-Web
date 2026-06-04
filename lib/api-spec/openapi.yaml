@@ -1,0 +1,201 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Sirens Stream Agency API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: chat
+    description: AI assistant operations
+  - name: tutorials
+    description: Tutorial content
+  - name: stats
+    description: Agency statistics
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message to the AI assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  /tutorials:
+    get:
+      operationId: listTutorials
+      tags: [tutorials]
+      summary: List all tutorials
+      responses:
+        "200":
+          description: List of tutorials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tutorial"
+
+  /tutorials/{id}:
+    get:
+      operationId: getTutorial
+      tags: [tutorials]
+      summary: Get a single tutorial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tutorial detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tutorial"
+        "404":
+          description: Not found
+
+  /stats:
+    get:
+      operationId: getAgencyStats
+      tags: [stats]
+      summary: Get agency statistics
+      responses:
+        "200":
+          description: Agency stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgencyStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ChatInput:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+
+    ChatResponse:
+      type: object
+      required:
+        - reply
+      properties:
+        reply:
+          type: string
+
+    Tutorial:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - category
+        - duration
+        - level
+        - imageUrl
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [setup, monetization, growth, technical, branding]
+        duration:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        imageUrl:
+          type: string
+        videoUrl:
+          type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+
+    AgencyStats:
+      type: object
+      required:
+        - streamersRepresented
+        - totalFollowers
+        - averageGrowthRate
+        - successStories
+        - yearsActive
+        - platforms
+      properties:
+        streamersRepresented:
+          type: integer
+        totalFollowers:
+          type: string
+        averageGrowthRate:
+          type: string
+        successStories:
+          type: integer
+        yearsActive:
+          type: integer
+        platforms:
+          type: array
+          items:
+            type: string
