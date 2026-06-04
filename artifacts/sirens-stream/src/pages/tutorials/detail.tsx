@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import { useGetTutorial, getGetTutorialQueryKey } from "@workspace/api-client-react";
+import { useGetTutorial, getGetTutorialQueryKey } from "@/lib/api-client";
 import { ArrowLeft, Clock, BarChart } from "lucide-react";
 
 export default function TutorialDetail() {
