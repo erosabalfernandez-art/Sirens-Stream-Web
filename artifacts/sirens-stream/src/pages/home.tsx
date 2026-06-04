@@ -231,8 +231,17 @@ import { useState, useEffect } from "react";
                     style={{ background: 'rgba(255,255,255,0.04)' }}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${slide.accent} opacity-10`} />
                     <div className="relative">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${slide.accent} flex items-center justify-center mb-4`}>
+                      {slide.appIcons ? (
+                          <div className="flex gap-3">
+                            {slide.appIcons.map((src: string, idx: number) => (
+                              <img key={idx} src={src} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-white/20 shadow-lg" />
+                            ))}
+                          </div>
+                        ) : (
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${slide.accent} flex items-center justify-center mb-4`}>
                         <Zap className="w-6 h-6 text-white" />
+                        </div>
+                        )}
                       </div>
                       <p className="font-extrabold text-2xl text-white mb-1">{slide.highlight}</p>
                       <p className="text-white/50 text-sm">{slide.sub}</p>
