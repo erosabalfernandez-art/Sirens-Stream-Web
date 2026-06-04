@@ -333,9 +333,9 @@ Mismo soporte y capacitación que las chicas. 💪
     `📞 Contacto directo:
 
 💬 WhatsApp: https://wa.me/5595984381686
-📸 Instagram: @eclipse_angels.agency
-🎵 TikTok: @eclipse_angels1
-📘 Facebook: eclipse_angels.agency
+📸 Instagram: https://www.instagram.com/eclipse_angels.agency
+🎵 TikTok: https://www.tiktok.com/@eclipse_angels1
+📘 Facebook: https://facebook.com/eclipseangelsagency
 📧 Email: eclipse_angels@outlook.com
 
 ⏰ Atención: lunes a domingo, 9 AM a 11 PM
@@ -346,11 +346,32 @@ Mismo soporte y capacitación que las chicas. 💪
 La forma más rápida es por WhatsApp: https://wa.me/5595984381686
 
 También nos encuentras en:
-📸 Instagram: @eclipse_angels.agency
-🎵 TikTok: @eclipse_angels1
+📸 Instagram: https://www.instagram.com/eclipse_angels.agency
+🎵 TikTok: https://www.tiktok.com/@eclipse_angels1
+📘 Facebook: https://facebook.com/eclipseangelsagency
 📧 Email: eclipse_angels@outlook.com
 
 Estamos disponibles todos los días de 9 AM a 11 PM ✅`,
+  ],
+
+  links: [
+    `📲 Links de descarga de las apps:
+
+*WAHA (Android):*
+https://play.google.com/store/apps/details?id=com.phx.waha
+
+*WAHA / LIYO (iPhone iOS):*
+https://apps.apple.com/us/app/liyo-emotions-find-echo/id6746777859
+
+*Layla (Android e iOS):*
+Próximamente — por ahora contáctanos y te guiamos con la instalación.
+
+📢 Canales de Telegram:
+• Waha: https://t.me/ingresos_waha
+• Layla: https://t.me/ingresos_layla
+
+🌐 Nuestra web:
+https://eclipse-angels-webb.onrender.com`,
   ],
 
   comparacion: [
@@ -486,6 +507,11 @@ function getResponse(rawText: string): string {
   // Hombres
   if (fuzzyHas(t, ["hombre", "chico", "masculino", "hombres", "reclutador", "referir", "chicos"])) {
     return pick(R.hombres);
+  }
+
+  // Links / descargas / apps stores / Telegram
+  if (fuzzyHas(t, ["descarg", "bajar", "instalar", "play store", "app store", "google play", "apk", "link", "enlace", "telegram", "t.me", "donde descargo", "como descargo", "download", "tienda"])) {
+    return pick(R.links);
   }
 
   // Contacto
