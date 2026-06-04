@@ -65,7 +65,7 @@ import { Link } from "wouter";
               <span className="gradient-text">Herramienta de Trabajo</span>
             </h1>
             <p className="text-white/55 max-w-2xl mx-auto text-lg leading-relaxed mb-8">
-              En Sirens Stream puedes generar ingresos reales en dólares desde la comodidad de tu hogar usando únicamente tu smartphone. Sin inversión, sin experiencia previa, con total acompañamiento.
+              En Eclipse Angels Agency puedes generar ingresos reales en dólares desde la comodidad de tu hogar usando únicamente tu smartphone. Sin inversión, sin experiencia previa, con total acompañamiento.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link href="/contacto"
@@ -188,7 +188,7 @@ import { Link } from "wouter";
             <DollarSign className="w-12 h-12 text-blue-400 mx-auto mb-5" />
             <h2 className="text-3xl font-extrabold mb-3">¿Lista para empezar?</h2>
             <p className="text-white/50 text-sm mb-7 leading-relaxed">
-              Miles de mujeres ya generan ingresos reales en dólares con Sirens Stream. Tu momento es ahora. Escríbenos y empieza esta semana.
+              Miles de mujeres ya generan ingresos reales en dólares con Eclipse Angels Agency. Tu momento es ahora. Escríbenos y empieza esta semana.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link href="/contacto"
