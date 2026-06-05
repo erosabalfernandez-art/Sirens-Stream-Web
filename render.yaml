@@ -25,9 +25,9 @@ services:
       - key: PORT
         value: 10000
       - key: VAPID_PUBLIC_KEY
-        sync: false
+        value: BBdr3GZcSw_p6_54VakfGxtgou8XSB1mJBV0btx_aHxpXHI3FZsRaGPd6Fex1fvW7aplnZbCpFow0gdxskYk-S8
       - key: VAPID_PRIVATE_KEY
-        sync: false
+        value: G2M_CxsbU1KPAvffuoPq8Sd9rDxvdbcYFk8GPOjdfts
       - key: VAPID_SUBJECT
         value: mailto:eclipseangelsagency@gmail.com
       - key: SUPABASE_URL
