@@ -11,11 +11,20 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 export async function subscribeToPush(userId: string): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
   try {
     await navigator.serviceWorker.register('/sw.js');
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await withTimeout(navigator.serviceWorker.ready, 8000);
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return false;
     const existing = await reg.pushManager.getSubscription();
