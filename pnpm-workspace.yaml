@@ -1,3 +1,4 @@
 packages:
   - artifacts/sirens-stream
+  - artifacts/api-server
   - lib/api-client-react
