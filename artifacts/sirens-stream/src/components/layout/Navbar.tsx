@@ -5,7 +5,7 @@
     import { supabase } from "@/lib/supabase";
     import { User, LogOut, Shield, FileSpreadsheet } from "lucide-react";
 
-    const BASE_LINKS = [
+    const PUBLIC_LINKS = [
       { href: "/", label: "Home" },
       { href: "/ser-streamer", label: "Únete" },
       { href: "/crear-agencia", label: "Agencia", key: "agencia" },
@@ -37,7 +37,7 @@
           });
       }, []);
 
-      const links = BASE_LINKS.filter(
+      const publicLinks = PUBLIC_LINKS.filter(
         (l) => l.key !== "agencia" || showAgencia
       );
 
@@ -45,7 +45,7 @@
         <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-[#07070f]/95 backdrop-blur-xl border-b border-purple-500/15 shadow-[0_4px_30px_rgba(0,0,0,0.6)]" : "bg-[#07070f]/80 backdrop-blur-md"}`}>
 
           <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <Link href={user ? "/perfil" : "/"} className="flex items-center gap-2 group shrink-0">
               <img src="/images/eclipse-angels-logo.png" alt="Eclipse Angels Agency"
                 className="w-9 h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.6)] group-hover:drop-shadow-[0_0_18px_rgba(168,85,247,0.9)] transition-all duration-300" />
               <div className="leading-tight">
@@ -56,15 +56,16 @@
 
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-1">
-              {links.map((l) => (
+              {!user && publicLinks.map((l) => (
                 <Link key={l.href} href={l.href}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${location === l.href ? "text-white bg-purple-500/15 border border-purple-500/25" : "text-white/55 hover:text-white hover:bg-white/5"}`}>
                   {l.label}
                 </Link>
               ))}
+
               {!loading && (
                 user ? (
-                  <div className="ml-3 flex items-center gap-1">
+                  <div className="flex items-center gap-1">
                     {profile?.is_admin && (
                       <>
                         <Link href="/admin"
@@ -98,33 +99,45 @@
             {/* Mobile right */}
             <div className="lg:hidden flex items-center gap-2">
               {!loading && user ? (
-                <Link href="/perfil" className="p-2 rounded-lg bg-purple-500/15 border border-purple-500/25 text-purple-300">
-                  <User className="w-4 h-4" />
-                </Link>
+                <>
+                  <button onClick={signOut} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all">
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                  <Link href="/perfil" className="p-2 rounded-lg bg-purple-500/15 border border-purple-500/25 text-purple-300">
+                    <User className="w-4 h-4" />
+                  </Link>
+                </>
               ) : !loading ? (
                 <Link href="/login" className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition-all">Entrar</Link>
               ) : null}
-              <Link href="/contacto" className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition-all">Contacto</Link>
             </div>
           </div>
 
           {/* Mobile bottom nav */}
           <nav className="lg:hidden border-t border-white/5 overflow-x-auto scrollbar-none">
             <div className="flex items-center px-2 py-1.5 gap-1 min-w-max">
-              {links.map((l) => (
+              {!user && publicLinks.map((l) => (
                 <Link key={l.href} href={l.href}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === l.href ? "text-white bg-purple-500/20 border border-purple-500/30" : "text-white/55 hover:text-white hover:bg-white/8"}`}>
                   {l.label}
                 </Link>
               ))}
-              {!loading && profile?.is_admin && (
+              {!loading && user && (
                 <>
-                  <Link href="/admin" className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap text-purple-300 hover:bg-purple-500/10 transition-all">
-                    <Shield className="w-3 h-3" /> Admin
+                  <Link href="/perfil"
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === '/perfil' ? 'text-white bg-purple-500/20 border border-purple-500/30' : 'text-white/55 hover:text-white'}`}>
+                    <User className="w-3 h-3" /> Mi Perfil
                   </Link>
-                  <Link href="/nomina" className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap text-green-400 hover:bg-green-500/10 transition-all">
-                    <FileSpreadsheet className="w-3 h-3" /> Nómina
-                  </Link>
+                  {profile?.is_admin && (
+                    <>
+                      <Link href="/admin" className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap text-purple-300 hover:bg-purple-500/10 transition-all">
+                        <Shield className="w-3 h-3" /> Admin
+                      </Link>
+                      <Link href="/nomina" className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap text-green-400 hover:bg-green-500/10 transition-all">
+                        <FileSpreadsheet className="w-3 h-3" /> Nómina
+                      </Link>
+                    </>
+                  )}
                 </>
               )}
             </div>
