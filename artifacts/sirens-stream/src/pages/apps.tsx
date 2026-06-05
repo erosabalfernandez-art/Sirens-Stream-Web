@@ -833,6 +833,7 @@ import { useState } from "react";
                           <div>
                             <SectionTitle>Retiro</SectionTitle>
                             <InfoTable rows={HOWDY_RETIRO} accent="text-yellow-300" />
+                          </div>
                         </>)}
 
                       {/* ══ LAYLA DETAILS ══ */}
