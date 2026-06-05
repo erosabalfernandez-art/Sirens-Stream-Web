@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
-  import { supabase } from '@/lib/supabase'
     import { supabase, type WorkerEntry } from '@/lib/supabase'
     import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, Eye, EyeOff, Settings } from 'lucide-react'
 
@@ -80,7 +79,7 @@ import { useState, useEffect } from 'react'
       const [filterIdApp, setFilterIdApp] = useState('')
       const [filterTelefono, setFilterTelefono] = useState('')
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config'>('list')
 
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
