@@ -15,9 +15,14 @@ const PUBLIC_LINKS = [
 ];
 
 export function Navbar() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const { user, profile, signOut, loading } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    navigate("/");
+  }
   const [showAgencia, setShowAgencia] = useState(true);
   const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'inactive'>('unknown');
   const [activatingPush, setActivatingPush] = useState(false);
@@ -128,7 +133,7 @@ export function Navbar() {
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-purple-500/15 border border-purple-500/25 text-white hover:bg-purple-500/25 transition-all">
                   <User className="w-3.5 h-3.5" /> Mi perfil
                 </Link>
-                <button onClick={signOut} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all">
+                <button onClick={handleSignOut} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all">
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
@@ -146,7 +151,7 @@ export function Navbar() {
         <div className="lg:hidden flex items-center gap-2">
           {!loading && user ? (
             <>
-              <button onClick={signOut} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all">
+              <button onClick={handleSignOut} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all">
                 <LogOut className="w-4 h-4" />
               </button>
               <Link href="/perfil" className="p-2 rounded-lg bg-purple-500/15 border border-purple-500/25 text-purple-300">
