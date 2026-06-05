@@ -10,6 +10,46 @@ import { useState } from "react";
   const LaylaIcon = () => (
     <img src="/images/layla-icon.png" alt="Layla" className="w-full h-full object-cover rounded-full ring-2 ring-[#a855f7]/40 shadow-[0_0_16px_rgba(168,85,247,0.4)]" />
   );
+  const HowdyIcon = () => (
+      <div className="w-full h-full rounded-full bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 flex items-center justify-center ring-2 ring-yellow-400/40 shadow-[0_0_16px_rgba(251,191,36,0.4)]">
+        <span className="text-white font-black text-xs leading-none">H</span>
+      </div>
+    );
+
+    /* ── Data: HOWDY ── */
+    const HOWDY_LLAMADA = [
+      { t: "1800s+", p: "3,000 pts/min", v: "$0.30/min" },
+      { t: "600–1800s", p: "1,800 pts/min", v: "$0.18/min" },
+      { t: "300–600s", p: "1,400 pts/min", v: "$0.14/min" },
+      { t: "200–300s", p: "1,200 pts/min", v: "$0.12/min" },
+      { t: "140–200s", p: "900 pts/min", v: "$0.09/min" },
+      { t: "50–140s", p: "800 pts/min", v: "$0.08/min" },
+      { t: "0–50s", p: "0 pts", v: "$0" },
+    ];
+    const HOWDY_OTROS = [
+      { k: "Llamada de Match", v: "200 pts (primeros 20 seg) + tarifa privada" },
+      { k: "Mensaje", v: "40 puntos" },
+      { k: "Regalo", v: "Según puntos de la App" },
+      { k: "Cupón (Invitación de coins)", v: "1 Cupón = 1 Punto" },
+    ];
+    const HOWDY_BONOS = [
+      { k: "Bono Diario", v: "100,000 pts = $10 USD (180 min online + 150 min en llamadas)" },
+      { k: "Bono de Live", v: "20,000 pts = $2 USD (180 min live + 100,000 pts regalos)" },
+      { k: "Bono Regalo Suerte", v: "20,000 pts = $2 USD (+120,000 pts de lucky gift)" },
+      { k: "Bono de Invitación", v: "40% rebate si invitas usuarios que recargan coins" },
+    ];
+    const HOWDY_RETIRO = [
+      { k: "Meta mínima", v: "100,000 Puntos = $10 USD" },
+      { k: "Método", v: "Binance / USDT / E-wallet" },
+      { k: "Liquidación", v: "Lunes 00:00 (hora Beijing)" },
+      { k: "Pago", v: "Miércoles o Jueves" },
+    ];
+    const HOWDY_HORARIOS = [
+      { p: "México", h: "Domingo 10:00" }, { p: "Colombia/Ecuador/Perú", h: "Domingo 11:00" },
+      { p: "USA/Venezuela/Bolivia", h: "Domingo 12:00" }, { p: "Argentina/Brasil", h: "Domingo 13:00" },
+      { p: "España", h: "Domingo 18:00" }, { p: "Otros países", h: "Consultar con admin" },
+    ];
+  
   /* ── Data: WAHA ── */
   const WAHA_GANANCIAS = [
     { cat: "Mensajes", rows: [{ t: "Usuarios VIP", v: "70 diamantes" }, { t: "Usuarios Free", v: "5 puntos" }] },
@@ -359,6 +399,125 @@ import { useState } from "react";
         );
       }
   
+
+      /* ── Howdy Step-by-Step Guide Modal ── */
+      function HowdyGuideModal({ onClose }: { onClose: () => void }) {
+        const [imgExpanded, setImgExpanded] = useState<string | null>(null);
+        return (
+          <>
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm" onClick={onClose}>
+              <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-[#0d0d1e] rounded-t-3xl sm:rounded-2xl border border-white/8 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-[#0d0d1e]/95 backdrop-blur-sm border-b border-white/8">
+                  <p className="text-white/60 text-sm font-semibold">Guía de instalación — Howdy</p>
+                  <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+                <div className="px-5 pt-8 pb-6 text-center border-b border-white/5">
+                  <h1 className="text-5xl font-black text-yellow-400 tracking-widest mb-2">HOWDY</h1>
+                  <p className="text-white/50 font-bold text-xs uppercase tracking-widest">Guía de Instalación Paso a Paso</p>
+                </div>
+                <div className="px-5 py-6 space-y-3">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-1 h-4 bg-yellow-500 rounded-full" />
+                    <p className="text-white/70 text-sm font-bold">Pasos para Instalar</p>
+                  </div>
+                  {/* Paso 1 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4">
+                    <p className="text-sm text-white/80 mb-3">
+                      <span className="text-yellow-400 font-black">Paso 1</span>{"  "}Descarga la app según tu dispositivo:
+                    </p>
+                    <div className="space-y-2.5">
+                      <a href="https://play.google.com/store/apps/details?id=com.howdy.chat" target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-yellow-500/30 text-yellow-300 font-bold py-3 rounded-xl text-sm hover:bg-yellow-500/10 transition-colors underline underline-offset-2">
+                        🤖 Descargar para Android
+                      </a>
+                      <a href="https://apps.apple.com/app/howdy-chat/id6444767180" target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-yellow-500/30 text-yellow-300 font-bold py-3 rounded-xl text-sm hover:bg-yellow-500/10 transition-colors underline underline-offset-2">
+                        🍎 Descargar para iOS
+                      </a>
+                      <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20registrarme%20en%20Howdy"
+                        className="flex items-center justify-center gap-2 w-full bg-green-600/20 border border-green-500/30 text-green-300 font-bold py-3 rounded-xl text-sm hover:bg-green-600/30 transition-colors underline underline-offset-2">
+                        💬 Enviar Captura + ID por WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                  {/* Paso 2 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <span className="text-yellow-400 font-black">Paso 2</span>{"  "}Abre la app y selecciona <strong className="text-white">"Log in with Google"</strong>.
+                  </div>
+                  {/* Paso 3 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-yellow-300 mb-1.5"><span className="text-yellow-400 font-black">Paso 3</span>{"  "}Llena tu información</p>
+                    <p>Completa tu nombre, fecha de nacimiento y el <strong className="text-white">Código de Invitación de tu Agencia</strong>. Luego sube tu foto.</p>
+                    <div className="mt-2.5 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 text-xs text-amber-300">
+                      ⚠️ El código de agencia es obligatorio para monetizar.
+                    </div>
+                  </div>
+                  {/* Paso 4 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-yellow-300 mb-2"><span className="text-yellow-400 font-black">Paso 4</span>{"  "}Verificación</p>
+                    <p>Sube tu foto de <strong className="text-white">Cover</strong> (la primera foto visible para usuarios). Agrega <strong className="text-white">3 fotos al álbum</strong>, tu nickname e introducción. Haz clic en <strong className="text-white">Submit</strong> y espera aprobación.</p>
+                  </div>
+                  {/* Paso 5 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-yellow-300 mb-2"><span className="text-yellow-400 font-black">Paso 5</span>{"  "}Autenticación de identidad</p>
+                    <p>Tómate una foto en vivo para confirmar tu identidad. Usa buena iluminación y fondo limpio.</p>
+                  </div>
+                  {/* Paso 6 */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
+                    <p className="font-bold text-yellow-300 mb-1"><span className="text-yellow-400 font-black">Paso 6</span>{"  "}Captura y envía tu ID</p>
+                    <p>Copia tu <strong className="text-white">ID de usuario</strong> (aparece bajo tu nombre/foto de perfil). Haz una captura de pantalla de tu perfil y envíala por WhatsApp a tu admin.</p>
+                  </div>
+                  {/* Tip */}
+                  <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-2xl p-4 flex gap-3 items-start">
+                    <span className="text-yellow-400 text-base shrink-0 mt-0.5">💡</span>
+                    <p className="text-sm"><span className="text-yellow-400 font-bold">Tip importante:</span>{" "}
+                      <span className="text-white/55">El botón "Online" en tu pantalla principal activa/desactiva la recepción de llamadas. Mantenlo activo mientras trabajas para acumular el bono diario.</span>
+                    </p>
+                  </div>
+                  {/* Reglas videollamadas */}
+                  <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm">
+                    <p className="font-bold text-yellow-300 mb-3">📋 Reglas para Videollamadas</p>
+                    <div className="space-y-1.5 text-white/70">
+                      <p>1. Muestra tu <strong className="text-white">cuerpo desde la cintura</strong> en los primeros 30 segundos. Sin desnudez.</p>
+                      <p>2. <strong className="text-white">Fondo limpio</strong> (usa tela o cortina si es necesario).</p>
+                      <p>3. Distancia correcta de la cámara (ni muy cerca ni muy lejos).</p>
+                      <p>4. Iluminación brillante, preferiblemente <strong className="text-white">luz de colores</strong>.</p>
+                    </div>
+                  </div>
+                  {/* Guía visual thumbnails */}
+                  <div className="pt-1">
+                    <p className="text-white/50 text-xs font-semibold mb-2 uppercase tracking-wider">Guías visuales del PDF</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {["/images/howdy-guide-1.png","/images/howdy-guide-2.png","/images/howdy-guide-3.png","/images/howdy-guide-4.png"].map((src, i) => (
+                        <button key={i} onClick={() => setImgExpanded(src)}
+                          className="rounded-xl overflow-hidden border border-white/10 hover:border-yellow-500/30 transition-colors">
+                          <img src={src} alt={`Guía ${i+1}`} className="w-full object-cover" />
+                          <p className="text-center text-white/35 text-xs py-1.5">🖼️ Ver pág. {i+1}</p>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-center text-white/35 text-xs mt-2">👆 Toca para ampliar</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {imgExpanded && (
+              <div style={{ position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.96)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}
+                onClick={() => setImgExpanded(null)}>
+                <img src={imgExpanded} alt="Guía ampliada" style={{ maxWidth:'100%',maxHeight:'90vh',objectFit:'contain',borderRadius:'16px',boxShadow:'0 25px 60px rgba(0,0,0,0.8)' }}
+                  onClick={e => e.stopPropagation()} />
+                <button onClick={() => setImgExpanded(null)}
+                  style={{ position:'absolute',top:16,right:16,width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>
+                  <X className="w-4 h-4 text-white" />
+                </button>
+                <p style={{ position:'absolute',bottom:24,left:0,right:0,textAlign:'center',color:'rgba(255,255,255,0.35)',fontSize:'12px' }}>Toca fuera para cerrar</p>
+              </div>
+            )}
+          </>
+        );
+      }
     /* ── Image Guide Modal ── */
   function GuideModal({ images, onClose }: { images: string[]; onClose: () => void }) {
     const [idx, setIdx] = useState(0);
@@ -434,12 +593,14 @@ import { useState } from "react";
     const [guideModal, setGuideModal] = useState<string[] | null>(null);
     const [wahaGuide, setWahaGuide] = useState(false);
     const [laylaGuide, setLaylaGuide] = useState(false);
+    const [howdyGuide, setHowdyGuide] = useState(false);
 
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-16">
         {guideModal && <GuideModal images={guideModal} onClose={() => setGuideModal(null)} />}
         {wahaGuide && <WahaGuideModal onClose={() => setWahaGuide(false)} />}
       {laylaGuide && <LaylaGuideModal onClose={() => setLaylaGuide(false)} />}
+      {howdyGuide && <HowdyGuideModal onClose={() => setHowdyGuide(false)} />}
 
         {/* Header */}
         <section className="relative py-16 overflow-hidden">
@@ -503,7 +664,7 @@ import { useState } from "react";
 
                       {/* Action buttons */}
                       <div className="flex flex-wrap gap-3">
-                        <button onClick={() => app.type === "waha" ? setWahaGuide(true) : app.type === "layla" ? setLaylaGuide(true) : setGuideModal(app.guideImages)}
+                        <button onClick={() => app.type === "waha" ? setWahaGuide(true) : app.type === "layla" ? setLaylaGuide(true) : app.type === "howdy" ? setHowdyGuide(true) : setGuideModal(app.guideImages)}
                               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                               <BookOpen className="w-4 h-4" /> Guía de Instalación
                             </button>
@@ -591,6 +752,53 @@ import { useState } from "react";
                         </div>
 
                       </>)}
+
+
+                        {/* ══ HOWDY DETAILS ══ */}
+                        {app.type === "howdy" && (<>
+                          <div>
+                            <SectionTitle>Tarifa de Llamada Privada</SectionTitle>
+                            <p className="text-white/40 text-xs mb-2">10,000 Puntos = $1 USD · Meta mínima: 100,000 pts</p>
+                            <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+                              <div className="grid grid-cols-3 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
+                                <span>Duración</span><span className="text-center">Puntos/min</span><span className="text-right">USD/min</span>
+                              </div>
+                              {HOWDY_LLAMADA.map((r, i) => (
+                                <div key={i} className={`grid grid-cols-3 px-4 py-2.5 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
+                                  <span className="text-white/55">{r.t}</span>
+                                  <span className="text-center text-yellow-300 font-bold">{r.p}</span>
+                                  <span className="text-right text-green-300 font-bold">{r.v}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <SectionTitle>Otros Ingresos</SectionTitle>
+                            <InfoTable rows={HOWDY_OTROS} accent="text-yellow-300" />
+                          </div>
+                          <div>
+                            <SectionTitle>Bonos Automáticos</SectionTitle>
+                            <InfoTable rows={HOWDY_BONOS} accent="text-yellow-300" />
+                            <div className="mt-3 bg-yellow-500/8 border border-yellow-500/20 rounded-xl px-4 py-3 text-xs text-yellow-200/70 leading-relaxed">
+                              💡 <strong>Potencial diario:</strong> Bono diario ($10) + Bono live ($2) + Bono regalo suerte ($2) = hasta <span className="text-yellow-300 font-bold">$14 USD extra/día</span> en bonos solos, sin contar llamadas.
+                            </div>
+                          </div>
+                          <div>
+                            <SectionTitle>Retiro y Horarios de Corte</SectionTitle>
+                            <InfoTable rows={HOWDY_RETIRO} accent="text-yellow-300" />
+                            <div className="mt-3 bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
+                              <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2 border-b border-white/5">
+                                <span>País</span><span className="text-right">Hora de corte</span>
+                              </div>
+                              {HOWDY_HORARIOS.map((r, i) => (
+                                <div key={i} className={`flex justify-between px-4 py-2 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
+                                  <span className="text-white/55">{r.p}</span>
+                                  <span className="text-yellow-300 font-bold">{r.h}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>)}
 
                       {/* ══ LAYLA DETAILS ══ */}
                       {app.type === "layla" && (<>
