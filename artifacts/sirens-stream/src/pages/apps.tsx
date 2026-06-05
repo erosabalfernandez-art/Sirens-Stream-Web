@@ -418,7 +418,17 @@ import { useState } from "react";
 
       /* ── Howdy Step-by-Step Guide Modal ── */
       function HowdyGuideModal({ onClose }: { onClose: () => void }) {
-        const [imgExpanded, setImgExpanded] = useState<string | null>(null);
+        const [imgExpanded, setImgExpanded] = useState<number | null>(null);
+        const [codeCopied, setCodeCopied] = useState(false);
+        const copyCode = () => { navigator.clipboard.writeText("R3DKXB5"); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 2000); };
+        const guideImgs = [
+          { src: "/images/howdy-guide-1.jpg", label: "Verificación — Inicio de sesión" },
+          { src: "/images/howdy-guide-2.jpg", label: "Verificación — Cover y perfil" },
+          { src: "/images/howdy-guide-3.jpg", label: "Bonificación diaria y en vivo" },
+          { src: "/images/howdy-guide-4.jpg", label: "Bono regalo suerte e invitación" },
+          { src: "/images/howdy-guide-5.jpg", label: "Retiro y hora de corte" },
+          { src: "/images/howdy-guide-6.jpg", label: "Cupón y cambiar idioma" },
+        ];
         return (
           <>
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm" onClick={onClose}>
@@ -441,7 +451,7 @@ import { useState } from "react";
                   {/* Paso 1 */}
                   <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4">
                     <p className="text-sm text-white/80 mb-3">
-                      <span className="text-yellow-400 font-black">Paso 1</span>{"  "}Descarga la app según tu dispositivo:
+                      <span className="text-yellow-400 font-black">Paso 1</span>{"  "}Descarga la app:
                     </p>
                     <div className="space-y-2.5">
                       <a href="https://api.wehowdy.com/api/v1/dl/android?bundleId=com.howdy.howdy" target="_blank" rel="noopener noreferrer"
@@ -460,16 +470,26 @@ import { useState } from "react";
                   </div>
                   {/* Paso 3 */}
                   <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
-                    <p className="font-bold text-yellow-300 mb-1.5"><span className="text-yellow-400 font-black">Paso 3</span>{"  "}Llena tu información</p>
-                    <p>Completa tu nombre, fecha de nacimiento y el <strong className="text-white">Código de Invitación de tu Agencia</strong>. Luego sube tu foto.</p>
-                    <div className="mt-2.5 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 text-xs text-amber-300">
-                      ⚠️ El código de agencia es obligatorio para monetizar.
+                    <p className="font-bold text-yellow-300 mb-1.5"><span className="text-yellow-400 font-black">Paso 3</span>{"  "}Llena tu información y agrega el Código de Agencia:</p>
+                    <div className="bg-[#0d0d20] border border-yellow-500/30 rounded-xl p-4 flex items-center justify-between gap-4 mb-2">
+                      <div>
+                        <p className="text-yellow-300/60 text-xs mb-1">Código de Agencia (Obligatorio)</p>
+                        <p className="font-mono font-extrabold text-2xl text-yellow-200 tracking-widest">R3DKXB5</p>
+                      </div>
+                      <button onClick={copyCode}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${codeCopied ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/30"}`}>
+                        {codeCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {codeCopied ? "¡Copiado!" : "Copiar"}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 text-xs text-amber-300">
+                      🔑 Obligatorio para monetización.
                     </div>
                   </div>
                   {/* Paso 4 */}
                   <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
                     <p className="font-bold text-yellow-300 mb-2"><span className="text-yellow-400 font-black">Paso 4</span>{"  "}Verificación</p>
-                    <p>Sube tu foto de <strong className="text-white">Cover</strong> (la primera foto visible para usuarios). Agrega <strong className="text-white">3 fotos al álbum</strong>, tu nickname e introducción. Haz clic en <strong className="text-white">Submit</strong> y espera aprobación.</p>
+                    <p>Sube tu foto de <strong className="text-white">Cover</strong>. Agrega <strong className="text-white">3 fotos al álbum</strong>, tu nickname e introducción. Haz clic en <strong className="text-white">Submit</strong> y espera aprobación.</p>
                   </div>
                   {/* Paso 5 */}
                   <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
@@ -479,7 +499,7 @@ import { useState } from "react";
                   {/* Paso 6 */}
                   <div className="bg-[#13132a] border border-white/8 rounded-2xl p-4 text-sm text-white/80">
                     <p className="font-bold text-yellow-300 mb-1"><span className="text-yellow-400 font-black">Paso 6</span>{"  "}Captura y envía tu ID</p>
-                    <p>Copia tu <strong className="text-white">ID de usuario</strong> (aparece bajo tu nombre/foto de perfil). Haz una captura de pantalla de tu perfil y envíala por WhatsApp a tu admin.</p>
+                    <p>Copia tu <strong className="text-white">ID de usuario</strong> (bajo tu nombre/foto de perfil) y envía una captura por WhatsApp a tu admin.</p>
                   </div>
                   {/* Tip */}
                   <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-2xl p-4 flex gap-3 items-start">
@@ -498,39 +518,49 @@ import { useState } from "react";
                       <p>4. Iluminación brillante, preferiblemente <strong className="text-white">luz de colores</strong>.</p>
                     </div>
                   </div>
-                  {/* Guía visual thumbnails */}
+                  {/* Guías visuales — 6 imágenes */}
                   <div className="pt-1">
-                    <p className="text-white/50 text-xs font-semibold mb-2 uppercase tracking-wider">Guías visuales del PDF</p>
+                    <p className="text-white/50 text-xs font-semibold mb-2 uppercase tracking-wider">📖 Guías visuales (toca para ampliar)</p>
                     <div className="grid grid-cols-2 gap-2">
-                      {["/images/howdy-guide-1.png","/images/howdy-guide-2.png","/images/howdy-guide-3.png","/images/howdy-guide-4.png"].map((src, i) => (
-                        <button key={i} onClick={() => setImgExpanded(src)}
-                          className="rounded-xl overflow-hidden border border-white/10 hover:border-yellow-500/30 transition-colors">
-                          <img src={src} alt={`Guía ${i+1}`} className="w-full object-cover" />
-                          <p className="text-center text-white/35 text-xs py-1.5">🖼️ Ver pág. {i+1}</p>
+                      {guideImgs.map((img, i) => (
+                        <button key={i} onClick={() => setImgExpanded(i)}
+                          className="rounded-xl overflow-hidden border border-white/10 hover:border-yellow-500/40 transition-colors text-left">
+                          <img src={img.src} alt={img.label} className="w-full object-cover aspect-[3/4]" />
+                          <p className="text-center text-white/40 text-xs py-1.5 px-1 leading-tight">{img.label}</p>
                         </button>
                       ))}
                     </div>
-                    <p className="text-center text-white/35 text-xs mt-2">👆 Toca para ampliar</p>
                   </div>
                 </div>
               </div>
             </div>
-            {imgExpanded && (
-              <div style={{ position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.96)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}
-                onClick={() => setImgExpanded(null)}>
-                <img src={imgExpanded} alt="Guía ampliada" style={{ maxWidth:'100%',maxHeight:'90vh',objectFit:'contain',borderRadius:'16px',boxShadow:'0 25px 60px rgba(0,0,0,0.8)' }}
-                  onClick={e => e.stopPropagation()} />
-                <button onClick={() => setImgExpanded(null)}
-                  style={{ position:'absolute',top:16,right:16,width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>
+            {/* Full-screen image overlay */}
+            {imgExpanded !== null && (
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+                onClick={() => setImgExpanded(null)}
+              >
+                <img
+                  src={guideImgs[imgExpanded].src}
+                  alt={guideImgs[imgExpanded].label}
+                  style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
+                  onClick={e => e.stopPropagation()}
+                />
+                <button
+                  onClick={() => setImgExpanded(null)}
+                  style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
                   <X className="w-4 h-4 text-white" />
                 </button>
-                <p style={{ position:'absolute',bottom:24,left:0,right:0,textAlign:'center',color:'rgba(255,255,255,0.35)',fontSize:'12px' }}>Toca fuera para cerrar</p>
+                <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>
+                  {guideImgs[imgExpanded].label} · Toca fuera para cerrar
+                </p>
               </div>
             )}
           </>
         );
       }
-    /* ── Image Guide Modal ── */
+        /* ── Image Guide Modal ── */
   function GuideModal({ images, onClose }: { images: string[]; onClose: () => void }) {
     const [idx, setIdx] = useState(0);
     return (
