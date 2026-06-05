@@ -23,7 +23,7 @@ import { Link } from "wouter";
   ];
 
   const socials = [
-    { href: "https://www.instagram.com/eclipse_angels.agency?igsh=bW9mczJiNG1lOG1h", icon: <FaInstagram />, label: "Instagram", color: "text-[#E1306C] hover:opacity-80" },
+    { href: "https://www.instagram.com/eclipse_angels1?igsh=MTY0bGpqd294NjBwYg==", icon: <FaInstagram />, label: "Instagram", color: "text-[#E1306C] hover:opacity-80" },
     { href: "https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency", icon: <FaWhatsapp />, label: "WhatsApp", color: "text-[#25D366] hover:opacity-80" },
     { href: "https://www.tiktok.com/@eclipse_angels1?_r=1&_t=ZS-96vSGdq3JZ4", icon: <FaTiktok />, label: "TikTok", color: "text-white hover:opacity-80" },
     { href: "https://facebook.com/eclipseangelsagency", icon: <FaFacebook />, label: "Facebook", color: "text-[#1877F2] hover:opacity-80" },
