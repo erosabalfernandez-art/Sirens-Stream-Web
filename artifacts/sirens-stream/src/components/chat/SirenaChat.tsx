@@ -55,7 +55,7 @@ const SYSTEM_PROMPT = [
   "",
   "REDES SOCIALES Y CONTACTO:",
   "- WhatsApp: https://wa.me/5595984381686",
-  "- Instagram: https://www.instagram.com/eclipse_angels.agency",
+  "- Instagram: https://www.instagram.com/eclipse_angels1",
   "- TikTok: https://www.tiktok.com/@eclipse_angels1",
   "- Facebook: https://facebook.com/eclipseangelsagency",
   "- Email: eclipseangelsagency@gmail.com",
@@ -96,7 +96,7 @@ function MessageText({ text }: { text: string }) {
         if (URL_REGEX.test(part)) {
           const display = part
             .replace("https://wa.me/5595984381686", "WhatsApp")
-            .replace("https://www.instagram.com/eclipse_angels.agency", "Instagram @eclipse_angels.agency")
+            .replace("https://www.instagram.com/eclipse_angels1", "Instagram @eclipse_angels1")
             .replace("https://www.tiktok.com/@eclipse_angels1", "TikTok @eclipse_angels1")
             .replace("https://facebook.com/eclipseangelsagency", "Facebook")
             .replace("https://t.me/ingresos_waha", "Telegram Waha 📣")
