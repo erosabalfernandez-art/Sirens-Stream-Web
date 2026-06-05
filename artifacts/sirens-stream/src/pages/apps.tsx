@@ -156,7 +156,7 @@ import { useState } from "react";
       accentText: "text-yellow-300",
       desc: "Plataforma internacional con enfoque en videollamadas privadas y live streaming. Sistema de puntos con bonos diarios automáticos, bono de live y bono de regalo de la suerte. Retiro semanal vía Binance/USDT.",
       specs: [
-        { l: "Android", v: "Howdy" }, { l: "iOS", v: "Howdy" },
+        { l: "Android", v: "Howdy" }, { l: "iOS", v: "No disponible" },
         { l: "Tiempo diario", v: "+3 Horas" }, { l: "Modo", v: "Videollamadas, Live, Match, Mensajes" },
         { l: "Retiro", v: "Semanal (Miérc o Juev)" }, { l: "Meta mínima", v: "$10 USD (100,000 pts)" },
       ],
@@ -446,13 +446,9 @@ import { useState } from "react";
                       <span className="text-yellow-400 font-black">Paso 1</span>{"  "}Descarga la app según tu dispositivo:
                     </p>
                     <div className="space-y-2.5">
-                      <a href="https://play.google.com/store/apps/details?id=com.howdy.chat" target="_blank" rel="noopener noreferrer"
+                      <a href="https://api.wehowdy.com/api/v1/dl/android?bundleId=com.howdy.howdy" target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-yellow-500/30 text-yellow-300 font-bold py-3 rounded-xl text-sm hover:bg-yellow-500/10 transition-colors underline underline-offset-2">
                         🤖 Descargar para Android
-                      </a>
-                      <a href="https://apps.apple.com/app/howdy-chat/id6444767180" target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full bg-[#1a1a35] border border-yellow-500/30 text-yellow-300 font-bold py-3 rounded-xl text-sm hover:bg-yellow-500/10 transition-colors underline underline-offset-2">
-                        🍎 Descargar para iOS
                       </a>
                       <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20registrarme%20en%20Howdy"
                         className="flex items-center justify-center gap-2 w-full bg-green-600/20 border border-green-500/30 text-green-300 font-bold py-3 rounded-xl text-sm hover:bg-green-600/30 transition-colors underline underline-offset-2">
