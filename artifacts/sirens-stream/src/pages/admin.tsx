@@ -166,6 +166,11 @@ import { useState, useEffect } from 'react'
                 {duplicates.length > 0 && <span className="w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold">{duplicates.length}</span>}
                 Duplicados
               </button>
+              <button onClick={() => setTab('config')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'config' ? 'bg-amber-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                <Settings className="w-3.5 h-3.5" />
+                Configuración
+              </button>
             </div>
 
             {tab === 'config' && (
