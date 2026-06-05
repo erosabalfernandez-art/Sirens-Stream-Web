@@ -16,9 +16,7 @@ import { useState } from "react";
     <img src="/images/layla-icon.png" alt="Layla" className="w-full h-full object-cover rounded-full ring-2 ring-[#a855f7]/40 shadow-[0_0_16px_rgba(168,85,247,0.4)]" />
   );
   const HowdyIcon = () => (
-      <div className="w-full h-full rounded-full bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 flex items-center justify-center ring-2 ring-yellow-400/40 shadow-[0_0_16px_rgba(251,191,36,0.4)]">
-        <span className="text-white font-black text-xs leading-none">H</span>
-      </div>
+      <img src="/images/howdy-icon.jpg" alt="Howdy" className="w-full h-full object-cover rounded-full ring-2 ring-yellow-400/40 shadow-[0_0_16px_rgba(251,191,36,0.4)]" />
     );
 
     /* ── Data: HOWDY ── */
