@@ -798,18 +798,6 @@ import { useState } from "react";
                           <div>
                             <SectionTitle>Retiro y Horarios de Corte</SectionTitle>
                             <InfoTable rows={HOWDY_RETIRO} accent="text-yellow-300" />
-                            <div className="mt-3 bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
-                              <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2 border-b border-white/5">
-                                <span>País</span><span className="text-right">Hora de corte</span>
-                              </div>
-                              {HOWDY_HORARIOS.map((r, i) => (
-                                <div key={i} className={`flex justify-between px-4 py-2 text-sm ${i % 2 !== 0 ? "bg-white/[0.015]" : ""}`}>
-                                  <span className="text-white/55">{r.p}</span>
-                                  <span className="text-yellow-300 font-bold">{r.h}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
                         </>)}
 
                       {/* ══ LAYLA DETAILS ══ */}
