@@ -45,6 +45,8 @@ import { useState } from "react";
     ];
     const HOWDY_RETIRO = [
       { k: "Meta mínima", v: "100,000 Puntos = $10 USD" },
+      { k: "Tipo de retiro", v: "Acumulable" },
+      { k: "Frecuencia", v: "1 vez por semana" },
       { k: "Liquidación", v: "Lunes 00:00 (hora Beijing)" },
     ];
     const HOWDY_HORARIOS = [
