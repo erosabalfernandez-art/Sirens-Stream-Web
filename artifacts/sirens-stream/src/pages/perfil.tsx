@@ -16,15 +16,17 @@ import { useState, useEffect } from 'react'
     pais: string
     metodo_pago: string
     billetera: string
+    agente: string
   }
 
   const EMPTY_FORM: EntryFormData = {
     app_name: '', nombre_real: '', nombre_en_app: '',
-    id_aplicacion: '', telefono: '', codigo_pais: '+1', pais: '', metodo_pago: '', billetera: ''
+    id_aplicacion: '', telefono: '', codigo_pais: '+1',
+    pais: '', metodo_pago: '', billetera: '', agente: ''
   }
 
   export default function Perfil() {
-    const { user, profile, loading, signOut } = useAuth()
+    const { user, loading, signOut } = useAuth()
     const [, navigate] = useLocation()
     const [entries, setEntries] = useState<WorkerEntry[]>([])
     const [loadingEntries, setLoadingEntries] = useState(true)
@@ -36,67 +38,44 @@ import { useState, useEffect } from 'react'
     const [confirmClear, setConfirmClear] = useState(false)
     const [expandedApp, setExpandedApp] = useState<string | null>(null)
 
-    useEffect(() => {
-      if (!loading && !user) navigate('/login')
-    }, [loading, user])
-
-    useEffect(() => {
-      if (user) fetchEntries()
-    }, [user])
+    useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
+    useEffect(() => { if (user) fetchEntries() }, [user])
 
     async function fetchEntries() {
       setLoadingEntries(true)
-      const { data } = await supabase
-        .from('worker_entries')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: true })
+      const { data } = await supabase.from('worker_entries').select('*').eq('user_id', user!.id).order('created_at', { ascending: true })
       setEntries((data as WorkerEntry[]) ?? [])
       setLoadingEntries(false)
     }
 
-    function openAdd() {
-      setEditingId(null)
-      setForm(EMPTY_FORM)
-      setFormError(null)
-      setShowForm(true)
-    }
+    function openAdd() { setEditingId(null); setForm(EMPTY_FORM); setFormError(null); setShowForm(true) }
 
     function openEdit(entry: WorkerEntry) {
       setEditingId(entry.id)
       setForm({
-        app_name: entry.app_name,
-        nombre_real: entry.nombre_real ?? '',
-        nombre_en_app: entry.nombre_en_app ?? '',
-        id_aplicacion: entry.id_aplicacion ?? '',
-        telefono: entry.telefono ?? '',
-        codigo_pais: entry.codigo_pais ?? '+1',
-        pais: entry.pais ?? '',
-        metodo_pago: entry.metodo_pago ?? '',
-        billetera: entry.billetera ?? '',
+        app_name: entry.app_name, nombre_real: entry.nombre_real ?? '',
+        nombre_en_app: entry.nombre_en_app ?? '', id_aplicacion: entry.id_aplicacion ?? '',
+        telefono: entry.telefono ?? '', codigo_pais: entry.codigo_pais ?? '+1',
+        pais: entry.pais ?? '', metodo_pago: entry.metodo_pago ?? '',
+        billetera: entry.billetera ?? '', agente: entry.agente ?? '',
       })
-      setFormError(null)
-      setShowForm(true)
+      setFormError(null); setShowForm(true)
     }
 
     async function handleSave() {
       if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
       if (!form.pais) { setFormError('Selecciona tu país'); return }
       if (!form.metodo_pago) { setFormError('Selecciona un método de pago'); return }
-      setSaving(true)
-      setFormError(null)
+      setSaving(true); setFormError(null)
       const walletLabel = getWalletLabel(form.metodo_pago)
       const payload = {
-        user_id: user!.id,
-        app_name: form.app_name,
-        nombre_real: form.nombre_real || null,
-        nombre_en_app: form.nombre_en_app || null,
-        id_aplicacion: form.id_aplicacion || null,
-        telefono: form.telefono || null,
-        codigo_pais: form.codigo_pais || null,
-        pais: form.pais || null,
+        user_id: user!.id, app_name: form.app_name,
+        nombre_real: form.nombre_real || null, nombre_en_app: form.nombre_en_app || null,
+        id_aplicacion: form.id_aplicacion || null, telefono: form.telefono || null,
+        codigo_pais: form.codigo_pais || null, pais: form.pais || null,
         metodo_pago: form.metodo_pago || null,
         billetera: walletLabel ? (form.billetera || null) : null,
+        agente: form.agente || null,
         updated_at: new Date().toISOString(),
       }
       let error: string | null = null
@@ -104,38 +83,24 @@ import { useState, useEffect } from 'react'
         const { error: e } = await supabase.from('worker_entries').update(payload).eq('id', editingId)
         error = e?.message ?? null
       } else {
-        const existing = entries.find(e => e.app_name === form.app_name)
-        if (existing) { setFormError('Ya tienes una entrada para esta app.'); setSaving(false); return }
+        if (entries.find(e => e.app_name === form.app_name)) { setFormError('Ya tienes una entrada para esta app.'); setSaving(false); return }
         const { error: e } = await supabase.from('worker_entries').insert(payload)
         error = e?.message ?? null
       }
       setSaving(false)
       if (error) { setFormError(error); return }
-      setShowForm(false)
-      fetchEntries()
+      setShowForm(false); fetchEntries()
     }
 
-    async function handleDelete(id: string) {
-      await supabase.from('worker_entries').delete().eq('id', id)
-      fetchEntries()
-    }
-
-    async function handleClearAll() {
-      await supabase.from('worker_entries').delete().eq('user_id', user!.id)
-      setEntries([])
-      setConfirmClear(false)
-    }
+    async function handleDelete(id: string) { await supabase.from('worker_entries').delete().eq('id', id); fetchEntries() }
+    async function handleClearAll() { await supabase.from('worker_entries').delete().eq('user_id', user!.id); setEntries([]); setConfirmClear(false) }
 
     const paymentMethods = getPaymentMethods(form.pais)
     const walletLabel = getWalletLabel(form.metodo_pago)
     const usedApps = entries.map(e => e.app_name)
     const availableApps = APPS.filter(a => !usedApps.includes(a) || (editingId && entries.find(e => e.id === editingId)?.app_name === a))
 
-    if (loading) return (
-      <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
-        <div className="text-white/40 animate-pulse">Cargando...</div>
-      </div>
-    )
+    if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
 
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
@@ -159,10 +124,8 @@ import { useState, useEffect } from 'react'
                 </button>
               )}
             </div>
-
-            {loadingEntries ? (
-              <div className="text-white/30 text-sm">Cargando...</div>
-            ) : entries.length === 0 ? (
+            {loadingEntries ? <div className="text-white/30 text-sm">Cargando...</div>
+            : entries.length === 0 ? (
               <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-8 text-center">
                 <p className="text-white/40 text-sm mb-4">No tienes ninguna app registrada aún.</p>
                 <button onClick={openAdd} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl mx-auto transition-all">
@@ -176,21 +139,15 @@ import { useState, useEffect } from 'react'
                     <button onClick={() => setExpandedApp(expandedApp === entry.id ? null : entry.id)}
                       className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/2 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 font-bold text-xs">
-                          {entry.app_name[0]}
-                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 font-bold text-xs">{entry.app_name[0]}</div>
                         <div className="text-left">
                           <p className="font-bold text-sm">{entry.app_name}</p>
                           <p className="text-white/35 text-xs">{entry.nombre_en_app || entry.nombre_real || 'Sin nombre'}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={e => { e.stopPropagation(); openEdit(entry) }} className="p-1.5 rounded-lg text-white/35 hover:text-purple-400 hover:bg-purple-500/10 transition-all">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); handleDelete(entry.id) }} className="p-1.5 rounded-lg text-white/35 hover:text-red-400 hover:bg-red-500/10 transition-all">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <button onClick={e => { e.stopPropagation(); openEdit(entry) }} className="p-1.5 rounded-lg text-white/35 hover:text-purple-400 hover:bg-purple-500/10 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={e => { e.stopPropagation(); handleDelete(entry.id) }} className="p-1.5 rounded-lg text-white/35 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                         {expandedApp === entry.id ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                       </div>
                     </button>
@@ -204,12 +161,10 @@ import { useState, useEffect } from 'react'
                             ['Teléfono', entry.codigo_pais && entry.telefono ? `${entry.codigo_pais} ${entry.telefono}` : entry.telefono],
                             ['País', entry.pais],
                             ['Método de pago', entry.metodo_pago],
-                            ...(entry.billetera ? [[`Billetera`, entry.billetera]] : []),
+                            ...(entry.billetera ? [['Billetera', entry.billetera]] : []),
+                            ...(entry.agente ? [['Agente', entry.agente]] : []),
                           ] as [string, string | null][]).map(([label, value]) => (
-                            <div key={label}>
-                              <p className="text-white/30 text-xs mb-0.5">{label}</p>
-                              <p className="text-white/80 text-sm font-medium">{value || '—'}</p>
-                            </div>
+                            <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><p className="text-white/80 text-sm font-medium">{value || '—'}</p></div>
                           ))}
                         </div>
                       </div>
@@ -228,15 +183,11 @@ import { useState, useEffect } from 'react'
                   <p className="text-sm font-semibold text-white mb-1">Borrar toda mi información</p>
                   <p className="text-white/40 text-xs mb-3">Elimina los datos de todas tus apps. Tu cuenta permanece activa.</p>
                   {!confirmClear ? (
-                    <button onClick={() => setConfirmClear(true)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">
-                      Borrar información
-                    </button>
+                    <button onClick={() => setConfirmClear(true)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">Borrar información</button>
                   ) : (
                     <div className="flex items-center gap-2">
                       <p className="text-red-400 text-xs font-semibold">¿Confirmas?</p>
-                      <button onClick={handleClearAll} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold px-2.5 py-1 rounded-lg transition-all">
-                        <Check className="w-3 h-3" /> Sí, borrar
-                      </button>
+                      <button onClick={handleClearAll} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold px-2.5 py-1 rounded-lg transition-all"><Check className="w-3 h-3" /> Sí, borrar</button>
                       <button onClick={() => setConfirmClear(false)} className="text-white/35 hover:text-white text-xs transition-colors">Cancelar</button>
                     </div>
                   )}
@@ -295,9 +246,11 @@ import { useState, useEffect } from 'react'
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
                 )}
+                <Field label="Agente (opcional)">
+                  <FInput value={form.agente} onChange={v => setForm(f => ({ ...f, agente: v }))} placeholder="Nombre de tu agente" />
+                </Field>
 
                 {formError && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{formError}</p>}
-
                 <button onClick={handleSave} disabled={saving}
                   className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition-all">
                   {saving ? 'Guardando...' : <><Check className="w-4 h-4" /> Guardar</>}
@@ -311,18 +264,11 @@ import { useState, useEffect } from 'react'
   }
 
   function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-      <div>
-        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">{label}</label>
-        {children}
-      </div>
-    )
+    return <div><label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">{label}</label>{children}</div>
   }
 
   function FInput({ value, onChange, placeholder, className = '' }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
-    return (
-      <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className={`bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 transition-colors ${className}`} />
-    )
+    return <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      className={`bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 transition-colors ${className}`} />
   }
   

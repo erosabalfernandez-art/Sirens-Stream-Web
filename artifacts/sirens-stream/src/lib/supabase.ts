@@ -24,6 +24,7 @@ import { createClient } from '@supabase/supabase-js'
     pais: string | null
     metodo_pago: string | null
     billetera: string | null
+    agente: string | null
     created_at: string
     updated_at: string
   }

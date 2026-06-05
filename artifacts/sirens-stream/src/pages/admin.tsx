@@ -24,36 +24,25 @@ import { useState, useEffect, useCallback } from 'react'
     { key: 'telefono', label: 'Teléfono' },
   ]
 
-  function useCopy() {
-    const [copied, setCopied] = useState<string | null>(null)
-    const copy = useCallback((val: string, key: string) => {
-      navigator.clipboard.writeText(val).then(() => {
-        setCopied(key)
-        setTimeout(() => setCopied(null), 1500)
-      })
-    }, [])
-    return { copied, copy }
-  }
-
-  function CopyCell({ label, value, id }: { label: string; value: string | null; id: string }) {
-    const { copied, copy } = useCopy()
-    const key = id + label
-    if (!value) return (
-      <div>
-        <p className="text-white/30 text-xs mb-0.5">{label}</p>
-        <p className="text-white/25 text-sm">—</p>
-      </div>
-    )
+  function CopyCell({ label, value, uid }: { label: string; value: string | null; uid: string }) {
+    const [copied, setCopied] = useState(false)
+    function copy() {
+      if (!value) return
+      navigator.clipboard.writeText(value).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) })
+    }
     return (
       <div>
         <p className="text-white/30 text-xs mb-0.5">{label}</p>
-        <button onClick={() => copy(value, key)} title="Copiar"
-          className="group flex items-center gap-1.5 text-left hover:text-purple-300 transition-colors">
-          <span className="text-white/80 text-sm font-medium break-all group-hover:text-purple-200 transition-colors">{value}</span>
-          <span className="shrink-0 text-white/20 group-hover:text-purple-400 transition-colors">
-            {copied === key ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-          </span>
-        </button>
+        {value ? (
+          <button onClick={copy} title="Copiar" className="group flex items-center gap-1.5 text-left hover:text-purple-300 transition-colors w-full">
+            <span className="text-white/80 text-sm font-medium break-all group-hover:text-purple-200 transition-colors">{value}</span>
+            <span className="shrink-0 text-white/20 group-hover:text-purple-400 transition-colors">
+              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+            </span>
+          </button>
+        ) : (
+          <p className="text-white/25 text-sm">—</p>
+        )}
       </div>
     )
   }
@@ -68,12 +57,11 @@ import { useState, useEffect, useCallback } from 'react'
     const [filterPago, setFilterPago] = useState('')
     const [filterEmail, setFilterEmail] = useState('')
     const [filterBilletera, setFilterBilletera] = useState('')
+    const [filterAgente, setFilterAgente] = useState('')
     const [expanded, setExpanded] = useState<string | null>(null)
     const [tab, setTab] = useState<'list' | 'dupes'>('list')
 
-    useEffect(() => {
-      if (!loading && !user) navigate('/login')
-    }, [loading, user])
+    useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
     useEffect(() => {
       if (!loading && user && profile !== undefined) {
@@ -99,6 +87,7 @@ import { useState, useEffect, useCallback } from 'react'
       if (filterPago && w.metodo_pago !== filterPago) return false
       if (filterEmail && !w.profile_email.toLowerCase().includes(filterEmail.toLowerCase())) return false
       if (filterBilletera && !(w.billetera ?? '').toLowerCase().includes(filterBilletera.toLowerCase())) return false
+      if (filterAgente && !(w.agente ?? '').toLowerCase().includes(filterAgente.toLowerCase())) return false
       return true
     })
 
@@ -109,17 +98,16 @@ import { useState, useEffect, useCallback } from 'react'
       for (const w of workers) {
         const raw = w[key] as string | null
         if (!raw?.trim()) continue
-        // For telefono, combine with codigo_pais
         const val = key === 'telefono' ? `${w.codigo_pais ?? ''}${raw}`.toLowerCase().trim() : raw.toLowerCase().trim()
         if (!groups[val]) groups[val] = []
         groups[val].push(w)
       }
-      for (const [value, rows] of Object.entries(groups)) {
+      for (const [, rows] of Object.entries(groups)) {
         if (rows.length > 1) duplicates.push({ field: label, value: rows[0][key] as string, rows })
       }
     }
 
-    const hasFilters = filterApp || filterPais || filterPago || filterEmail || filterBilletera
+    const hasFilters = filterApp || filterPais || filterPago || filterEmail || filterBilletera || filterAgente
 
     if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
     if (!profile?.is_admin) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Verificando acceso...</div></div>
@@ -128,7 +116,6 @@ import { useState, useEffect, useCallback } from 'react'
       <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
         <div className="max-w-5xl mx-auto px-4">
 
-          {/* Header + tabs */}
           <div className="mb-6">
             <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/25 rounded-full px-3 py-1 mb-3">
               <Filter className="w-3 h-3 text-purple-400" />
@@ -158,7 +145,7 @@ import { useState, useEffect, useCallback } from 'react'
                   <Filter className="w-4 h-4 text-purple-400" />
                   <span className="text-sm font-semibold text-white/70">Filtros</span>
                   {hasFilters && (
-                    <button onClick={() => { setFilterApp(''); setFilterPais(''); setFilterPago(''); setFilterEmail(''); setFilterBilletera('') }}
+                    <button onClick={() => { setFilterApp(''); setFilterPais(''); setFilterPago(''); setFilterEmail(''); setFilterBilletera(''); setFilterAgente('') }}
                       className="ml-auto flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors">
                       <X className="w-3 h-3" /> Limpiar
                     </button>
@@ -202,10 +189,17 @@ import { useState, useEffect, useCallback } from 'react'
                         className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-xs text-white/40 mb-1">Agente</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                      <input type="text" value={filterAgente} onChange={e => setFilterAgente(e.target.value)} placeholder="Nombre del agente..."
+                        className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Results */}
               {loadingData ? (
                 <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl h-16 animate-pulse" />)}</div>
               ) : filtered.length === 0 ? (
@@ -219,14 +213,13 @@ import { useState, useEffect, useCallback } from 'react'
                       <button onClick={() => setExpanded(expanded === w.id ? null : w.id)}
                         className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/2 transition-colors text-left">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 font-bold text-xs shrink-0">
-                            {w.app_name[0]}
-                          </div>
+                          <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 font-bold text-xs shrink-0">{w.app_name[0]}</div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-sm">{w.app_name}</span>
                               {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
                               {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
+                              {w.agente && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{w.agente}</span>}
                             </div>
                             <p className="text-white/35 text-xs truncate mt-0.5">{w.profile_email}</p>
                           </div>
@@ -246,8 +239,9 @@ import { useState, useEffect, useCallback } from 'react'
                               ['País', w.pais],
                               ['Método de pago', w.metodo_pago],
                               ['Billetera', w.billetera],
+                              ['Agente', w.agente],
                             ] as [string, string | null][]).map(([label, value]) => (
-                              <CopyCell key={label} label={label} value={value} id={w.id} />
+                              <CopyCell key={label} label={label} value={value} uid={w.id + label} />
                             ))}
                           </div>
                         </div>
@@ -264,7 +258,7 @@ import { useState, useEffect, useCallback } from 'react'
               {duplicates.length === 0 ? (
                 <div className="bg-[#0d0d1e] border border-green-500/15 rounded-2xl p-10 text-center">
                   <Check className="w-8 h-8 text-green-400 mx-auto mb-3" />
-                  <p className="text-white/50 text-sm">No se detectaron duplicados. Todo está en orden.</p>
+                  <p className="text-white/50 text-sm">No se detectaron duplicados.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -273,13 +267,9 @@ import { useState, useEffect, useCallback } from 'react'
                     <div key={i} className="bg-[#0d0d1e] border border-red-500/25 rounded-2xl overflow-hidden">
                       <div className="flex items-center gap-3 px-5 py-3 bg-red-500/8 border-b border-red-500/15">
                         <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-                        <div>
-                          <span className="text-red-300 text-xs font-bold uppercase tracking-wider">{dupe.field}</span>
-                          <span className="text-white/40 text-xs ml-2">duplicado en {dupe.rows.length} registros</span>
-                        </div>
-                        <div className="ml-auto flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-1 text-xs text-red-300 font-mono max-w-[200px] truncate">
-                          {dupe.value}
-                        </div>
+                        <span className="text-red-300 text-xs font-bold uppercase tracking-wider">{dupe.field}</span>
+                        <span className="text-white/40 text-xs">duplicado en {dupe.rows.length} registros</span>
+                        <div className="ml-auto bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-1 text-xs text-red-300 font-mono max-w-[200px] truncate">{dupe.value}</div>
                       </div>
                       <div className="divide-y divide-white/4">
                         {dupe.rows.map(w => (
@@ -291,9 +281,7 @@ import { useState, useEffect, useCallback } from 'react'
                                 <p className="text-white/35 text-xs truncate">{w.profile_email} · {w.app_name}</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full hidden sm:block">{w.pais}</span>}
-                            </div>
+                            {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full hidden sm:block shrink-0">{w.pais}</span>}
                           </div>
                         ))}
                       </div>
@@ -303,7 +291,6 @@ import { useState, useEffect, useCallback } from 'react'
               )}
             </div>
           )}
-
         </div>
       </div>
     )
