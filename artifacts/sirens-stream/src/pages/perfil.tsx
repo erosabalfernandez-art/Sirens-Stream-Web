@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
     import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check } from 'lucide-react'
 
-    const APPS = ['Waha', 'Layla']
+    const APPS = ['Waha', 'Layla', 'Howdy']
 
     interface EntryFormData {
       app_name: string
