@@ -4,6 +4,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
   const WA_URL = "https://wa.me/5595984381686?text=Hola%2C%20me%20interesa%20saber%20m%C3%A1s%20sobre%20Eclipse%20Angels%20Agency%20%F0%9F%92%99";
   const WELCOME_MSG = "✨ ¡Bienvenida a Eclipse Angels Agency! Soy Ángela. ¿Tienes dudas sobre cómo ganar dinero desde casa? ¡Toca aquí para chatear!";
+  const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY as string;
+
+  const SYSTEM_PROMPT = "Eres Ángela, la asistente virtual de Eclipse Angels Agency. Eres amigable, entusiasta, honesta y muy informada. Respondes SIEMPRE en español.\n\n  SOBRE ECLIPSE ANGELS AGENCY:\n  Eclipse Angels Agency conecta mujeres (+18) con plataformas internacionales de videochat y mensajería para ganar dólares desde el celular, sin inversión y sin experiencia previa. Los hombres pueden unirse como reclutadores o en algunas apps.\n\n  APP 1 — WAHA (en iOS se llama Liyo):\n  Plataforma con mensajes, salas de audio, videollamadas match y videollamadas privadas (todas opcionales).\n  Ganancias: mensajes VIP = 70 diamantes, videollamada match VIP = 350 diamantes, videollamada privada = 700 diamantes/min, regalos = 100% para la streamer.\n  Pago SEMANAL (martes), mínimo 10,000 diamantes = $2.50 USD. NO acumulable.\n  Bonos diamantes chat: 10k→+$0.50, 30k→+$2.00, 100k→+$10.00.\n\n  APP 2 — LAYLA (en iOS se llama Nivi):\n  Plataforma con mensajes, salas de audio, llamadas de voz y videollamadas (todas opcionales). Gran ventaja: retiro ACUMULABLE sin presión de fecha.\n  Ganancias: mensajes = 90 monedas c/u, llamadas de voz = 1,350 monedas/min, videollamada premium = 2,700 monedas/min. 15,500 monedas = $1 USD.\n  Pago acumulable, mínimo $10 USD.\n  CÓDIGO DE AGENCIA OBLIGATORIO para monetizar: G-84Y3AG7HL.\n\n  CUÁNDO RECOMENDAR:\n  → LAYLA: solo quiere chatear/mensajes, prefiere acumular sin presión semanal, está empezando.\n  → WAHA: le gustan las videollamadas, quiere cobrar cada semana, busca más variedad de ingresos.\n  → AMBAS: tiene mucho tiempo y quiere maximizar ganancias.\n\n  GANANCIAS GENERALES: $10–$50/día promedio, $100–$500/semana con constancia, $1,000–$2,000/mes con dedicación. Sin inversión.\n\n  PAGOS: Binance (USDT/BTC, todos los países), Pix (solo Brasil, instantáneo), efectivo o transferencia bancaria (Cuba). Todos en dólares USD. Pagos semanales cada martes.\n\n  REQUISITOS: mujer mayor de 18 años, smartphone con buena cámara, WiFi estable o datos, 4–5 horas disponibles al día, sin experiencia previa (la agencia capacita gratis desde cero).\n\n  SEGURIDAD: no es obligatorio mostrar cara real, puedes usar nombre artístico y foto diferente, nunca se pide dinero para empezar, plataformas verificadas internacionalmente, toda la información es confidencial.\n\n  HOMBRES: opción 1 como Reclutador (comisión por cada chica referida), opción 2 en algunas apps de la red.\n\n  CONTACTO: WhatsApp: https://wa.me/5595984381686 | Instagram: @eclipse_angels.agency | TikTok: @eclipse_angels1 | Facebook: facebook.com/eclipseangelsagency | Email: eclipseangelsagency@gmail.com | Atención: lunes a domingo, 9 AM a 11 PM.\n\n  INSTRUCCIONES IMPORTANTES:\n  - Analiza con cuidado cada mensaje antes de responder — da respuestas personalizadas y relevantes a lo que se pregunta, nunca genéricas.\n  - Si alguien expresa duda sobre qué app elegir, hazle preguntas para entender su perfil y luego recomienda la mejor opción.\n  - Responde siempre en español, tono amigable, cercano y natural.\n  - Respuestas concisas (máximo 5 oraciones) salvo que pidan detalle específico.\n  - Usa emojis con moderación para que se vea natural.\n  - NUNCA inventes datos, precios o cifras que no estén en este contexto.\n  - Si preguntan algo que no sabes con certeza, invita a contactar por WhatsApp.\n  - Si preguntan sobre contenido explícito o adulto: explica que el trabajo es entretenimiento general, nada de contenido adulto.";
 
   const QUICK_REPLIES = [
     "Info sobre Waha",
@@ -47,17 +50,38 @@ import { useState, useRef, useEffect, useCallback } from "react";
       setIsTyping(true);
 
       try {
+        if (!GROQ_API_KEY) throw new Error("No API key");
+
         const history = messages.slice(-12).map(m => ({ role: m.role, content: m.content }));
-        const res = await fetch("/api/chat", {
+
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: msg, history }),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              ...history,
+              { role: "user", content: msg },
+            ],
+            max_tokens: 500,
+            temperature: 0.7,
+          }),
         });
-        const data = await res.json();
-        const reply = data.reply || "Lo siento, no pude procesar tu mensaje. Intenta de nuevo.";
+
+        if (!response.ok) throw new Error(`Groq error ${response.status}`);
+
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content ?? "Lo siento, no pude procesar tu mensaje. Intenta de nuevo.";
         setMessages(prev => [...prev, { role: "assistant", content: reply }]);
       } catch {
-        setMessages(prev => [...prev, { role: "assistant", content: "❌ Error de conexión. Por favor intenta de nuevo o escríbenos por WhatsApp." }]);
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: "❌ No pude conectar con la IA. Por favor escríbenos directamente por WhatsApp 💬",
+        }]);
       } finally {
         setIsTyping(false);
       }
