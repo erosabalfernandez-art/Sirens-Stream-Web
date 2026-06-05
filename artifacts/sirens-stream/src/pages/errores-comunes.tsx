@@ -73,7 +73,7 @@ const errores = [
     desc: "Un perfil incompleto o mal configurado es invisible. Muchas chicas se registran sin poner foto real, sin descripción, sin audio de voz, y se preguntan por qué nadie las contacta. La plataforma utiliza tu perfil para mostrarte a usuarios — un perfil vacío simplemente no aparece.",
     consecuencia: "Cero o muy poca actividad de usuarios, pocas ganancias en las primeras semanas.",
     solucion: "Dedica la primera sesión completa a configurar tu perfil al 100%: foto real de calidad, descripción atractiva, audio de voz, álbum con fotos variadas.",
-    tips: ["Foto de perfil: real, alta calidad, buena iluminación", "Para Layla: selecciona FEMENINO desde el inicio — no se puede cambiar", "Agrega el código de agencia antes de empezar (Layla: G-84Y3AG7HL)", "Descripción clara y amigable que invite a conversar"],
+    tips: ["Foto de perfil: real, alta calidad, buena iluminación", "Para Layla: selecciona FEMENINO desde el inicio — no se puede cambiar", "Agrega el código de agencia antes de empezar (Layla: G-84Y3AG7HL)", "Para Howdy: sube cover + 3 fotos de álbum antes de hacer submit", "Descripción clara y amigable que invite a conversar"],
   },
   {
     n: "07",
@@ -84,8 +84,8 @@ const errores = [
     title: "No aprovechar los bonos y metas diarias",
     desc: "Las plataformas tienen sistemas de bonos que multiplican tus ganancias si cumples ciertas metas. Muchas chicas los ignoran porque no los conocen bien o porque se conforman con las ganancias base. Los bonos pueden representar hasta el 30-50% de los ingresos totales de una semana.",
     consecuencia: "Ganancias significativamente menores a las que podrías obtener con el mismo tiempo de trabajo.",
-    solucion: "Aprende las metas de tu app y planifica tu sesión para cumplirlas. En Waha: tiempo en línea, saludos a usuarios y tasa de respuesta son claves para activar bonos.",
-    tips: ["En Waha: mantén +200 minutos/día para bono de tiempo", "Saluda a +150 usuarios por día para activar bono de saludos", "Mantén tasa de respuesta +30% en chat", "En Layla: meta diaria sugerida = 155,000 monedas = $10 USD"],
+    solucion: "Aprende las metas de tu app y planifica tu sesión para cumplirlas. En Waha: tiempo en línea, saludos y tasa de respuesta son claves. En Howdy: acumula 180 min online + 150 min en llamadas para el bono diario de $10 USD.",
+    tips: ["En Waha: mantén +200 minutos/día para bono de tiempo", "Saluda a +150 usuarios por día para activar bono de saludos", "Mantén tasa de respuesta +30% en chat", "En Layla: meta diaria sugerida = 155,000 monedas = $10 USD", "En Howdy: 180 min online + 150 min en llamadas = bono diario $10 USD"],
   },
   {
     n: "08",
