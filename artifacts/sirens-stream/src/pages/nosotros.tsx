@@ -59,7 +59,7 @@ import { useState } from "react";
       },
       {
         q: "¿Qué apps puedo usar?",
-        a: "Trabajamos con Waha y Layla, dos de las plataformas más rentables del mercado. Cada una tiene características diferentes y nuestro equipo te ayuda a elegir la más adecuada para ti."
+        a: "Trabajamos con Waha, Layla y Howdy, tres de las plataformas internacionales más rentables del mercado. Cada una tiene características diferentes — videollamadas, mensajes, live streaming — y nuestro equipo te ayuda a elegir la más adecuada para ti."
       },
       {
         q: "¿Puedo trabajar desde cualquier país?",
