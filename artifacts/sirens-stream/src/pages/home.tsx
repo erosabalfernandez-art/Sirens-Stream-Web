@@ -432,6 +432,7 @@ import { useState, useEffect } from "react";
                   Ver beneficios <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
+              {showAgencia && (
               <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-8 flex flex-col hover:border-amber-500/30 transition-colors">
                 <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mb-5">
                   <Users className="w-6 h-6 text-amber-400" />
@@ -443,6 +444,7 @@ import { useState, useEffect } from "react";
                   Ver requisitos <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
+              )}
             </div>
           </div>
         </section>
