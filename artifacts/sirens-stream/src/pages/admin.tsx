@@ -235,6 +235,21 @@ import { useState, useEffect } from 'react'
                 <Settings className="w-3.5 h-3.5" />
                 Configuración
               </button>
+              <button onClick={() => { setTab('solicitudes'); fetchSolicitudes() }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'solicitudes' ? 'bg-orange-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                <Bell className="w-3.5 h-3.5" />
+                Solicitudes
+                {solicitudes.filter(s => s.status === 'pending').length > 0 && (
+                  <span className="w-4 h-4 bg-orange-500 rounded-full text-xs flex items-center justify-center text-white font-bold">
+                    {solicitudes.filter(s => s.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+              <button onClick={() => { setTab('canales'); fetchChannelMessages(channelApp) }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'canales' ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                <Radio className="w-3.5 h-3.5" />
+                Canales
+              </button>
             </div>
 
             {tab === 'config' && (
