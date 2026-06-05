@@ -11,9 +11,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 
   function ScrollToTop() {
     const [location] = useLocation();
-    useEffect(() => {
-      window.scrollTo({ top: 0, behavior: "instant" });
-    }, [location]);
+    useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [location]);
     return null;
   }
 
@@ -29,14 +27,10 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import Login from "@/pages/login";
   import Perfil from "@/pages/perfil";
   import Admin from "@/pages/admin";
+  import Nomina from "@/pages/nomina";
 
   const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: 1,
-        refetchOnWindowFocus: false,
-      },
-    },
+    defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
   });
 
   function Router() {
@@ -57,6 +51,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
             <Route path="/login" component={Login} />
             <Route path="/perfil" component={Perfil} />
             <Route path="/admin" component={Admin} />
+            <Route path="/nomina" component={Nomina} />
             <Route component={NotFound} />
           </Switch>
         </main>
