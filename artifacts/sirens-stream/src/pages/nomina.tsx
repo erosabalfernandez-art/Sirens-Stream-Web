@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase, type WorkerEntry } from '@/lib/supabase'
+    import { sendPushViaApi } from '@/lib/push'
   import * as XLSX from 'xlsx'
   import {
     Upload, ChevronDown, ChevronUp, Copy, Check,
@@ -192,7 +193,9 @@ import { useState, useRef } from 'react'
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [aiSummary, setAiSummary] = useState<string | null>(null)
     const [aiLoading, setAiLoading] = useState(false)
-    const fileRef = useRef<HTMLInputElement>(null)
+    const [publishing, setPublishing] = useState(false)
+      const [publishedOk, setPublishedOk] = useState(false)
+      const fileRef = useRef<HTMLInputElement>(null)
 
     if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
@@ -229,7 +232,32 @@ import { useState, useRef } from 'react'
       setAiLoading(false)
     }
 
-    async function processFile(file: File) {
+    async function publicarSalariosWaha() {
+        if (cobradas.length === 0) return
+        setPublishing(true); setPublishedOk(false)
+        const inserts = cobradas.map(({ worker: w, nomina: n }) => ({
+          user_id: w.user_id,
+          app_name: 'Waha',
+          semana: n.semana,
+          usd: n.usd,
+          diamantes: n.diamantes,
+          extras: n.extras,
+        }))
+        const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
+        if (!error) {
+          setPublishedOk(true)
+          await sendPushViaApi(
+            cobradas.map(c => c.worker.user_id),
+            '💰 Tu salario de Waha está disponible',
+            `Semana ${semana} — Entra a ver tus ganancias.`,
+            '/salarios'
+          )
+          setTimeout(() => setPublishedOk(false), 4000)
+        }
+        setPublishing(false)
+      }
+
+      async function processFile(file: File) {
       if (!file.name.match(/\.xlsx?$/i)) return
       setParsing(true); setAiSummary(null)
 
@@ -310,7 +338,17 @@ import { useState, useRef } from 'react'
               </div>
               {step === 'results' && (
                 <div className="flex items-center gap-2">
-                  <button onClick={exportarPDF}
+                  {publishedOk && (
+                      <span className="flex items-center gap-1.5 text-green-400 text-sm font-bold bg-green-500/10 px-3 py-2 rounded-xl border border-green-500/20">
+                        ✓ Publicado
+                      </span>
+                    )}
+                    <button onClick={publicarSalariosWaha} disabled={publishing || cobradas.length === 0}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
+                      {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                      {publishing ? 'Publicando...' : '⬆ Publicar Waha'}
+                    </button>
+                    <button onClick={exportarPDF}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
                     <Download className="w-4 h-4" /> Exportar PDF
                   </button>

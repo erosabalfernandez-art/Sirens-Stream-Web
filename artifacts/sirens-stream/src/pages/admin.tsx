@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, Eye, EyeOff, Settings } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell } from 'lucide-react'
+  import { sendPushViaApi } from '@/lib/push'
 
     interface WorkerRow extends WorkerEntry {
       profile_email: string
@@ -85,7 +86,17 @@ import { useState, useEffect } from 'react'
       const [filterIdApp, setFilterIdApp] = useState('')
       const [filterTelefono, setFilterTelefono] = useState('')
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales'>('list')
+
+        // Channel state
+        const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
+        const [loadingSol, setLoadingSol] = useState(false)
+        const [channelApp, setChannelApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
+        const [channelMessages, setChannelMessages] = useState<{id:string;app_name:string;content:string|null;image_url:string|null;created_at:string}[]>([])
+        const [channelContent, setChannelContent] = useState('')
+        const [channelImage, setChannelImage] = useState('')
+        const [channelPosting, setChannelPosting] = useState(false)
+        const [loadingMsgs, setLoadingMsgs] = useState(false)
 
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
@@ -96,7 +107,55 @@ import { useState, useEffect } from 'react'
         }
       }, [loading, user, profile])
 
-      async function fetchAll() {
+      async function fetchSolicitudes() {
+          setLoadingSol(true)
+          const { data: reqs } = await supabase.from('channel_requests').select('*').order('created_at', { ascending: false })
+          const { data: profs } = await supabase.from('profiles').select('id, email')
+          const pm: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
+          setSolicitudes(((reqs ?? []) as any[]).map((r: any) => ({ ...r, profile_email: pm[r.user_id] ?? 'desconocido' })))
+          setLoadingSol(false)
+        }
+
+        async function resolveRequest(id: string, status: 'approved' | 'rejected') {
+          await supabase.from('channel_requests').update({ status, resolved_at: new Date().toISOString(), resolved_by: user!.id }).eq('id', id)
+          fetchSolicitudes()
+        }
+
+        async function fetchChannelMessages(app: string) {
+          setLoadingMsgs(true)
+          const { data } = await supabase.from('channel_messages').select('*').eq('app_name', app).order('created_at', { ascending: false })
+          setChannelMessages((data ?? []) as any[])
+          setLoadingMsgs(false)
+        }
+
+        async function postMessage() {
+          if (!channelContent.trim() && !channelImage.trim()) return
+          setChannelPosting(true)
+          const { error } = await supabase.from('channel_messages').insert({
+            app_name: channelApp,
+            content: channelContent.trim() || null,
+            image_url: channelImage.trim() || null,
+            created_by: user!.id,
+          })
+          if (!error) {
+            // Notify approved workers in this channel
+            const { data: approved } = await supabase.from('channel_requests').select('user_id').eq('app_name', channelApp).eq('status', 'approved')
+            const ids = (approved ?? []).map((r: any) => r.user_id)
+            if (ids.length > 0) {
+              await sendPushViaApi(ids, `📢 Nuevo comunicado — ${channelApp}`, channelContent.trim().slice(0, 80) || '📷 Imagen', '/canales')
+            }
+            setChannelContent(''); setChannelImage('')
+            fetchChannelMessages(channelApp)
+          }
+          setChannelPosting(false)
+        }
+
+        async function deleteMessage(id: string) {
+          await supabase.from('channel_messages').delete().eq('id', id)
+          setChannelMessages(prev => prev.filter(m => m.id !== id))
+        }
+
+        async function fetchAll() {
         setLoadingData(true)
         const { data: entries } = await supabase.from('worker_entries').select('*').order('created_at', { ascending: false })
         const { data: profiles } = await supabase.from('profiles').select('id, email')
@@ -365,7 +424,122 @@ import { useState, useEffect } from 'react'
               </>
             )}
 
-            {tab === 'dupes' && (
+            {tab === 'solicitudes' && (
+                <div>
+                  {loadingSol ? (
+                    <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
+                  ) : solicitudes.length === 0 ? (
+                    <div className="bg-[#0d0d1e] border border-orange-500/10 rounded-2xl p-10 text-center">
+                      <Bell className="w-8 h-8 text-white/10 mx-auto mb-3" />
+                      <p className="text-white/30 text-sm">No hay solicitudes de canal.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {['pending','approved','rejected'].map(status => {
+                        const group = solicitudes.filter(s => s.status === status)
+                        if (group.length === 0) return null
+                        const colors: Record<string,string> = { pending:'amber', approved:'green', rejected:'red' }
+                        const labels: Record<string,string> = { pending:'⏳ Pendientes', approved:'✓ Aprobadas', rejected:'✗ Rechazadas' }
+                        const c = colors[status]
+                        return (
+                          <div key={status}>
+                            <p className={`text-${c}-400 text-xs font-bold uppercase tracking-wider mb-2`}>{labels[status]} ({group.length})</p>
+                            <div className="space-y-2">
+                              {group.map(s => (
+                                <div key={s.id} className={`bg-[#0d0d1e] border border-${c}-500/15 rounded-2xl px-5 py-3 flex items-center justify-between gap-4`}>
+                                  <div>
+                                    <span className={`text-xs font-bold bg-${c}-500/10 text-${c}-300 px-2 py-0.5 rounded-full mr-2`}>{s.app_name}</span>
+                                    <span className="text-sm text-white/70">{s.profile_email}</span>
+                                    <p className="text-white/30 text-xs mt-0.5">{new Date(s.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</p>
+                                  </div>
+                                  {status === 'pending' && (
+                                    <div className="flex gap-2">
+                                      <button onClick={() => resolveRequest(s.id, 'approved')}
+                                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg transition-all">
+                                        Aprobar
+                                      </button>
+                                      <button onClick={() => resolveRequest(s.id, 'rejected')}
+                                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg transition-all">
+                                        Rechazar
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === 'canales' && (
+                <div>
+                  {/* App selector */}
+                  <div className="flex gap-2 mb-6 flex-wrap">
+                    {(['Waha','Layla','Howdy'] as const).map(app => (
+                      <button key={app} onClick={() => setChannelApp(app)}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${channelApp === app ? 'bg-blue-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
+                        {app}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Post new message */}
+                  <div className="bg-[#0d0d1e] border border-blue-500/15 rounded-2xl p-5 mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Send className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm font-semibold text-white/70">Nuevo comunicado — {channelApp}</span>
+                    </div>
+                    <textarea value={channelContent} onChange={e => setChannelContent(e.target.value)}
+                      placeholder="Escribe el mensaje aquí..."
+                      rows={4}
+                      className="w-full bg-[#07070f] border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-blue-500/50 resize-none mb-3" />
+                    <input type="url" value={channelImage} onChange={e => setChannelImage(e.target.value)}
+                      placeholder="URL de imagen (opcional)"
+                      className="w-full bg-[#07070f] border border-blue-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-blue-500/50 mb-3" />
+                    <button onClick={postMessage} disabled={channelPosting || (!channelContent.trim() && !channelImage.trim())}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
+                      {channelPosting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
+                      {channelPosting ? 'Publicando...' : 'Publicar y Notificar'}
+                    </button>
+                  </div>
+
+                  {/* Messages list */}
+                  {loadingMsgs ? (
+                    <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
+                  ) : channelMessages.length === 0 ? (
+                    <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-10 text-center">
+                      <MessageSquare className="w-8 h-8 text-white/10 mx-auto mb-3" />
+                      <p className="text-white/30 text-sm">No hay comunicados en {channelApp} aún.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {channelMessages.map(msg => (
+                        <div key={msg.id} className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl overflow-hidden">
+                          {msg.image_url && <img src={msg.image_url} alt="comunicado" className="w-full max-h-64 object-cover" />}
+                          <div className="px-5 py-4 flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              {msg.content && <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
+                              <p className="text-white/30 text-xs mt-2">
+                                {new Date(msg.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+                              </p>
+                            </div>
+                            <button onClick={() => deleteMessage(msg.id)}
+                              className="p-2 rounded-lg text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === 'dupes' && (
               <div>
                 {duplicates.length === 0 ? (
                   <div className="bg-[#0d0d1e] border border-green-500/15 rounded-2xl p-10 text-center">

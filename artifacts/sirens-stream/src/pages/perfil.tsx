@@ -84,8 +84,14 @@ import { useState, useEffect } from 'react'
         } else {
           if (entries.find(e => e.app_name === form.app_name)) { setFormError('Ya tienes una entrada para esta app.'); setSaving(false); return }
           const { error: e } = await supabase.from('worker_entries').insert(payload)
-          error = e?.message ?? null
-        }
+            error = e?.message ?? null
+            if (!e) {
+              await supabase.from('channel_requests').upsert(
+                { user_id: user!.id, app_name: form.app_name, status: 'pending' },
+                { onConflict: 'user_id,app_name', ignoreDuplicates: true }
+              )
+            }
+          }
         setSaving(false)
         if (error) { setFormError(error); return }
         setShowForm(false); fetchEntries()
