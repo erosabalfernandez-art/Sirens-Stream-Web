@@ -398,7 +398,6 @@ import { useState, useRef } from 'react'
               </div>
             </div>
           )}
-          )}
 
           {step === 'results' && (
             <>
