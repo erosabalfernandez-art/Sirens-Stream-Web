@@ -151,7 +151,7 @@ import { useState, useRef } from 'react'
     <div class="header">
       <div>
         <div class="logo">Eclipse <span>Angels</span> Agency</div>
-        <div style="color:#9ca3af;font-size:12px;margin-top:4px">Nómina Semanal — Waha</div>
+        <div style="color:#9ca3af;font-size:12px;margin-top:4px">`Nómina Semanal — ${nominaApp}`</div>
       </div>
       <div class="header-right">
         <div style="font-weight:700;color:#1a1a1a">${semana}</div>
@@ -195,6 +195,7 @@ import { useState, useRef } from 'react'
     const [aiLoading, setAiLoading] = useState(false)
     const [publishing, setPublishing] = useState(false)
       const [publishedOk, setPublishedOk] = useState(false)
+      const [nominaApp, setNominaApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
       const fileRef = useRef<HTMLInputElement>(null)
 
     if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
@@ -232,12 +233,12 @@ import { useState, useRef } from 'react'
       setAiLoading(false)
     }
 
-    async function publicarSalariosWaha() {
+    async function publicarSalarios() {
         if (cobradas.length === 0) return
         setPublishing(true); setPublishedOk(false)
         const inserts = cobradas.map(({ worker: w, nomina: n }) => ({
           user_id: w.user_id,
-          app_name: 'Waha',
+          app_name: nominaApp,
           semana: n.semana,
           usd: n.usd,
           diamantes: n.diamantes,
@@ -248,7 +249,7 @@ import { useState, useRef } from 'react'
           setPublishedOk(true)
           await sendPushViaApi(
             cobradas.map(c => c.worker.user_id),
-            '💰 Tu salario de Waha está disponible',
+            `💰 Tu salario de ${nominaApp} está disponible`,
             `Semana ${semana} — Entra a ver tus ganancias.`,
             '/salarios'
           )
@@ -343,10 +344,10 @@ import { useState, useRef } from 'react'
                         ✓ Publicado
                       </span>
                     )}
-                    <button onClick={publicarSalariosWaha} disabled={publishing || cobradas.length === 0}
+                    <button onClick={publicarSalarios} disabled={publishing || cobradas.length === 0}
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
                       {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                      {publishing ? 'Publicando...' : '⬆ Publicar Waha'}
+                      {publishing ? 'Publicando...' : `⬆ Publicar ${nominaApp}`}
                     </button>
                     <button onClick={exportarPDF}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
@@ -363,6 +364,15 @@ import { useState, useRef } from 'react'
 
           {step === 'upload' && (
             <div onDragOver={e => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
+            <div className="flex gap-2 mb-6 flex-wrap items-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-white/40 mr-2">App:</span>
+              {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
+                <button key={a} onClick={() => setNominaApp(a)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${nominaApp === a ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
+                  {a}
+                </button>
+              ))}
+            </div>
               onDrop={onDrop} onClick={() => fileRef.current?.click()}
               className={`border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all
                 ${dragging ? 'border-purple-400 bg-purple-500/10' : 'border-purple-500/25 bg-[#0d0d1e] hover:border-purple-500/50 hover:bg-purple-500/5'}`}>
