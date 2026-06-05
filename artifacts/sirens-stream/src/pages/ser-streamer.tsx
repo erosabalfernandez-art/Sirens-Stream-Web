@@ -11,7 +11,7 @@ import { Link } from "wouter";
     {
       icon: Video,
       title: "Videollamadas Match (opcionales)",
-      desc: "En apps como Waha puedes hacer videollamadas match y privadas de manera completamente opcional. A mayor tiempo en video, mayor ganancia por minuto.",
+      desc: "En apps como Waha y Howdy puedes hacer videollamadas match y privadas de forma completamente opcional. A mayor tiempo en video, mayor ganancia por minuto.",
       color: "bg-purple-500/15 border-purple-500/20 text-purple-400",
     },
     {
