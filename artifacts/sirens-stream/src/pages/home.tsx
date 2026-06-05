@@ -35,7 +35,7 @@ import { useState, useEffect } from "react";
     },
     {
       badge: "Apps Verificadas",
-      title: "Waha & Layla",
+      title: "Waha, Layla & Howdy",
       highlight: "Plataformas Líderes",
       sub: "Las apps más rentables del mercado",
       desc: "Trabajamos con las plataformas internacionales más seguras y rentables. Retiros semanales, meta mínima baja y soporte constante.",
@@ -43,7 +43,7 @@ import { useState, useEffect } from "react";
       accent: "from-pink-500 to-red-500",
       glow: "bg-pink-600/10",
       bg: "/images/slide-bg-3.png",
-      items: ["Waha: mensajes + videollamadas", "Layla: solo mensajes, horario libre", "Retiro desde $2.50 USD"],
+      items: ["Waha: mensajes + videollamadas", "Layla: mensajes + salas de audio", "Howdy: videollamadas + live + match"],
     },
     {
       badge: "Tu Agencia, Tu Equipo",
