@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
       profile_email: string
     }
 
-    const APPS = ['', 'Waha', 'Layla']
+    const APPS = ['', 'Waha', 'Layla', 'Howdy']
     const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
     const COUNTRIES = [
       '','Argentina','Bolivia','Brasil','Chile','Colombia','Costa Rica','Cuba',
