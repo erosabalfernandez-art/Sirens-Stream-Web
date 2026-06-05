@@ -123,7 +123,7 @@ import { useState } from "react";
       badgeColor: "bg-red-500/15 text-red-300 border-red-500/30",
       borderOpen: "border-red-500/30",
       accentText: "text-red-300",
-      desc: "Plataforma completa de interacción con usuarios de todo el mundo. Mensajes de texto, salas de audio grupales, videollamadas match y videollamadas privadas opcionales.",
+      desc: "Ideal si disfrutas conocer personas en salas de audio, chatear en privado y hacer videollamadas. Plataforma completa con mensajes, salas grupales, videollamadas match y videollamadas privadas.",
       specs: [
         { l: "Android", v: "Waha" }, { l: "iOS", v: "Liyo" },
         { l: "Tiempo diario", v: "+4 Horas" }, { l: "Modo", v: "Mensajes, Salas Audio, Videollamadas, Zona Match" },
@@ -141,7 +141,7 @@ import { useState } from "react";
       badgeColor: "bg-purple-500/15 text-purple-300 border-purple-500/30",
       borderOpen: "border-purple-500/30",
       accentText: "text-purple-300",
-      desc: "Plataforma enfocada en mensajes, con horarios completamente flexibles. Sí acepta videollamadas, llamadas de voz y match — pero no son obligatorias. Su mayor ventaja es el retiro acumulable desde $10 USD.",
+      desc: "Ideal si prefieres los mensajes privados como actividad principal. Las videollamadas son completamente opcionales. Horarios flexibles y retiro acumulable sin presión semanal — perfecta para empezar.",
       specs: [
         { l: "Android", v: "Layla" }, { l: "iOS", v: "Nivi" },
         { l: "Tiempo diario", v: "+4 Horas" }, { l: "Modo", v: "Mensajes, Salas de Audio, Llamadas de Voz, Videollamadas opcionales" },
@@ -159,7 +159,7 @@ import { useState } from "react";
       badgeColor: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
       borderOpen: "border-yellow-500/30",
       accentText: "text-yellow-300",
-      desc: "Plataforma internacional con enfoque en videollamadas privadas y live streaming. Sistema de puntos con bonos diarios automáticos, bono de live y bono de regalo de la suerte..",
+      desc: "Ideal si quieres conectar con usuarios internacionales (no latinoamericanos), hacer live streaming y explorar todas las modalidades a la vez. Sistema de puntos con bonos diarios, bono de live y regalo de la suerte.",
       specs: [
         { l: "Android", v: "Howdy" }, { l: "iOS", v: "No disponible" },
         { l: "Tiempo diario", v: "+3 Horas" }, { l: "Modo", v: "Videollamadas, Live, Match, Mensajes" },
