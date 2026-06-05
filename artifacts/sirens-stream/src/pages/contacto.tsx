@@ -16,12 +16,12 @@ const channels = [
   {
     icon: FaInstagram,
     name: "Instagram",
-    handle: "@eclipse_angels.agency",
+    handle: "@eclipse_angels1",
     desc: "Síguenos para ver testimonios, novedades y contenido de la agencia. Puedes enviarnos un DM.",
     color: "#E1306C",
     bg: "rgba(225,48,108,0.1)",
     border: "rgba(225,48,108,0.2)",
-    href: "https://www.instagram.com/eclipse_angels.agency?igsh=bW9mczJiNG1lOG1h",
+    href: "https://www.instagram.com/eclipse_angels1?igsh=MTY0bGpqd294NjBwYg==",
     cta: "Ir a Instagram",
   },
   {
