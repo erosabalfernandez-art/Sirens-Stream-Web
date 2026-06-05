@@ -86,7 +86,7 @@ import { useState, useEffect } from 'react'
       const [filterIdApp, setFilterIdApp] = useState('')
       const [filterTelefono, setFilterTelefono] = useState('')
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs'>('list')
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
@@ -97,6 +97,31 @@ import { useState, useEffect } from 'react'
         const [channelImage, setChannelImage] = useState('')
         const [channelPosting, setChannelPosting] = useState(false)
         const [loadingMsgs, setLoadingMsgs] = useState(false)
+        const [notifying, setNotifying] = useState<Record<string, boolean>>({})
+        const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
+
+        async function notifyApp(app: string, type: 'salary' | 'canal') {
+          const key = `${app}_${type}`
+          setNotifying(p => ({ ...p, [key]: true }))
+          setNotifOk(p => ({ ...p, [key]: false }))
+          let ids: string[] = []
+          if (type === 'salary') {
+            const { data } = await supabase.from('worker_entries').select('user_id').eq('app_name', app)
+            ids = [...new Set((data ?? []).map((r: any) => r.user_id))]
+          } else {
+            const { data } = await supabase.from('channel_requests').select('user_id').eq('app_name', app).eq('status', 'approved')
+            ids = (data ?? []).map((r: any) => r.user_id)
+          }
+          if (ids.length > 0) {
+            const msg = type === 'salary'
+              ? { title: `💰 Tu salario de ${app} está disponible`, body: 'Entra a ver tus ganancias en tu perfil.', url: '/salarios' }
+              : { title: `📢 Nuevo en tu canal ${app}`, body: 'Hay una actualización en tu canal. ¡Revísala!', url: '/canales' }
+            await sendPushViaApi(ids, msg.title, msg.body, msg.url)
+          }
+          setNotifying(p => ({ ...p, [key]: false }))
+          setNotifOk(p => ({ ...p, [key]: true }))
+          setTimeout(() => setNotifOk(p => ({ ...p, [key]: false })), 4000)
+        }
 
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
@@ -249,6 +274,11 @@ import { useState, useEffect } from 'react'
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'canales' ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Radio className="w-3.5 h-3.5" />
                 Canales
+              </button>
+              <button onClick={() => setTab('notifs')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'notifs' ? 'bg-green-700 text-white' : 'text-white/40 hover:text-white'}`}>
+                <Bell className="w-3.5 h-3.5" />
+                Notificaciones
               </button>
             </div>
 
@@ -551,6 +581,29 @@ import { useState, useEffect } from 'react'
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {tab === 'notifs' && (
+                <div className="space-y-4">
+                  <p className="text-xs text-white/30 mb-4">Envía notificaciones push a las trabajadoras de cada app. Solo reciben la notificación las chicas de esa app específica.</p>
+                  {(['Waha', 'Layla', 'Howdy'] as const).map(app => (
+                    <div key={app} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
+                      <p className="text-sm font-bold text-white mb-4">{app}</p>
+                      <div className="flex gap-3 flex-wrap">
+                        <button onClick={() => notifyApp(app, 'salary')} disabled={notifying[`${app}_salary`]}
+                          className="flex items-center gap-2 bg-green-600/90 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all">
+                          {notifying[`${app}_salary`] ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>💰</span>}
+                          {notifOk[`${app}_salary`] ? '✓ Enviado' : 'Notificar salario'}
+                        </button>
+                        <button onClick={() => notifyApp(app, 'canal')} disabled={notifying[`${app}_canal`]}
+                          className="flex items-center gap-2 bg-blue-600/90 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all">
+                          {notifying[`${app}_canal`] ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>📢</span>}
+                          {notifOk[`${app}_canal`] ? '✓ Enviado' : 'Notificar actualización canal'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
