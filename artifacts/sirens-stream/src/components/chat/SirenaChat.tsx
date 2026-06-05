@@ -38,10 +38,22 @@ const SYSTEM_PROMPT = [
   "CÓDIGO DE AGENCIA LAYLA (obligatorio para monetizar): G-84Y3AG7HL",
   "CANAL TELEGRAM LAYLA (tips, noticias, soporte): https://t.me/ingresos_layla",
   "",
+  "APP 3 — HOWDY (solo Android):",
+  "Plataforma internacional con usuarios principalmente de Asia, Europa y América del Norte (no latinoamericanos). Incluye videollamadas privadas, live streaming, mensajes y match.",
+  "GANANCIAS HOWDY:",
+  "- Sistema de puntos: 100,000 puntos = $10 USD",
+  "- Retiro mínimo: $10 USD (100,000 puntos) — acumulable, máximo 1 vez por semana",
+  "- Liquidación: Lunes 00:00 (hora Beijing)",
+  "- Bonos: bono diario automático, bono de live, bono de regalo de la suerte",
+  "CÓDIGO DE AGENCIA HOWDY (obligatorio para monetizar): R3DKXB5",
+  "DESCARGA HOWDY: Android → https://api.wehowdy.com/api/v1/dl/android?bundleId=com.howdy.howdy",
+  "CANAL TELEGRAM HOWDY (tips, noticias, soporte): https://t.me/ingresos_howdy",
+  "",
   "CUÁNDO RECOMENDAR:",
-  "→ LAYLA: solo quiere chatear/mensajes, prefiere acumular sin presión semanal, está empezando.",
-  "→ WAHA: le gustan las videollamadas, quiere cobrar cada semana, busca más variedad.",
-  "→ AMBAS: tiene mucho tiempo y quiere maximizar ganancias.",
+  "→ WAHA: le gusta conocer personas en salas de audio, chatear en privado y hacer videollamadas. Quiere cobrar cada semana.",
+  "→ LAYLA: prefiere los mensajes como actividad principal. Videollamadas opcionales. Quiere acumular sin presión semanal. Está empezando.",
+  "→ HOWDY: quiere conectar con usuarios internacionales (no latinoamericanos). Le gusta hacer live streaming. Tiene cuenta Google para registrarse.",
+  "→ VARIAS APPS: tiene mucho tiempo y quiere maximizar ganancias combinando plataformas.",
   "",
   "GANANCIAS GENERALES: $10–$50/día promedio, $100–$500/semana con constancia, $1,000–$2,000/mes con dedicación. Sin inversión.",
   "",
@@ -61,6 +73,7 @@ const SYSTEM_PROMPT = [
   "- Email: eclipseangelsagency@gmail.com",
   "- Telegram WAHA: https://t.me/ingresos_waha",
   "- Telegram LAYLA: https://t.me/ingresos_layla",
+  "- Telegram HOWDY: https://t.me/ingresos_howdy",
     "- Telegram HOWDY: https://t.me/ingresos_howdy",
   "- Atención: lunes a domingo, 9 AM a 11 PM",
   "",
@@ -79,6 +92,7 @@ const SYSTEM_PROMPT = [
 const QUICK_REPLIES = [
   "Info sobre Waha",
   "Info sobre Layla",
+  "Info sobre Howdy",
   "¿Cuánto puedo ganar?",
   "¿Cómo me uno?",
   "¿Es seguro?",
@@ -102,6 +116,7 @@ function MessageText({ text }: { text: string }) {
             .replace("https://facebook.com/eclipseangelsagency", "Facebook")
             .replace("https://t.me/ingresos_waha", "Telegram Waha 📣")
             .replace("https://t.me/ingresos_layla", "Telegram Layla 📣")
+      .replace("https://t.me/ingresos_howdy", "Telegram Howdy 📣")
         .replace("https://t.me/ingresos_howdy", "Telegram Howdy 📣")
             .replace(/https:\/\/play\.google\.com\/store\/apps\/details.*/, "Descargar WAHA (Android) 📲")
             .replace(/https:\/\/apps\.apple\.com.*/, "Descargar Liyo (iOS) 📲");
