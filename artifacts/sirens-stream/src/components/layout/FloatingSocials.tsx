@@ -12,7 +12,7 @@ const socials = [
     shadow: "rgba(37,211,102,0.5)",
   },
   {
-    href: "https://www.instagram.com/eclipse_angels.agency?igsh=bW9mczJiNG1lOG1h",
+    href: "https://www.instagram.com/eclipse_angels1?igsh=MTY0bGpqd294NjBwYg==",
     icon: FaInstagram,
     label: "Instagram",
     bg: "bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400",
