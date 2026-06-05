@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Sparkles, User, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-const WA_URL = "https://wa.me/5595984381686?text=Hola%2C%20me%20interesa%20saber%20m%C3%A1s%20sobre%20Eclipse%20Angels%20Agency%20%F0%9F%92%99";
+const WA_URL = "https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency";
 const WELCOME_MSG = "✨ ¡Bienvenida a Eclipse Angels Agency! Soy Ángela. ¿Tienes dudas sobre cómo ganar dinero desde casa? ¡Toca aquí para chatear!";
 
 const SYSTEM_PROMPT = [
@@ -12,41 +12,66 @@ const SYSTEM_PROMPT = [
   "Eclipse Angels Agency conecta mujeres (+18) con plataformas internacionales de videochat y mensajería para ganar dólares desde el celular, sin inversión y sin experiencia previa. Los hombres pueden unirse como reclutadores o en algunas apps.",
   "",
   "APP 1 — WAHA (en iOS se llama Liyo):",
-  "Plataforma con mensajes, salas de audio, videollamadas match y videollamadas privadas (todas opcionales).",
-  "Ganancias: mensajes VIP = 70 diamantes, videollamada match VIP = 350 diamantes, videollamada privada = 700 diamantes/min, regalos = 100% para la streamer.",
-  "Pago SEMANAL (martes), mínimo 10,000 diamantes = $2.50 USD. NO acumulable.",
-  "Bonos diamantes chat: 10k→+$0.50, 30k→+$2.00, 100k→+$10.00.",
+  "Plataforma con mensajes de texto, salas de audio grupales, videollamadas match y videollamadas privadas (todas opcionales).",
+  "GANANCIAS WAHA:",
+  "- Mensajes VIP: 70 diamantes | Mensajes Free: 5 puntos",
+  "- Videollamada Match VIP: 350 diamantes",
+  "- Videollamada Privada: 700 diamantes/minuto",
+  "- Regalos: 100% del valor para la streamer",
+  "- Meta mínima: 10,000 diamantes = $2.50 USD (no acumulable) ó 10,000 puntos = $1.80 USD",
+  "- Pago: martes a viernes (por agencia)",
+  "BONOS WAHA Chat: 10k diamantes → +$0.50 | 30k → +$2.00 | 100k → +$10.00",
+  "BONOS WAHA Salas de Voz: 2k → +$0.30 | 10k → +$1.00 | 30k → +$3.00 | 100k → +$15.00",
+  "DESCARGA WAHA: Android → https://play.google.com/store/apps/details?id=com.phx.waha | iOS (Liyo) → https://apps.apple.com/us/app/liyo-emotions-find-echo/id6746777859?l=es-MX",
+  "CANAL TELEGRAM WAHA (tips, noticias, soporte): https://t.me/ingresos_waha",
   "",
   "APP 2 — LAYLA (en iOS se llama Nivi):",
-  "Plataforma con mensajes, salas de audio, llamadas de voz y videollamadas (todas opcionales). Gran ventaja: retiro ACUMULABLE sin presión de fecha.",
-  "Ganancias: mensajes = 90 monedas c/u, llamadas de voz = 1,350 monedas/min, videollamada premium = 2,700 monedas/min. 15,500 monedas = $1 USD.",
-  "Pago acumulable, mínimo $10 USD. CÓDIGO DE AGENCIA OBLIGATORIO para monetizar: G-84Y3AG7HL.",
+  "Plataforma con mensajes, salas de audio, llamadas de voz y videollamadas (todas opcionales). Horarios flexibles. Mayor ventaja: retiro ACUMULABLE desde $10 USD.",
+  "GANANCIAS LAYLA:",
+  "- Mensajes: 90 monedas por mensaje + 45 monedas ticket entrada chat",
+  "- Llamadas de voz: 1,350 monedas/minuto (~$0.087/min)",
+  "- Videollamada premium: 2,700 monedas/minuto",
+  "- Match de voz: 270 monedas/min | Match de video: 540 monedas/min",
+  "- Regalos normales: 100% del valor | Regalos de la suerte: 10% adicional",
+  "- 15,500 monedas = $1 USD | Meta diaria sugerida: 155,000 monedas → $10 USD",
+  "- Retiro mínimo acumulable: $10 USD",
+  "CÓDIGO DE AGENCIA LAYLA (obligatorio para monetizar): G-84Y3AG7HL",
+  "CANAL TELEGRAM LAYLA (tips, noticias, soporte): https://t.me/ingresos_layla",
   "",
   "CUÁNDO RECOMENDAR:",
   "→ LAYLA: solo quiere chatear/mensajes, prefiere acumular sin presión semanal, está empezando.",
-  "→ WAHA: le gustan las videollamadas, quiere cobrar cada semana, busca más variedad de ingresos.",
+  "→ WAHA: le gustan las videollamadas, quiere cobrar cada semana, busca más variedad.",
   "→ AMBAS: tiene mucho tiempo y quiere maximizar ganancias.",
   "",
   "GANANCIAS GENERALES: $10–$50/día promedio, $100–$500/semana con constancia, $1,000–$2,000/mes con dedicación. Sin inversión.",
   "",
-  "PAGOS: Binance (USDT/BTC, todos los países), Pix (solo Brasil, instantáneo), efectivo o transferencia bancaria (Cuba). Todos en dólares USD. Pagos semanales cada martes.",
+  "PAGOS: Binance (USDT/BTC, todos los países), Pix (solo Brasil, instantáneo), efectivo o transferencia bancaria (Cuba). Todos en dólares USD.",
   "",
-  "REQUISITOS: mujer mayor de 18 años, smartphone con buena cámara, WiFi estable o datos, 4–5 horas disponibles al día, sin experiencia previa (la agencia capacita gratis desde cero).",
+  "REQUISITOS: mujer mayor de 18 años, smartphone con buena cámara, WiFi estable o datos, 4–5 horas disponibles al día, actitud positiva, sin experiencia previa (la agencia capacita gratis).",
   "",
   "SEGURIDAD: no es obligatorio mostrar cara real, puedes usar nombre artístico y foto diferente, nunca se pide dinero para empezar, plataformas verificadas internacionalmente.",
   "",
   "HOMBRES: Reclutador (comisión por cada chica referida) o registrarse en algunas apps de la red.",
   "",
-  "CONTACTO: WhatsApp: https://wa.me/5595984381686 | Instagram: @eclipse_angels.agency | TikTok: @eclipse_angels1 | Facebook: facebook.com/eclipseangelsagency | Email: eclipseangelsagency@gmail.com | Atención: lunes a domingo, 9 AM a 11 PM.",
+  "REDES SOCIALES Y CONTACTO:",
+  "- WhatsApp: https://wa.me/5595984381686",
+  "- Instagram: https://www.instagram.com/eclipse_angels.agency",
+  "- TikTok: https://www.tiktok.com/@eclipse_angels1",
+  "- Facebook: https://facebook.com/eclipseangelsagency",
+  "- Email: eclipseangelsagency@gmail.com",
+  "- Telegram WAHA: https://t.me/ingresos_waha",
+  "- Telegram LAYLA: https://t.me/ingresos_layla",
+  "- Atención: lunes a domingo, 9 AM a 11 PM",
   "",
   "INSTRUCCIONES IMPORTANTES:",
-  "- Analiza bien cada mensaje y da respuestas personalizadas. Nunca des respuestas genéricas.",
+  "- Analiza bien cada mensaje y da respuestas personalizadas. Nunca genéricas.",
+  "- Cuando compartas enlaces (Telegram, WhatsApp, descarga, redes), incluye el URL completo para que el usuario pueda hacer clic.",
   "- Si alguien duda entre apps, hazle preguntas para entender su perfil y recomienda la mejor.",
   "- Responde siempre en español, tono amigable, cercano y natural.",
-  "- Respuestas concisas (máx 5 oraciones) salvo que pidan detalle específico.",
+  "- Respuestas concisas (máx 5 oraciones) salvo que pidan detalle.",
   "- Usa emojis con moderación.",
-  "- NUNCA inventes datos, precios o cifras que no estén aquí.",
-  "- Si no sabes algo, invita a contactar por WhatsApp.",
+  "- NUNCA inventes datos, precios o cifras.",
+  "- Si no sabes algo con certeza, invita a contactar por WhatsApp.",
   "- Si preguntan sobre contenido explícito: el trabajo es entretenimiento general, nada adulto.",
 ].join("\n");
 
@@ -60,6 +85,37 @@ const QUICK_REPLIES = [
 
 type Role = "user" | "assistant";
 interface Msg { role: Role; content: string; }
+
+// Renders text with clickable hyperlinks
+function MessageText({ text }: { text: string }) {
+  const URL_REGEX = /(https?:\/\/[^\s,;)'"<>\]]+)/g;
+  const parts = text.split(URL_REGEX);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (URL_REGEX.test(part)) {
+          const display = part
+            .replace("https://wa.me/5595984381686", "WhatsApp")
+            .replace("https://www.instagram.com/eclipse_angels.agency", "Instagram @eclipse_angels.agency")
+            .replace("https://www.tiktok.com/@eclipse_angels1", "TikTok @eclipse_angels1")
+            .replace("https://facebook.com/eclipseangelsagency", "Facebook")
+            .replace("https://t.me/ingresos_waha", "Telegram Waha 📣")
+            .replace("https://t.me/ingresos_layla", "Telegram Layla 📣")
+            .replace(/https:\/\/play\.google\.com\/store\/apps\/details.*/, "Descargar WAHA (Android) 📲")
+            .replace(/https:\/\/apps\.apple\.com.*/, "Descargar Liyo (iOS) 📲");
+          const isUrl = display !== part;
+          return (
+            <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-blue-300 underline underline-offset-2 hover:text-blue-200 transition-colors break-all">
+              {isUrl ? display : part}
+            </a>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
 
 async function callGroq(messages: Array<{ role: string; content: string }>) {
   const apiKey = (import.meta.env.VITE_GROQ_API_KEY as string | undefined) ?? "";
@@ -128,13 +184,13 @@ export function AngelaChat() {
       setMessages(prev => [...prev, { role: "assistant", content: reply || "Lo siento, no pude procesar tu mensaje." }]);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      let userMsg = "❌ Error de conexión. Por favor escríbenos por WhatsApp.";
+      let userMsg = "❌ Error de conexión. Por favor escríbenos por WhatsApp: https://wa.me/5595984381686";
       if (errMsg === "MISSING_KEY") {
-        userMsg = "⚙️ El asistente aún no está activado. Escríbenos por WhatsApp y te ayudamos en persona 💬";
+        userMsg = "⚙️ El asistente aún no está activado. Escríbenos por WhatsApp: https://wa.me/5595984381686";
       } else if (errMsg.includes("GROQ_401")) {
-        userMsg = "🔑 Clave de API inválida. Por favor contacta al administrador de la web.";
+        userMsg = "🔑 Clave de API inválida. Contacta al administrador de la web.";
       } else if (errMsg.includes("GROQ_")) {
-        userMsg = "⚠️ Error al contactar la IA (" + errMsg.split(":")[0] + "). Intenta de nuevo o escríbenos por WhatsApp.";
+        userMsg = "⚠️ Error temporal de IA. Intenta de nuevo o escríbenos: https://wa.me/5595984381686";
       }
       console.error("[AngelaChat]", errMsg);
       setMessages(prev => [...prev, { role: "assistant", content: userMsg }]);
@@ -185,8 +241,8 @@ export function AngelaChat() {
                   <div className={"w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 " + (msg.role === "user" ? "bg-blue-600/30" : "bg-blue-500/20 border border-blue-500/30")}>
                     {msg.role === "user" ? <User className="w-3.5 h-3.5 text-blue-300" /> : <Sparkles className="w-3.5 h-3.5 text-blue-400" />}
                   </div>
-                  <div className={"max-w-[78%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap " + (msg.role === "user" ? "bg-blue-600 text-white rounded-tr-sm" : "bg-[#111125] border border-blue-500/15 text-white/80 rounded-tl-sm")}>
-                    {msg.content}
+                  <div className={"max-w-[78%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed " + (msg.role === "user" ? "bg-blue-600 text-white rounded-tr-sm" : "bg-[#111125] border border-blue-500/15 text-white/80 rounded-tl-sm")}>
+                    <MessageText text={msg.content} />
                   </div>
                 </div>
               ))}
