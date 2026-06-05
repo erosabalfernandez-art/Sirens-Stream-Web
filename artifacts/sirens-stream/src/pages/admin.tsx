@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
+  import { supabase } from '@/lib/supabase'
     import { supabase, type WorkerEntry } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, Eye, EyeOff, Settings } from 'lucide-react'
 
     interface WorkerRow extends WorkerEntry {
       profile_email: string
@@ -58,6 +59,22 @@ import { useState, useEffect } from 'react'
       const [filterEmail, setFilterEmail] = useState('')
       const [filterBilletera, setFilterBilletera] = useState('')
       const [filterAgente, setFilterAgente] = useState('')
+  const [showAgencia, setShowAgencia] = useState(true);
+  const [loadingAgencia, setLoadingAgencia] = useState(false);
+
+  useEffect(() => {
+    supabase.from('site_settings').select('value').eq('key', 'show_agencia').maybeSingle()
+      .then(({ data }) => { if (data) setShowAgencia(data.value !== 'false'); });
+  }, []);
+
+  async function toggleAgencia() {
+    setLoadingAgencia(true);
+    const newVal = !showAgencia;
+    await supabase.from('site_settings').upsert({ key: 'show_agencia', value: String(newVal) }, { onConflict: 'key' });
+    setShowAgencia(newVal);
+    setLoadingAgencia(false);
+  }
+
       const [filterNombreReal, setFilterNombreReal] = useState('')
       const [filterNombreApp, setFilterNombreApp] = useState('')
       const [filterIdApp, setFilterIdApp] = useState('')
@@ -151,7 +168,28 @@ import { useState, useEffect } from 'react'
               </button>
             </div>
 
-            {tab === 'list' && (
+            {tab === 'config' && (
+                <div className="bg-[#0d0d1e] border border-amber-500/10 rounded-2xl p-6 mb-6">
+                  <div className="flex items-center gap-2 mb-5">
+                    <Settings className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-semibold text-white/70">Configuración del sitio</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-[#07070f] rounded-xl border border-amber-500/10">
+                    <div>
+                      <p className="text-sm font-semibold text-white mb-0.5">Sección "Crear Agencia"</p>
+                      <p className="text-xs text-white/40">Controla si los visitantes pueden ver la opción de crear su propia agencia en la página de inicio.</p>
+                    </div>
+                    <button onClick={toggleAgencia} disabled={loadingAgencia}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${showAgencia ? 'bg-green-500/15 border border-green-500/30 text-green-300 hover:bg-green-500/25' : 'bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25'} disabled:opacity-50`}>
+                      {showAgencia ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      {loadingAgencia ? 'Guardando...' : showAgencia ? 'Visible' : 'Oculta'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-white/25 mt-3">* Para que esto funcione, crea la tabla en Supabase: <code className="text-amber-400/60">CREATE TABLE site_settings (key text PRIMARY KEY, value text);</code></p>
+                </div>
+              )}
+
+              {tab === 'list' && (
               <>
                 {/* Filters */}
                 <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5 mb-6">
