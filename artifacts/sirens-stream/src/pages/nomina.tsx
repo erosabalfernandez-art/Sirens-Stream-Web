@@ -363,38 +363,41 @@ import { useState, useRef } from 'react'
           </div>
 
           {step === 'upload' && (
-            <div onDragOver={e => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
-            <div className="flex gap-2 mb-6 flex-wrap items-center">
-              <span className="text-xs font-bold uppercase tracking-wider text-white/40 mr-2">App:</span>
-              {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
-                <button key={a} onClick={() => setNominaApp(a)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${nominaApp === a ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
-                  {a}
-                </button>
-              ))}
-            </div>
-              onDrop={onDrop} onClick={() => fileRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all
-                ${dragging ? 'border-purple-400 bg-purple-500/10' : 'border-purple-500/25 bg-[#0d0d1e] hover:border-purple-500/50 hover:bg-purple-500/5'}`}>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onInput} />
-              {parsing ? (
-                <div className="space-y-3">
-                  <div className="w-12 h-12 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-white/50 text-sm">Procesando nómina...</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center mx-auto">
-                    <FileSpreadsheet className="w-8 h-8 text-purple-400" />
+            <div className="space-y-4">
+              <div className="flex gap-2 mb-4 flex-wrap items-center">
+                <span className="text-xs font-bold uppercase tracking-wider text-white/40 mr-2">App:</span>
+                {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
+                  <button key={a} onClick={() => setNominaApp(a)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${nominaApp === a ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+              <div onDragOver={e => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
+                onDrop={onDrop} onClick={() => fileRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all
+                  ${dragging ? 'border-purple-400 bg-purple-500/10' : 'border-purple-500/25 bg-[#0d0d1e] hover:border-purple-500/50 hover:bg-purple-500/5'}`}>
+                <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onInput} />
+                {parsing ? (
+                  <div className="space-y-3">
+                    <div className="w-12 h-12 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-white/50 text-sm">Procesando nómina...</p>
                   </div>
-                  <div>
-                    <p className="text-white font-bold text-lg mb-1">Sube la nómina de Waha</p>
-                    <p className="text-white/40 text-sm">Arrastra el Excel aquí, o haz clic para seleccionar</p>
-                    <p className="text-white/25 text-xs mt-2">.xlsx / .xls</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center mx-auto">
+                      <FileSpreadsheet className="w-8 h-8 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-lg mb-1">Sube la nómina de {nominaApp}</p>
+                      <p className="text-white/40 text-sm">Arrastra el Excel aquí, o haz clic para seleccionar</p>
+                      <p className="text-white/25 text-xs mt-2">.xlsx / .xls</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
+          )}
           )}
 
           {step === 'results' && (
