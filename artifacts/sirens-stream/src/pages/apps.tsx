@@ -159,7 +159,7 @@ import { useState } from "react";
         { l: "Retiro", v: "Semanal" }, { l: "Meta mínima", v: "$10 USD (100,000 pts)" },
       ],
       requisitos: ["Mayor de edad", "WiFi / Datos estables", "Login con cuenta Google", "Foto real para verificación"],
-      guideImages: ["/images/howdy-guide-1.png", "/images/howdy-guide-2.png", "/images/howdy-guide-3.png", "/images/howdy-guide-4.png"],
+      guideImages: ["/images/howdy-guide-1.jpg", "/images/howdy-guide-2.jpg", "/images/howdy-guide-3.jpg", "/images/howdy-guide-4.jpg", "/images/howdy-guide-5.jpg", "/images/howdy-guide-6.jpg"],
       type: "howdy",
       telegramUrl: "https://t.me/ingresos_howdy",
     },
