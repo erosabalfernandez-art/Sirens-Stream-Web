@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
-  import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods } from '@/lib/supabase'
+  import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
   import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check } from 'lucide-react'
 
   const APPS = ['Waha', 'Layla']
@@ -15,11 +15,12 @@ import { useState, useEffect } from 'react'
     codigo_pais: string
     pais: string
     metodo_pago: string
+    billetera: string
   }
 
   const EMPTY_FORM: EntryFormData = {
     app_name: '', nombre_real: '', nombre_en_app: '',
-    id_aplicacion: '', telefono: '', codigo_pais: '+1', pais: '', metodo_pago: ''
+    id_aplicacion: '', telefono: '', codigo_pais: '+1', pais: '', metodo_pago: '', billetera: ''
   }
 
   export default function Perfil() {
@@ -72,6 +73,7 @@ import { useState, useEffect } from 'react'
         codigo_pais: entry.codigo_pais ?? '+1',
         pais: entry.pais ?? '',
         metodo_pago: entry.metodo_pago ?? '',
+        billetera: entry.billetera ?? '',
       })
       setFormError(null)
       setShowForm(true)
@@ -83,6 +85,7 @@ import { useState, useEffect } from 'react'
       if (!form.metodo_pago) { setFormError('Selecciona un método de pago'); return }
       setSaving(true)
       setFormError(null)
+      const walletLabel = getWalletLabel(form.metodo_pago)
       const payload = {
         user_id: user!.id,
         app_name: form.app_name,
@@ -93,6 +96,7 @@ import { useState, useEffect } from 'react'
         codigo_pais: form.codigo_pais || null,
         pais: form.pais || null,
         metodo_pago: form.metodo_pago || null,
+        billetera: walletLabel ? (form.billetera || null) : null,
         updated_at: new Date().toISOString(),
       }
       let error: string | null = null
@@ -101,7 +105,7 @@ import { useState, useEffect } from 'react'
         error = e?.message ?? null
       } else {
         const existing = entries.find(e => e.app_name === form.app_name)
-        if (existing) { setFormError('Ya tienes una entrada para esta app. Edítala en su lugar.'); setSaving(false); return }
+        if (existing) { setFormError('Ya tienes una entrada para esta app.'); setSaving(false); return }
         const { error: e } = await supabase.from('worker_entries').insert(payload)
         error = e?.message ?? null
       }
@@ -123,7 +127,7 @@ import { useState, useEffect } from 'react'
     }
 
     const paymentMethods = getPaymentMethods(form.pais)
-
+    const walletLabel = getWalletLabel(form.metodo_pago)
     const usedApps = entries.map(e => e.app_name)
     const availableApps = APPS.filter(a => !usedApps.includes(a) || (editingId && entries.find(e => e.id === editingId)?.app_name === a))
 
@@ -136,7 +140,6 @@ import { useState, useEffect } from 'react'
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
         <div className="max-w-2xl mx-auto px-4">
-          {/* Header */}
           <div className="flex items-start justify-between mb-8">
             <div>
               <h1 className="text-2xl font-extrabold">Mi Perfil</h1>
@@ -147,7 +150,6 @@ import { useState, useEffect } from 'react'
             </button>
           </div>
 
-          {/* App entries */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70">Mis Aplicaciones</h2>
@@ -195,17 +197,18 @@ import { useState, useEffect } from 'react'
                     {expandedApp === entry.id && (
                       <div className="px-5 pb-5 border-t border-purple-500/8">
                         <div className="grid grid-cols-2 gap-3 mt-4">
-                          {[
+                          {([
                             ['Nombre real', entry.nombre_real],
                             ['Nombre en app', entry.nombre_en_app],
                             ['ID en la app', entry.id_aplicacion],
                             ['Teléfono', entry.codigo_pais && entry.telefono ? `${entry.codigo_pais} ${entry.telefono}` : entry.telefono],
                             ['País', entry.pais],
                             ['Método de pago', entry.metodo_pago],
-                          ].map(([label, value]) => (
-                            <div key={label as string}>
+                            ...(entry.billetera ? [[`Billetera`, entry.billetera]] : []),
+                          ] as [string, string | null][]).map(([label, value]) => (
+                            <div key={label}>
                               <p className="text-white/30 text-xs mb-0.5">{label}</p>
-                              <p className="text-white/80 text-sm font-medium">{(value as string) || '—'}</p>
+                              <p className="text-white/80 text-sm font-medium">{value || '—'}</p>
                             </div>
                           ))}
                         </div>
@@ -217,14 +220,13 @@ import { useState, useEffect } from 'react'
             )}
           </div>
 
-          {/* Clear all info */}
           {entries.length > 0 && (
             <div className="bg-[#0d0d1e] border border-red-500/15 rounded-2xl p-5">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-white mb-1">Borrar toda mi información</p>
-                  <p className="text-white/40 text-xs mb-3">Esto elimina los datos de todas tus apps. Tu cuenta permanece activa.</p>
+                  <p className="text-white/40 text-xs mb-3">Elimina los datos de todas tus apps. Tu cuenta permanece activa.</p>
                   {!confirmClear ? (
                     <button onClick={() => setConfirmClear(true)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">
                       Borrar información
@@ -235,9 +237,7 @@ import { useState, useEffect } from 'react'
                       <button onClick={handleClearAll} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold px-2.5 py-1 rounded-lg transition-all">
                         <Check className="w-3 h-3" /> Sí, borrar
                       </button>
-                      <button onClick={() => setConfirmClear(false)} className="text-white/35 hover:text-white text-xs transition-colors">
-                        Cancelar
-                      </button>
+                      <button onClick={() => setConfirmClear(false)} className="text-white/35 hover:text-white text-xs transition-colors">Cancelar</button>
                     </div>
                   )}
                 </div>
@@ -246,15 +246,12 @@ import { useState, useEffect } from 'react'
           )}
         </div>
 
-        {/* Form modal */}
         {showForm && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center px-4" onClick={() => setShowForm(false)}>
             <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between p-5 border-b border-purple-500/10">
                 <h3 className="font-bold">{editingId ? 'Editar entrada' : 'Nueva app'}</h3>
-                <button onClick={() => setShowForm(false)} className="text-white/40 hover:text-white transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
+                <button onClick={() => setShowForm(false)} className="text-white/40 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
               </div>
               <div className="p-5 space-y-4">
                 <Field label="Aplicación *">
@@ -265,16 +262,16 @@ import { useState, useEffect } from 'react'
                   </select>
                 </Field>
                 <Field label="Nombre real">
-                  <Input value={form.nombre_real} onChange={v => setForm(f => ({ ...f, nombre_real: v }))} placeholder="Tu nombre completo" />
+                  <FInput value={form.nombre_real} onChange={v => setForm(f => ({ ...f, nombre_real: v }))} placeholder="Tu nombre completo" />
                 </Field>
                 <Field label="Nombre en la aplicación">
-                  <Input value={form.nombre_en_app} onChange={v => setForm(f => ({ ...f, nombre_en_app: v }))} placeholder="Nickname en la app" />
+                  <FInput value={form.nombre_en_app} onChange={v => setForm(f => ({ ...f, nombre_en_app: v }))} placeholder="Nickname en la app" />
                 </Field>
                 <Field label="ID en la aplicación">
-                  <Input value={form.id_aplicacion} onChange={v => setForm(f => ({ ...f, id_aplicacion: v }))} placeholder="ID de tu cuenta" />
+                  <FInput value={form.id_aplicacion} onChange={v => setForm(f => ({ ...f, id_aplicacion: v }))} placeholder="ID de tu cuenta" />
                 </Field>
                 <Field label="País *">
-                  <select value={form.pais} onChange={e => setForm(f => ({ ...f, pais: e.target.value, metodo_pago: '' }))}
+                  <select value={form.pais} onChange={e => setForm(f => ({ ...f, pais: e.target.value, metodo_pago: '', billetera: '' }))}
                     className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50">
                     <option value="">Seleccionar...</option>
                     {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -282,17 +279,22 @@ import { useState, useEffect } from 'react'
                 </Field>
                 <Field label="Teléfono">
                   <div className="flex gap-2">
-                    <Input value={form.codigo_pais} onChange={v => setForm(f => ({ ...f, codigo_pais: v }))} placeholder="+53" className="w-20" />
-                    <Input value={form.telefono} onChange={v => setForm(f => ({ ...f, telefono: v }))} placeholder="Número" className="flex-1" />
+                    <FInput value={form.codigo_pais} onChange={v => setForm(f => ({ ...f, codigo_pais: v }))} placeholder="+53" className="w-20" />
+                    <FInput value={form.telefono} onChange={v => setForm(f => ({ ...f, telefono: v }))} placeholder="Número" className="flex-1" />
                   </div>
                 </Field>
                 <Field label="Método de pago *">
-                  <select value={form.metodo_pago} onChange={e => setForm(f => ({ ...f, metodo_pago: e.target.value }))} disabled={!form.pais}
+                  <select value={form.metodo_pago} onChange={e => setForm(f => ({ ...f, metodo_pago: e.target.value, billetera: '' }))} disabled={!form.pais}
                     className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50 disabled:opacity-40">
                     <option value="">{form.pais ? 'Seleccionar...' : 'Primero selecciona tu país'}</option>
                     {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </Field>
+                {walletLabel && (
+                  <Field label={walletLabel}>
+                    <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
+                  </Field>
+                )}
 
                 {formError && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{formError}</p>}
 
@@ -317,7 +319,7 @@ import { useState, useEffect } from 'react'
     )
   }
 
-  function Input({ value, onChange, placeholder, className = '' }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
+  function FInput({ value, onChange, placeholder, className = '' }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
     return (
       <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         className={`bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 transition-colors ${className}`} />

@@ -23,6 +23,7 @@ import { createClient } from '@supabase/supabase-js'
     codigo_pais: string | null
     pais: string | null
     metodo_pago: string | null
+    billetera: string | null
     created_at: string
     updated_at: string
   }
@@ -35,6 +36,16 @@ import { createClient } from '@supabase/supabase-js'
 
   export function getPaymentMethods(pais: string): string[] {
     return PAYMENT_METHODS_BY_COUNTRY[pais] ?? DEFAULT_PAYMENT_METHODS
+  }
+
+  export const WALLET_LABELS: Record<string, string> = {
+    'Binance': 'UID / Dirección Binance',
+    'Pix': 'Clave Pix',
+    'Transferencia Bancaria (Cuba)': 'Número de cuenta bancaria',
+  }
+
+  export function getWalletLabel(metodo: string): string | null {
+    return WALLET_LABELS[metodo] ?? null
   }
 
   export const COUNTRIES = [
