@@ -334,7 +334,7 @@ import { useState, useRef } from 'react'
             </div>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <h1 className="text-2xl font-extrabold">`{`Nómina Semanal — ${nominaApp}`}</h1>
+                <h1 className="text-2xl font-extrabold">{`Nómina Semanal — ${nominaApp}`}</h1>
                 {semana && <p className="text-white/40 text-sm mt-0.5">Semana: {semana}</p>}
               </div>
               {step === 'results' && (
