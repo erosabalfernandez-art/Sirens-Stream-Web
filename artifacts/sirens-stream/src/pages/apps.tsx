@@ -40,9 +40,7 @@ import { useState } from "react";
     ];
     const HOWDY_RETIRO = [
       { k: "Meta mínima", v: "100,000 Puntos = $10 USD" },
-      { k: "Método", v: "Binance / USDT / E-wallet" },
       { k: "Liquidación", v: "Lunes 00:00 (hora Beijing)" },
-      { k: "Pago", v: "Miércoles o Jueves" },
     ];
     const HOWDY_HORARIOS = [
       { p: "México", h: "Domingo 10:00" }, { p: "Colombia/Ecuador/Perú", h: "Domingo 11:00" },
