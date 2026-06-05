@@ -44,13 +44,19 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
   }
 }
 
-export async function sendPushViaApi(userIds: string[], title: string, body: string, url: string) {
+export async function sendPushViaApi(userIds: string[], title: string, body: string, url: string): Promise<{ sent: number; error?: string }> {
   try {
     const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '');
-    await fetch(`${apiBase}/api/push/notify`, {
+    const res = await fetch(`${apiBase}/api/push/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userIds, title, body, url }),
     });
-  } catch { /* push is optional, ignore errors */ }
+    if (!res.ok) return { sent: 0, error: `HTTP ${res.status}` };
+    const data = await res.json() as { sent: number };
+    return { sent: data.sent ?? 0 };
+  } catch (e) {
+    return { sent: 0, error: String(e) };
+  }
 }
+
