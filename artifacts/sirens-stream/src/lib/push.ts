@@ -27,13 +27,15 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
     const reg = await withTimeout(navigator.serviceWorker.ready, 8000);
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return false;
+
+    // Always unsubscribe first to ensure a fresh subscription tied to the current VAPID key
     const existing = await reg.pushManager.getSubscription();
-    const subscription =
-      existing ??
-      (await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      }));
+    if (existing) await existing.unsubscribe();
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
     const subJson = subscription.toJSON();
     await supabase
       .from("push_subscriptions")
