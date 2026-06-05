@@ -110,8 +110,8 @@ import { Link } from "wouter";
     ];
 
     const faqs = [
-      { q: "¿Con qué frecuencia se paga?", a: "Los pagos se realizan semanalmente cada martes. Para Layla, la meta es acumulable a partir de $10 USD." },
-      { q: "¿Hay un mínimo de retiro?", a: "Para Waha: $2.50 USD (10,000 diamantes). Para Layla: $10 USD. Para las demás apps se informa en el proceso de registro." },
+      { q: "¿Con qué frecuencia se paga?", a: "Los pagos se realizan semanalmente. Waha: cada martes. Layla: acumulable a partir de $10 USD. Howdy: cada miércoles o jueves." },
+      { q: "¿Hay un mínimo de retiro?", a: "Para Waha: $2.50 USD (10,000 diamantes). Para Layla: $10 USD. Para Howdy: $10 USD (100,000 puntos). Para las demás apps se informa en el registro." },
       { q: "¿Cuánto tarda en llegar el pago?", a: "Binance: inmediato. Pix: inmediato. Transferencia Cuba: 1-3 días hábiles." },
       { q: "¿Pagan en dólares reales?", a: "Sí. Todos nuestros pagos son en USD. La conversión a moneda local depende del método que elijas." },
     ];
