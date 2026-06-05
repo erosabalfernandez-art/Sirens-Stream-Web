@@ -61,6 +61,7 @@ const SYSTEM_PROMPT = [
   "- Email: eclipseangelsagency@gmail.com",
   "- Telegram WAHA: https://t.me/ingresos_waha",
   "- Telegram LAYLA: https://t.me/ingresos_layla",
+    "- Telegram HOWDY: https://t.me/ingresos_howdy",
   "- Atención: lunes a domingo, 9 AM a 11 PM",
   "",
   "INSTRUCCIONES IMPORTANTES:",
@@ -101,6 +102,7 @@ function MessageText({ text }: { text: string }) {
             .replace("https://facebook.com/eclipseangelsagency", "Facebook")
             .replace("https://t.me/ingresos_waha", "Telegram Waha 📣")
             .replace("https://t.me/ingresos_layla", "Telegram Layla 📣")
+        .replace("https://t.me/ingresos_howdy", "Telegram Howdy 📣")
             .replace(/https:\/\/play\.google\.com\/store\/apps\/details.*/, "Descargar WAHA (Android) 📲")
             .replace(/https:\/\/apps\.apple\.com.*/, "Descargar Liyo (iOS) 📲");
           const isUrl = display !== part;
