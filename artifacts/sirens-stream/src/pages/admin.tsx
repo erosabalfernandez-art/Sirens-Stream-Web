@@ -9,6 +9,17 @@ import { useState, useEffect } from 'react'
       profile_email: string
     }
 
+    interface NotifLog {
+      id: string
+      ts: Date
+      app: string
+      type: string
+      title: string
+      total: number
+      sent: number
+      error?: string
+    }
+
     const APPS = ['', 'Waha', 'Layla', 'Howdy']
     const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
     const COUNTRIES = [
@@ -99,6 +110,7 @@ import { useState, useEffect } from 'react'
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
+        const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
 
         async function notifyApp(app: string, type: 'salary' | 'canal') {
           const key = `${app}_${type}`
@@ -112,12 +124,18 @@ import { useState, useEffect } from 'react'
             const { data } = await supabase.from('channel_requests').select('user_id').eq('app_name', app).eq('status', 'approved')
             ids = (data ?? []).map((r: any) => r.user_id)
           }
+          const msg = type === 'salary'
+            ? { title: `💰 Tu salario de ${app} está disponible`, body: 'Entra a ver tus ganancias en tu perfil.', url: '/salarios' }
+            : { title: `📢 Nuevo en tu canal ${app}`, body: 'Hay una actualización en tu canal. ¡Revísala!', url: '/canales' }
+          let sent = 0; let logError: string | undefined
           if (ids.length > 0) {
-            const msg = type === 'salary'
-              ? { title: `💰 Tu salario de ${app} está disponible`, body: 'Entra a ver tus ganancias en tu perfil.', url: '/salarios' }
-              : { title: `📢 Nuevo en tu canal ${app}`, body: 'Hay una actualización en tu canal. ¡Revísala!', url: '/canales' }
-            await sendPushViaApi(ids, msg.title, msg.body, msg.url)
+            const result = await sendPushViaApi(ids, msg.title, msg.body, msg.url)
+            sent = result.sent; logError = result.error
           }
+          setNotifLogs(prev => [{
+            id: crypto.randomUUID(), ts: new Date(), app, type,
+            title: msg.title, total: ids.length, sent, error: logError
+          }, ...prev].slice(0, 50))
           setNotifying(p => ({ ...p, [key]: false }))
           setNotifOk(p => ({ ...p, [key]: true }))
           setTimeout(() => setNotifOk(p => ({ ...p, [key]: false })), 4000)
@@ -604,6 +622,38 @@ import { useState, useEffect } from 'react'
                       </div>
                     </div>
                   ))}
+                  {notifLogs.length > 0 && (
+                    <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-3 border-b border-purple-500/10">
+                        <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">Registro de envíos</span>
+                        <button onClick={() => setNotifLogs([])} className="text-xs text-white/25 hover:text-white/50 transition-colors">Limpiar</button>
+                      </div>
+                      <div className="divide-y divide-white/4 max-h-72 overflow-y-auto">
+                        {notifLogs.map(log => (
+                          <div key={log.id} className="px-5 py-3 flex items-start gap-3">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 ${log.error ? 'bg-red-500/15' : log.sent > 0 ? 'bg-green-500/15' : 'bg-amber-500/15'}`}>
+                              {log.error ? '❌' : log.sent > 0 ? '✓' : '⚠️'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-white/80 truncate">{log.title}</p>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="text-xs text-white/35">{log.app} · {log.type === 'salary' ? 'salario' : log.type === 'canal' ? 'canal' : 'mensaje'}</span>
+                                {log.error
+                                  ? <span className="text-xs text-red-400">Error: {log.error}</span>
+                                  : <span className={`text-xs font-semibold ${log.sent > 0 ? 'text-green-400' : 'text-amber-400'}`}>
+                                      {log.sent}/{log.total} dispositivos
+                                    </span>
+                                }
+                              </div>
+                            </div>
+                            <span className="text-xs text-white/20 shrink-0 tabular-nums">
+                              {log.ts.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
