@@ -198,6 +198,31 @@ import { useState, useRef } from 'react'
       const [nominaApp, setNominaApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
       const fileRef = useRef<HTMLInputElement>(null)
 
+      // Restore last processed nómina when navigating back
+      useEffect(() => {
+        try {
+          const saved = sessionStorage.getItem('ea_nomina_state')
+          if (!saved) return
+          const s = JSON.parse(saved)
+          if (s.cobradas?.length > 0) {
+            setCobradas(s.cobradas)
+            setNoCobro(s.noCobro ?? [])
+            setSinPerfil(s.sinPerfil ?? [])
+            setSemana(s.semana ?? '')
+            setNominaApp(s.nominaApp ?? 'Waha')
+            if (s.aiSummary) setAiSummary(s.aiSummary)
+            setStep('results')
+          }
+        } catch {}
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+
+      // Auto-save whenever results change
+      useEffect(() => {
+        if (step !== 'results' || cobradas.length === 0) return
+        try { sessionStorage.setItem('ea_nomina_state', JSON.stringify({ cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary })) } catch {}
+      }, [step, cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary])
+
     if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
     function toggleExpanded(key: string) {
@@ -315,7 +340,7 @@ import { useState, useRef } from 'react'
 
     function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
     function onInput(e: React.ChangeEvent<HTMLInputElement>) { const f = e.target.files?.[0]; if (f) processFile(f) }
-    function reset() { setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null) }
+    function reset() { sessionStorage.removeItem('ea_nomina_state'); setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false) }
 
     const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
     const totalDiamonds = cobradas.reduce((s, m) => s + m.nomina.diamantes, 0)
