@@ -161,7 +161,7 @@ import { useState } from "react";
       specs: [
         { l: "Android", v: "Howdy" }, { l: "iOS", v: "No disponible" },
         { l: "Tiempo diario", v: "+3 Horas" }, { l: "Modo", v: "Videollamadas, Live, Match, Mensajes" },
-        { l: "Retiro", v: "Semanal" }, { l: "Meta mínima", v: "$10 USD (100,000 pts)" },
+        { l: "Retiro", v: "Acumulable (1x/semana)" }, { l: "Meta mínima", v: "$10 USD (100,000 pts)" },
       ],
       requisitos: ["Mayor de edad", "WiFi / Datos estables", "Login con cuenta Google", "Foto real para verificación"],
       guideImages: ["/images/howdy-guide-1.jpg", "/images/howdy-guide-2.jpg", "/images/howdy-guide-3.jpg", "/images/howdy-guide-4.jpg", "/images/howdy-guide-5.jpg", "/images/howdy-guide-6.jpg"],
@@ -831,7 +831,7 @@ import { useState } from "react";
                             </div>
                           </div>
                           <div>
-                            <SectionTitle>Retiro y Horarios de Corte</SectionTitle>
+                            <SectionTitle>Retiro</SectionTitle>
                             <InfoTable rows={HOWDY_RETIRO} accent="text-yellow-300" />
                         </>)}
 
