@@ -60,6 +60,7 @@ import { useState, useEffect } from 'react'
       const [filterAgente, setFilterAgente] = useState('')
   const [showAgencia, setShowAgencia] = useState(true);
   const [loadingAgencia, setLoadingAgencia] = useState(false);
+  const [agenciaError, setAgenciaError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.from('site_settings').select('value').eq('key', 'show_agencia').maybeSingle()
@@ -68,9 +69,14 @@ import { useState, useEffect } from 'react'
 
   async function toggleAgencia() {
     setLoadingAgencia(true);
+    setAgenciaError(null);
     const newVal = !showAgencia;
-    await supabase.from('site_settings').upsert({ key: 'show_agencia', value: String(newVal) }, { onConflict: 'key' });
-    setShowAgencia(newVal);
+    const { error } = await supabase.from('site_settings').upsert({ key: 'show_agencia', value: String(newVal) }, { onConflict: 'key' });
+    if (error) {
+      setAgenciaError(error.message);
+    } else {
+      setShowAgencia(newVal);
+    }
     setLoadingAgencia(false);
   }
 
@@ -189,7 +195,22 @@ import { useState, useEffect } from 'react'
                       {loadingAgencia ? 'Guardando...' : showAgencia ? 'Visible' : 'Oculta'}
                     </button>
                   </div>
-                  <p className="text-xs text-white/25 mt-3">* Para que esto funcione, crea la tabla en Supabase: <code className="text-amber-400/60">CREATE TABLE site_settings (key text PRIMARY KEY, value text);</code></p>
+                  {agenciaError && (
+                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                      <p className="text-xs text-red-300 font-semibold mb-2">Error al guardar. Probablemente la tabla no existe en Supabase.</p>
+                      <p className="text-xs text-white/50 mb-1">Error: {agenciaError}</p>
+                      <p className="text-xs text-white/50 mb-2">Ejecuta este SQL en Supabase SQL Editor:</p>
+                      <pre className="text-[11px] text-amber-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all">
+                        {[
+                          "CREATE TABLE IF NOT EXISTS site_settings (key text PRIMARY KEY, value text);",
+                          "ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;",
+                          'CREATE POLICY "public_read" ON site_settings FOR SELECT USING (true);',
+                          'CREATE POLICY "admin_write" ON site_settings FOR ALL USING (auth.uid() IN (SELECT id FROM profiles WHERE is_admin = true));',
+                          "INSERT INTO site_settings (key, value) VALUES ('show_agencia', 'true') ON CONFLICT (key) DO NOTHING;"
+                        ].join("\n")}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
 
