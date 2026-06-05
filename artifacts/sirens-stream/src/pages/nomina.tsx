@@ -151,7 +151,7 @@ import { useState, useRef } from 'react'
     <div class="header">
       <div>
         <div class="logo">Eclipse <span>Angels</span> Agency</div>
-        <div style="color:#9ca3af;font-size:12px;margin-top:4px">`Nómina Semanal — ${nominaApp}`</div>
+        <div style="color:#9ca3af;font-size:12px;margin-top:4px">Nómina Semanal</div>
       </div>
       <div class="header-right">
         <div style="font-weight:700;color:#1a1a1a">${semana}</div>
@@ -334,7 +334,7 @@ import { useState, useRef } from 'react'
             </div>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <h1 className="text-2xl font-extrabold">Nómina Semanal — Waha</h1>
+                <h1 className="text-2xl font-extrabold">`{`Nómina Semanal — ${nominaApp}`}</h1>
                 {semana && <p className="text-white/40 text-sm mt-0.5">Semana: {semana}</p>}
               </div>
               {step === 'results' && (
