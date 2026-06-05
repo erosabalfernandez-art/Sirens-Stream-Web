@@ -53,6 +53,17 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
     }
 
     if (user) {
+      // Wait for profile to finish loading before deciding which routes exist.
+      // Without this, navigating to /admin or /nomina while profile is still
+      // undefined causes the catch-all to fire and redirect to /perfil.
+      if (profile === undefined) {
+        return (
+          <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
+            <div className="text-white/40 animate-pulse text-sm">Cargando perfil...</div>
+          </div>
+        );
+      }
+
       return (
         <div className="min-h-screen bg-[#07070f] flex flex-col">
           <ScrollToTop />
@@ -112,4 +123,3 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   }
 
   export default App;
-  
