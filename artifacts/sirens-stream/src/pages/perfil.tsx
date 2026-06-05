@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
-    import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check } from 'lucide-react'
+    import { subscribeToPush } from '@/lib/push'
+    import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check, Bell, BellOff } from 'lucide-react'
 
     const APPS = ['Waha', 'Layla', 'Howdy']
 
@@ -37,9 +38,17 @@ import { useState, useEffect } from 'react'
       const [formError, setFormError] = useState<string | null>(null)
       const [confirmClear, setConfirmClear] = useState(false)
       const [expandedApp, setExpandedApp] = useState<string | null>(null)
+      const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'>('idle')
 
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
       useEffect(() => { if (user) fetchEntries() }, [user])
+
+      useEffect(() => {
+        if ('Notification' in window) {
+          if (Notification.permission === 'granted') setNotifStatus('granted')
+          else if (Notification.permission === 'denied') setNotifStatus('denied')
+        }
+      }, [])
 
       async function fetchEntries() {
         setLoadingEntries(true)
@@ -100,6 +109,13 @@ import { useState, useEffect } from 'react'
       async function handleDelete(id: string) { await supabase.from('worker_entries').delete().eq('id', id); fetchEntries() }
       async function handleClearAll() { await supabase.from('worker_entries').delete().eq('user_id', user!.id); setEntries([]); setConfirmClear(false) }
 
+      async function enableNotifications() {
+        if (!user) return
+        setNotifStatus('requesting')
+        const ok = await subscribeToPush(user.id)
+        setNotifStatus(ok ? 'granted' : 'denied')
+      }
+
       const paymentMethods = getPaymentMethods(form.pais)
       const walletLabel = getWalletLabel(form.metodo_pago)
       const usedApps = entries.map(e => e.app_name)
@@ -118,6 +134,34 @@ import { useState, useEffect } from 'react'
               <button onClick={signOut} className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm transition-colors">
                 <LogOut className="w-4 h-4" /> Salir
               </button>
+            </div>
+
+            
+            <div className="mb-4 bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-sm mb-0.5">Notificaciones push</p>
+                  <p className="text-white/40 text-xs">Recibe alertas de salarios y comunicados</p>
+                </div>
+                {notifStatus === 'granted' ? (
+                  <div className="flex items-center gap-2 text-green-400 text-sm font-semibold">
+                    <Bell className="w-4 h-4" /> Activadas
+                  </div>
+                ) : notifStatus === 'denied' ? (
+                  <div>
+                    <div className="flex items-center gap-2 text-red-400 text-sm font-semibold mb-1">
+                      <BellOff className="w-4 h-4" /> Bloqueadas
+                    </div>
+                    <p className="text-white/30 text-xs">Actívalas en la configuración de tu navegador</p>
+                  </div>
+                ) : (
+                  <button onClick={enableNotifications} disabled={notifStatus === 'requesting'}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">
+                    <Bell className="w-3.5 h-3.5" />
+                    {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="mb-6">
