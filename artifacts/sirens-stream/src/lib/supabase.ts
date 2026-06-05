@@ -1,0 +1,46 @@
+import { createClient } from '@supabase/supabase-js'
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+  export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+  export interface Profile {
+    id: string
+    email: string
+    is_admin: boolean
+    created_at: string
+  }
+
+  export interface WorkerEntry {
+    id: string
+    user_id: string
+    app_name: string
+    nombre_real: string | null
+    nombre_en_app: string | null
+    id_aplicacion: string | null
+    telefono: string | null
+    codigo_pais: string | null
+    pais: string | null
+    metodo_pago: string | null
+    created_at: string
+    updated_at: string
+  }
+
+  export const PAYMENT_METHODS_BY_COUNTRY: Record<string, string[]> = {
+    Cuba: ['Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)'],
+    Brasil: ['Binance', 'Pix'],
+  }
+  export const DEFAULT_PAYMENT_METHODS = ['Binance']
+
+  export function getPaymentMethods(pais: string): string[] {
+    return PAYMENT_METHODS_BY_COUNTRY[pais] ?? DEFAULT_PAYMENT_METHODS
+  }
+
+  export const COUNTRIES = [
+    'Argentina','Bolivia','Brasil','Chile','Colombia','Costa Rica','Cuba',
+    'Ecuador','El Salvador','España','Estados Unidos','Guatemala','Honduras',
+    'México','Nicaragua','Panamá','Paraguay','Perú','Puerto Rico',
+    'República Dominicana','Uruguay','Venezuela','Otro',
+  ]
+  

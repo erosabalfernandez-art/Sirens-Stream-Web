@@ -7,6 +7,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { Footer } from "@/components/layout/Footer";
   import { FloatingSocials } from "@/components/layout/FloatingSocials";
   import { AngelaChat } from "@/components/chat/SirenaChat";
+  import { AuthProvider } from "@/contexts/AuthContext";
 
   function ScrollToTop() {
     const [location] = useLocation();
@@ -25,6 +26,9 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import Contacto from "@/pages/contacto";
   import ErroresComunes from "@/pages/errores-comunes";
   import NotFound from "@/pages/not-found";
+  import Login from "@/pages/login";
+  import Perfil from "@/pages/perfil";
+  import Admin from "@/pages/admin";
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -50,6 +54,9 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
             <Route path="/pagos" component={Pagos} />
             <Route path="/contacto" component={Contacto} />
             <Route path="/errores-comunes" component={ErroresComunes} />
+            <Route path="/login" component={Login} />
+            <Route path="/perfil" component={Perfil} />
+            <Route path="/admin" component={Admin} />
             <Route component={NotFound} />
           </Switch>
         </main>
@@ -64,10 +71,12 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
+          <AuthProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
     );
