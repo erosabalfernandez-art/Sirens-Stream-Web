@@ -150,15 +150,15 @@ import { useState } from "react";
     {
       id: "howdy", Icon: HowdyIcon, name: "Howdy",
       tagline: "Videollamadas · Mensajes · Live Streaming · Match",
-      badge: "Pago semanal (Miérc/Juev)",
+      badge: "Retiro semanal",
       badgeColor: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
       borderOpen: "border-yellow-500/30",
       accentText: "text-yellow-300",
-      desc: "Plataforma internacional con enfoque en videollamadas privadas y live streaming. Sistema de puntos con bonos diarios automáticos, bono de live y bono de regalo de la suerte. Retiro semanal vía Binance/USDT.",
+      desc: "Plataforma internacional con enfoque en videollamadas privadas y live streaming. Sistema de puntos con bonos diarios automáticos, bono de live y bono de regalo de la suerte..",
       specs: [
         { l: "Android", v: "Howdy" }, { l: "iOS", v: "No disponible" },
         { l: "Tiempo diario", v: "+3 Horas" }, { l: "Modo", v: "Videollamadas, Live, Match, Mensajes" },
-        { l: "Retiro", v: "Semanal (Miérc o Juev)" }, { l: "Meta mínima", v: "$10 USD (100,000 pts)" },
+        { l: "Retiro", v: "Semanal" }, { l: "Meta mínima", v: "$10 USD (100,000 pts)" },
       ],
       requisitos: ["Mayor de edad", "WiFi / Datos estables", "Login con cuenta Google", "Foto real para verificación"],
       guideImages: ["/images/howdy-guide-1.png", "/images/howdy-guide-2.png", "/images/howdy-guide-3.png", "/images/howdy-guide-4.png"],
