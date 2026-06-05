@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
     Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart
   } from "lucide-react";
   import { useGetAgencyStats } from "@/lib/api-client";
+  import { supabase } from "@/lib/supabase";
 
   const slides = [
     {
@@ -98,6 +99,11 @@ import { useState, useEffect } from "react";
   ];
 
   export default function Home() {
+    const [showAgencia, setShowAgencia] = useState(true);
+    useEffect(() => {
+      supabase.from('site_settings').select('value').eq('key', 'show_agencia').maybeSingle()
+        .then(({ data }) => { if (data) setShowAgencia(data.value !== 'false'); });
+    }, []);
     const { data: stats } = useGetAgencyStats();
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState(1);
@@ -414,7 +420,7 @@ import { useState, useEffect } from "react";
               <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Únete a Eclipse Angels Agency</span>
               <h2 className="text-4xl font-bold mt-2 mb-4">Elige tu camino</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className={`grid grid-cols-1 ${showAgencia ? 'md:grid-cols-2' : ''} gap-6 max-w-4xl mx-auto`}>
               <div className="bg-[#0d0d1e] border border-blue-500/15 rounded-2xl p-8 flex flex-col hover:border-blue-500/30 transition-colors">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mb-5">
                   <Zap className="w-6 h-6 text-blue-400" />
