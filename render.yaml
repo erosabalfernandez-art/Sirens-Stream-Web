@@ -5,6 +5,9 @@ services:
     buildCommand: cd artifacts/sirens-stream && npm install --legacy-peer-deps && BASE_PATH=/ npm run build
     staticPublishPath: artifacts/sirens-stream/dist
     pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_API_URL
+        value: https://eclipse-angels-api.onrender.com
     routes:
       - type: rewrite
         source: /*
@@ -31,3 +34,4 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+
