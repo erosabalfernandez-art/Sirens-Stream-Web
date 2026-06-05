@@ -1,8 +1,3 @@
-                        {app.type === "howdy" && (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 whitespace-nowrap">
-                            Meta mín. $10 USD
-                          </span>
-                        )}
 import { useState } from "react";
   import { Link } from "wouter";
   import { ChevronDown, ChevronUp, CheckCircle2, Smartphone, Clock, DollarSign, MessageCircle, ArrowRight, X, BookOpen, Copy, Check, Send } from "lucide-react";
@@ -694,6 +689,11 @@ import { useState } from "react";
                         )}
                         {app.type === "layla" && (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 whitespace-nowrap">
+                            Meta mín. $10 USD
+                          </span>
+                        )}
+                        {app.type === "howdy" && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 whitespace-nowrap">
                             Meta mín. $10 USD
                           </span>
                         )}
