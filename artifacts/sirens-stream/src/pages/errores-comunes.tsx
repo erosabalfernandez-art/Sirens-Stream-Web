@@ -201,6 +201,12 @@ import { Link } from "wouter";
             </div>
           </div>
         </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          errores en Waha · errores en Howdy · errores en Layla · por qué me suspendieron en Waha · por qué me banearon en Howdy · errores comunes streamers · cómo no ser baneada en Waha · cómo evitar suspensión Howdy · consejos streamer Waha · consejos streamer Howdy · consejos streamer Layla · guía para streamers · mejorar ganancias streaming · tips para streamers latinas · cómo ganar más en Waha · cómo ganar más en Howdy · cómo ganar más en Layla · problemas comunes streaming · advertencias Waha · reglas Howdy
+        </p>
+      </section>
       </div>
     );
   }
