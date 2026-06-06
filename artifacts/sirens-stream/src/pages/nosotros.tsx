@@ -1,22 +1,23 @@
 import { useState } from "react";
     import { Link } from "wouter";
+    import { useLanguage } from "@/contexts/LanguageContext";
     import { ChevronDown, ChevronUp, Shield, Users, TrendingUp, Globe, ArrowRight, Star, Heart, Clock, DollarSign } from "lucide-react";
 
-    const stats = [
+    const stats_es = [
       { val: "Soporte 24/7", label: "Siempre hay alguien para ayudarte" },
       { val: "Pagos Semanales", label: "Cobras puntual cada semana en dólares" },
       { val: "$0 Inversión", label: "Empiezas sin gastar nada" },
       { val: "Todos los Países", label: "Operamos a nivel mundial" },
     ];
 
-    const valores = [
+    const valores_es = [
       { icon: Shield, title: "Honestidad ante todo", desc: "No hay costos ocultos ni sorpresas. Desde el primer mensaje te decimos exactamente cómo funciona todo." },
       { icon: Heart, title: "Somos una comunidad", desc: "Una red de mujeres que se apoyan entre sí. Compartimos estrategias, experiencias y crecemos juntas." },
       { icon: TrendingUp, title: "Resultados de verdad", desc: "No prometemos lo que no podemos cumplir. Las ganancias que mostramos son reales y alcanzables con constancia." },
       { icon: Star, title: "Tú decides cuánto creces", desc: "Capacitación gratis, bonos por resultados y más oportunidades cuanto mejor te vaya." },
     ];
 
-    const faqs = [
+    const faqs_es = [
       {
         q: "¿Los hombres pueden trabajar con Eclipse Angels Agency?",
         a: "¡Sí, absolutamente! Los hombres también tienen un lugar en nuestro equipo. Pueden participar de dos formas: creándose cuentas en algunas de nuestras aplicaciones asociadas, o como reclutadores, refiriendo chicas a la agencia y ganando comisión por cada una que se una y empiece a generar. Siendo parte de Eclipse Angels Agency, siempre saldrán beneficiados."
@@ -71,9 +72,55 @@ import { useState } from "react";
       },
     ];
 
+
+    const stats_pt = [
+      { val: "Suporte 24/7", label: "Sempre há alguém para te ajudar" },
+      { val: "Pagamentos Semanais", label: "Recebe pontual toda semana em dólares" },
+      { val: "$0 Investimento", label: "Começa sem gastar nada" },
+      { val: "Todos os Países", label: "Operamos em nível mundial" },
+    ];
+    const valores_pt = [
+      { icon: Shield, title: "Honestidade acima de tudo", desc: "Sem custos ocultos nem surpresas. Desde a primeira mensagem te dizemos exatamente como tudo funciona." },
+      { icon: Heart, title: "Somos uma comunidade", desc: "Uma rede de mulheres que se apoiam entre si. Compartilhamos estratégias, experiências e crescemos juntas." },
+      { icon: TrendingUp, title: "Resultados de verdade", desc: "Não prometemos o que não podemos cumprir. Os ganhos que mostramos são reais e alcançáveis com constância." },
+      { icon: Star, title: "Você decide o quanto cresce", desc: "Capacitação grátis, bônus por resultados e mais oportunidades quanto melhor for seu desempenho." },
+    ];
+    const faqs_pt = [
+      { q: "Os homens podem trabalhar com a Eclipse Angels Agency?", a: "Sim, absolutamente! Os homens também têm um lugar na nossa equipe. Podem participar de duas formas: criando contas em alguns de nossos aplicativos associados, ou como recrutadores, indicando mulheres para a agência e ganhando comissão por cada uma que entrar e começar a gerar. Fazendo parte da Eclipse Angels Agency, sempre sairão beneficiados." },
+      { q: "Como um homem pode ganhar dinheiro na agência?", a: "Há dois caminhos claros. O primeiro é registrar-se em certos aplicativos da nossa rede e gerar renda própria. O segundo é tornar-se recrutador: apresentar mulheres interessadas à agência e receber uma comissão por cada incorporação bem-sucedida. É uma forma flexível de ganhar sem limite de horário nem de renda." },
+      { q: "Os homens recebem o mesmo suporte que as mulheres?", a: "Sim. Qualquer pessoa que faça parte da nossa equipe recebe capacitação, guias e acompanhamento constante. Não importa como você decide participar, sempre terá alguém disponível para te ajudar a crescer e maximizar seus ganhos." },
+      { q: "O que é a Eclipse Angels Agency?", a: "Eclipse Angels Agency é uma agência de streamers e chat hostess que conecta mulheres maiores de 18 anos com plataformas internacionais de videochat e mensagens. Você pode ganhar dinheiro em dólares pelo celular, sem investir nada e sem experiência prévia." },
+      { q: "É seguro trabalhar com a Eclipse Angels Agency?", a: "Sim, totalmente. Trabalhamos apenas com plataformas verificadas e reconhecidas internacionalmente. Nunca pedimos dinheiro para começar, e todas as suas informações pessoais são tratadas com total privacidade." },
+      { q: "Preciso mostrar meu rosto ou meus dados pessoais?", a: "Não é obrigatório. Você pode trabalhar com nome artístico, foto diferente e sem vincular suas redes pessoais. Sua privacidade é nossa prioridade." },
+      { q: "Quanto posso ganhar?", a: "Depende do tempo que você dedicar e da plataforma que usar. Em média você pode ganhar entre $10 e $50 USD por dia. Com constância, muitas mulheres superam os $500 USD por semana." },
+      { q: "Quantas horas tenho que trabalhar por dia?", a: "Recomendamos 4–5 horas diárias para cumprir metas e acessar bônus. Mas o horário é totalmente seu — trabalha quando quer e o tempo que quiser." },
+      { q: "Quando e como recebo meu pagamento?", a: "Os pagamentos são semanais. Você pode receber seu dinheiro por Binance (USDT), Pix (Brasil), transferência bancária em Cuba ou dinheiro em espécie em Cuba, conforme seu país." },
+      { q: "Preciso ter experiência?", a: "De forma alguma. Ensinamos tudo do zero. Uma de nossas guias te explica passo a passo como instalar o app e começar a ganhar desde o primeiro dia." },
+      { q: "Quais apps posso usar?", a: "Trabalhamos com Waha, Layla e Howdy, três das plataformas internacionais mais rentáveis do mercado. Cada uma tem características diferentes e nossa equipe te ajuda a escolher a mais adequada." },
+      { q: "Posso trabalhar de qualquer país?", a: "Sim. Trabalhamos com mulheres de toda a América Latina e do mundo. Só precisa de um celular com boa câmera e conexão à internet." },
+      { q: "O que acontece se eu tiver dúvidas durante o trabalho?", a: "Sempre tem alguém disponível para te ajudar. Temos guias de apoio e grupos onde compartilhamos dicas e estratégias constantemente. Você nunca está sozinha." },
+    ];
     export default function Nosotros() {
       const [openFaq, setOpenFaq] = useState<number | null>(null);
-
+      const { lang } = useLanguage();
+      const stats = lang === 'pt' ? stats_pt : stats_es;
+      const valores = lang === 'pt' ? valores_pt : valores_es;
+      const faqs = lang === 'pt' ? faqs_pt : faqs_es;
+      const T = {
+        badge: lang === 'pt' ? "Sobre Nós" : "Sobre Nosotros",
+        h1: lang === 'pt' ? "Conectamos mulheres com\noportunidades reais em dólares" : "Conectamos mujeres con\noportunidades reales en dólares",
+        sub: lang === 'pt' ? "Eclipse Angels Agency nasceu para que qualquer mulher possa gerar renda real pelo celular, sem colocar dinheiro, sem experiência e com todo o apoio que precisar para crescer." : "{T.sub}",
+        misionBadge: lang === 'pt' ? "Nossa Missão" : "Nuestra Misión",
+        misionH2: lang === 'pt' ? "Que cada mulher possa\nganhar dinheiro em casa" : "Que cada mujer pueda\nganar dinero desde casa",
+        valBadge: lang === 'pt' ? "Nossos Valores" : "Nuestros Valores",
+        valH2: lang === 'pt' ? "En qué creemos" : "En qué creemos",
+        faqBadge: lang === 'pt' ? "Perguntas Frequentes" : "Preguntas Frecuentes",
+        faqH2: lang === 'pt' ? "Respondemos suas dúvidas" : "{T.faqH2}",
+        ctaH2: lang === 'pt' ? "Pronta para dar o primeiro passo?" : "{T.ctaH2}",
+        ctaDesc: lang === 'pt' ? "Fale conosco agora mesmo. Sem compromisso, sem custos. Te explicamos tudo e te ajudamos a começar." : "{T.ctaDesc}",
+        ctaBtn: lang === 'pt' ? "Entrar em Contato" : "{T.ctaBtn}",
+        ctaApps: lang === 'pt' ? "Ver Apps" : "Ver Apps",
+      };
       return (
         <div className="min-h-screen bg-[#07070f] text-white pt-16">
 
@@ -85,11 +132,11 @@ import { useState } from "react";
             <div className="relative max-w-4xl mx-auto px-5 text-center">
               <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/25 rounded-full px-4 py-1.5 mb-5">
                 <Users className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">Sobre Nosotros</span>
+                <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">{T.badge}</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold mb-5 leading-[1.1]">
-                Conectamos mujeres con<br />
-                <span className="gradient-text">oportunidades reales en dólares</span>
+                {lang === 'pt' ? 'Conectamos mulheres com' : 'Conectamos mujeres con'}<br />
+                <span className="gradient-text">{lang === 'pt' ? 'oportunidades reais em dólares' : 'oportunidades reales en dólares'}</span>
               </h1>
               <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
                 Eclipse Angels Agency nació para que cualquier mujer pueda generar ingresos reales desde su celular, sin poner dinero, sin experiencia y con todo el apoyo que necesite para crecer.
@@ -114,9 +161,9 @@ import { useState } from "react";
             <div className="max-w-5xl mx-auto px-5">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-purple-400/70">Nuestra Misión</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-purple-400/70">{T.misionBadge}</span>
                   <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">
-                    Que cada mujer pueda<br /><span className="gradient-text">ganar dinero desde casa</span>
+                    {lang === 'pt' ? 'Que cada mulher possa' : 'Que cada mujer pueda'}<br /><span className="gradient-text">{lang === 'pt' ? 'ganhar dinheiro em casa' : 'ganar dinero desde casa'}</span>
                   </h2>
                   <p className="text-white/50 text-sm leading-relaxed mb-4">
                     Creemos que toda mujer merece acceso a ingresos reales, flexibles y en dólares. En Eclipse Angels Agency lo hacemos posible conectándote con las mejores apps internacionales, dándote capacitación gratuita y acompañándote en cada paso.
@@ -144,7 +191,7 @@ import { useState } from "react";
           <section className="py-20 bg-[#0a0a16]">
             <div className="max-w-3xl mx-auto px-5">
               <div className="text-center mb-12">
-                <span className="text-xs font-bold uppercase tracking-widest text-purple-400/70">Preguntas Frecuentes</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-purple-400/70">{T.faqBadge}</span>
                 <h2 className="text-3xl font-extrabold mt-2 mb-3">Todo lo que quieres saber</h2>
                 <p className="text-white/45 text-sm">Resolvemos tus dudas antes de que empieces</p>
               </div>
