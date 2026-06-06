@@ -99,7 +99,7 @@ import { useState, useEffect } from "react";
   ];
 
   export default function Home() {
-    const showAgencia = useShowAgencia();, []);
+    const showAgencia = useShowAgencia();
     const { data: stats } = useGetAgencyStats();
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState(1);
