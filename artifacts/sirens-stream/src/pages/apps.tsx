@@ -169,6 +169,7 @@ import { useState, useRef, useEffect } from "react";
     /* ── Waha Step-by-Step Guide Modal ── */
     function WahaGuideModal({ onClose }: { onClose: () => void }) {
       const [imgExpanded, setImgExpanded] = useState(false);
+      const { lang } = useLanguage();
       return (
         <>
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm" onClick={onClose}>
@@ -244,7 +245,7 @@ import { useState, useRef, useEffect } from "react";
                   <button onClick={() => setImgExpanded(true)} className="w-full rounded-2xl overflow-hidden border border-white/10 hover:border-blue-500/30 transition-colors block">
                     <img src="/images/waha-guide-captura.png" alt="Guía visual Waha" className="w-full object-cover" />
                   </button>
-                  <p className="text-center text-white/35 text-xs mt-2">👆 Toca la imagen para ampliar</p>
+                  <p className="text-center text-white/35 text-xs mt-2">{lang === 'pt' ? '👆 Toque a imagem para ampliar' : '👆 Toca la imagen para ampliar'}</p>
                 </div>
               </div>
             </div>
@@ -370,7 +371,7 @@ import { useState, useRef, useEffect } from "react";
                       <p className="text-center text-white/40 text-xs py-1.5">🖼️ Visual 3</p>
                     </button>
                   </div>
-                  <p className="text-center text-white/35 text-xs">👆 Toca para ampliar · Rueda/pellizco para zoom</p>
+                  <p className="text-center text-white/35 text-xs">{lang === 'pt' ? '👆 Toque para ampliar · Roda/pinça para zoom' : '👆 Toca para ampliar · Rueda/pellizco para zoom'}</p>
                   {/* Botones descarga + WhatsApp */}
                   <div className="space-y-2.5 pt-2">
                     <a href="#" target="_blank" rel="noopener noreferrer"
@@ -545,7 +546,7 @@ import { useState, useRef, useEffect } from "react";
                   <X className="w-4 h-4 text-white" />
                 </button>
                 <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>
-                  {guideImgs[imgExpanded].label} · Rueda/pellizco para zoom · Toca fuera para cerrar
+                  {guideImgs[imgExpanded].label} · {lang === 'pt' ? 'Roda/pinça para zoom · Toque fora para fechar' : 'Rueda/pellizco para zoom · Toca fuera para cerrar'}
                 </p>
               </div>
             )}
@@ -587,7 +588,7 @@ import { useState, useRef, useEffect } from "react";
           <img src={src} alt={alt}
             style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
               transform: `scale(${scale})`, transition: scale === 1 ? 'transform 0.2s ease' : 'none', userSelect: 'none', pointerEvents: 'none' }} />
-          {scale > 1 && <div style={{ position: 'absolute', bottom: -28, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>Doble toque/clic para restablecer · {Math.round(scale * 100)}%</div>}
+          {scale > 1 && <div style={{ position: 'absolute', bottom: -28, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>{typeof window !== 'undefined' && localStorage.getItem('ea_lang') === 'pt' ? 'Duplo toque/clique para redefinir' : 'Doble toque/clic para restablecer'} · {Math.round(scale * 100)}%</div>}
         </div>
       )
     }
@@ -610,7 +611,7 @@ import { useState, useRef, useEffect } from "react";
               ))}
             </div>
           )}
-          <p className="text-white/35 text-xs">Rueda/pellizco para zoom · Toca fuera · {idx + 1}/{images.length}</p>
+          <p className="text-white/35 text-xs">{typeof window !== 'undefined' && localStorage.getItem('ea_lang') === 'pt' ? 'Roda/pinça para zoom · Toque fora' : 'Rueda/pellizco para zoom · Toca fuera'} · {idx + 1}/{images.length}</p>
         </div>
       </div>
     );
@@ -627,13 +628,13 @@ import { useState, useRef, useEffect } from "react";
     return (
       <div className="bg-[#0d0d20] border border-purple-500/30 rounded-xl p-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-purple-300/60 text-xs mb-1">Código de Agencia (Obligatorio)</p>
+          <p className="text-purple-300/60 text-xs mb-1">{typeof window !== 'undefined' && localStorage.getItem('ea_lang') === 'pt' ? 'Código de Agência (Obrigatório)' : 'Código de Agencia (Obligatorio)'}</p>
           <p className="font-mono font-extrabold text-2xl text-purple-200 tracking-widest">{code}</p>
         </div>
         <button onClick={copy}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${copied ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30"}`}>
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? "Copiado!" : "Copiar"}
+          {copied ? (typeof window !== 'undefined' && localStorage.getItem('ea_lang') === 'pt' ? 'Copiado!' : 'Copiado!') : (typeof window !== 'undefined' && localStorage.getItem('ea_lang') === 'pt' ? 'Copiar' : 'Copiar')}
         </button>
       </div>
     );
@@ -659,10 +660,12 @@ import { useState, useRef, useEffect } from "react";
 
   function SectionTitle({ children }: { children: React.ReactNode }) {
     return <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">{children}</h3>;
+  }</h3>;
   }
 
   /* ── Main component ── */
   export default function Apps() {
+    const { lang } = useLanguage();
     const [open, setOpen] = useState<string | null>(null);
     const [guideModal, setGuideModal] = useState<string[] | null>(null);
     const [wahaGuide, setWahaGuide] = useState(false);
@@ -684,11 +687,11 @@ import { useState, useRef, useEffect } from "react";
           <div className="relative max-w-4xl mx-auto px-5 text-center">
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 rounded-full px-4 py-1.5 mb-5">
               <Smartphone className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Plataformas disponibles</span>
+              <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">{lang === 'pt' ? 'Plataformas disponíveis' : 'Plataformas disponibles'}</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Catálogo de <span className="gradient-text">Apps</span></h1>
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">{lang === 'pt' ? 'Catálogo de' : 'Catálogo de'} <span className="gradient-text">Apps</span></h1>
             <p className="text-white/50 max-w-xl mx-auto">
-              Trabajamos únicamente con plataformas internacionales verificadas, seleccionadas para garantizar pagos seguros y el mayor potencial de ganancias.
+              {lang === 'pt' ? 'Trabalhamos apenas com plataformas internacionais verificadas, selecionadas para garantir pagamentos seguros e o maior potencial de ganhos.' : 'Trabajamos únicamente con plataformas internacionales verificadas, seleccionadas para garantizar pagos seguros y el mayor potencial de ganancias.'}
             </p>
           </div>
         </section>
@@ -745,7 +748,7 @@ import { useState, useRef, useEffect } from "react";
                       <div className="flex flex-wrap gap-3">
                         <button onClick={() => app.type === "waha" ? setWahaGuide(true) : app.type === "layla" ? setLaylaGuide(true) : app.type === "howdy" ? setHowdyGuide(true) : setGuideModal(app.guideImages)}
                               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                              <BookOpen className="w-4 h-4" /> Guía de Instalación
+                              <BookOpen className="w-4 h-4" /> {lang === 'pt' ? 'Guia de Instalação' : 'Guía de Instalación'}
                             </button>
                         <a href={app.telegramUrl} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-2 bg-[#2CA5E0]/15 border border-[#2CA5E0]/30 text-[#2CA5E0] font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-[#2CA5E0]/25 transition-colors">
@@ -753,7 +756,7 @@ import { useState, useRef, useEffect } from "react";
                         </a>
                         <a href="https://wa.me/5595984381686?text=Hola%2C%20necesito%20ayuda%20con%20una%20app" target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-2 bg-white/6 border border-white/12 text-white/80 font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                          <MessageCircle className="w-4 h-4" /> Contactar Tutora
+                          <MessageCircle className="w-4 h-4" /> {lang === 'pt' ? 'Contatar Tutora' : 'Contactar Tutora'}
                         </a>
                       </div>
 
@@ -762,7 +765,7 @@ import { useState, useRef, useEffect } from "react";
 
                       {/* Specs */}
                       <div>
-                        <SectionTitle>Información General</SectionTitle>
+                        <SectionTitle>{lang === 'pt' ? 'Informações Gerais' : 'Información General'}</SectionTitle>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {app.specs.map((s, i) => (
                             <div key={i} className="bg-[#0a0a14] border border-white/5 rounded-xl px-4 py-3">
@@ -775,7 +778,7 @@ import { useState, useRef, useEffect } from "react";
 
                       {/* Requisitos */}
                       <div>
-                        <SectionTitle>Requisitos Esenciales</SectionTitle>
+                        <SectionTitle>{lang === 'pt' ? 'Requisitos Essenciais' : 'Requisitos Esenciales'}</SectionTitle>
                         <div className="flex flex-wrap gap-2">
                           {app.requisitos.map((r, i) => (
                             <span key={i} className="flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-full px-3 py-1.5 text-xs text-white/60">
@@ -788,7 +791,7 @@ import { useState, useRef, useEffect } from "react";
                       {/* ══ WAHA DETAILS ══ */}
                       {app.type === "waha" && (<>
                         <div>
-                          <SectionTitle>Ganancias por Actividad</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Ganhos por Atividade' : 'Ganancias por Actividad'}</SectionTitle>
                           <div className="space-y-3">
                             {WAHA_GANANCIAS.map((cat, ci) => (
                               <div key={ci} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
@@ -802,21 +805,21 @@ import { useState, useRef, useEffect } from "react";
                         </div>
 
                         <div>
-                          <SectionTitle>Metas y Pagos</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Metas e Pagamentos' : 'Metas y Pagos'}</SectionTitle>
                           <InfoTable rows={WAHA_PAGOS.map(r => ({ l: r.c, r: r.v }))} accent="text-red-300" />
-                          <p className="mt-2 text-xs text-white/35 px-1">⚠️ Si el dispositivo ya tuvo cuenta WAHA, no aplica el salario base.</p>
+                          <p className="mt-2 text-xs text-white/35 px-1">{lang === 'pt' ? '⚠️ Se o dispositivo já teve conta WAHA, o salário base não se aplica.' : '⚠️ Si el dispositivo ya tuvo cuenta WAHA, no aplica el salario base.'}</p>
                         </div>
 
                         <div>
-                          <SectionTitle>Salario Base Inicial</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Salário Base Inicial' : 'Salario Base Inicial'}</SectionTitle>
                           <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 mb-3 text-sm text-white/60">
-                            Disponible solo las <strong className="text-white/80">primeras 2 semanas</strong> — <span className="text-red-300 font-bold">$1 USD diario</span> por cumplir estas metas:
+                            {lang === 'pt' ? 'Disponível apenas nas ' : 'Disponible solo las '}<strong className="text-white/80">{lang === 'pt' ? 'primeiras 2 semanas' : 'primeras 2 semanas'}</strong>{lang === 'pt' ? ' — ' : ' — '}<span className="text-red-300 font-bold">$1 USD {lang === 'pt' ? 'diário' : 'diario'}</span>{lang === 'pt' ? ' por cumprir estas metas:' : ' por cumplir estas metas:'}
                           </div>
                           <InfoTable rows={WAHA_SALARIO.map(r => ({ l: r.m, r: r.r }))} accent="text-red-300" />
                         </div>
 
                         <div>
-                          <SectionTitle>Bonos Diarios</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Bônus Diários' : 'Bonos Diarios'}</SectionTitle>
                           <div className="space-y-3">
                             {WAHA_BONOS.map((bono, bi) => (
                               <div key={bi} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
@@ -836,8 +839,8 @@ import { useState, useRef, useEffect } from "react";
                         {/* ══ HOWDY DETAILS ══ */}
                         {app.type === "howdy" && (<>
                           <div>
-                            <SectionTitle>Tarifa de Llamada Privada</SectionTitle>
-                            <p className="text-white/40 text-xs mb-2">10,000 Puntos = $1 USD · Meta mínima: 100,000 pts</p>
+                            <SectionTitle>{lang === 'pt' ? 'Tarifa de Chamada Privada' : 'Tarifa de Llamada Privada'}</SectionTitle>
+                            <p className="text-white/40 text-xs mb-2">10.000 {lang === 'pt' ? 'Pontos' : 'Puntos'} = $1 USD · {lang === 'pt' ? 'Meta mínima' : 'Meta mínima'}: 100.000 pts</p>
                             <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
                               <div className="grid grid-cols-3 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
                                 <span>Duración</span><span className="text-center">Puntos/min</span><span className="text-right">USD/min</span>
@@ -852,18 +855,18 @@ import { useState, useRef, useEffect } from "react";
                             </div>
                           </div>
                           <div>
-                            <SectionTitle>Otros Ingresos</SectionTitle>
+                            <SectionTitle>{lang === 'pt' ? 'Outras Rendas' : 'Otros Ingresos'}</SectionTitle>
                             <InfoTable rows={HOWDY_OTROS} accent="text-yellow-300" />
                           </div>
                           <div>
-                            <SectionTitle>Bonos Automáticos</SectionTitle>
+                            <SectionTitle>{lang === 'pt' ? 'Bônus Automáticos' : 'Bonos Automáticos'}</SectionTitle>
                             <InfoTable rows={HOWDY_BONOS} accent="text-yellow-300" />
                             <div className="mt-3 bg-yellow-500/8 border border-yellow-500/20 rounded-xl px-4 py-3 text-xs text-yellow-200/70 leading-relaxed">
                               💡 <strong>Potencial diario:</strong> Bono diario ($10) + Bono live ($2) + Bono regalo suerte ($2) = hasta <span className="text-yellow-300 font-bold">$14 USD extra/día</span> en bonos solos, sin contar llamadas.
                             </div>
                           </div>
                           <div>
-                            <SectionTitle>Retiro</SectionTitle>
+                            <SectionTitle>{lang === 'pt' ? 'Saque' : 'Retiro'}</SectionTitle>
                             <InfoTable rows={HOWDY_RETIRO} accent="text-yellow-300" />
                           </div>
                         </>)}
@@ -875,7 +878,7 @@ import { useState, useRef, useEffect } from "react";
                         <CodeCopy code="G-84Y3AG7HL" />
 
                         <div>
-                          <SectionTitle>Conversión · Monedas → USD</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Conversão · Moedas → USD' : 'Conversión · Monedas → USD'}</SectionTitle>
                           <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
                             <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
                               <span>Monedas</span><span className="text-right">USD</span>
@@ -893,7 +896,7 @@ import { useState, useRef, useEffect } from "react";
                         </div>
 
                         <div>
-                          <SectionTitle>Precios por Actividad</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Preços por Atividade' : 'Precios por Actividad'}</SectionTitle>
                           <div className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
                             <div className="grid grid-cols-2 text-xs font-bold text-white/30 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
                               <span>Concepto</span><span className="text-right">Monedas</span>
@@ -908,7 +911,7 @@ import { useState, useRef, useEffect } from "react";
                         </div>
 
                         <div>
-                          <SectionTitle>Funciones Principales</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Funções Principais' : 'Funciones Principales'}</SectionTitle>
                           <div className="space-y-3">
                             {LAYLA_FUNCIONES.map((func, fi) => (
                               <div key={fi} className="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
@@ -922,7 +925,7 @@ import { useState, useRef, useEffect } from "react";
                         </div>
 
                         <div>
-                          <SectionTitle>Tareas Diarias + Bonos</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Tarefas Diárias + Bônus' : 'Tareas Diarias + Bonos'}</SectionTitle>
                           <InfoTable rows={LAYLA_BONOS} accent="text-purple-300" />
                           <div className="mt-3 bg-purple-500/8 border border-purple-500/20 rounded-xl px-4 py-3 text-xs text-purple-200/70 leading-relaxed">
                             💡 <strong>Potencial de ingresos:</strong> 4h de llamadas de voz activas = 324,000 monedas (~$20 USD). Combinando match de video y mensajes, el rendimiento diario puede superar los <span className="text-purple-300 font-bold">$30–$50 USD</span>.
@@ -931,7 +934,7 @@ import { useState, useRef, useEffect } from "react";
 
                         {/* Layla registration steps */}
                         <div>
-                          <SectionTitle>Pasos para Registrarse en Layla</SectionTitle>
+                          <SectionTitle>{lang === 'pt' ? 'Passos para se Cadastrar no Layla' : 'Pasos para Registrarse en Layla'}</SectionTitle>
                           <div className="space-y-2">
                             {LAYLA_GUIDE_STEPS.map((s, i) => (
                               <div key={i} className="flex gap-3 bg-[#0a0a14] border border-white/5 rounded-xl px-4 py-3">
@@ -955,10 +958,10 @@ import { useState, useRef, useEffect } from "react";
           </div>
 
           <div className="max-w-3xl mx-auto px-5 mt-8 text-center">
-            <p className="text-white/40 text-sm mb-4">¿No sabes qué app elegir? Nuestro equipo te orienta sin compromiso</p>
+            <p className="text-white/40 text-sm mb-4">{lang === 'pt' ? 'Não sabe qual app escolher? Nossa equipe te orienta sem compromisso' : '¿No sabes qué app elegir? Nuestro equipo te orienta sin compromiso'}</p>
             <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20asesor%C3%ADa%20sobre%20qu%C3%A9%20app%20usar" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-              Asesoría Gratuita <ArrowRight className="w-4 h-4" />
+              {lang === 'pt' ? 'Assessoria Gratuita' : 'Asesoría Gratuita'} <ArrowRight className="w-4 h-4" />
             </a>
           </div>
         </section>
