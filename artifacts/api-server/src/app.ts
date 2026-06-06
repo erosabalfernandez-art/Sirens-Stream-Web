@@ -30,5 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
-
+app.get("/", (_req, res) => {
+  res.status(200).send("API activa para Sirens Stream");
+});
 export default app;
