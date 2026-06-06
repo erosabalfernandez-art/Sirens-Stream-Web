@@ -74,7 +74,7 @@ import { Link } from "wouter";
       </svg>
     );
 
-    const methods = [
+    const methods_es = [
       {
         Icon: BinanceIcon,
         name: "Binance",
@@ -109,14 +109,53 @@ import { Link } from "wouter";
       },
     ];
 
-    const faqs = [
+    const faqs_es = [
       { q: "¿Con qué frecuencia se paga?", a: "Los pagos se realizan semanalmente. Waha: cada martes. Layla: acumulable a partir de $10 USD. Howdy: cada miércoles o jueves." },
       { q: "¿Hay un mínimo de retiro?", a: "Para Waha: $2.50 USD (10,000 diamantes). Para Layla: $10 USD. Para Howdy: $10 USD (100,000 puntos). Para las demás apps se informa en el registro." },
       { q: "¿Cuánto tarda en llegar el pago?", a: "Binance: inmediato. Pix: inmediato. Transferencia Cuba: 1-3 días hábiles." },
       { q: "¿Pagan en dólares reales?", a: "Sí. Todos nuestros pagos son en USD. La conversión a moneda local depende del método que elijas." },
     ];
 
+
+    const methods_pt = [
+      { Icon: BinanceIcon, name: "Binance", tag: "Cripto", tagColor: "bg-purple-500/15 text-purple-300 border-purple-500/25", desc: "Transferência internacional em criptomoedas (USDT, BTC e mais). Disponível para todos os países.", nota: "Sem mínimo — taxa de rede variável" },
+      { Icon: PixIcon, name: "Pix", tag: "Brasil", tagColor: "bg-blue-500/15 text-blue-300 border-blue-500/25", desc: "Transferência bancária instantânea para streamers no Brasil. Rápido e sem taxas.", nota: "Disponível apenas no Brasil" },
+      { Icon: EfectivoIcon, name: "Dinheiro em Espécie (Cuba)", tag: "Cuba", tagColor: "bg-violet-500/15 text-violet-300 border-violet-500/25", desc: "Pagamento em dinheiro coordenado através de contato local em Cuba.", nota: "Coordenação prévia necessária" },
+      { Icon: TransferenciaIcon, name: "Transferência Bancária (Cuba)", tag: "Cuba", tagColor: "bg-indigo-500/15 text-indigo-300 border-indigo-500/25", desc: "Transferência para conta bancária em Cuba (MLC ou CUP conforme disponibilidade).", nota: "Sujeito a disponibilidade de taxa" },
+    ];
+    const faqs_pt = [
+      { q: "Com que frequência se paga?", a: "Os pagamentos são semanais. Waha: toda terça-feira. Layla: acumulável a partir de $10 USD. Howdy: toda quarta ou quinta." },
+      { q: "Há um mínimo de saque?", a: "Para Waha: $2,50 USD (10.000 diamantes). Para Layla: $10 USD. Para Howdy: $10 USD (100.000 pontos). Para os demais apps é informado no cadastro." },
+      { q: "Quanto tempo leva para chegar o pagamento?", a: "Binance: imediato. Pix: imediato. Transferência Cuba: 1–3 dias úteis." },
+      { q: "Pagam em dólares reais?", a: "Sim. Todos os nossos pagamentos são em USD. A conversão para moeda local depende do método que você escolher." },
+    ];
     export default function Pagos() {
+      const { lang } = useLanguage();
+      const methods = lang === 'pt' ? methods_pt : methods_es;
+      const faqs = lang === 'pt' ? faqs_pt : faqs_es;
+      const T = {
+        badge: lang === 'pt' ? "Métodos de Pagamento" : "Métodos de Pago",
+        h1a: lang === 'pt' ? "Receba no" : "Cobra en",
+        h1b: lang === 'pt' ? "seu método favorito" : "tu método favorito",
+        sub: lang === 'pt' ? "Pagamos toda semana de forma pontual. Escolha o método que melhor se adapta ao seu país e preferência. Todos os pagamentos são em dólares americanos (USD)." : "{T.sub}",
+        trustItems: lang === 'pt' ? [
+          { icon: Clock, text: "Pagamentos toda semana" },
+          { icon: Shield, text: "100% seguro e garantido" },
+          { icon: DollarSign, text: "Receba de onde estiver" },
+          { icon: CheckCircle2, text: "Todos os países" },
+        ] : [
+          { icon: Clock, text: "Pagos cada semana" },
+          { icon: Shield, text: "100% seguro y garantizado" },
+          { icon: DollarSign, text: "Recíbelo desde donde estés" },
+          { icon: CheckCircle2, text: "Todos los países" },
+        ],
+        methodsH: lang === 'pt' ? "Métodos disponíveis" : "Métodos disponibles",
+        faqH: lang === 'pt' ? "Perguntas frequentes sobre pagamentos" : "Preguntas frecuentes sobre pagos",
+        ctaH3: lang === 'pt' ? "Pronta para começar a receber?" : "{T.ctaH3}",
+        ctaSub: lang === 'pt' ? "Entre na agência hoje e começa a gerar renda semanal em dólares na comodidade da sua casa." : "{T.ctaSub}",
+        ctaBtn: lang === 'pt' ? "Quero ser Streamer" : "{T.ctaBtn}",
+        ctaContact: lang === 'pt' ? "Entrar em contato" : "{T.ctaContact}",
+      };
       return (
         <div className="min-h-screen bg-[#07070f] text-white pt-16">
           <section className="relative py-16 overflow-hidden">
@@ -126,10 +165,10 @@ import { Link } from "wouter";
             <div className="relative max-w-4xl mx-auto px-5 text-center">
               <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/25 rounded-full px-4 py-1.5 mb-5">
                 <DollarSign className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">Métodos de Pago</span>
+                <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">{T.badge}</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
-                Cobra en <span className="gradient-text">tu método favorito</span>
+                {T.h1a} <span className="gradient-text">{T.h1b}</span>
               </h1>
               <p className="text-white/50 max-w-xl mx-auto">
                 Pagamos cada semana de forma puntual. Elige el método que mejor se adapte a tu país y preferencia. Todos los pagos son en dólares estadounidenses (USD).
@@ -140,12 +179,7 @@ import { Link } from "wouter";
           {/* Trust bar */}
           <div className="bg-[#0a0a16] border-y border-purple-500/8 py-4">
             <div className="max-w-4xl mx-auto px-5 flex flex-wrap justify-center gap-6 text-sm text-white/40">
-              {[
-                { icon: Clock, text: "Pagos cada semana" },
-                { icon: Shield, text: "100% seguro y garantizado" },
-                { icon: DollarSign, text: "Recíbelo desde donde estés" },
-                { icon: CheckCircle2, text: "Todos los países" },
-              ].map((item, i) => (
+              {T.trustItems.map((item, i) => (
                 <span key={i} className="flex items-center gap-2">
                   <item.icon className="w-4 h-4 text-purple-400" />
                   {item.text}
@@ -157,7 +191,7 @@ import { Link } from "wouter";
           {/* Payment methods grid */}
           <section className="py-20">
             <div className="max-w-4xl mx-auto px-5">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-6">Métodos disponibles</h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-6">{T.methodsH}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-14">
                 {methods.map((m, i) => (
                   <div key={i} className="group bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5 hover:border-purple-500/30 hover:bg-[#0f0f22] transition-all">
@@ -178,7 +212,7 @@ import { Link } from "wouter";
 
               {/* FAQ */}
               <div className="mb-14">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-5">Preguntas frecuentes sobre pagos</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-5">{T.faqH}</h2>
                 <div className="space-y-3">
                   {faqs.map((faq, i) => (
                     <div key={i} className="bg-[#0d0d1e] border border-purple-500/10 rounded-xl p-5">
