@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
     Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart
   } from "lucide-react";
   import { useGetAgencyStats } from "@/lib/api-client";
-  import { supabase } from "@/lib/supabase";
+  import { useShowAgencia } from "@/hooks/useShowAgencia";
 
   const slides = [
     {
@@ -99,11 +99,7 @@ import { useState, useEffect } from "react";
   ];
 
   export default function Home() {
-    const [showAgencia, setShowAgencia] = useState(true);
-    useEffect(() => {
-      supabase.from('site_settings').select('value').eq('key', 'show_agencia').maybeSingle()
-        .then(({ data }) => { if (data) setShowAgencia(data.value !== 'false'); });
-    }, []);
+    const showAgencia = useShowAgencia();, []);
     const { data: stats } = useGetAgencyStats();
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState(1);
