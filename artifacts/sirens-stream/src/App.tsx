@@ -120,14 +120,17 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AuthProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-            <UpdateBanner />
-            <Toaster />
-            <InstallPWA />
-          </AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+              <UpdateBanner />
+              <Toaster />
+              <InstallPWA />
+              <LangRefreshBanner />
+            </AuthProvider>
+          </LanguageProvider>
         </TooltipProvider>
       </QueryClientProvider>
     );
