@@ -3,12 +3,30 @@ import { Component, type ReactNode } from "react";
 import App from "./App";
 import "./index.css";
 
-  // Register service worker for PWA + push notifications
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {/* silent */});
-    });
-  }
+// Capture PWA install prompt globally BEFORE React mounts.
+// The beforeinstallprompt event fires very early — if we wait for a
+// React useEffect it will already be gone. Store it on window so any
+// component can pick it up later.
+declare global {
+  interface Window { __pwaPrompt?: any; __pwaInstalled?: boolean; }
+}
+window.__pwaInstalled = window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as any).standalone === true;
+window.addEventListener("beforeinstallprompt", (e: any) => {
+  e.preventDefault();
+  window.__pwaPrompt = e;
+});
+window.addEventListener("appinstalled", () => {
+  window.__pwaInstalled = true;
+  window.__pwaPrompt = undefined;
+});
+
+// Register service worker for PWA + push notifications
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {/* silent */});
+  });
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
