@@ -281,6 +281,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
             </div>
           </div>
         </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          crear agencia de streamers · crear agencia Waha · crear agencia Howdy · crear agencia Layla · cómo crear mi primera agencia de streamers · primera agencia de streamers · agencia de streamers Waha · agencia de streamers Howdy · agencia de streamers Layla · abrir agencia de streaming · ser manager de streamers · manager streaming · ganar comisiones streamers · ingreso pasivo streamers · crear equipo de streamers · reclutar streamers · gestionar streamers · negocio online desde casa · negocio sin inversión · emprendimiento digital · agencia Waha Layla Howdy · cómo montar una agencia de streamers · Eclipse Angels agencia · ganar dinero gestionando streamers
+        </p>
+      </section>
       </div>
     );
   }
