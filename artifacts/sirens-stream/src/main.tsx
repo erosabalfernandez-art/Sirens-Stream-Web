@@ -3,6 +3,13 @@ import { Component, type ReactNode } from "react";
 import App from "./App";
 import "./index.css";
 
+  // Register service worker for PWA + push notifications
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {/* silent */});
+    });
+  }
+
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
     super(props);
