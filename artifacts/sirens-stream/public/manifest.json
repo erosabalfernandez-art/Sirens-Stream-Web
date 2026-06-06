@@ -1,0 +1,25 @@
+{
+  "name": "Eclipse Angels Agency",
+  "short_name": "Eclipse Angels",
+  "description": "Agencia de Streamers y Chat Hostess. Gana en dólares desde casa.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07070f",
+  "theme_color": "#07070f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/eclipse-angels-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/eclipse-angels-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
