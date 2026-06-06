@@ -25,7 +25,7 @@ async function deleteSubscription(userId: string) {
 // POST /api/push/notify — send push to list of user IDs
 router.post('/push/notify', async (req, res) => {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE || !SUPABASE_URL || !SERVICE_KEY) {
-    res.status(503).json({ error: 'Push not configured' });
+    res.status(503).json({ error: 'Push not configured', debug: { vapid: !!VAPID_PUBLIC && !!VAPID_PRIVATE, supabase: !!SUPABASE_URL && !!SERVICE_KEY } });
     return;
   }
   const { userIds, title, body, url } = req.body as {
@@ -35,7 +35,7 @@ router.post('/push/notify', async (req, res) => {
     url: string;
   };
   if (!Array.isArray(userIds) || userIds.length === 0) {
-    res.json({ sent: 0 });
+    res.json({ sent: 0, debug: 'no userIds provided' });
     return;
   }
 
@@ -44,30 +44,35 @@ router.post('/push/notify', async (req, res) => {
     `${SUPABASE_URL}/rest/v1/push_subscriptions?user_id=in.(${userIds.map(encodeURIComponent).join(',')})&select=user_id,subscription`,
     { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
   );
-  const subs = (await subsRes.json()) as { user_id: string; subscription: PushSubscriptionJSON }[];
+  const subsRaw = await subsRes.text();
+  let subs: { user_id: string; subscription: PushSubscriptionJSON }[] = [];
+  try { subs = JSON.parse(subsRaw); } catch { /* ignore */ }
+
   if (!Array.isArray(subs) || subs.length === 0) {
-    res.json({ sent: 0 });
+    res.json({ sent: 0, debug: `supabase returned: ${subsRaw.substring(0, 200)}` });
     return;
   }
 
   const payload = JSON.stringify({ title, body, url });
   let sent = 0;
+  const errors: string[] = [];
   await Promise.allSettled(
     subs.map(async ({ user_id, subscription }) => {
       try {
         await webPush.sendNotification(subscription as Parameters<typeof webPush.sendNotification>[0], payload);
         sent++;
       } catch (err: any) {
-        // 410 Gone or 404 = subscription expired/invalid — delete it from DB
-        if (err?.statusCode === 410 || err?.statusCode === 404) {
+        const status = err?.statusCode ?? 'unknown';
+        const detail = err?.body ?? err?.message ?? String(err);
+        errors.push(`user ${user_id.substring(0,8)}: HTTP ${status} — ${String(detail).substring(0, 200)}`);
+        if (status === 410 || status === 404) {
           await deleteSubscription(user_id);
         }
       }
     })
   );
 
-  res.json({ sent });
+  res.json({ sent, errors });
 });
 
 export default router;
-
