@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-  import { CheckCircle2, MessageCircle, Video, Radio, DollarSign, Shield, Smartphone, Users, Clock, ArrowRight, Star, Zap, TrendingUp } from "lucide-react";
+  import { CheckCircle2, MessageCircle, Video, Radio, DollarSign, Shield, Smartphone, Users, Clock, ArrowRight, Star, Zap, TrendingUp, Link} from "lucide-react";
 
   const activities_es = [
     {
