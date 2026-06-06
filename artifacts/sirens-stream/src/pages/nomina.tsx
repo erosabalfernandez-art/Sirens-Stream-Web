@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect } from 'react'
   import {
     Upload, ChevronDown, ChevronUp, Copy, Check,
     TrendingUp, Gem, Users, AlertTriangle, UserX,
-    FileSpreadsheet, Sparkles, Loader2, Download, Trash2
+    FileSpreadsheet, Sparkles, Loader2, Download, Trash2, Filter
   } from 'lucide-react'
 
   interface NominaRow {
