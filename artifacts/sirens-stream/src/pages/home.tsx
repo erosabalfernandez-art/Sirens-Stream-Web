@@ -5,8 +5,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
   import {
     DollarSign, Shield, Smartphone, Users, Clock, TrendingUp,
     CheckCircle2, Zap, Star, CreditCard, MessageCircle, ArrowRight,
-    Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart
-  } from "lucide-react";
+    Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart, Link} from "lucide-react";
   import { useGetAgencyStats } from "@/lib/api-client";
   import { useShowAgencia } from "@/hooks/useShowAgencia";
 
