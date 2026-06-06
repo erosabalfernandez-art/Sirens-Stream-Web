@@ -22,32 +22,13 @@ async function deleteSubscription(userId: string) {
   } catch { /* ignore cleanup errors */ }
 }
 
-// POST /api/push/notify — send push to list of user IDs
-router.post('/push/notify', async (req, res) => {
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE || !SUPABASE_URL || !SERVICE_KEY) {
-    res.status(503).json({ error: 'Push not configured' });
-    return;
-  }
-  const { userIds, title, body, url } = req.body as {
-    userIds: string[];
-    title: string;
-    body: string;
-    url: string;
-  };
-  if (!Array.isArray(userIds) || userIds.length === 0) {
-    res.json({ sent: 0 });
-    return;
-  }
-
+async function dispatchPush(userIds: string[], title: string, body: string, url: string): Promise<number> {
   const subsRes = await fetch(
     `${SUPABASE_URL}/rest/v1/push_subscriptions?user_id=in.(${userIds.map(encodeURIComponent).join(',')})&select=user_id,subscription`,
     { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
   );
   const subs = (await subsRes.json()) as { user_id: string; subscription: PushSubscriptionJSON }[];
-  if (!Array.isArray(subs) || subs.length === 0) {
-    res.json({ sent: 0 });
-    return;
-  }
+  if (!Array.isArray(subs) || subs.length === 0) return 0;
 
   const payload = JSON.stringify({ title, body, url });
   let sent = 0;
@@ -63,7 +44,37 @@ router.post('/push/notify', async (req, res) => {
       }
     })
   );
+  return sent;
+}
 
+// POST /api/push/notify
+// Body: { userIds, title, body, url, fire?: boolean }
+// fire=true  → responde 202 inmediatamente, envía en background (sin esperar)
+// fire=false → espera todos los envíos y responde { sent: N }
+router.post('/push/notify', async (req, res) => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE || !SUPABASE_URL || !SERVICE_KEY) {
+    res.status(503).json({ error: 'Push not configured' });
+    return;
+  }
+  const { userIds, title, body, url, fire = false } = req.body as {
+    userIds: string[];
+    title: string;
+    body: string;
+    url: string;
+    fire?: boolean;
+  };
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    res.json({ sent: 0 });
+    return;
+  }
+
+  if (fire) {
+    res.status(202).json({ queued: userIds.length });
+    setImmediate(() => { dispatchPush(userIds, title, body, url).catch(() => {}); });
+    return;
+  }
+
+  const sent = await dispatchPush(userIds, title, body, url);
   res.json({ sent });
 });
 
