@@ -4,6 +4,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { Toaster } from "@/components/ui/toaster";
   import { TooltipProvider } from "@/components/ui/tooltip";
   import { Navbar } from "@/components/layout/Navbar";
+  import { InstallPWA } from "@/components/layout/InstallPWA";
   import { Footer } from "@/components/layout/Footer";
   import { FloatingSocials } from "@/components/layout/FloatingSocials";
   import { AngelaChat } from "@/components/chat/SirenaChat";
@@ -116,6 +117,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
               <Router />
             </WouterRouter>
             <Toaster />
+            <InstallPWA />
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
