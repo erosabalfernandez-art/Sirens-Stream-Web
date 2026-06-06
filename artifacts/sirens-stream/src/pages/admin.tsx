@@ -73,12 +73,12 @@ import { useState, useEffect, useRef } from 'react'
       const [workers, setWorkers] = useState<WorkerRow[]>([])
       const [loadingData, setLoadingData] = useState(true)
       const emailMapRef = useRef<Record<string, string>>({})
-      const [filterApp, setFilterApp] = useState('')
-      const [filterPais, setFilterPais] = useState('')
-      const [filterPago, setFilterPago] = useState('')
-      const [filterEmail, setFilterEmail] = useState('')
-      const [filterBilletera, setFilterBilletera] = useState('')
-      const [filterAgente, setFilterAgente] = useState('')
+      const [filterApp, setFilterApp] = useState(() => { try { return localStorage.getItem('ea_af_app') ?? '' } catch { return '' } })
+      const [filterPais, setFilterPais] = useState(() => { try { return localStorage.getItem('ea_af_pais') ?? '' } catch { return '' } })
+      const [filterPago, setFilterPago] = useState(() => { try { return localStorage.getItem('ea_af_pago') ?? '' } catch { return '' } })
+      const [filterEmail, setFilterEmail] = useState(() => { try { return localStorage.getItem('ea_af_email') ?? '' } catch { return '' } })
+      const [filterBilletera, setFilterBilletera] = useState(() => { try { return localStorage.getItem('ea_af_billetera') ?? '' } catch { return '' } })
+      const [filterAgente, setFilterAgente] = useState(() => { try { return localStorage.getItem('ea_af_agente') ?? '' } catch { return '' } })
   const [showAgencia, setShowAgencia] = useState(true);
   const [loadingAgencia, setLoadingAgencia] = useState(false);
   const [agenciaError, setAgenciaError] = useState<string | null>(null);
@@ -101,10 +101,10 @@ import { useState, useEffect, useRef } from 'react'
     setLoadingAgencia(false);
   }
 
-      const [filterNombreReal, setFilterNombreReal] = useState('')
-      const [filterNombreApp, setFilterNombreApp] = useState('')
-      const [filterIdApp, setFilterIdApp] = useState('')
-      const [filterTelefono, setFilterTelefono] = useState('')
+      const [filterNombreReal, setFilterNombreReal] = useState(() => { try { return localStorage.getItem('ea_af_nombre_real') ?? '' } catch { return '' } })
+      const [filterNombreApp, setFilterNombreApp] = useState(() => { try { return localStorage.getItem('ea_af_nombre_app') ?? '' } catch { return '' } })
+      const [filterIdApp, setFilterIdApp] = useState(() => { try { return localStorage.getItem('ea_af_id_app') ?? '' } catch { return '' } })
+      const [filterTelefono, setFilterTelefono] = useState(() => { try { return localStorage.getItem('ea_af_telefono') ?? '' } catch { return '' } })
       const [expanded, setExpanded] = useState<string | null>(null)
       const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs'>('list')
 
@@ -223,7 +223,18 @@ import { useState, useEffect, useRef } from 'react'
         setLoadingData(false)
       }
 
-      const filtered = workers.filter(w => {
+      // Persist admin filters to localStorage
+        useEffect(() => {
+          try {
+            localStorage.setItem('ea_af_app', filterApp); localStorage.setItem('ea_af_pais', filterPais)
+            localStorage.setItem('ea_af_pago', filterPago); localStorage.setItem('ea_af_email', filterEmail)
+            localStorage.setItem('ea_af_billetera', filterBilletera); localStorage.setItem('ea_af_agente', filterAgente)
+            localStorage.setItem('ea_af_nombre_real', filterNombreReal); localStorage.setItem('ea_af_nombre_app', filterNombreApp)
+            localStorage.setItem('ea_af_id_app', filterIdApp); localStorage.setItem('ea_af_telefono', filterTelefono)
+          } catch {}
+        }, [filterApp, filterPais, filterPago, filterEmail, filterBilletera, filterAgente, filterNombreReal, filterNombreApp, filterIdApp, filterTelefono])
+
+              const filtered = workers.filter(w => {
         if (filterApp && w.app_name !== filterApp) return false
         if (filterPais && w.pais !== filterPais) return false
         if (filterPago && w.metodo_pago !== filterPago) return false
