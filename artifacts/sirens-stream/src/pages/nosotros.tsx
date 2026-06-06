@@ -239,6 +239,12 @@ import { useState } from "react";
               </div>
             </div>
           </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          Eclipse Angels Agency · quiénes somos Eclipse Angels · agencia de streamers latinoamérica · agencia confiable de streaming · mejor agencia de streamers · agencia streamers Waha · agencia streamers Howdy · agencia streamers Layla · agencia verificada · chat hostess agencia · empresa de streaming latina · equipo Eclipse Angels · sobre nosotros Eclipse Angels · agencia streamers profesional · agencia latinoamérica
+        </p>
+      </section>
         </div>
       );
     }
