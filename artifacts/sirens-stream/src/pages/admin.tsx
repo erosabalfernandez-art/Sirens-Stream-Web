@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry } from '@/lib/supabase'
@@ -64,6 +64,7 @@ import { useState, useEffect } from 'react'
       const [, navigate] = useLocation()
       const [workers, setWorkers] = useState<WorkerRow[]>([])
       const [loadingData, setLoadingData] = useState(true)
+      const emailMapRef = useRef<Record<string, string>>({})
       const [filterApp, setFilterApp] = useState('')
       const [filterPais, setFilterPais] = useState('')
       const [filterPago, setFilterPago] = useState('')
@@ -153,8 +154,11 @@ import { useState, useEffect } from 'react'
       async function fetchSolicitudes() {
           setLoadingSol(true)
           const { data: reqs } = await supabase.from('channel_requests').select('*').order('created_at', { ascending: false })
-          const { data: profs } = await supabase.from('profiles').select('id, email')
-          const pm: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
+          if (Object.keys(emailMapRef.current).length === 0) {
+            const { data: profs } = await supabase.from('profiles').select('id, email')
+            emailMapRef.current = Object.fromEntries(((profs ?? []) as any[]).map((p: any) => [p.id, p.email]))
+          }
+          const pm = emailMapRef.current
           setSolicitudes(((reqs ?? []) as any[]).map((r: any) => ({ ...r, profile_email: pm[r.user_id] ?? 'desconocido' })))
           setLoadingSol(false)
         }
@@ -185,7 +189,7 @@ import { useState, useEffect } from 'react'
             const { data: approved } = await supabase.from('channel_requests').select('user_id').eq('app_name', channelApp).eq('status', 'approved')
             const ids = (approved ?? []).map((r: any) => r.user_id)
             if (ids.length > 0) {
-              await sendPushViaApi(ids, `📢 Nuevo comunicado — ${channelApp}`, channelContent.trim().slice(0, 80) || '📷 Imagen', '/canales')
+              sendPushViaApi(ids, `📢 Nuevo comunicado — ${channelApp}`, channelContent.trim().slice(0, 80) || '📷 Imagen', '/canales', true)
             }
             setChannelContent(''); setChannelImage('')
             fetchChannelMessages(channelApp)
@@ -200,10 +204,13 @@ import { useState, useEffect } from 'react'
 
         async function fetchAll() {
         setLoadingData(true)
-        const { data: entries } = await supabase.from('worker_entries').select('*').order('created_at', { ascending: false })
-        const { data: profiles } = await supabase.from('profiles').select('id, email')
-        if (entries && profiles) {
-          const pm = Object.fromEntries((profiles as any[]).map(p => [p.id, p.email]))
+        const [{ data: entries }, { data: profiles }] = await Promise.all([
+          supabase.from('worker_entries').select('*').order('created_at', { ascending: false }),
+          supabase.from('profiles').select('id, email'),
+        ])
+        const pm = Object.fromEntries(((profiles ?? []) as any[]).map(p => [p.id, p.email]))
+        emailMapRef.current = pm
+        if (entries) {
           setWorkers(entries.map((e: any) => ({ ...e, profile_email: pm[e.user_id] ?? 'desconocido' })))
         }
         setLoadingData(false)
