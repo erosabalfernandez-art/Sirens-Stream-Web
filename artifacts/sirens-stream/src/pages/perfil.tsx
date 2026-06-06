@@ -148,11 +148,13 @@ import { useState, useEffect } from 'react'
                     <Bell className="w-4 h-4" /> Activadas
                   </div>
                 ) : notifStatus === 'denied' ? (
-                  <div>
-                    <div className="flex items-center gap-2 text-red-400 text-sm font-semibold mb-1">
+                  <div className="text-right">
+                    <div className="flex items-center justify-end gap-2 text-red-400 text-sm font-semibold mb-1">
                       <BellOff className="w-4 h-4" /> Bloqueadas
                     </div>
-                    <p className="text-white/30 text-xs">Actívalas en la configuración de tu navegador</p>
+                    <p className="text-white/40 text-xs leading-relaxed">
+                      Ve a <span className="text-white/70 font-semibold">Configuración del sitio</span> en tu navegador y cambia Notificaciones a <span className="text-white/70 font-semibold">Permitir</span>, luego recarga.
+                    </p>
                   </div>
                 ) : (
                   <button onClick={enableNotifications} disabled={notifStatus === 'requesting'}
@@ -320,4 +322,3 @@ import { useState, useEffect } from 'react'
       return <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         className={`bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 transition-colors ${className}`} />
     }
-  
