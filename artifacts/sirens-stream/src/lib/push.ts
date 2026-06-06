@@ -28,7 +28,6 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return false;
 
-    // Always unsubscribe first to ensure a fresh subscription tied to the current VAPID key
     const existing = await reg.pushManager.getSubscription();
     if (existing) await existing.unsubscribe();
 
@@ -47,29 +46,32 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
   }
 }
 
+// fire=true → la API responde 202 inmediatamente y envía en background
+// fire=false (default) → espera todos los envíos y devuelve { sent: N }
 export async function sendPushViaApi(
   userIds: string[],
   title: string,
   body: string,
-  url: string
+  url: string,
+  fire = false
 ): Promise<{ sent: number; error?: string }> {
   try {
     const apiBase = (
       (import.meta.env.VITE_API_URL as string | undefined) ?? ""
     ).replace(/\/$/, "");
+    const timeout = fire ? 5000 : 12000;
     const res = await withTimeout(
       fetch(`${apiBase}/api/push/notify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userIds, title, body, url }),
+        body: JSON.stringify({ userIds, title, body, url, fire }),
       }),
-      12000
+      timeout
     );
     if (!res.ok) return { sent: 0, error: `HTTP ${res.status}` };
-    const data = (await res.json()) as { sent: number };
-    return { sent: data.sent ?? 0 };
+    const data = (await res.json()) as { sent?: number; queued?: number };
+    return { sent: data.sent ?? data.queued ?? 0 };
   } catch (e) {
     return { sent: 0, error: String(e) };
   }
 }
-
