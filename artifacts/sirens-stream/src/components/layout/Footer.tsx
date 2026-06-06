@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebook } from "react-icons/fa";
 import { Mail } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useShowAgencia } from "@/hooks/useShowAgencia";
 
 const socials = [
   { href: "https://www.instagram.com/eclipse_angels1?igsh=MTY0bGpqd294NjBwYg==", icon: <FaInstagram />, label: "Instagram", color: "text-[#E1306C] hover:opacity-80" },
@@ -107,3 +107,4 @@ export function Footer() {
     </footer>
   );
 }
+
