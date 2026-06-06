@@ -11,6 +11,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { AngelaChat } from "@/components/chat/SirenaChat";
   import { AuthProvider, useAuth } from "@/contexts/AuthContext";
   import { LanguageProvider } from "@/contexts/LanguageContext";
+  import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
 
   function ScrollToTop() {
     const [location] = useLocation();
