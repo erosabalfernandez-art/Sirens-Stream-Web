@@ -148,13 +148,17 @@ import { useState, useEffect } from 'react'
                     <Bell className="w-4 h-4" /> Activadas
                   </div>
                 ) : notifStatus === 'denied' ? (
-                  <div className="text-right">
-                    <div className="flex items-center justify-end gap-2 text-red-400 text-sm font-semibold mb-1">
+                  <div className="max-w-[210px] text-right">
+                    <div className="flex items-center justify-end gap-2 text-red-400 text-sm font-semibold mb-2">
                       <BellOff className="w-4 h-4" /> Bloqueadas
                     </div>
-                    <p className="text-white/40 text-xs leading-relaxed">
-                      Ve a <span className="text-white/70 font-semibold">Configuración del sitio</span> en tu navegador y cambia Notificaciones a <span className="text-white/70 font-semibold">Permitir</span>, luego recarga.
+                    <p className="text-white/40 text-xs leading-relaxed mb-2">
+                      <span className="text-white/60 font-semibold">Firefox Android:</span> Menú ⋮ → <span className="text-white/60">Configuración</span> → <span className="text-white/60">Permisos del sitio</span> → <span className="text-white/60">Notificaciones</span> → busca este sitio → selecciona <span className="text-white/70 font-semibold">Permitir</span>
                     </p>
+                    <button onClick={enableNotifications}
+                      className="flex items-center gap-1.5 ml-auto bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80 text-xs font-bold px-3 py-1.5 rounded-lg transition-all border border-white/10">
+                      <Bell className="w-3 h-3" /> Reintentar
+                    </button>
                   </div>
                 ) : (
                   <button onClick={enableNotifications} disabled={notifStatus === 'requesting'}
