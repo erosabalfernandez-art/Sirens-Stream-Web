@@ -20,6 +20,20 @@ import { useState, useEffect } from 'react'
 
   export default function Salarios() {
     const { user, loading } = useAuth()
+      const { lang } = useLanguage()
+      const T = {
+        badge:        lang === 'pt' ? 'Meus Salários'          : 'Mis Salarios',
+        title:        lang === 'pt' ? 'Seu histórico de pagamentos' : 'Tu historial de pagos',
+        subtitle:     lang === 'pt' ? 'Eclipse Angels Agency · máx. 10 semanas salvas' : 'Eclipse Angels Agency · máx. 10 semanas guardadas',
+        loading:      lang === 'pt' ? 'Carregando...'           : 'Cargando...',
+        empty1:       lang === 'pt' ? 'Você ainda não tem salários publicados.' : 'Aún no tienes salarios publicados.',
+        empty2:       lang === 'pt' ? 'Sua agência publicará seus ganhos semanalmente.' : 'Tu agencia publicará tus ganancias semanalmente.',
+        week:         lang === 'pt' ? 'Semana'                  : 'Semana',
+        hideDetails:  lang === 'pt' ? 'Ocultar detalhes'        : 'Ocultar detalles',
+        showDetails:  lang === 'pt' ? 'Ver detalhes'            : 'Ver detalles',
+        deleteBtn:    lang === 'pt' ? 'Excluir'                 : 'Borrar',
+        cancelBtn:    lang === 'pt' ? 'Não'                     : 'No',
+      }
     const [, navigate] = useLocation()
     const [salaries, setSalaries] = useState<PublishedSalary[]>([])
     const [fetching, setFetching] = useState(true)
