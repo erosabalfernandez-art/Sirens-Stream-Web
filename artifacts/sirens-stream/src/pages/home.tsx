@@ -148,6 +148,62 @@ import { useLanguage } from "@/contexts/LanguageContext";
     const earnings = lang === 'pt' ? earnings_pt : earnings_es;
     const requirements = lang === 'pt' ? requirements_pt : requirements_es;
     const infoCards = lang === 'pt' ? infoCards_pt : infoCards_es;
+
+    const T = {
+      yearsLabel: lang === 'pt' ? 'Anos exp.' : 'Años exp.',
+      trustPoints: lang === 'pt'
+        ? ["Sem investimento · Sem experiência", "Pagamentos semanais em dólares", "Suporte e capacitação grátis"]
+        : ["Sin inversión · Sin experiencia", "Pagos semanales en dólares", "Soporte y capacitación gratis"],
+      stats: lang === 'pt'
+        ? [
+            { val: "Suporte 24/7", label: "Sempre disponíveis para te ajudar" },
+            { val: "Pagamentos Semanais", label: "Recebe pontual toda semana em dólares" },
+            { val: "$0 Investimento", label: "Começa sem gastar nada" },
+            { val: "Todos os Países", label: "Operamos em nível mundial" },
+          ]
+        : [
+            { val: "Soporte 24/7", label: "Siempre disponibles para ayudarte" },
+            { val: "Pagos Semanales", label: "Cobras puntual cada semana en dólares" },
+            { val: "$0 Inversión", label: "Empieza sin gastar nada" },
+            { val: "Todos los Países", label: "Operamos a nivel mundial" },
+          ],
+      whyBadge: lang === 'pt' ? "Por que nos escolher?" : "¿Por qué elegirnos?",
+      whyH2a: lang === 'pt' ? "A plataforma líder para" : "La plataforma líder para",
+      whyH2b: lang === 'pt' ? "gerar renda online" : "generar ingresos online",
+      whyDesc: lang === 'pt'
+        ? "Na Eclipse Angels Agency conectamos mulheres maiores de 18 anos com os melhores apps de streaming e chat ao vivo, para que gerem renda real em dólares de casa, sem experiência e com total acompanhamento."
+        : "En Eclipse Angels Agency conectamos a mujeres mayores de 18 años con las mejores apps de streaming y chat en vivo, para que generen ingresos reales en dólares desde casa, sin experiencia y con total acompañamiento.",
+      oppBadge: lang === 'pt' ? "Esta oportunidade é para você?" : "¿Esta oportunidad es para ti?",
+      oppH2a: lang === 'pt' ? "Ganhe dinheiro real de casa" : "Gana dinero real desde casa",
+      oppH2b: lang === 'pt' ? "sendo você mesma" : "siendo tú misma",
+      oppDesc: lang === 'pt'
+        ? "Na Eclipse Angels Agency te ajudamos a ganhar dinheiro em dólares pelo celular. Sem colocar um centavo, sem saber nada do assunto e com total discrição."
+        : "En Eclipse Angels Agency te ayudamos a ganar dinero en dólares desde tu celular. Sin poner un peso, sin saber nada del tema y con total discreción.",
+      joinBtn: lang === 'pt' ? "Entro agora" : "Me uno ahora",
+      earningsLabel: lang === 'pt' ? "¿Quanto você pode ganhar?" : "¿Cuánto puedes ganar?",
+      miniCards: lang === 'pt'
+        ? [
+            { label: "Seu horário, suas regras", icon: "Clock" },
+            { label: "Ninguém sabe que você trabalha", icon: "Shield" },
+            { label: "Recebe toda semana", icon: "DollarSign" },
+          ]
+        : [
+            { label: "Tu horario, tus reglas", icon: "Clock" },
+            { label: "Nadie sabe que trabajas", icon: "Shield" },
+            { label: "Cobras cada semana", icon: "DollarSign" },
+          ],
+      howBadge: lang === 'pt' ? "É assim tão fácil" : "Así de fácil es",
+      howH2: lang === 'pt' ? "Como começo?" : "¿Cómo empiezo?",
+      howSub: lang === 'pt' ? "Em 4 passos simples você já está ganhando dinheiro real" : "En 4 pasos sencillos ya estás ganando dinero real",
+      joinBadge: lang === 'pt' ? "Entre na Eclipse Angels Agency" : "Únete a Eclipse Angels Agency",
+      joinTitle: lang === 'pt' ? "Escolha seu caminho" : "Elige tu camino",
+      streamerCardH3: lang === 'pt' ? "Torne-se Streamer" : "Conviértete en Streamer",
+      streamerCardDesc: lang === 'pt' ? "Ganhe dinheiro em dólares trabalhando de casa com seu celular. Sem investimento, sem experiência prévia." : "Gana dinero en dólares trabajando desde casa con tu celular. Sin inversión, sin experiencia previa.",
+      streamerCardBtn: lang === 'pt' ? "Ver benefícios" : "Ver beneficios",
+      agenciaCardH3: lang === 'pt' ? "Crie sua Agência" : "Crea tu Agencia",
+      agenciaCardDesc: lang === 'pt' ? "Lidere um time de streamers e multiplique sua renda. Torne-se manager e construa seu negócio." : "Lidera un equipo de streamers y multiplica tus ingresos. Conviértete en manager y construye tu negocio.",
+      agenciaCardBtn: lang === 'pt' ? "Ver requisitos" : "Ver requisitos",
+    };
     const { data: stats } = useGetAgencyStats();
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState(1);
@@ -298,7 +354,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { val: `+${stats?.streamersRepresented ?? 500}`, label: "Streamers" },
-                      { val: `+${stats?.yearsActive ?? 5}`, label: "Años exp." },
+                      { val: `+${stats?.yearsActive ?? 5}`, label: T.yearsLabel },
                       { val: `+${stats?.platforms?.length ? stats.platforms.length * 2 : 10}`, label: "Apps" },
                     ].map((s, i) => (
                       <div key={i} className="bg-white/4 border border-white/10 rounded-xl p-4 text-center">
@@ -309,7 +365,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
                   </div>
                   {/* Trust points */}
                   <div className="bg-white/4 border border-white/10 rounded-xl p-4 space-y-2">
-                    {["Sin inversión · Sin experiencia", "Pagos semanales en dólares", "Soporte y capacitación gratis"].map((t, i) => (
+                    {T.trustPoints.map((t, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-white/55">
                         <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />{t}
                       </div>
@@ -341,10 +397,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
         <section className="bg-[#0a0a16] border-y border-blue-500/10 py-8">
           <div className="max-w-7xl mx-auto px-5 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { val: "Soporte 24/7", label: "Siempre disponibles para ayudarte" },
-              { val: "Pagos Semanales", label: "Cobras puntual cada semana en dólares" },
-              { val: "$0 Inversión", label: "Empieza sin gastar nada" },
-              { val: "Todos los Países", label: "Operamos a nivel mundial" },
+              ...T.stats
             ].map((s, i) => (
               <div key={i}>
                 <p className="text-blue-400 font-extrabold text-3xl md:text-4xl">{s.val}</p>
@@ -360,15 +413,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
             <div className="text-center mb-14">
               <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-4">
                 <Award className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">¿Por qué elegirnos?</span>
+                <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">{T.whyBadge}</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                La plataforma líder para<br />
-                <span className="gradient-text">generar ingresos online</span>
+                {T.whyH2a}<br />
+                <span className="gradient-text">{T.whyH2b}</span>
               </h2>
-              <p className="text-white/50 max-w-2xl mx-auto">
-                En Eclipse Angels Agency conectamos a mujeres mayores de 18 años con las mejores apps de streaming y chat en vivo, para que generen ingresos reales en dólares desde casa, sin experiencia y con total acompañamiento.
-              </p>
+              <p className="text-white/50 max-w-2xl mx-auto">{T.whyDesc}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {benefits.map((b, i) => (
@@ -391,14 +442,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
               <div>
                 <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-6">
                   <Users className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">¿Esta oportunidad es para ti?</span>
+                  <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">{T.oppBadge}</span>
                 </div>
                 <h2 className="text-4xl font-bold mb-4">
-                  Gana dinero real desde casa <span className="gradient-text">siendo tú misma</span>
+                  {T.oppH2a} <span className="gradient-text">{T.oppH2b}</span>
                 </h2>
-                <p className="text-white/50 mb-6 leading-relaxed">
-                  En Eclipse Angels Agency te ayudamos a ganar dinero en dólares desde tu celular. Sin poner un peso, sin saber nada del tema y con total discreción.
-                </p>
+                <p className="text-white/50 mb-6 leading-relaxed">{T.oppDesc}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
                   {requirements.map((r, i) => (
                     <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/6 rounded-xl px-4 py-3 text-sm text-white/65">
@@ -409,12 +458,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
                 </div>
                 <Link href="/ser-streamer"
                   className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all">
-                  Me uno ahora <ArrowRight className="w-4 h-4" />
+                  {T.joinBtn} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
               <div className="space-y-4">
                 <div className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-6">
-                  <p className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-4">¿Cuánto puedes ganar?</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-4">{T.earningsLabel}</p>
                   {earnings.map((e, i) => (
                     <div key={i} className={`flex items-center justify-between py-3 ${i > 0 ? "border-t border-white/5" : ""}`}>
                       <span className="text-white/50 text-sm">{e.sub}</span>
@@ -423,14 +472,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
                   ))}
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Tu horario, tus reglas", icon: Clock },
-                    { label: "Nadie sabe que trabajas", icon: Shield },
-                    { label: "Cobras cada semana", icon: DollarSign },
-                  ].map((c, i) => (
+                  {[Clock, Shield, DollarSign].map((Icon, i) => (
                     <div key={i} className="bg-[#0d0d1e] border border-blue-500/10 rounded-xl p-4 text-center">
-                      <c.icon className="w-5 h-5 text-blue-400 mx-auto mb-2" />
-                      <p className="text-white/60 text-xs">{c.label}</p>
+                      <Icon className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+                      <p className="text-white/60 text-xs">{T.miniCards[i].label}</p>
                     </div>
                   ))}
                 </div>
@@ -445,10 +490,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
             <div className="text-center mb-14">
               <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-4">
                 <Zap className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Así de fácil es</span>
+                <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">{T.howBadge}</span>
               </div>
-              <h2 className="text-4xl font-bold mb-4">¿Cómo empiezo?</h2>
-              <p className="text-white/50">En 4 pasos sencillos ya estás ganando dinero real</p>
+              <h2 className="text-4xl font-bold mb-4">{T.howH2}</h2>
+              <p className="text-white/50">{T.howSub}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {steps.map((s, i) => (
@@ -469,19 +514,19 @@ import { useLanguage } from "@/contexts/LanguageContext";
         <section className="py-20 bg-[#0a0a16]">
           <div className="max-w-7xl mx-auto px-5">
             <div className="text-center mb-10">
-              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Únete a Eclipse Angels Agency</span>
-              <h2 className="text-4xl font-bold mt-2 mb-4">Elige tu camino</h2>
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">{T.joinBadge}</span>
+              <h2 className="text-4xl font-bold mt-2 mb-4">{T.joinTitle}</h2>
             </div>
             <div className={`grid grid-cols-1 ${showAgencia ? 'md:grid-cols-2' : ''} gap-6 max-w-4xl mx-auto`}>
               <div className="bg-[#0d0d1e] border border-blue-500/15 rounded-2xl p-8 flex flex-col hover:border-blue-500/30 transition-colors">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mb-5">
                   <Zap className="w-6 h-6 text-blue-400" />
                 </div>
-                <h3 className="text-2xl font-extrabold mb-2">Conviértete en Streamer</h3>
-                <p className="text-white/50 text-sm mb-6 flex-1">Gana dinero en dólares trabajando desde casa con tu celular. Sin inversión, sin experiencia previa.</p>
+                <h3 className="text-2xl font-extrabold mb-2">{T.streamerCardH3}</h3>
+                <p className="text-white/50 text-sm mb-6 flex-1">{T.streamerCardDesc}</p>
                 <Link href="/ser-streamer"
                   className="flex items-center gap-2 justify-center bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all">
-                  Ver beneficios <ArrowRight className="w-4 h-4" />
+                  {T.streamerCardBtn} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
               {showAgencia && (
@@ -489,11 +534,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
                 <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mb-5">
                   <Users className="w-6 h-6 text-amber-400" />
                 </div>
-                <h3 className="text-2xl font-extrabold mb-2">Crea tu Agencia</h3>
-                <p className="text-white/50 text-sm mb-6 flex-1">Lidera un equipo de streamers y multiplica tus ingresos. Conviértete en manager y construye tu negocio.</p>
+                <h3 className="text-2xl font-extrabold mb-2">{T.agenciaCardH3}</h3>
+                <p className="text-white/50 text-sm mb-6 flex-1">{T.agenciaCardDesc}</p>
                 <Link href="/crear-agencia"
                   className="flex items-center gap-2 justify-center bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-3 rounded-xl text-sm transition-all">
-                  Ver requisitos <ArrowRight className="w-4 h-4" />
+                  {T.agenciaCardBtn} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
               )}
