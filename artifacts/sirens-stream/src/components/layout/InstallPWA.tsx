@@ -10,31 +10,46 @@ function isStandalone() {
 }
 
 export function InstallPWA() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  // Read the globally captured prompt (set in main.tsx before React mounted)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(
+    () => (window as any).__pwaPrompt ?? null
+  );
   const [showModal, setShowModal] = useState(false);
-  const [installed, setInstalled] = useState(false);
+  const [installed, setInstalled] = useState(
+    () => isStandalone() || !!((window as any).__pwaInstalled)
+  );
 
   useEffect(() => {
-    if (isStandalone()) { setInstalled(true); return; }
-    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    // Also listen for future prompts (e.g. after a reload)
+    const handler = (e: any) => {
+      e.preventDefault();
+      (window as any).__pwaPrompt = e;
+      setDeferredPrompt(e);
+    };
     window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => { setInstalled(true); setDeferredPrompt(null); });
+    window.addEventListener("appinstalled", () => {
+      setInstalled(true);
+      setDeferredPrompt(null);
+      (window as any).__pwaPrompt = undefined;
+    });
+    // Sync from global in case it was captured before mount
+    if ((window as any).__pwaPrompt) setDeferredPrompt((window as any).__pwaPrompt);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleClick = async () => {
-    if (deferredPrompt) {
+    if (deferredPrompt && !installed) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") setInstalled(true);
       setDeferredPrompt(null);
+      (window as any).__pwaPrompt = undefined;
     } else {
       setShowModal(true);
     }
   };
 
   const ios = isIos();
-
   const iosSteps = [
     ["⚠️", "Abre en Safari", "Este proceso solo funciona en Safari (no Chrome ni Firefox)"],
     ["⬆️", "Toca compartir", "El ícono de la flecha en la barra inferior de Safari"],
@@ -51,7 +66,6 @@ export function InstallPWA() {
 
   return (
     <>
-      {/* Floating install button — top-right, below navbar */}
       <button
         onClick={handleClick}
         title={installed ? "Reinstalar app" : "Instalar app"}
@@ -84,7 +98,6 @@ export function InstallPWA() {
         {installed ? "Reinstalar app" : "Instalar app"}
       </button>
 
-      {/* Instructions modal */}
       {showModal && (
         <div
           style={{ position: "fixed", inset: 0, zIndex: 99990, background: "rgba(0,0,0,0.88)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
@@ -141,4 +154,3 @@ export function InstallPWA() {
     </>
   );
 }
-
