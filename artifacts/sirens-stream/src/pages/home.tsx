@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
   import { Link } from "wouter";
   import { motion, AnimatePresence } from "framer-motion";
   import {
