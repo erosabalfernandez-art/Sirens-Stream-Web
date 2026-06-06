@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebook } from "react-icons/fa";
-import { Mail, Link} from "lucide-react";
+import {Mail} from "lucide-react";
 import { useShowAgencia } from "@/hooks/useShowAgencia";
 import { useLanguage } from "@/contexts/LanguageContext";
 
