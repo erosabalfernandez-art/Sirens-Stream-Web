@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
   import { X, Smartphone, RefreshCw } from "lucide-react";
 
   function isIos() {
@@ -11,12 +11,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
   const STORAGE_KEY = "pwa-btn-pos";
 
-  function loadPos() {
+  function getSavedPos() {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      const s = localStorage.getItem(STORAGE_KEY);
+      if (s) return JSON.parse(s);
     } catch {}
     return null;
+  }
+
+  function clampPos(x: number, y: number, btnW: number, btnH: number) {
+    return {
+      x: Math.max(4, Math.min(x, window.innerWidth - btnW - 4)),
+      y: Math.max(4, Math.min(y, window.innerHeight - btnH - 4)),
+    };
   }
 
   export function InstallPWA() {
@@ -28,92 +35,69 @@ import { useState, useEffect, useRef, useCallback } from "react";
       () => isStandalone() || !!((window as any).__pwaInstalled)
     );
 
-    // Draggable position — default: bottom-left, above any bottom bar
-    const defaultPos = useCallback(() => {
-      const saved = loadPos();
-      if (saved) return saved;
-      return {
-        x: 12,
-        y: window.innerHeight - 140,
-      };
-    }, []);
-
-    const [pos, setPos] = useState<{ x: number; y: number }>(defaultPos);
-    const dragging = useRef(false);
-    const dragOffset = useRef({ ox: 0, oy: 0 });
-    const hasMoved = useRef(false);
     const btnRef = useRef<HTMLButtonElement>(null);
+    const posRef = useRef(getSavedPos() ?? { x: 12, y: window.innerHeight - 140 });
+    const [pos, setPos] = useState(posRef.current);
 
     useEffect(() => {
       if ((window as any).__pwaPrompt) setDeferredPrompt((window as any).__pwaPrompt);
-      const promptHandler = (e: any) => {
-        e.preventDefault();
-        (window as any).__pwaPrompt = e;
-        setDeferredPrompt(e);
-      };
-      const installedHandler = () => {
-        setInstalled(true);
-        setDeferredPrompt(null);
-        (window as any).__pwaPrompt = undefined;
-      };
-      window.addEventListener("beforeinstallprompt", promptHandler);
-      window.addEventListener("appinstalled", installedHandler);
+      const onPrompt = (e: any) => { e.preventDefault(); (window as any).__pwaPrompt = e; setDeferredPrompt(e); };
+      const onInstalled = () => { setInstalled(true); setDeferredPrompt(null); (window as any).__pwaPrompt = undefined; };
+      window.addEventListener("beforeinstallprompt", onPrompt);
+      window.addEventListener("appinstalled", onInstalled);
       return () => {
-        window.removeEventListener("beforeinstallprompt", promptHandler);
-        window.removeEventListener("appinstalled", installedHandler);
+        window.removeEventListener("beforeinstallprompt", onPrompt);
+        window.removeEventListener("appinstalled", onInstalled);
       };
     }, []);
 
-    // Clamp position inside viewport
-    const clamp = useCallback((x: number, y: number) => {
-      const btnW = btnRef.current?.offsetWidth ?? 120;
-      const btnH = btnRef.current?.offsetHeight ?? 36;
-      return {
-        x: Math.max(0, Math.min(x, window.innerWidth - btnW)),
-        y: Math.max(0, Math.min(y, window.innerHeight - btnH)),
+    const handlePointerDown = (e: React.PointerEvent) => {
+      e.preventDefault();
+      const btn = btnRef.current;
+      if (!btn) return;
+
+      const startClientX = e.clientX;
+      const startClientY = e.clientY;
+      const startX = posRef.current.x;
+      const startY = posRef.current.y;
+      const btnW = btn.offsetWidth;
+      const btnH = btn.offsetHeight;
+      let moved = false;
+
+      const onMove = (ev: PointerEvent) => {
+        const dx = ev.clientX - startClientX;
+        const dy = ev.clientY - startClientY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+        if (!moved) return;
+        const newPos = clampPos(startX + dx, startY + dy, btnW, btnH);
+        posRef.current = newPos;
+        setPos({ ...newPos });
       };
-    }, []);
 
-    const onPointerDown = useCallback((e: React.PointerEvent) => {
-      e.currentTarget.setPointerCapture(e.pointerId);
-      dragging.current = true;
-      hasMoved.current = false;
-      dragOffset.current = {
-        ox: e.clientX - pos.x,
-        oy: e.clientY - pos.y,
+      const onUp = async (ev: PointerEvent) => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+
+        if (moved) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(posRef.current)); } catch {}
+          return;
+        }
+
+        // Tap — trigger install action
+        if (deferredPrompt && !installed) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === "accepted") setInstalled(true);
+          setDeferredPrompt(null);
+          (window as any).__pwaPrompt = undefined;
+        } else {
+          setShowModal(true);
+        }
       };
-    }, [pos]);
 
-    const onPointerMove = useCallback((e: React.PointerEvent) => {
-      if (!dragging.current) return;
-      hasMoved.current = true;
-      const newPos = clamp(e.clientX - dragOffset.current.ox, e.clientY - dragOffset.current.oy);
-      setPos(newPos);
-    }, [clamp]);
-
-    const onPointerUp = useCallback(async (e: React.PointerEvent) => {
-      if (!dragging.current) return;
-      dragging.current = false;
-      if (hasMoved.current) {
-        // Save position and don't trigger click
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)); } catch {}
-        return;
-      }
-      // It was a tap, not a drag — trigger action
-      if (deferredPrompt && !installed) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === "accepted") setInstalled(true);
-        setDeferredPrompt(null);
-        (window as any).__pwaPrompt = undefined;
-      } else {
-        setShowModal(true);
-      }
-    }, [deferredPrompt, installed, pos]);
-
-    useEffect(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)); } catch {}
-    }, [pos]);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    };
 
     const ios = isIos();
     const iosSteps = [
@@ -134,9 +118,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
       <>
         <button
           ref={btnRef}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
+          onPointerDown={handlePointerDown}
           title={installed ? "Reinstalar app" : "Instalar app"}
           style={{
             position: "fixed",
@@ -163,6 +145,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
             opacity: 0.9,
             touchAction: "none",
             userSelect: "none",
+            WebkitUserSelect: "none",
           }}
         >
           {installed ? <RefreshCw size={12} /> : <Smartphone size={12} />}
