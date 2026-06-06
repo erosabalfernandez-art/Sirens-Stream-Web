@@ -120,6 +120,8 @@ import { useState, useEffect, useRef } from 'react'
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
+        const [testPushSending, setTestPushSending] = useState<Record<string, boolean>>({})
+        const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
         async function notifyApp(app: string, type: 'salary' | 'canal') {
           const key = `${app}_${type}`
           setNotifying(p => ({ ...p, [key]: true }))
@@ -147,6 +149,20 @@ import { useState, useEffect, useRef } from 'react'
           setNotifying(p => ({ ...p, [key]: false }))
           setNotifOk(p => ({ ...p, [key]: true }))
           setTimeout(() => setNotifOk(p => ({ ...p, [key]: false })), 4000)
+        }
+
+        async function sendTestPushToWorker(worker: WorkerRow) {
+          setTestPushSending(p => ({ ...p, [worker.id]: true }))
+          setTestPushOk(p => ({ ...p, [worker.id]: false }))
+          await sendPushViaApi(
+            [worker.user_id],
+            '🔔 Notificación de prueba',
+            `Hola${worker.nombre_real ? ` ${worker.nombre_real}` : ''}! Esta es una notificación de prueba enviada desde el panel admin.`,
+            '/perfil'
+          )
+          setTestPushSending(p => ({ ...p, [worker.id]: false }))
+          setTestPushOk(p => ({ ...p, [worker.id]: true }))
+          setTimeout(() => setTestPushOk(p => ({ ...p, [worker.id]: false })), 4000)
         }
 
         useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
@@ -511,6 +527,25 @@ import { useState, useEffect, useRef } from 'react'
                               ] as [string, string | null, string?][]).map(([label, value, href]) => (
                                 <CopyCell key={label} label={label} value={value} uid={w.id + label} href={href} />
                               ))}
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-purple-500/8 flex items-center gap-3 flex-wrap">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); sendTestPushToWorker(w); }}
+                                disabled={testPushSending[w.id]}
+                                className="flex items-center gap-2 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+                              >
+                                {testPushSending[w.id] ? (
+                                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : testPushOk[w.id] ? (
+                                  <Check className="w-3.5 h-3.5 text-green-400" />
+                                ) : (
+                                  <Bell className="w-3.5 h-3.5" />
+                                )}
+                                <span>
+                                  {testPushOk[w.id] ? '✓ Notificación enviada' : testPushSending[w.id] ? 'Enviando...' : 'Notificación de prueba'}
+                                </span>
+                              </button>
+                              <span className="text-xs text-white/25">Solo le llega a ella</span>
                             </div>
                           </div>
                         )}
