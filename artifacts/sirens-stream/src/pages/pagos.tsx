@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
     import { CheckCircle2, ArrowRight, DollarSign, Clock, Shield } from "lucide-react";
 
     /* ── Payment method SVG icons ── */
