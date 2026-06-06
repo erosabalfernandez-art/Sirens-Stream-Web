@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useShowAgencia } from "@/hooks/useShowAgencia";
 import { User, LogOut, Shield, FileSpreadsheet, DollarSign, Radio } from "lucide-react";
 
 const PUBLIC_LINKS = [
@@ -63,22 +64,22 @@ export function Navbar() {
                 {isAdmin ? (
                   <>
                     <Link href="/admin"
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === '/admin' ? 'text-purple-200 bg-purple-500/15' : 'text-purple-300 hover:text-purple-200 hover:bg-purple-500/10'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === "/admin" ? "text-purple-200 bg-purple-500/15" : "text-purple-300 hover:text-purple-200 hover:bg-purple-500/10"}`}>
                       <Shield className="w-3.5 h-3.5" /> Admin
                     </Link>
                     <Link href="/nomina"
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === '/nomina' ? 'text-green-200 bg-green-500/15' : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === "/nomina" ? "text-green-200 bg-green-500/15" : "text-green-400 hover:text-green-300 hover:bg-green-500/10"}`}>
                       <FileSpreadsheet className="w-3.5 h-3.5" /> Nómina
                     </Link>
                   </>
                 ) : (
                   <>
                     <Link href="/salarios"
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === '/salarios' ? 'text-green-200 bg-green-500/15' : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === "/salarios" ? "text-green-200 bg-green-500/15" : "text-green-400 hover:text-green-300 hover:bg-green-500/10"}`}>
                       <DollarSign className="w-3.5 h-3.5" /> Salarios
                     </Link>
                     <Link href="/canales"
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === '/canales' ? 'text-blue-200 bg-blue-500/15' : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === "/canales" ? "text-blue-200 bg-blue-500/15" : "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"}`}>
                       <Radio className="w-3.5 h-3.5" /> Canales
                     </Link>
                   </>
@@ -130,24 +131,24 @@ export function Navbar() {
           {!loading && user && (
             <>
               <Link href="/perfil"
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === '/perfil' ? 'text-white bg-purple-500/20 border border-purple-500/30' : 'text-white/55 hover:text-white'}`}>
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === "/perfil" ? "text-white bg-purple-500/20 border border-purple-500/30" : "text-white/55 hover:text-white"}`}>
                 <User className="w-3 h-3" /> Mi Perfil
               </Link>
               {isAdmin ? (
                 <>
-                  <Link href="/admin" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === '/admin' ? 'text-purple-200 bg-purple-500/20 border border-purple-500/30' : 'text-purple-300 hover:bg-purple-500/10'}`}>
+                  <Link href="/admin" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === "/admin" ? "text-purple-200 bg-purple-500/20 border border-purple-500/30" : "text-purple-300 hover:bg-purple-500/10"}`}>
                     <Shield className="w-3 h-3" /> Admin
                   </Link>
-                  <Link href="/nomina" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === '/nomina' ? 'text-green-200 bg-green-500/20 border border-green-500/30' : 'text-green-400 hover:bg-green-500/10'}`}>
+                  <Link href="/nomina" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === "/nomina" ? "text-green-200 bg-green-500/20 border border-green-500/30" : "text-green-400 hover:bg-green-500/10"}`}>
                     <FileSpreadsheet className="w-3 h-3" /> Nómina
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link href="/salarios" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === '/salarios' ? 'text-green-200 bg-green-500/20 border border-green-500/30' : 'text-green-400 hover:bg-green-500/10'}`}>
+                  <Link href="/salarios" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === "/salarios" ? "text-green-200 bg-green-500/20 border border-green-500/30" : "text-green-400 hover:bg-green-500/10"}`}>
                     <DollarSign className="w-3 h-3" /> Salarios
                   </Link>
-                  <Link href="/canales" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === '/canales' ? 'text-blue-200 bg-blue-500/20 border border-blue-500/30' : 'text-blue-400 hover:bg-blue-500/10'}`}>
+                  <Link href="/canales" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === "/canales" ? "text-blue-200 bg-blue-500/20 border border-blue-500/30" : "text-blue-400 hover:bg-blue-500/10"}`}>
                     <Radio className="w-3 h-3" /> Canales
                   </Link>
                 </>
@@ -159,3 +160,4 @@ export function Navbar() {
     </header>
   );
 }
+
