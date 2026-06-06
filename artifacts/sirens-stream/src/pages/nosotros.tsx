@@ -109,17 +109,21 @@ import { useState } from "react";
       const T = {
         badge: lang === 'pt' ? "Sobre Nós" : "Sobre Nosotros",
         h1: lang === 'pt' ? "Conectamos mulheres com\noportunidades reais em dólares" : "Conectamos mujeres con\noportunidades reales en dólares",
-        sub: lang === 'pt' ? "Eclipse Angels Agency nasceu para que qualquer mulher possa gerar renda real pelo celular, sem colocar dinheiro, sem experiência e com todo o apoio que precisar para crescer." : "{T.sub}",
+        sub: lang === 'pt' ? "Eclipse Angels Agency nasceu para que qualquer mulher possa gerar renda real pelo celular, sem colocar dinheiro, sem experiência e com todo o apoio que precisar para crescer." : "Eclipse Angels Agency nació para que cualquier mujer pueda generar ingresos reales desde su celular, sin poner dinero, sin experiencia y con todo el apoyo que necesite para crecer.",
         misionBadge: lang === 'pt' ? "Nossa Missão" : "Nuestra Misión",
         misionH2: lang === 'pt' ? "Que cada mulher possa\nganhar dinheiro em casa" : "Que cada mujer pueda\nganar dinero desde casa",
         valBadge: lang === 'pt' ? "Nossos Valores" : "Nuestros Valores",
-        valH2: lang === 'pt' ? "En qué creemos" : "En qué creemos",
+        valH2: lang === 'pt' ? "Em que acreditamos" : "En qué creemos",
         faqBadge: lang === 'pt' ? "Perguntas Frequentes" : "Preguntas Frecuentes",
-        faqH2: lang === 'pt' ? "Respondemos suas dúvidas" : "{T.faqH2}",
-        ctaH2: lang === 'pt' ? "Pronta para dar o primeiro passo?" : "{T.ctaH2}",
-        ctaDesc: lang === 'pt' ? "Fale conosco agora mesmo. Sem compromisso, sem custos. Te explicamos tudo e te ajudamos a começar." : "{T.ctaDesc}",
-        ctaBtn: lang === 'pt' ? "Entrar em Contato" : "{T.ctaBtn}",
+        faqH2: lang === 'pt' ? "Respondemos suas dúvidas" : "Todo lo que quieres saber",
+        ctaH2: lang === 'pt' ? "Pronta para dar o primeiro passo?" : "¿Tienes más preguntas?",
+        ctaDesc: lang === 'pt' ? "Fale conosco agora mesmo. Sem compromisso, sem custos. Te explicamos tudo e te ajudamos a começar." : "Nuestro equipo te contesta en menos de 24 horas. Escríbenos sin compromiso.",
+        ctaBtn: lang === 'pt' ? "Entrar em Contato" : "Escríbenos",
         ctaApps: lang === 'pt' ? "Ver Apps" : "Ver Apps",
+        misionDesc1: lang === 'pt' ? "Acreditamos que toda mulher merece acesso a renda real, flexível e em dólares. Na Eclipse Angels Agency tornamos isso possível conectando você com os melhores apps internacionais, dando capacitação gratuita e acompanhando cada passo." : "Creemos que toda mujer merece acceso a ingresos reales, flexibles y en dólares. En Eclipse Angels Agency lo hacemos posible conectándote con las mejores apps internacionales, dándote capacitación gratuita y acompañándote en cada paso.",
+        misionDesc2: lang === 'pt' ? "Não somos uma promessa vazia. Somos uma equipe real, com mulheres reais, ganhando dinheiro real toda semana. Junte-se e comprove você mesma." : "No somos una promesa vacía. Somos un equipo real, con chicas reales, ganando dinero real cada semana. Únete y compruébalo tú misma.",
+        faqSub: lang === 'pt' ? "Respondemos suas dúvidas antes de você começar" : "Resolvemos tus dudas antes de que empieces",
+        ctaJoinBtn: lang === 'pt' ? "Participe agora" : "Únete ahora",
       };
       return (
         <div className="min-h-screen bg-[#07070f] text-white pt-16">
@@ -138,9 +142,7 @@ import { useState } from "react";
                 {lang === 'pt' ? 'Conectamos mulheres com' : 'Conectamos mujeres con'}<br />
                 <span className="gradient-text">{lang === 'pt' ? 'oportunidades reais em dólares' : 'oportunidades reales en dólares'}</span>
               </h1>
-              <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-                Eclipse Angels Agency nació para que cualquier mujer pueda generar ingresos reales desde su celular, sin poner dinero, sin experiencia y con todo el apoyo que necesite para crecer.
-              </p>
+              <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">{T.sub}</p>
             </div>
           </section>
 
@@ -165,12 +167,8 @@ import { useState } from "react";
                   <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">
                     {lang === 'pt' ? 'Que cada mulher possa' : 'Que cada mujer pueda'}<br /><span className="gradient-text">{lang === 'pt' ? 'ganhar dinheiro em casa' : 'ganar dinero desde casa'}</span>
                   </h2>
-                  <p className="text-white/50 text-sm leading-relaxed mb-4">
-                    Creemos que toda mujer merece acceso a ingresos reales, flexibles y en dólares. En Eclipse Angels Agency lo hacemos posible conectándote con las mejores apps internacionales, dándote capacitación gratuita y acompañándote en cada paso.
-                  </p>
-                  <p className="text-white/50 text-sm leading-relaxed">
-                    No somos una promesa vacía. Somos un equipo real, con chicas reales, ganando dinero real cada semana. Únete y compruébalo tú misma.
-                  </p>
+                  <p className="text-white/50 text-sm leading-relaxed mb-4">{T.misionDesc1}</p>
+                  <p className="text-white/50 text-sm leading-relaxed">{T.misionDesc2}</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {valores.map((v, i) => (
@@ -192,8 +190,8 @@ import { useState } from "react";
             <div className="max-w-3xl mx-auto px-5">
               <div className="text-center mb-12">
                 <span className="text-xs font-bold uppercase tracking-widest text-purple-400/70">{T.faqBadge}</span>
-                <h2 className="text-3xl font-extrabold mt-2 mb-3">Todo lo que quieres saber</h2>
-                <p className="text-white/45 text-sm">Resolvemos tus dudas antes de que empieces</p>
+                <h2 className="text-3xl font-extrabold mt-2 mb-3">{T.faqH2}</h2>
+                <p className="text-white/45 text-sm">{T.faqSub}</p>
               </div>
 
               <div className="space-y-3">
@@ -227,16 +225,16 @@ import { useState } from "react";
           <section className="py-20 bg-[#07070f]">
             <div className="max-w-xl mx-auto px-5 text-center">
               <Star className="w-10 h-10 text-purple-400 mx-auto mb-5" />
-              <h2 className="text-3xl font-extrabold mb-3">¿Tienes más preguntas?</h2>
-              <p className="text-white/50 text-sm mb-7">Nuestro equipo te contesta en menos de 24 horas. Escríbenos sin compromiso.</p>
+              <h2 className="text-3xl font-extrabold mb-3">{T.ctaH2}</h2>
+              <p className="text-white/50 text-sm mb-7">{T.ctaDesc}</p>
               <div className="flex flex-wrap gap-3 justify-center">
                 <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold px-7 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                  Escríbenos <ArrowRight className="w-4 h-4" />
+                  {T.ctaBtn} <ArrowRight className="w-4 h-4" />
                 </a>
                 <Link href="/ser-streamer"
                   className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                  Únete ahora
+                  {T.ctaJoinBtn}
                 </Link>
               </div>
             </div>
