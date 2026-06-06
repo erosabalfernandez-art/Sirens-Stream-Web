@@ -29,6 +29,20 @@ import { useState, useEffect } from 'react'
 
     export default function Perfil() {
       const { user, loading, signOut } = useAuth()
+        const { lang } = useLanguage()
+        const T = {
+          title:          lang === 'pt' ? 'Meu Perfil'                    : 'Mi Perfil',
+          logout:         lang === 'pt' ? 'Sair'                          : 'Salir',
+          notifTitle:     lang === 'pt' ? 'Notificações push'             : 'Notificaciones push',
+          notifSub:       lang === 'pt' ? 'Receba alertas de salários e comunicados' : 'Recibe alertas de salarios y comunicados',
+          notifOn:        lang === 'pt' ? 'Ativas'                        : 'Activadas',
+          notifBlocked:   lang === 'pt' ? 'Bloqueadas'                    : 'Bloqueadas',
+          notifActivate:  lang === 'pt' ? 'Ativar'                        : 'Activar',
+          notifActivating:lang === 'pt' ? 'Ativando...'                   : 'Activando...',
+          notifRetry:     lang === 'pt' ? 'Tentar novamente'              : 'Reintentar',
+          myApps:         lang === 'pt' ? 'Meus Aplicativos'              : 'Mis Aplicaciones',
+          loading:        lang === 'pt' ? 'Carregando...'                 : 'Cargando...',
+        }
       const [, navigate] = useLocation()
       const [entries, setEntries] = useState<WorkerEntry[]>([])
       const [loadingEntries, setLoadingEntries] = useState(true)
