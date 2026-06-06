@@ -965,6 +965,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
             </a>
           </div>
         </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          Waha app · Layla app · Howdy app · qué es Waha · qué es Layla · qué es Howdy · Waha streaming · Layla streaming · Howdy streaming · apps para ganar dinero · apps de streaming · mejor app para ganar dinero desde casa · apps de chat para ganar dinero · plataformas de streaming con pago · Waha cómo funciona · Howdy cómo funciona · Layla cómo funciona · registrarse en Waha · registrarse en Howdy · registrarse en Layla · cuánto paga Waha · cuánto paga Howdy · cuánto paga Layla · apps de videollamadas para ganar dinero · diamantes Waha · monedas Howdy · Layla audio · apps trabajo desde celular · apps para streamers latinas
+        </p>
+      </section>
       </div>
     );
   }
