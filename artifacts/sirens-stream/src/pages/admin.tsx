@@ -20,6 +20,17 @@ import { useState, useEffect, useRef } from 'react'
       error?: string
     }
 
+    interface NomWorker extends WorkerEntry { profile_email: string }
+    interface NomNomina { uid: string; apodo: string; usd: number; diamantes: number; semana: string; extras: Record<string, string | number> }
+    interface NomCobrada { worker: NomWorker; nomina: NomNomina }
+    interface NominaHistoryEntry {
+      id: string; app_name: string; semana: string
+      total_usd: number; total_diamantes: number
+      cobradas_count: number; nocobro_count: number; sinperfil_count: number
+      rows_data: { cobradas: NomCobrada[] }
+      published: boolean; created_at: string
+    }
+
     const APPS = ['', 'Waha', 'Layla', 'Howdy']
     const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
     const COUNTRIES = [
@@ -106,7 +117,7 @@ import { useState, useEffect, useRef } from 'react'
       const [filterIdApp, setFilterIdApp] = useState('')
       const [filterTelefono, setFilterTelefono] = useState('')
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'nominas'>('list')
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
@@ -120,6 +131,23 @@ import { useState, useEffect, useRef } from 'react'
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
+
+          // Nóminas por App tab state
+          const [nominasApp, setNominasApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
+          const [nominasHistory, setNominasHistory] = useState<NominaHistoryEntry[]>([])
+          const [nominasSemana, setNominasSemana] = useState('')
+          const [nominasLoading, setNominasLoading] = useState(false)
+          const [nominasSortDir, setNominasSortDir] = useState<'desc'|'asc'>('desc')
+          const [nfPais, setNfPais] = useState('')
+          const [nfPago, setNfPago] = useState('')
+          const [nfEmail, setNfEmail] = useState('')
+          const [nfBilletera, setNfBilletera] = useState('')
+          const [nfAgente, setNfAgente] = useState('')
+          const [nfNombreReal, setNfNombreReal] = useState('')
+          const [nfNombreApp, setNfNombreApp] = useState('')
+          const [nfIdApp, setNfIdApp] = useState('')
+          const [nfTelefono, setNfTelefono] = useState('')
+          const [nominasExpandedId, setNominasExpandedId] = useState<string|null>(null)
 
         async function notifyApp(app: string, type: 'salary' | 'canal') {
           const key = `${app}_${type}`
@@ -150,7 +178,19 @@ import { useState, useEffect, useRef } from 'react'
           setTimeout(() => setNotifOk(p => ({ ...p, [key]: false })), 4000)
         }
 
-      useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
+      async function fetchNominasHistory(app: string) {
+          setNominasLoading(true)
+          const { data } = await supabase.from('nomina_history')
+            .select('*').eq('app_name', app).eq('published', true)
+            .order('created_at', { ascending: false })
+          const entries = (data ?? []) as NominaHistoryEntry[]
+          setNominasHistory(entries)
+          if (entries.length > 0) setNominasSemana(entries[0].semana)
+          else setNominasSemana('')
+          setNominasLoading(false)
+        }
+
+        useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
       useEffect(() => {
         if (!loading && user && profile !== undefined) {
@@ -210,6 +250,10 @@ import { useState, useEffect, useRef } from 'react'
           setChannelMessages(prev => prev.filter(m => m.id !== id))
         }
 
+        useEffect(() => {
+          if (tab === 'nominas') fetchNominasHistory(nominasApp)
+        }, [nominasApp, tab])
+
         async function fetchAll() {
         setLoadingData(true)
         const [{ data: entries }, { data: profiles }] = await Promise.all([
@@ -254,7 +298,31 @@ import { useState, useEffect, useRef } from 'react'
         }
       }
 
-      const hasFilters = filterApp || filterPais || filterPago || filterEmail || filterBilletera || filterAgente || filterNombreReal || filterNombreApp || filterIdApp || filterTelefono
+      // Nominas tab computed data
+        const selectedNomina = nominasHistory.find(h => h.semana === nominasSemana)
+        const semanaOptions = nominasHistory.map(h => h.semana)
+        const nominasCobradas: (NomCobrada & { _salary: number })[] = (selectedNomina?.rows_data?.cobradas ?? [])
+          .map(c => ({ ...c, _salary: Number(c.nomina?.usd ?? 0) }))
+        const nominasFiltered = nominasCobradas.filter(c => {
+          const w = c.worker
+          if (nfPais && w.pais !== nfPais) return false
+          if (nfPago && w.metodo_pago !== nfPago) return false
+          if (nfEmail && !(w.profile_email ?? '').toLowerCase().includes(nfEmail.toLowerCase())) return false
+          if (nfBilletera && !(w.billetera ?? '').toLowerCase().includes(nfBilletera.toLowerCase())) return false
+          if (nfAgente && !(w.agente ?? '').toLowerCase().includes(nfAgente.toLowerCase())) return false
+          if (nfNombreReal && !(w.nombre_real ?? '').toLowerCase().includes(nfNombreReal.toLowerCase())) return false
+          if (nfNombreApp && !(w.nombre_en_app ?? '').toLowerCase().includes(nfNombreApp.toLowerCase())) return false
+          if (nfIdApp && !(w.id_aplicacion ?? '').toLowerCase().includes(nfIdApp.toLowerCase())) return false
+          if (nfTelefono && !(w.telefono ?? '').toLowerCase().includes(nfTelefono.toLowerCase())) return false
+          return true
+        }).sort((a, b) => nominasSortDir === 'desc' ? b._salary - a._salary : a._salary - b._salary)
+        const nHasFilters = nfPais || nfPago || nfEmail || nfBilletera || nfAgente || nfNombreReal || nfNombreApp || nfIdApp || nfTelefono
+        function clearNFilters() {
+          setNfPais(''); setNfPago(''); setNfEmail(''); setNfBilletera('')
+          setNfAgente(''); setNfNombreReal(''); setNfNombreApp(''); setNfIdApp(''); setNfTelefono('')
+        }
+
+        const hasFilters = filterApp || filterPais || filterPago || filterEmail || filterBilletera || filterAgente || filterNombreReal || filterNombreApp || filterIdApp || filterTelefono
 
       function clearFilters() {
         setFilterApp(''); setFilterPais(''); setFilterPago(''); setFilterEmail('')
@@ -312,6 +380,10 @@ import { useState, useEffect, useRef } from 'react'
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'notifs' ? 'bg-green-700 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Bell className="w-3.5 h-3.5" />
                 Notificaciones
+              </button>
+              <button onClick={() => setTab('nominas')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'nominas' ? 'bg-yellow-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                💰 Nóminas
               </button>
             </div>
 
@@ -719,6 +791,223 @@ import { useState, useEffect, useRef } from 'react'
                 )}
               </div>
             )}
+  
+              {tab === 'nominas' && (
+                <div>
+                  {/* App selector */}
+                  <div className="flex gap-2 mb-5 flex-wrap">
+                    {(['Waha','Layla','Howdy'] as const).map(app => (
+                      <button key={app} onClick={() => setNominasApp(app)}
+                        className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${nominasApp === app ? 'bg-yellow-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
+                        {app}
+                      </button>
+                    ))}
+                  </div>
+
+                  {nominasLoading ? (
+                    <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
+                  ) : nominasHistory.length === 0 ? (
+                    <div className="bg-[#0d0d1e] border border-yellow-500/10 rounded-2xl p-10 text-center">
+                      <p className="text-2xl mb-3">💰</p>
+                      <p className="text-white/40 text-sm font-semibold">No hay nóminas publicadas para {nominasApp}.</p>
+                      <p className="text-white/25 text-xs mt-1">Sube y publica una nómina desde la sección Nómina.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Semana selector + stats */}
+                      <div className="flex items-center gap-3 mb-5 flex-wrap">
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Semana</label>
+                          <select value={nominasSemana} onChange={e => setNominasSemana(e.target.value)}
+                            className="bg-[#0d0d1e] border border-yellow-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500/50">
+                            {semanaOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        {selectedNomina && (
+                          <div className="flex gap-3 flex-wrap mt-4">
+                            <div className="bg-[#0d0d1e] border border-yellow-500/15 rounded-xl px-4 py-2 text-center">
+                              <p className="text-yellow-400 font-bold text-lg">${Number(selectedNomina.total_usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-white/35 text-xs">Total USD</p>
+                            </div>
+                            <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-xl px-4 py-2 text-center">
+                              <p className="text-purple-400 font-bold text-lg">💎 {Number(selectedNomina.total_diamantes).toLocaleString('es-ES')}</p>
+                              <p className="text-white/35 text-xs">Total diamantes</p>
+                            </div>
+                            <div className="bg-[#0d0d1e] border border-green-500/15 rounded-xl px-4 py-2 text-center">
+                              <p className="text-green-400 font-bold text-lg">{selectedNomina.cobradas_count}</p>
+                              <p className="text-white/35 text-xs">Cobraron</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Filters */}
+                      <div className="bg-[#0d0d1e] border border-yellow-500/10 rounded-2xl p-5 mb-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Filter className="w-4 h-4 text-yellow-400" />
+                          <span className="text-sm font-semibold text-white/70">Filtros</span>
+                          <button onClick={() => setNominasSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                            className="ml-auto flex items-center gap-1.5 text-xs bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 px-3 py-1.5 rounded-lg hover:bg-yellow-500/20 transition-colors font-semibold">
+                            {nominasSortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+                            Salario: {nominasSortDir === 'desc' ? 'Mayor → Menor' : 'Menor → Mayor'}
+                          </button>
+                          {nHasFilters && (
+                            <button onClick={clearNFilters}
+                              className="flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors ml-2">
+                              <X className="w-3 h-3" /> Limpiar
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">País</label>
+                            <select value={nfPais} onChange={e => setNfPais(e.target.value)}
+                              className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500/50">
+                              {COUNTRIES.map(c => <option key={c} value={c}>{c || 'Todos'}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">Método de pago</label>
+                            <select value={nfPago} onChange={e => setNfPago(e.target.value)}
+                              className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500/50">
+                              {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m || 'Todos'}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">Nombre real</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                              <input type="text" value={nfNombreReal} onChange={e => setNfNombreReal(e.target.value)} placeholder="Nombre real..."
+                                className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-yellow-500/50" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">Nombre en app</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                              <input type="text" value={nfNombreApp} onChange={e => setNfNombreApp(e.target.value)} placeholder="Nickname..."
+                                className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-yellow-500/50" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">ID en app</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                              <input type="text" value={nfIdApp} onChange={e => setNfIdApp(e.target.value)} placeholder="ID de cuenta..."
+                                className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-yellow-500/50" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">Email</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                              <input type="text" value={nfEmail} onChange={e => setNfEmail(e.target.value)} placeholder="correo@..."
+                                className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-yellow-500/50" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">Teléfono</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                              <input type="text" value={nfTelefono} onChange={e => setNfTelefono(e.target.value)} placeholder="Número..."
+                                className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-yellow-500/50" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">Billetera</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                              <input type="text" value={nfBilletera} onChange={e => setNfBilletera(e.target.value)} placeholder="Dirección..."
+                                className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-yellow-500/50" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-white/40 mb-1">Agente</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                              <input type="text" value={nfAgente} onChange={e => setNfAgente(e.target.value)} placeholder="Nombre del agente..."
+                                className="w-full bg-[#07070f] border border-yellow-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-yellow-500/50" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Results count */}
+                      <p className="text-xs text-white/30 mb-3 font-semibold">
+                        {nominasFiltered.length} chica{nominasFiltered.length !== 1 ? 's' : ''} · ordenadas por salario {nominasSortDir === 'desc' ? '↓' : '↑'}
+                      </p>
+
+                      {/* Workers list */}
+                      {nominasFiltered.length === 0 ? (
+                        <div className="bg-[#0d0d1e] border border-yellow-500/10 rounded-2xl p-10 text-center">
+                          <p className="text-white/30 text-sm">No hay resultados con esos filtros.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {nominasFiltered.map((c, idx) => {
+                            const w = c.worker
+                            const nom = c.nomina
+                            const rowKey = w.id ?? `${w.user_id}-${w.app_name}-${idx}`
+                            const isExp = nominasExpandedId === rowKey
+                            return (
+                              <div key={rowKey} className="bg-[#0d0d1e] border border-yellow-500/10 rounded-2xl overflow-hidden">
+                                <button onClick={() => setNominasExpandedId(isExp ? null : rowKey)}
+                                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/2 transition-colors text-left">
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    {/* Rank badge */}
+                                    <div className="w-7 h-7 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold text-xs shrink-0">
+                                      #{idx + 1}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-sm">{w.nombre_real || nom.apodo || w.nombre_en_app || '—'}</span>
+                                        {w.nombre_en_app && <span className="text-xs bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full">{nom.apodo || w.nombre_en_app}</span>}
+                                        {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
+                                        {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
+                                        {w.agente && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{w.agente}</span>}
+                                      </div>
+                                      <p className="text-white/35 text-xs mt-0.5">{w.profile_email}</p>
+                                    </div>
+                                    {/* Salary */}
+                                    <div className="text-right shrink-0 mr-2">
+                                      <p className="text-yellow-400 font-extrabold text-base">${Number(nom.usd ?? 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
+                                      {(nom.diamantes ?? 0) > 0 && <p className="text-purple-400 text-xs font-semibold">💎 {Number(nom.diamantes).toLocaleString('es-ES')}</p>}
+                                    </div>
+                                  </div>
+                                  {isExp ? <ChevronUp className="w-4 h-4 text-white/30 shrink-0" /> : <ChevronDown className="w-4 h-4 text-white/30 shrink-0" />}
+                                </button>
+                                {isExp && (
+                                  <div className="px-5 pb-5 border-t border-yellow-500/8">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                                      {([
+                                        ['Email', w.profile_email],
+                                        ['Nombre en app', nom.apodo || w.nombre_en_app],
+                                        ['ID en la app', nom.uid || w.id_aplicacion],
+                                        ['Nombre real', w.nombre_real],
+                                        ['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono,
+                                          w.telefono ? `https://wa.me/${(`${w.codigo_pais ?? ''}${w.telefono}`).replace(/[\s\-\+\(\)]/g, '')}` : undefined],
+                                        ['País', w.pais],
+                                        ['Método de pago', w.metodo_pago],
+                                        ['Billetera', w.billetera],
+                                        ['Agente', w.agente],
+                                        ['Salario USD', `$${Number(nom.usd ?? 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`],
+                                        ['Diamantes', nom.diamantes ? `💎 ${Number(nom.diamantes).toLocaleString('es-ES')}` : null],
+                                        ['Semana', nom.semana],
+                                      ] as [string, string | null, string?][]).map(([label, value, href]) => (
+                                        <CopyCell key={label} label={label} value={value} uid={rowKey + label} href={href} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
           </div>
         </div>
       )
