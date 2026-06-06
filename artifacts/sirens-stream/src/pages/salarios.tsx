@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react'
     usd: number
     diamantes: number
     extras: Record<string, string | number>
-    published_at: string
+    created_at: string
   }
 
   function fmt(n: number) { return Number(n).toLocaleString('es-ES') }
@@ -32,7 +32,7 @@ import { useState, useEffect } from 'react'
         .from('published_salaries')
         .select('*')
         .eq('user_id', user!.id)
-        .order('published_at', { ascending: false })
+        .order('created_at', { ascending: false })
       setSalaries((data as PublishedSalary[]) ?? [])
       setFetching(false)
     }
@@ -92,7 +92,7 @@ import { useState, useEffect } from 'react'
                                 <div>
                                   <p className="font-bold text-sm">Semana {s.semana}</p>
                                   <p className="text-white/30 text-xs mt-0.5">
-                                    {new Date(s.published_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    {new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                                   </p>
                                 </div>
                               </div>
