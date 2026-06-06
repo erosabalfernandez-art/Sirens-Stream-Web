@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Filter } from 'lucide-react';
 
 export function UpdateBanner() {
   const [needsUpdate, setNeedsUpdate] = useState(false);
