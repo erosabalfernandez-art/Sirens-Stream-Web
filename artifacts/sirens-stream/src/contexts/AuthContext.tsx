@@ -4,7 +4,7 @@ import { supabase, type Profile } from '@/lib/supabase'
 
 interface AuthContextType {
   user: User | null
-  profile: Profile | null
+  profile: Profile | null | undefined  // undefined = loading, null = not found / logged out
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signUp: (email: string, password: string) => Promise<{ error: string | null }>
@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<Profile | null | undefined>(undefined)
   const [loading, setLoading] = useState(true)
 
   async function loadProfile(userId: string, retries = 3): Promise<void> {
@@ -36,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (attempt < retries) await new Promise(r => setTimeout(r, attempt * 500))
     }
+    // All retries exhausted — signal "no profile found" so routing doesn't hang
+    setProfile(null)
   }
 
   useEffect(() => {
@@ -52,10 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(async ({ data: { session } }) => {
         if (cancelled) return
         setUser(session?.user ?? null)
-        if (session?.user) await loadProfile(session.user.id)
+        if (session?.user) {
+          await loadProfile(session.user.id)
+        } else {
+          setProfile(null)
+        }
       })
       .catch((err) => {
         console.error('[Auth] getSession error:', err)
+        if (!cancelled) setProfile(null)
       })
       .finally(() => {
         if (!cancelled) {
@@ -65,8 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return
       setUser(session?.user ?? null)
       if (session?.user) {
+        // Reset profile to undefined (loading) before fetching
+        setProfile(undefined)
         loadProfile(session.user.id)
       } else {
         setProfile(null)
@@ -90,10 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }
 
+  // Don't manually setUser/setProfile here — onAuthStateChange handles it
+  // to avoid double state updates that cause the carousel and UI to flash
   async function signOut() {
     await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
   }
 
   return (
