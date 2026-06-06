@@ -155,31 +155,24 @@ function MessageText({ text }: { text: string }) {
   );
 }
 
-async function callGroq(messages: Array<{ role: string; content: string }>) {
-  const apiKey = (import.meta.env.VITE_GROQ_API_KEY as string | undefined) ?? "";
-  if (!apiKey || apiKey.trim() === "") throw new Error("MISSING_KEY");
+async function callAngela(message: string, history: Array<{ role: string; content: string }>) {
+  const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+  const url = apiBase ? `${apiBase}/api/chat` : "/api/chat";
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + apiKey.trim(),
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages,
-      max_tokens: 500,
-      temperature: 0.7,
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history }),
   });
 
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error("GROQ_" + res.status + ": " + txt.slice(0, 120));
+    throw new Error("API_" + res.status + ": " + txt.slice(0, 120));
   }
 
-  const data = await res.json();
-  return (data.choices?.[0]?.message?.content as string) ?? "";
+  const data = await res.json() as { reply?: string; error?: string };
+  if (data.error) throw new Error("API_ERR: " + data.error);
+  return data.reply ?? "";
 }
 
 export function AngelaChat() {
@@ -213,22 +206,13 @@ export function AngelaChat() {
 
     try {
       const history = messages.slice(-12).map(m => ({ role: m.role, content: m.content }));
-      const groqMessages = [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...history,
-        { role: "user", content: msg },
-      ];
-      const reply = await callGroq(groqMessages);
+      const reply = await callAngela(msg, history);
       setMessages(prev => [...prev, { role: "assistant", content: reply || "Lo siento, no pude procesar tu mensaje." }]);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      let userMsg = "❌ Error de conexión. Por favor escríbenos por WhatsApp: https://wa.me/5595984381686";
-      if (errMsg === "MISSING_KEY") {
-        userMsg = "⚙️ El asistente aún no está activado. Escríbenos por WhatsApp: https://wa.me/5595984381686";
-      } else if (errMsg.includes("GROQ_401")) {
-        userMsg = "🔑 Clave de API inválida. Contacta al administrador de la web.";
-      } else if (errMsg.includes("GROQ_")) {
-        userMsg = "⚠️ Error temporal de IA. Intenta de nuevo o escríbenos: https://wa.me/5595984381686";
+      let userMsg = "⚠️ Error temporal. Intenta de nuevo o escríbenos por WhatsApp: https://wa.me/5595984381686";
+      if (errMsg.includes("API_502") || errMsg.includes("API_503")) {
+        userMsg = "⚠️ La IA está ocupada, intenta en unos segundos. También puedes escribirnos: https://wa.me/5595984381686";
       }
       console.error("[AngelaChat]", errMsg);
       setMessages(prev => [...prev, { role: "assistant", content: userMsg }]);
