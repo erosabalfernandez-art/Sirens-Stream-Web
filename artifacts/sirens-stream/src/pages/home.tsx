@@ -561,6 +561,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
             ))}
           </div>
         </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          Eclipse Angels Agency · agencia de streamers · agencia de chat hostess · trabajar desde casa · trabajo online · trabajo remoto · trabajo sin inversión · trabajo online sin inversión · oportunidad de trabajo · empleo para mujeres · streamers latinas · ganar dinero desde casa · ganar dólares desde casa · trabajo desde celular · ingreso pasivo · emprendimiento online · agencia Waha · agencia Layla · agencia Howdy · chat hostess · ser streamer · trabajo sin experiencia · trabajo flexible · latinoamérica · trabajo en dólares
+        </p>
+      </section>
 
       </div>
     );
