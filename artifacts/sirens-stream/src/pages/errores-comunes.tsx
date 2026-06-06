@@ -88,14 +88,14 @@ import { Link } from "wouter";
 
     const T = {
       badge:       lang === 'pt' ? 'Guia Prático'                                       : 'Guía Práctica',
-      title1:      lang === 'pt' ? 'Los 8 Errores Que Te'                                : 'Los 8 Errores Que Te',
-      title2:      lang === 'pt' ? 'Cuestan Dinero'                                      : 'Cuestan Dinero',
-      subtitle:    lang === 'pt' ? 'Errores que las streamers nuevas cometem y como evitá-los desde el início.' : 'Errores que cometen las streamers nuevas y cómo evitarlos desde el principio.',
+      title1:      lang === 'pt' ? 'Os 8 Erros Que'                                      : 'Los 8 Errores Que Te',
+      title2:      lang === 'pt' ? 'Custam Dinheiro'                                     : 'Cuestan Dinero',
+      subtitle:    lang === 'pt' ? 'Erros que as novas streamers cometem e como evitá-los desde o início.' : 'Errores que cometen las streamers nuevas y cómo evitarlos desde el principio.',
       consecuencia:lang === 'pt' ? 'Consequência'                                        : 'Consecuencia',
       solucion:    lang === 'pt' ? 'Solução'                                             : 'Solución',
       tipsLabel:   lang === 'pt' ? 'Dicas Práticas'                                      : 'Tips Prácticos',
-      ctaTitle:    lang === 'pt' ? '¿Pronta para evitar estos errores?'                  : '¿Lista para evitar estos errores?',
-      ctaDesc:     lang === 'pt' ? 'Nossa agência te acompanha desde el primer día — tutora dedicada, guías paso a paso y soporte diário.' : 'Nuestra agencia te acompaña desde el primer día — tutora dedicada, guías paso a paso y soporte diario.',
+      ctaTitle:    lang === 'pt' ? 'Pronta para evitar esses erros?'                     : '¿Lista para evitar estos errores?',
+      ctaDesc:     lang === 'pt' ? 'Nossa agência te acompanha desde o primeiro dia — tutora dedicada, guias passo a passo e suporte diário.' : 'Nuestra agencia te acompaña desde el primer día — tutora dedicada, guías paso a paso y soporte diario.',
       ctaBtn:      lang === 'pt' ? 'Quero entrar agora'                                  : 'Quiero unirme ahora',
       appsBtn:     lang === 'pt' ? 'Ver Apps'                                            : 'Ver Apps',
     };
