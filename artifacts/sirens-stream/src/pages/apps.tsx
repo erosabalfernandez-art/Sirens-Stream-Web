@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
   import { Link } from "wouter";
   import { ChevronDown, ChevronUp, CheckCircle2, Smartphone, Clock, DollarSign, MessageCircle, ArrowRight, X, BookOpen, Copy, Check, Send } from "lucide-react";
 
