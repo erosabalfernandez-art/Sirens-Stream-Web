@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eclipse-angels-v2';
+const CACHE_NAME = 'eclipse-angels-v3';
 const SHELL_ASSETS = ['/index.html'];
 
 self.addEventListener('install', (event) => {
@@ -6,7 +6,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_ASSETS))
   );
-  self.skipWaiting();
+  // Do NOT call self.skipWaiting() here — let the app show an update banner
+  // and decide when to apply the new version gracefully
 });
 
 self.addEventListener('activate', (event) => {
@@ -16,6 +17,14 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Listen for SKIP_WAITING message from the React app
+// This is triggered when the user clicks "Actualizar" in the update banner
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Network-first for navigation; fall back to cached index.html for offline SPA support
