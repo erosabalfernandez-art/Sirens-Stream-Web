@@ -1,6 +1,6 @@
 import { Link } from "wouter";
   import { motion } from "framer-motion";
-  import { AlertTriangle, CheckCircle2, ArrowRight, XCircle, Clock, DollarSign, Heart, Zap, MessageCircle, Shield, TrendingUp, Star, Link} from "lucide-react";
+  import {AlertTriangle, CheckCircle2, ArrowRight, XCircle, Clock, DollarSign, Heart, Zap, MessageCircle, Shield, TrendingUp, Star} from "lucide-react";
   import { useLanguage } from "@/contexts/LanguageContext";
 
   type Lang = 'es' | 'pt';
