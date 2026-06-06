@@ -1,7 +1,7 @@
 import { useState } from "react";
     import { Link } from "wouter";
     import { useLanguage } from "@/contexts/LanguageContext";
-    import { ChevronDown, ChevronUp, Shield, Users, TrendingUp, Globe, ArrowRight, Star, Heart, Clock, DollarSign, Link} from "lucide-react";
+    import {ChevronDown, ChevronUp, Shield, Users, TrendingUp, Globe, ArrowRight, Star, Heart, Clock, DollarSign} from "lucide-react";
 
     const stats_es = [
       { val: "Soporte 24/7", label: "Siempre hay alguien para ayudarte" },
