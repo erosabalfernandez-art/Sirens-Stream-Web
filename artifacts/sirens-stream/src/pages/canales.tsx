@@ -20,6 +20,21 @@ import { useState, useEffect } from 'react'
 
   export default function Canales() {
     const { user, loading } = useAuth()
+      const { lang } = useLanguage()
+      const T = {
+        badge:        lang === 'pt' ? 'Canal da Agência'                    : 'Canal de la Agencia',
+        title:        lang === 'pt' ? 'Comunicados'                          : 'Comunicados',
+        subtitle:     lang === 'pt' ? 'Mensagens oficiais da Eclipse Angels Agency' : 'Mensajes oficiales de Eclipse Angels Agency',
+        loading:      lang === 'pt' ? 'Carregando...'                        : 'Cargando...',
+        noAccess1:    lang === 'pt' ? 'Você ainda não tem acesso a nenhum canal.' : 'No tienes acceso a ningún canal todavía.',
+        noAccess2:    lang === 'pt' ? 'Adicione um app no seu perfil para solicitar acesso automaticamente.' : 'Agrega una app en tu perfil para solicitar acceso automáticamente.',
+        pending:      lang === 'pt' ? '⏳ Solicitações pendentes de aprovação' : '⏳ Solicitudes pendientes de aprobación',
+        pendingDesc:  lang === 'pt' ? 'Sua agência revisará sua solicitação em breve.' : 'Tu agencia revisará tu solicitud pronto.',
+        reviewing1:   lang === 'pt' ? 'Sua solicitação está sendo revisada.'  : 'Tu solicitud está siendo revisada.',
+        reviewing2:   lang === 'pt' ? 'Te avisaremos quando for aprovada.'    : 'Te notificaremos cuando seas aprobada.',
+        noMessages1:  lang === 'pt' ? 'Nenhum comunicado ainda.'              : 'No hay comunicados todavía.',
+        noMessages2:  lang === 'pt' ? 'Os comunicados aparecerão aqui quando forem publicados.' : 'Los comunicados aparecerán aquí cuando se publiquen.',
+      }
     const [, navigate] = useLocation()
     const [requests, setRequests] = useState<ChannelRequest[]>([])
     const [messages, setMessages] = useState<ChannelMessage[]>([])
