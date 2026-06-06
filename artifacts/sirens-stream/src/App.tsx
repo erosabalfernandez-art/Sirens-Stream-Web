@@ -1,32 +1,34 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Navbar } from "@/components/layout/Navbar";
-import { InstallPWA } from "@/components/layout/InstallPWA";
-import { UpdateBanner } from "@/components/layout/UpdateBanner";
-import { Footer } from "@/components/layout/Footer";
-import { FloatingSocials } from "@/components/layout/FloatingSocials";
-import { AngelaChat } from "@/components/chat/SirenaChat";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
-import Home from "@/pages/home";
-import SerStreamer from "@/pages/ser-streamer";
-import CrearAgencia from "@/pages/crear-agencia";
-import Apps from "@/pages/apps";
-import Nosotros from "@/pages/nosotros";
-import Pagos from "@/pages/pagos";
-import Contacto from "@/pages/contacto";
-import ErroresComunes from "@/pages/errores-comunes";
-import NotFound from "@/pages/not-found";
-import Login from "@/pages/login";
-import Perfil from "@/pages/perfil";
-import Admin from "@/pages/admin";
-import Nomina from "@/pages/nomina";
-import Salarios from "@/pages/salarios";
-import Canales from "@/pages/canales";
+  import { useEffect } from "react";
+  import { HelmetProvider } from "react-helmet-async";
+  import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+  import { Toaster } from "@/components/ui/toaster";
+  import { TooltipProvider } from "@/components/ui/tooltip";
+  import { Navbar } from "@/components/layout/Navbar";
+  import { InstallPWA } from "@/components/layout/InstallPWA";
+  import { UpdateBanner } from "@/components/layout/UpdateBanner";
+  import { Footer } from "@/components/layout/Footer";
+  import { FloatingSocials } from "@/components/layout/FloatingSocials";
+  import { AngelaChat } from "@/components/chat/SirenaChat";
+  import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+  import { LanguageProvider } from "@/contexts/LanguageContext";
+  import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
+  import { SEOHead } from "@/components/layout/SEOHead";
+  import Home from "@/pages/home";
+  import SerStreamer from "@/pages/ser-streamer";
+  import CrearAgencia from "@/pages/crear-agencia";
+  import Apps from "@/pages/apps";
+  import Nosotros from "@/pages/nosotros";
+  import Pagos from "@/pages/pagos";
+  import Contacto from "@/pages/contacto";
+  import ErroresComunes from "@/pages/errores-comunes";
+  import NotFound from "@/pages/not-found";
+  import Login from "@/pages/login";
+  import Perfil from "@/pages/perfil";
+  import Admin from "@/pages/admin";
+  import Nomina from "@/pages/nomina";
+  import Salarios from "@/pages/salarios";
+  import Canales from "@/pages/canales";
 
   function ScrollToTop() {
     const [location] = useLocation();
@@ -40,7 +42,6 @@ import Canales from "@/pages/canales";
     return null;
   }
 
-
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
   });
@@ -48,7 +49,6 @@ import Canales from "@/pages/canales";
   function Router() {
     const { user, profile, loading } = useAuth();
 
-    // Clear React Query cache when user logs out to prevent stale auth data
     useEffect(() => {
       if (!user) queryClient.clear();
     }, [user]);
@@ -62,9 +62,6 @@ import Canales from "@/pages/canales";
     }
 
     if (user) {
-      // Wait for profile to finish loading before deciding which routes exist.
-      // Without this, navigating to /admin or /nomina while profile is still
-      // undefined causes the catch-all to fire and redirect to /perfil.
       if (profile === undefined) {
         return (
           <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
@@ -93,6 +90,7 @@ import Canales from "@/pages/canales";
 
     return (
       <div className="flex flex-col min-h-screen">
+        <SEOHead />
         <ScrollToTop />
         <Navbar />
         <main className="flex-grow flex flex-col pt-14">
@@ -118,22 +116,25 @@ import Canales from "@/pages/canales";
 
   function App() {
     return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <LanguageProvider>
-            <AuthProvider>
-              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                <Router />
-              </WouterRouter>
-              <UpdateBanner />
-              <Toaster />
-              <InstallPWA />
-              <LangRefreshBanner />
-            </AuthProvider>
-          </LanguageProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                  <Router />
+                </WouterRouter>
+                <UpdateBanner />
+                <Toaster />
+                <InstallPWA />
+                <LangRefreshBanner />
+              </AuthProvider>
+            </LanguageProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
     );
   }
 
   export default App;
+  
