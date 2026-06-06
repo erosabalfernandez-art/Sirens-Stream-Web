@@ -454,39 +454,72 @@ import React, { useState, useRef, useEffect } from 'react'
         const rawHeaders = (raw[0] as unknown[]) ?? []
         const headers = rawHeaders.map(h => String(h ?? '').trim())
 
-        // Case-insensitive column lookup so minor name differences don't break parsing
-        function COL(name: string): number {
-          const exact = headers.indexOf(name)
+        // Smart column detection: exact → case-insensitive → keyword match
+        // Each entry is [canonical name, ...keyword hints (any word in header)]
+        const COLUMN_ALIASES: [string, string[]][] = [
+          ['UID del Host',        ['uid', 'host id', 'id del host', 'id host', 'host_id', 'userid', 'user id']],
+          ['USD',                 ['usd', 'dólar', 'dollar', 'monto', 'pago usd', 'ganancia', 'ingreso', 'earning']],
+          ['Apodo',               ['apodo', 'nick', 'nickname', 'nombre en app', 'nombre_app', 'username']],
+          ['Semana',              ['semana', 'week', 'periodo', 'período', 'date', 'fecha']],
+          ['Diamantes Totales',   ['diamante', 'diamond', 'gem', 'piedra', 'coins', 'total dia']],
+          ['Nombre de la agencia',['agencia', 'agency', 'manager', 'nombre agencia']],
+        ]
+
+        function smartCOL(canonical: string): number {
+          // 1. Exact match
+          const exact = headers.indexOf(canonical)
           if (exact !== -1) return exact
-          const lower = name.toLowerCase()
-          return headers.findIndex(h => h.toLowerCase() === lower)
+          // 2. Case-insensitive exact
+          const lower = canonical.toLowerCase()
+          const ci = headers.findIndex(h => h.toLowerCase() === lower)
+          if (ci !== -1) return ci
+          // 3. Keyword hints
+          const aliases = COLUMN_ALIASES.find(([c]) => c === canonical)
+          if (aliases) {
+            for (const kw of aliases[1]) {
+              const idx = headers.findIndex(h => h.toLowerCase().includes(kw))
+              if (idx !== -1) return idx
+            }
+          }
+          // 4. Partial: canonical words present anywhere in header
+          const words = lower.split(/\s+/)
+          const idx = headers.findIndex(h => {
+            const hl = h.toLowerCase()
+            return words.every(w => hl.includes(w))
+          })
+          return idx
         }
 
         // Validate critical columns exist
-        const uidCol = COL('UID del Host')
-        const usdCol = COL('USD')
+        const uidCol   = smartCOL('UID del Host')
+        const usdCol   = smartCOL('USD')
+        const apodoCol = smartCOL('Apodo')
+        const semanaCol = smartCOL('Semana')
+        const diaCol   = smartCOL('Diamantes Totales')
+        const agenciaCol = smartCOL('Nombre de la agencia')
+
         if (uidCol === -1 || usdCol === -1) {
-          const found = headers.filter(Boolean).join(', ')
+          const found = headers.filter(Boolean).join(' | ')
           throw new Error(
-            'Columnas no encontradas en el Excel.\n\nEsperadas: "UID del Host", "USD", "Apodo", "Semana", "Diamantes Totales"\nEncontradas: ' + (found || '(ninguna)')
+            'No se encontraron las columnas de UID o USD.\n\nColumnas detectadas en el archivo:\n' + (found || '(ninguna)') + '\n\nAsegúrate de que el Excel tenga una columna con el ID del usuario y otra con el monto en dólares.'
           )
         }
 
-        const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0 && r[2])
-        const mainCols = new Set([COL('Semana'), COL('UID del Host'), COL('Apodo'), COL('USD'), COL('Diamantes Totales'), COL('Nombre de la agencia')])
+        const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
+        const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol].filter(i => i !== -1))
 
         const nominaRows: NominaRow[] = dataRows.map(r => {
           const extras: Record<string, string | number> = {}
           headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
           return {
-            uid: normalizeUID(r[COL('UID del Host')]),
-            apodo: String(r[COL('Apodo')] ?? ''),
-            usd: parseFloat(String(r[COL('USD')] ?? 0)) || 0,
-            diamantes: parseFloat(String(r[COL('Diamantes Totales')] ?? 0)) || 0,
-            semana: String(r[COL('Semana')] ?? ''),
+            uid: normalizeUID(uidCol !== -1 ? r[uidCol] : ''),
+            apodo: String(apodoCol !== -1 ? (r[apodoCol] ?? '') : ''),
+            usd: parseFloat(String(usdCol !== -1 ? (r[usdCol] ?? 0) : 0)) || 0,
+            diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
+            semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : ''),
             extras,
           }
-        })
+        }).filter(r => r.uid !== '')
 
         const sem = nominaRows[0]?.semana ?? ''
         setSemana(sem)
