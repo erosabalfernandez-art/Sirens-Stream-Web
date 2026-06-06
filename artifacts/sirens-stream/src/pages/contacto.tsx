@@ -158,6 +158,12 @@ import { Clock, MessageCircle } from "lucide-react";
             </div>
           </div>
         </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          contacto Eclipse Angels Agency · unirme como streamer · aplicar a Eclipse Angels · cómo unirme a Eclipse Angels · aplicar streamer Waha · aplicar streamer Howdy · aplicar streamer Layla · información streamer · asesoría agencia streaming · quiero ser streamer · quiero crear agencia · registro Eclipse Angels · contactar agencia streamers · aplicar trabajo desde casa · quiero ganar dinero desde casa
+        </p>
+      </section>
       </div>
     );
   }
