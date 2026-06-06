@@ -660,7 +660,6 @@ import { useState, useRef, useEffect } from "react";
 
   function SectionTitle({ children }: { children: React.ReactNode }) {
     return <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400/70 mb-3">{children}</h3>;
-  }</h3>;
   }
 
   /* ── Main component ── */
