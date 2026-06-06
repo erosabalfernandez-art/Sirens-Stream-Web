@@ -1,7 +1,7 @@
 import { Link } from "wouter";
   import { CheckCircle2, MessageCircle, Video, Radio, DollarSign, Shield, Smartphone, Users, Clock, ArrowRight, Star, Zap, TrendingUp } from "lucide-react";
 
-  const activities = [
+  const activities_es = [
     {
       icon: MessageCircle,
       title: "Chat & Mensajes",
@@ -22,7 +22,7 @@ import { Link } from "wouter";
     },
   ];
 
-  const tips = [
+  const tips_es = [
     "Sé constante: más tiempo en línea = más ganancias",
     "Responde rápido: la tasa de respuesta mejora tus bonos",
     "Personaliza cada conversación: los usuarios VIP pagan más",
@@ -31,7 +31,7 @@ import { Link } from "wouter";
     "Pide ayuda a tu tutora cuando tengas dudas — estamos aquí",
   ];
 
-  const requisitos = [
+  const requisitos_es = [
     { icon: Users, text: "Ser mujer mayor de 18 años" },
     { icon: Smartphone, text: "Smartphone con buena cámara" },
     { icon: Shield, text: "Conexión WiFi estable o datos" },
@@ -40,13 +40,81 @@ import { Link } from "wouter";
     { icon: Zap, text: "Sin experiencia previa requerida" },
   ];
 
-  const earnings = [
+  const earnings_es = [
     { val: "$10–$50 USD", label: "por día en promedio" },
     { val: "$100–$500 USD", label: "semanales con constancia" },
     { val: "$1,000–$2,000 USD", label: "mensuales con dedicación" },
   ];
 
+
+  const activities_pt = [
+    { icon: MessageCircle, title: "Chat & Mensagens", desc: "Sua principal ferramenta de trabalho. Converse de forma personalizada com usuários do mundo todo enviando mensagens, áudios e respondendo a tempo para maximizar seus ganhos.", color: "bg-blue-500/15 border-blue-500/20 text-blue-400" },
+    { icon: Video, title: "Videochamadas Match (opcionais)", desc: "Em apps como Waha e Howdy você pode fazer videochamadas match e privadas de forma totalmente opcional. Quanto mais tempo em vídeo, maior o ganho por minuto.", color: "bg-purple-500/15 border-purple-500/20 text-purple-400" },
+    { icon: Radio, title: "Salas de Áudio e Lives", desc: "Participe de salas de voz em grupo ou transmissões ao vivo. Os usuários enviam diamantes e moedas enquanto você interage com eles em tempo real.", color: "bg-pink-500/15 border-pink-500/20 text-pink-400" },
+  ];
+  const tips_pt = [
+    "Seja constante: mais tempo online = mais ganhos",
+    "Responda rápido: a taxa de resposta melhora seus bônus",
+    "Personalize cada conversa: usuários VIP pagam mais",
+    "Estabeleça um horário fixo para criar hábito",
+    "Aproveite as metas diárias e bônus de bonificação",
+    "Peça ajuda à sua tutora quando tiver dúvidas — estamos aqui",
+  ];
+  const requisitos_pt = [
+    { icon: Users, text: "Ser mulher maior de 18 anos" },
+    { icon: Smartphone, text: "Smartphone com boa câmera" },
+    { icon: Shield, text: "Conexão WiFi estável ou dados" },
+    { icon: Clock, text: "4–5 horas disponíveis por dia" },
+    { icon: Star, text: "Atitude positiva e comprometimento" },
+    { icon: Zap, text: "Sem experiência prévia necessária" },
+  ];
+  const earnings_pt = [
+    { val: "$10–$50 USD", label: "por dia em média" },
+    { val: "$100–$500 USD", label: "semanais com constância" },
+    { val: "$1.000–$2.000 USD", label: "mensais com dedicação" },
+  ];
   export default function SerStreamer() {
+    const { lang } = useLanguage();
+    const activities = lang === 'pt' ? activities_pt : activities_es;
+    const tips = lang === 'pt' ? tips_pt : tips_es;
+    const requisitos = lang === 'pt' ? requisitos_pt : requisitos_es;
+    const earnings = lang === 'pt' ? earnings_pt : earnings_es;
+    const T = {
+      badge: lang === 'pt' ? "Trabalhe de Casa em Dólares" : "Trabaja desde Casa en Dólares",
+      h1a: lang === 'pt' ? "Como Funciona ser" : "Cómo es ser",
+      h1b: lang === 'pt' ? "Chat Hostess" : "Chat Hostess",
+      subh: lang === 'pt' ? "Com apenas um celular, horarió livre e zero investimento" : "Con solo tu celular, horario libre y cero inversión",
+      ctaJoin: lang === 'pt' ? "Quero participar" : "{T.ctaJoin}",
+      ctaApps: lang === 'pt' ? "{T.ctaApps}" : "{T.ctaApps}",
+      reqBadge: lang === 'pt' ? "Quem buscamos?" : "{T.reqBadge}",
+      reqH2a: lang === 'pt' ? "Requisitos para" : "Requisitos para",
+      reqH2b: lang === 'pt' ? "participar" : "unirte",
+      reqDesc: lang === 'pt' ? "Você não precisa de experiência prévia. Só precisa de vontade de trabalhar e crescer. Nós ensinamos tudo do zero e acompanhamos cada passo." : "{T.reqDesc}",
+      earningsBadge: lang === 'pt' ? "Potencial de Ganhos" : "{T.earningsBadge}",
+      tipsTit: lang === 'pt' ? "Dicas para maximizar seus ganhos" : "{T.tipsTit}",
+      stepsBadge: lang === 'pt' ? "Processo de Entrada" : "{T.stepsBadge}",
+      stepsH2: lang === 'pt' ? "Como começo?" : "{T.stepsH2}",
+      stepsSub: lang === 'pt' ? "Em poucos passos você estará gerando renda pelo celular" : "{T.stepsSub}",
+      steps: lang === 'pt' ? [
+        { n: "01", t: "Entre em Contato", d: "Fale conosco pelo WhatsApp ou Instagram. Respondemos em menos de 24h." },
+        { n: "02", t: "Entrevista Express", d: "Uma breve conversa para te conhecer e explicar tudo sem compromisso." },
+        { n: "03", t: "Instalação e Cadastro", d: "Sua tutora te guia passo a passo na instalação e cadastro no app." },
+        { n: "04", t: "Começa a Ganhar!", d: "Você começa a interagir e recebe seu primeiro pagamento na semana." },
+      ] : [
+        { n: "01", t: "Contáctanos", d: "Escríbenos por WhatsApp o Instagram. Respondemos en menos de 24h." },
+        { n: "02", t: "Entrevista Express", d: "Una breve conversación para conocerte y explicarte todo sin compromiso." },
+        { n: "03", t: "Instalación y Registro", d: "Tu tutora te guía paso a paso en la instalación y registro en la app." },
+        { n: "04", t: "¡Empieza a Ganar!", d: "Comienzas a interactuar y recibes tu primer pago en la semana." },
+      ],
+      menBadge: lang === 'pt' ? "É homem? Também tem lugar aqui" : "¿Eres hombre? También tienes lugar aquí",
+      menH3: lang === 'pt' ? "Os homens também podem ganhar na" : "Los hombres también pueden ganar en",
+      menDesc: lang === 'pt' ? "Você pode participar como recrutador — indique mulheres para a agência e ganhe comissão por cada uma que começar a trabalhar. Também pode se cadastrar em alguns de nossos aplicativos. De qualquer forma, fazendo parte da nossa equipe, você sempre sairá beneficiado." : "Puedes unirte como reclutador — refiere chicas a la agencia y gana comisión por cada una que empiece a trabajar. También puedes registrarte en algunas de nuestras aplicaciones. Sea como sea, siendo parte de nuestro equipo, siempre saldrás beneficiado.",
+      menBtn: lang === 'pt' ? "Quero ser recrutador" : "{T.menBtn}",
+      ctaH2: lang === 'pt' ? "Pronta para começar?" : "{T.ctaH2}",
+      ctaDesc: lang === 'pt' ? "Milhares de mulheres já geram renda real em dólares com a Eclipse Angels Agency. Seu momento é agora. Fale conosco e comece esta semana." : "{T.ctaDesc}",
+      ctaContact: lang === 'pt' ? "Entrar em contato" : "{T.ctaContact}",
+      ctaApps2: lang === 'pt' ? "{T.ctaApps}" : "{T.ctaApps}",
+    };
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-16">
 
@@ -74,7 +142,7 @@ import { Link } from "wouter";
               </a>
               <Link href="/apps"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                Ver Apps Disponibles
+                {T.ctaApps} Disponibles
               </Link>
             </div>
           </div>
@@ -113,7 +181,7 @@ import { Link } from "wouter";
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
                 <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">¿A quién buscamos?</span>
-                <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">Requisitos para <span className="gradient-text">unirte</span></h2>
+                <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">{T.reqH2a} <span className="gradient-text">{T.reqH2b}</span></h2>
                 <p className="text-white/50 text-sm mb-7 leading-relaxed">
                   No necesitas experiencia previa. Solo necesitas las ganas de trabajar y crecer. Nosotras te capacitamos desde cero y te acompañamos en cada paso.
                 </p>
@@ -165,12 +233,7 @@ import { Link } from "wouter";
               <p className="text-white/45 text-sm">En pocos pasos estarás generando ingresos desde tu celular</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { n: "01", t: "Contáctanos", d: "Escríbenos por WhatsApp o Instagram. Respondemos en menos de 24h." },
-                { n: "02", t: "Entrevista Express", d: "Una breve conversación para conocerte y explicarte todo sin compromiso." },
-                { n: "03", t: "Instalación y Registro", d: "Tu tutora te guía paso a paso en la instalación y registro en la app." },
-                { n: "04", t: "¡Empieza a Ganar!", d: "Comienzas a interactuar y recibes tu primer pago en la semana." },
-              ].map((s, i) => (
+              {T.steps.map((s, i) => (
                 <div key={i} className="relative bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-5 hover:border-blue-500/25 transition-colors">
                   {i < 3 && <div className="hidden lg:block absolute top-6 -right-2.5 text-blue-500/30 text-lg z-10">→</div>}
                   <p className="text-blue-500/35 font-extrabold text-4xl mb-3">{s.n}</p>
@@ -193,13 +256,13 @@ import { Link } from "wouter";
                 </div>
                 <div className="flex-1">
                   <div className="inline-flex items-center gap-2 bg-purple-500/15 border border-purple-500/25 rounded-full px-3 py-1 mb-3">
-                    <span className="text-purple-300 text-[11px] font-bold uppercase tracking-wider">¿Eres hombre? También tienes lugar aquí</span>
+                    <span className="text-purple-300 text-[11px] font-bold uppercase tracking-wider">{T.menBadge}</span>
                   </div>
                   <h3 className="text-xl md:text-2xl font-extrabold text-white mb-2">
-                    Los hombres también pueden ganar en <span className="text-purple-400">Eclipse Angels Agency</span>
+                    {T.menH3} <span className="text-purple-400">Eclipse Angels Agency</span>
                   </h3>
                   <p className="text-white/55 text-sm leading-relaxed mb-4">
-                    Puedes unirte como <strong className="text-white/80">reclutador</strong> — refiere chicas a la agencia y gana comisión por cada una que empiece a trabajar. También puedes registrarte en algunas de nuestras aplicaciones. Sea como sea, siendo parte de nuestro equipo, siempre saldrás beneficiado.
+                    {T.menDesc}
                   </p>
                   <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency%20como%20reclutador" target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
@@ -226,7 +289,7 @@ import { Link } from "wouter";
               </a>
               <Link href="/apps"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-4 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                Ver Apps <ArrowRight className="w-4 h-4" />
+                {T.ctaApps} <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
