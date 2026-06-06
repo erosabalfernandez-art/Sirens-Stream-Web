@@ -2,10 +2,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
   import { Link } from "wouter";
   import { motion, AnimatePresence } from "framer-motion";
-  import {
-    DollarSign, Shield, Smartphone, Users, Clock, TrendingUp,
-    CheckCircle2, Zap, Star, CreditCard, MessageCircle, ArrowRight,
-    Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart, Link} from "lucide-react";
+  import {DollarSign, Shield, Smartphone, Users, Clock, TrendingUp, CheckCircle2, Zap, Star, CreditCard, MessageCircle, ArrowRight, Globe, Award, ChevronLeft, ChevronRight, Wifi, Camera, Heart} from "lucide-react";
   import { useGetAgencyStats } from "@/lib/api-client";
   import { useShowAgencia } from "@/hooks/useShowAgencia";
 
