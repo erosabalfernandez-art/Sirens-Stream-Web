@@ -12,6 +12,7 @@ const tutorials = [
 ];
 
 router.get("/tutorials", (_req, res) => {
+  res.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
   res.json(tutorials);
 });
 
@@ -26,6 +27,7 @@ router.get("/tutorials/:id", (req, res) => {
     res.status(404).json({ error: "Tutorial not found" });
     return;
   }
+  res.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
   res.json(tutorial);
 });
 
