@@ -261,7 +261,7 @@ import React, { useState, useRef, useEffect } from 'react'
                       {h.published && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-semibold">Publicada</span>}
                     </div>
                     <p className="text-white/30 text-xs mt-0.5">
-                      {dateStr} · {h.cobradas_count} cobraron · {Number(h.total_usd).toLocaleString('es-ES', {'{'}minimumFractionDigits: 2{'}'}){'}'} USD · 💎 {'{'}fmtNum(Number(h.total_diamantes)){'}'}
+                      {dateStr} · {h.cobradas_count} cobraron · {Number(h.total_usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD · 💎 {fmtNum(Number(h.total_diamantes))}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
