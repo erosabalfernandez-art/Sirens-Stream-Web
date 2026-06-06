@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebook } from "react-icons/fa";
 import { Mail } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 
 const socials = [
   { href: "https://www.instagram.com/eclipse_angels1?igsh=MTY0bGpqd294NjBwYg==", icon: <FaInstagram />, label: "Instagram", color: "text-[#E1306C] hover:opacity-80" },
@@ -12,18 +11,7 @@ const socials = [
 ];
 
 export function Footer() {
-  const [showAgencia, setShowAgencia] = useState(true);
-
-  useEffect(() => {
-    supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "show_agencia")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setShowAgencia(data.value !== "false");
-      });
-  }, []);
+  const showAgencia = useShowAgencia();
 
   const plataformaLinks = [
     { href: "/ser-streamer", label: "Ser Streamer" },
