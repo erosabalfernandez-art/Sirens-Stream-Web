@@ -36,7 +36,7 @@ import { useState, useEffect, useRef } from 'react'
       { key: 'telefono', label: 'Teléfono' },
     ]
 
-    function CopyCell({ label, value, uid }: { label: string; value: string | null; uid: string }) {
+    function CopyCell({ label, value, uid, href }: { label: string; value: string | null; uid: string; href?: string }) {
       const [copied, setCopied] = useState(false)
       function copy() {
         if (!value) return
@@ -46,12 +46,20 @@ import { useState, useEffect, useRef } from 'react'
         <div>
           <p className="text-white/30 text-xs mb-0.5">{label}</p>
           {value ? (
-            <button onClick={copy} title="Copiar" className="group flex items-center gap-1.5 text-left hover:text-purple-300 transition-colors w-full">
-              <span className="text-white/80 text-sm font-medium break-all group-hover:text-purple-200 transition-colors">{value}</span>
-              <span className="shrink-0 text-white/20 group-hover:text-purple-400 transition-colors">
-                {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={copy} title="Copiar" className="group flex items-center gap-1.5 text-left hover:text-purple-300 transition-colors">
+                <span className="text-white/80 text-sm font-medium break-all group-hover:text-purple-200 transition-colors">{value}</span>
+                <span className="shrink-0 text-white/20 group-hover:text-purple-400 transition-colors">
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </span>
+              </button>
+              {href && (
+                <a href={href} target="_blank" rel="noopener noreferrer"
+                   className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/25 transition-colors font-semibold shrink-0">
+                  WhatsApp ↗
+                </a>
+              )}
+            </div>
           ) : (
             <p className="text-white/25 text-sm">—</p>
           )}
@@ -461,6 +469,15 @@ import { useState, useEffect, useRef } from 'react'
                                 {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
                                 {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
                                 {w.agente && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{w.agente}</span>}
+                                {w.telefono && (
+                                  <a
+                                    href={`https://wa.me/${(`${w.codigo_pais ?? ''}${w.telefono}`).replace(/[\s\-\+\(\)]/g, '')}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    onClick={e => e.stopPropagation()}
+                                    className="text-xs bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full hover:bg-emerald-500/25 transition-colors font-medium">
+                                    📱 {w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}
+                                  </a>
+                                )}
                               </div>
                               <p className="text-white/35 text-xs truncate mt-0.5">{w.profile_email}</p>
                             </div>
@@ -476,13 +493,13 @@ import { useState, useEffect, useRef } from 'react'
                                 ['Nombre real', w.nombre_real],
                                 ['Nombre en app', w.nombre_en_app],
                                 ['ID en la app', w.id_aplicacion],
-                                ['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono],
+                                ['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono, w.telefono ? `https://wa.me/${(`${w.codigo_pais ?? ''}${w.telefono}`).replace(/[\s\-\+\(\)]/g, '')}` : undefined],
                                 ['País', w.pais],
                                 ['Método de pago', w.metodo_pago],
                                 ['Billetera', w.billetera],
                                 ['Agente', w.agente],
-                              ] as [string, string | null][]).map(([label, value]) => (
-                                <CopyCell key={label} label={label} value={value} uid={w.id + label} />
+                              ] as [string, string | null, string?][]).map(([label, value, href]) => (
+                                <CopyCell key={label} label={label} value={value} uid={w.id + label} href={href} />
                               ))}
                             </div>
                           </div>
