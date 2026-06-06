@@ -296,6 +296,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
             </div>
           </div>
         </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          trabajar en Waha · trabajar en Howdy · trabajar en Layla · cómo ser streamer · ser streamer en Waha · ser streamer en Howdy · ser streamer en Layla · streamer latina · streamers latinas · trabajo desde casa · trabajo online · trabajo remoto · trabajo sin inversión · trabajo online sin inversión · ganar dinero desde casa · ganar dólares · chat hostess Waha · chat hostess Howdy · chat hostess Layla · videollamadas trabajo · live streaming trabajo · empleo online · trabajo desde el celular · trabajo sin experiencia · trabajo para mujeres · ingresos semanales en dólares · oportunidad de trabajo online · trabajo flexible · trabajo sin jefe · trabajo Latinoamérica
+        </p>
+      </section>
       </div>
     );
   }
