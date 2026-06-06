@@ -45,6 +45,11 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   function Router() {
     const { user, profile, loading } = useAuth();
 
+    // Clear React Query cache when user logs out to prevent stale auth data
+    useEffect(() => {
+      if (!user) queryClient.clear();
+    }, [user]);
+
     if (loading) {
       return (
         <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
