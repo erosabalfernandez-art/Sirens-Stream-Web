@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+    import { useLanguage } from '@/contexts/LanguageContext'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
@@ -121,18 +122,18 @@ import { useState, useEffect } from 'react'
       const usedApps = entries.map(e => e.app_name)
       const availableApps = APPS.filter(a => !usedApps.includes(a) || (editingId && entries.find(e => e.id === editingId)?.app_name === a))
 
-      if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
+      if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">{T.loading}</div></div>
 
       return (
         <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
           <div className="max-w-2xl mx-auto px-4">
             <div className="flex items-start justify-between mb-8">
               <div>
-                <h1 className="text-2xl font-extrabold">Mi Perfil</h1>
+                <h1 className="text-2xl font-extrabold">{T.title}</h1>
                 <p className="text-white/40 text-sm mt-0.5">{user?.email}</p>
               </div>
               <button onClick={signOut} className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm transition-colors">
-                <LogOut className="w-4 h-4" /> Salir
+                <LogOut className="w-4 h-4" /> {T.logout}
               </button>
             </div>
 
@@ -140,17 +141,17 @@ import { useState, useEffect } from 'react'
             <div className="mb-4 bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-sm mb-0.5">Notificaciones push</p>
-                  <p className="text-white/40 text-xs">Recibe alertas de salarios y comunicados</p>
+                  <p className="font-semibold text-sm mb-0.5">{T.notifTitle}</p>
+                  <p className="text-white/40 text-xs">{T.notifSub}</p>
                 </div>
                 {notifStatus === 'granted' ? (
                   <div className="flex items-center gap-2 text-green-400 text-sm font-semibold">
-                    <Bell className="w-4 h-4" /> Activadas
+                    <Bell className="w-4 h-4" /> {T.notifOn}
                   </div>
                 ) : notifStatus === 'denied' ? (
                   <div className="max-w-[210px] text-right">
                     <div className="flex items-center justify-end gap-2 text-red-400 text-sm font-semibold mb-2">
-                      <BellOff className="w-4 h-4" /> Bloqueadas
+                      <BellOff className="w-4 h-4" /> {T.notifBlocked}
                     </div>
                     <p className="text-white/40 text-xs leading-relaxed mb-2">
                       <span className="text-white/60 font-semibold">Firefox Android:</span> Menú ⋮ → <span className="text-white/60">Configuración</span> → <span className="text-white/60">Permisos del sitio</span> → <span className="text-white/60">Notificaciones</span> → busca este sitio → selecciona <span className="text-white/70 font-semibold">Permitir</span>
@@ -164,7 +165,7 @@ import { useState, useEffect } from 'react'
                   <button onClick={enableNotifications} disabled={notifStatus === 'requesting'}
                     className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">
                     <Bell className="w-3.5 h-3.5" />
-                    {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
+                    {notifStatus === 'requesting' ? T.notifActivating : T.notifActivate}
                   </button>
                 )}
               </div>
@@ -172,7 +173,7 @@ import { useState, useEffect } from 'react'
 
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70">Mis Aplicaciones</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70">{T.myApps}</h2>
                 {availableApps.length > 0 && (
                   <button onClick={openAdd} className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
                     <Plus className="w-3.5 h-3.5" /> Agregar app
