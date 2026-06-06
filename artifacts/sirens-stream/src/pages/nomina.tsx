@@ -303,6 +303,7 @@ import React, { useState, useRef, useEffect } from 'react'
     const [dragging, setDragging] = useState(false)
     const [parsing, setParsing] = useState(false)
     const [parseError, setParseError] = useState<string | null>(null)
+    const [aiColDetect, setAiColDetect] = useState<string | null>(null)
     const [cobradas, setCobradas] = useState<Matched[]>([])
     const [noCobro, setNoCobro] = useState<NoCobro[]>([])
     const [sinPerfil, setSinPerfil] = useState<NominaRow[]>([])
@@ -442,6 +443,40 @@ import React, { useState, useRef, useEffect } from 'react'
         setPublishing(false)
       }
 
+      // Uses Groq AI to map unknown column headers to the required fields.
+      // Returns indices for each field, or -1 if not found.
+      async function detectColumnsWithAI(headers: string[]): Promise<Record<string, number>> {
+        const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined
+        if (!apiKey) return {}
+        try {
+          const prompt = [
+            'You are analyzing a streaming platform payroll spreadsheet.',
+            'Given these column headers (as a JSON array), return a JSON object mapping each field to its 0-based column index.',
+            'Fields to identify: uid (user/host ID), usd (dollar earnings), apodo (nickname/display name), semana (week/period), diamantes (diamonds/gems/coins), agencia (agency name).',
+            'If a field is not present use -1. Return ONLY valid JSON, no markdown, no explanation.',
+            'Headers: ' + JSON.stringify(headers),
+          ].join(' ')
+
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: [{ role: 'user', content: prompt }],
+              max_tokens: 120,
+              temperature: 0,
+            }),
+          })
+          const data = await res.json()
+          const raw = data.choices?.[0]?.message?.content ?? '{}'
+          // Extract JSON from response (strip any markdown fences)
+          const jsonStr = raw.replace(/```json?\n?/gi, '').replace(/```/g, '').trim()
+          return JSON.parse(jsonStr) as Record<string, number>
+        } catch {
+          return {}
+        }
+      }
+
       async function processFile(file: File) {
       if (!file.name.match(/\.xlsx?$/i)) return
       setParsing(true); setAiSummary(null); setParseError(null)
@@ -491,18 +526,40 @@ import React, { useState, useRef, useEffect } from 'react'
         }
 
         // Validate critical columns exist
-        const uidCol   = smartCOL('UID del Host')
-        const usdCol   = smartCOL('USD')
-        const apodoCol = smartCOL('Apodo')
-        const semanaCol = smartCOL('Semana')
-        const diaCol   = smartCOL('Diamantes Totales')
-        const agenciaCol = smartCOL('Nombre de la agencia')
+        let uidCol   = smartCOL('UID del Host')
+        let usdCol   = smartCOL('USD')
+        let apodoCol = smartCOL('Apodo')
+        let semanaCol = smartCOL('Semana')
+        let diaCol   = smartCOL('Diamantes Totales')
+        let agenciaCol = smartCOL('Nombre de la agencia')
 
+        // If keyword detection failed, let AI identify the columns
         if (uidCol === -1 || usdCol === -1) {
-          const found = headers.filter(Boolean).join(' | ')
-          throw new Error(
-            'No se encontraron las columnas de UID o USD.\n\nColumnas detectadas en el archivo:\n' + (found || '(ninguna)') + '\n\nAsegúrate de que el Excel tenga una columna con el ID del usuario y otra con el monto en dólares.'
-          )
+          setAiColDetect('🤖 Columnas no reconocidas — usando IA para identificarlas…')
+          const aiMap = await detectColumnsWithAI(headers)
+          if (uidCol   === -1 && aiMap.uid   !== undefined) uidCol   = aiMap.uid
+          if (usdCol   === -1 && aiMap.usd   !== undefined) usdCol   = aiMap.usd
+          if (apodoCol === -1 && aiMap.apodo !== undefined) apodoCol = aiMap.apodo
+          if (semanaCol=== -1 && aiMap.semana!== undefined) semanaCol= aiMap.semana
+          if (diaCol   === -1 && aiMap.diamantes!==undefined) diaCol = aiMap.diamantes
+          if (agenciaCol=== -1 && aiMap.agencia!==undefined) agenciaCol=aiMap.agencia
+
+          if (uidCol >= 0 && usdCol >= 0) {
+            const names = [
+              uidCol>=0 && `UID→"${headers[uidCol]}"`,
+              usdCol>=0 && `USD→"${headers[usdCol]}"`,
+              apodoCol>=0 && `Apodo→"${headers[apodoCol]}"`,
+              semanaCol>=0 && `Semana→"${headers[semanaCol]}"`,
+            ].filter(Boolean).join(', ')
+            setAiColDetect(`✅ IA identificó las columnas: ${names}`)
+          } else {
+            const found = headers.filter(Boolean).join(' | ')
+            throw new Error(
+              'No se encontraron las columnas de UID o USD (ni con IA).\n\nColumnas en el archivo:\n' + (found || '(ninguna)') + '\n\nRevisa que el Excel tenga una columna con el ID del usuario y otra con el monto.'
+            )
+          }
+        } else {
+          setAiColDetect(null)
         }
 
         const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
@@ -718,6 +775,11 @@ import React, { useState, useRef, useEffect } from 'react'
                     <p className="text-red-400 font-bold text-sm mb-1">❌ Error al procesar el archivo</p>
                     <pre className="text-red-300/70 text-xs whitespace-pre-wrap">{parseError}</pre>
                     <p className="text-white/30 text-xs mt-2">Verifica que el Excel sea de {nominaApp} y tenga las columnas correctas.</p>
+                  </div>
+                )}
+                {aiColDetect && !parseError && (
+                  <div className="mb-4 bg-purple-500/10 border border-purple-500/25 rounded-xl p-3 text-left">
+                    <p className="text-purple-300 text-xs font-semibold">{aiColDetect}</p>
                   </div>
                 )}
                 {parsing ? (
