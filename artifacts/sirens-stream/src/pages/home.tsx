@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
   import { useGetAgencyStats } from "@/lib/api-client";
   import { useShowAgencia } from "@/hooks/useShowAgencia";
 
-  const slides = [
+  const slides_es = [
     {
       badge: "Bienvenida a Eclipse Angels Agency",
       title: "Agencia de Streamers",
@@ -60,7 +60,7 @@ import { useState, useEffect } from "react";
     },
   ];
 
-  const benefits = [
+  const benefits_es = [
     { icon: DollarSign, title: "Cobras cada semana", desc: "Tus ganancias llegan en dólares cada semana, sin esperas ni excusas." },
     { icon: Shield, title: "Empiezas sin poner dinero", desc: "No necesitas invertir nada. Solo tu celular y tus ganas de trabajar." },
     { icon: Smartphone, title: "Solo necesitas tu celular", desc: "Trabaja desde tu casa, a cualquier hora, sin salir ni comprar nada." },
@@ -69,20 +69,20 @@ import { useState, useEffect } from "react";
     { icon: TrendingUp, title: "Creces con nosotras", desc: "Entrenamiento gratis, bonos por resultados y más oportunidades cuanto mejor te va." },
   ];
 
-  const steps = [
+  const steps_es = [
     { n: "01", title: "Escríbenos", desc: "Mándanos un mensaje por WhatsApp. Te contestamos en menos de 24 horas." },
     { n: "02", title: "Te enseñamos todo", desc: "Una de nuestras guías te explica cómo instalar la app y cómo empezar a ganar desde el primer día." },
     { n: "03", title: "Empieza a ganar", desc: "Abres la app, chateas con personas de cualquier parte del mundo y empiezas a acumular dinero." },
     { n: "04", title: "Recibes tu pago", desc: "Cada semana te mandamos lo que ganaste, al método de cobro que más te convenga." },
   ];
 
-  const earnings = [
+  const earnings_es = [
     { label: "$10 – $50", sub: "lo que puedes ganar en un día" },
     { label: "$100 – $500", sub: "a la semana si eres constante" },
     { label: "$1,000 – $2,000", sub: "al mes si le dedicas tiempo" },
   ];
 
-  const requirements = [
+  const requirements_es = [
     { icon: Heart, text: "Tener 18 años o más" },
     { icon: Camera, text: "Un celular con buena cámara" },
     { icon: Wifi, text: "Tener WiFi o datos en tu celular" },
@@ -91,15 +91,62 @@ import { useState, useEffect } from "react";
     { icon: Shield, text: "No necesitas experiencia" },
   ];
 
-  const infoCards = [
+  const infoCards_es = [
     { icon: Users, title: "Sobre Nosotros", desc: "Conoce nuestra historia y misión", href: "/nosotros" },
     { icon: MessageCircle, title: "Contacto Directo", desc: "Habla con nuestro equipo hoy", href: "/contacto" },
     { icon: Star, title: "Preguntas Frecuentes", desc: "Resolvemos todas tus dudas", href: "/nosotros" },
     { icon: CreditCard, title: "Métodos de Pago", desc: "Múltiples formas de recibir tu dinero", href: "/pagos" },
   ];
 
+
+  const slides_pt = [
+    { badge: "Bem-vinda à Eclipse Angels Agency", title: "Agência de Streamers", highlight: "& Chat Hostess", sub: "Zero Investimento · Em Casa · Em Dólares", desc: "Conectamos mulheres maiores de 18 anos com as melhores plataformas internacionais. Gere renda real usando apenas seu celular.", cta: { label: "Entrar na Agência", href: "/ser-streamer" }, accent: "from-blue-600 to-purple-600", glow: "bg-blue-600/10", bg: "/images/slide-bg-1.png", items: ["Sem investimento inicial", "Pagamentos semanais garantidos", "Suporte 24/7"] },
+    { badge: "Potencial de Ganhos", title: "Ganhe Até", highlight: "$2.000 USD/mês", sub: "Muitas das nossas streamers superam $500 semanais", desc: "Com constância e a orientação da nossa equipe, sua renda cresce semana a semana. Você começa do zero e vai longe.", cta: { label: "Ver como funciona", href: "/ser-streamer" }, accent: "from-emerald-500 to-teal-600", glow: "bg-emerald-600/10", bg: "/images/slide-bg-2.png", items: ["$10–$50 USD por dia", "$100–$500 USD semanais", "$1.000–$2.000 USD/mês"] },
+    { badge: "Apps Verificados", title: "Waha, Layla & Howdy", highlight: "Plataformas Líderes", sub: "Os apps mais rentáveis do mercado", desc: "Trabalhamos com as plataformas internacionais mais seguras e rentáveis. Saques semanais, meta mínima baixa e suporte constante.", cta: { label: "Ver Apps Disponíveis", href: "/apps" }, accent: "from-pink-500 to-red-500", glow: "bg-pink-600/10", bg: "/images/slide-bg-3.png", items: ["Waha: mensagens + videochamadas", "Layla: mensagens + salas de áudio", "Howdy: videochamadas + live + match"] },
+    { badge: "Sua Agência, Seu Time", title: "Crie Sua Própria", highlight: "Agência de Streamers", sub: "Lidere um time e multiplique sua renda", desc: "Já conhece o mundo do streaming? Forme seu próprio time, ganhe comissões e construa seu negócio do zero com nosso apoio.", cta: { label: "Criar minha Agência", href: "/crear-agencia" }, accent: "from-amber-500 to-orange-500", glow: "bg-amber-600/10", bg: "/images/slide-bg-4.png", items: ["Capacitação completa", "Bônus por desempenho", "Ferramentas de gestão"] },
+  ];
+  const benefits_pt = [
+    { icon: DollarSign, title: "Recebe toda semana", desc: "Seus ganhos chegam em dólares toda semana, sem esperas nem desculpas." },
+    { icon: Shield, title: "Começa sem investir nada", desc: "Não precisa investir nada. Só seu celular e vontade de trabalhar." },
+    { icon: Smartphone, title: "Só precisa do seu celular", desc: "Trabalhe de casa, a qualquer hora, sem sair nem comprar nada." },
+    { icon: Users, title: "Sempre tem alguém", desc: "Há alguém disponível para te ajudar a qualquer momento do dia." },
+    { icon: Clock, title: "Você define seu horário", desc: "Decide quando trabalhar e por quanto tempo. O trabalho se adapta a você." },
+    { icon: TrendingUp, title: "Cresce com a gente", desc: "Treinamento grátis, bônus por resultados e mais oportunidades quanto melhor for seu desempenho." },
+  ];
+  const steps_pt = [
+    { n: "01", title: "Fale conosco", desc: "Mande uma mensagem pelo WhatsApp. Respondemos em menos de 24 horas." },
+    { n: "02", title: "Ensinamos tudo", desc: "Uma de nossas guias te explica como instalar o app e como começar a ganhar desde o primeiro dia." },
+    { n: "03", title: "Começa a ganhar", desc: "Você abre o app, conversa com pessoas de qualquer parte do mundo e começa a acumular dinheiro." },
+    { n: "04", title: "Recebe seu pagamento", desc: "Toda semana te enviamos o que você ganhou, pelo método de recebimento mais conveniente." },
+  ];
+  const earnings_pt = [
+    { label: "$10 – $50", sub: "o que você pode ganhar em um dia" },
+    { label: "$100 – $500", sub: "por semana se for constante" },
+    { label: "$1.000 – $2.000", sub: "por mês se dedicar tempo" },
+  ];
+  const requirements_pt = [
+    { icon: Heart, text: "Ter 18 anos ou mais" },
+    { icon: Camera, text: "Um celular com boa câmera" },
+    { icon: Wifi, text: "Ter WiFi ou dados no celular" },
+    { icon: Clock, text: "4–5 horas livres por dia" },
+    { icon: Star, text: "Vontade de aprender e melhorar" },
+    { icon: Shield, text: "Não precisa de experiência" },
+  ];
+  const infoCards_pt = [
+    { icon: Users, title: "Sobre Nós", desc: "Conheça nossa história e missão", href: "/nosotros" },
+    { icon: MessageCircle, title: "Contato Direto", desc: "Fale com nossa equipe hoje", href: "/contacto" },
+    { icon: Star, title: "Perguntas Frequentes", desc: "Respondemos todas as suas dúvidas", href: "/nosotros" },
+    { icon: CreditCard, title: "Métodos de Pagamento", desc: "Múltiplas formas de receber seu dinheiro", href: "/pagos" },
+  ];
   export default function Home() {
     const showAgencia = useShowAgencia();
+    const { lang } = useLanguage();
+    const slides = lang === 'pt' ? slides_pt : slides_es;
+    const benefits = lang === 'pt' ? benefits_pt : benefits_es;
+    const steps = lang === 'pt' ? steps_pt : steps_es;
+    const earnings = lang === 'pt' ? earnings_pt : earnings_es;
+    const requirements = lang === 'pt' ? requirements_pt : requirements_es;
+    const infoCards = lang === 'pt' ? infoCards_pt : infoCards_es;
     const { data: stats } = useGetAgencyStats();
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState(1);
@@ -209,7 +256,7 @@ import { useState, useEffect } from "react";
                     </Link>
                     <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3.5 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                      Contactar
+                      {lang === 'pt' ? 'Contato' : 'Contactar'}
                     </a>
                   </div>
                 </motion.div>
