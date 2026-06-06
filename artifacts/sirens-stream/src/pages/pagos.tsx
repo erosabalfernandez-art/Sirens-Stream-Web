@@ -240,6 +240,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
               </div>
             </div>
           </section>
+      {/* SEO keywords */}
+      <section aria-hidden="true" className="px-6 pb-6 max-w-5xl mx-auto">
+        <p className="text-[9px] text-white/15 leading-relaxed select-none">
+          cuánto gana un streamer · pagos Waha · pagos Howdy · pagos Layla · cómo cobrar en Waha · cómo cobrar en Howdy · cómo cobrar en Layla · retiro de dinero streaming · cuánto paga Waha · cuánto paga Howdy · cuánto paga Layla · salario streamer · ingresos streamer latina · ganar dólares streaming · pagos semanales streaming · método de pago Waha · método de pago Howdy · método de pago Layla · cuánto se gana siendo streamer · sueldo streamer · ganancias streaming · pago en dólares desde casa
+        </p>
+      </section>
         </div>
       );
     }
