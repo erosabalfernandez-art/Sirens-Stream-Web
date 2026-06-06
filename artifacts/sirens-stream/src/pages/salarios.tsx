@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+  import { useLanguage } from '@/contexts/LanguageContext'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase } from '@/lib/supabase'
@@ -15,6 +16,7 @@ import { useState, useEffect } from 'react'
   }
 
   function fmt(n: number) { return Number(n).toLocaleString('es-ES') }
+
 
   export default function Salarios() {
     const { user, loading } = useAuth()
@@ -55,7 +57,7 @@ import { useState, useEffect } from 'react'
 
     if (loading) return (
       <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
-        <div className="text-white/40 animate-pulse">Cargando...</div>
+        <div className="text-white/40 animate-pulse">{T.loading}</div>
       </div>
     )
 
@@ -65,10 +67,10 @@ import { useState, useEffect } from 'react'
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 rounded-full px-3 py-1 mb-3">
               <DollarSign className="w-3 h-3 text-green-400" />
-              <span className="text-green-300 text-xs font-semibold uppercase tracking-wider">Mis Salarios</span>
+              <span className="text-green-300 text-xs font-semibold uppercase tracking-wider">{T.badge}</span>
             </div>
-            <h1 className="text-2xl font-extrabold">Tu historial de pagos</h1>
-            <p className="text-white/40 text-sm mt-1">Eclipse Angels Agency · máx. 10 semanas guardadas</p>
+            <h1 className="text-2xl font-extrabold">{T.title}</h1>
+            <p className="text-white/40 text-sm mt-1">{T.subtitle}</p>
           </div>
 
           {fetching ? (
@@ -78,8 +80,8 @@ import { useState, useEffect } from 'react'
           ) : salaries.length === 0 ? (
             <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-16 text-center">
               <DollarSign className="w-12 h-12 text-white/10 mx-auto mb-4" />
-              <p className="text-white/40 text-sm">Aún no tienes salarios publicados.</p>
-              <p className="text-white/25 text-xs mt-1">Tu agencia publicará tus ganancias semanalmente.</p>
+              <p className="text-white/40 text-sm">{T.empty1}</p>
+              <p className="text-white/25 text-xs mt-1">{T.empty2}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -102,7 +104,7 @@ import { useState, useEffect } from 'react'
                                   <Calendar className="w-4 h-4 text-green-400" />
                                 </div>
                                 <div>
-                                  <p className="font-bold text-sm">Semana {s.semana}</p>
+                                  <p className="font-bold text-sm">{T.week} {s.semana}</p>
                                   <p className="text-white/30 text-xs mt-0.5">
                                     {new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                                   </p>
@@ -122,11 +124,11 @@ import { useState, useEffect } from 'react'
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <button onClick={() => deleteSalary(s.id)} disabled={isDeleting}
                                       className="text-xs bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50">
-                                      {isDeleting ? '...' : 'Borrar'}
+                                      {isDeleting ? '...' : T.deleteBtn}
                                     </button>
                                     <button onClick={() => setDeleteConfirm(null)}
                                       className="text-xs bg-white/8 hover:bg-white/15 text-white/60 font-semibold px-3 py-1.5 rounded-lg transition-all">
-                                      No
+                                      {T.cancelBtn}
                                     </button>
                                   </div>
                                 ) : (
@@ -142,8 +144,8 @@ import { useState, useEffect } from 'react'
                                 <button onClick={() => toggle(s.id)}
                                   className="w-full flex items-center justify-center gap-2 px-5 py-2.5 border-t border-purple-500/8 text-xs font-semibold text-white/30 hover:text-purple-300 hover:bg-purple-500/5 transition-all">
                                   {isOpen
-                                    ? <><ChevronUp className="w-3.5 h-3.5" />Ocultar detalles</>
-                                    : <><ChevronDown className="w-3.5 h-3.5" />Ver detalles</>}
+                                    ? <><ChevronUp className="w-3.5 h-3.5" />{T.hideDetails}</>
+                                    : <><ChevronDown className="w-3.5 h-3.5" />{T.showDetails}</>}
                                 </button>
                                 {isOpen && (
                                   <div className="px-5 pb-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-purple-500/8 pt-3">
