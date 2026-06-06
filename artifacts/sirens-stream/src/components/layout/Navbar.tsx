@@ -2,8 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { User, LogOut, Shield, FileSpreadsheet, DollarSign, Radio, Bell } from "lucide-react";
-import { subscribeToPush } from "@/lib/push";
+import { User, LogOut, Shield, FileSpreadsheet, DollarSign, Radio } from "lucide-react";
 
 const PUBLIC_LINKS = [
   { href: "/", label: "Home" },
@@ -24,8 +23,6 @@ export function Navbar() {
     navigate("/");
   }
   const [showAgencia, setShowAgencia] = useState(true);
-  const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'inactive'>('unknown');
-  const [activatingPush, setActivatingPush] = useState(false);
 
   const isAdmin = profile?.is_admin;
 
@@ -45,25 +42,6 @@ export function Navbar() {
         if (data) setShowAgencia(data.value !== "false");
       });
   }, []);
-
-  useEffect(() => {
-    if (!user || isAdmin) return;
-    (async () => {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setPushStatus('inactive'); return; }
-      const reg = await navigator.serviceWorker.getRegistration('/sw.js').catch(() => null);
-      if (!reg) { setPushStatus('inactive'); return; }
-      const sub = await reg.pushManager.getSubscription().catch(() => null);
-      setPushStatus(sub ? 'active' : 'inactive');
-    })();
-  }, [user, isAdmin]);
-
-  async function activatePush() {
-    if (!user || activatingPush) return;
-    setActivatingPush(true);
-    const ok = await subscribeToPush(user.id);
-    setPushStatus(ok ? 'active' : 'inactive');
-    setActivatingPush(false);
-  }
 
   const publicLinks = PUBLIC_LINKS.filter(
     (l) => l.key !== "agencia" || showAgencia
@@ -115,18 +93,6 @@ export function Navbar() {
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === '/canales' ? 'text-blue-200 bg-blue-500/15' : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'}`}>
                       <Radio className="w-3.5 h-3.5" /> Canales
                     </Link>
-                    {pushStatus === 'inactive' && (
-                      <button onClick={activatePush} disabled={activatingPush}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] disabled:opacity-60">
-                        {activatingPush ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
-                        Activar notificaciones
-                      </button>
-                    )}
-                    {pushStatus === 'active' && (
-                      <span className="flex items-center gap-1 px-2 py-2 text-xs text-green-400 font-semibold">
-                        <Bell className="w-3.5 h-3.5" /> Notifs ✓
-                      </span>
-                    )}
                   </>
                 )}
                 <Link href="/perfil"
@@ -196,18 +162,6 @@ export function Navbar() {
                   <Link href="/canales" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === '/canales' ? 'text-blue-200 bg-blue-500/20 border border-blue-500/30' : 'text-blue-400 hover:bg-blue-500/10'}`}>
                     <Radio className="w-3 h-3" /> Canales
                   </Link>
-                  {pushStatus === 'inactive' && (
-                    <button onClick={activatePush} disabled={activatingPush}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-purple-600 text-white hover:bg-purple-500 transition-all">
-                      {activatingPush ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3 h-3" />}
-                      Notificaciones
-                    </button>
-                  )}
-                  {pushStatus === 'active' && (
-                    <span className="flex items-center gap-1 px-2 py-1.5 text-xs text-green-400 font-semibold whitespace-nowrap">
-                      <Bell className="w-3 h-3" /> Notifs ✓
-                    </span>
-                  )}
                 </>
               )}
             </>
