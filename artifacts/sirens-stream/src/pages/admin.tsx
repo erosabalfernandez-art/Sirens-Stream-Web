@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell } from 'lucide-react'
   import { sendPushViaApi } from '@/lib/push'
 
     interface WorkerRow extends WorkerEntry {
@@ -106,7 +106,7 @@ import { useState, useEffect, useRef } from 'react'
       const [filterIdApp, setFilterIdApp] = useState(() => { try { return localStorage.getItem('ea_af_id_app') ?? '' } catch { return '' } })
       const [filterTelefono, setFilterTelefono] = useState(() => { try { return localStorage.getItem('ea_af_telefono') ?? '' } catch { return '' } })
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos'>('list')
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
@@ -120,8 +120,51 @@ import { useState, useEffect, useRef } from 'react'
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
+        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy') ?? 'Waha' } catch { return 'Waha' } })
+        const [pagosData, setPagosData] = useState<any[]>([])
+        const [pagosLoading, setPagosLoading] = useState(false)
+        const [pagosSemana, setPagosSemana] = useState('')
+        const [pagosNeedSetup, setPagosNeedSetup] = useState(false)
         const [testPushSending, setTestPushSending] = useState<Record<string, boolean>>({})
         const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
+        async function fetchPagosData(app: string) {
+          try { localStorage.setItem('ea_pagos_app', app) } catch {}
+          setPagosLoading(true); setPagosNeedSetup(false)
+          const { data: semanaData, error: semErr } = await supabase
+            .from('published_salaries').select('semana').eq('app_name', app)
+            .order('semana', { ascending: false }).limit(1).maybeSingle()
+          if (semErr || !semanaData) { setPagosData([]); setPagosSemana(''); setPagosLoading(false); return }
+          const semana = semanaData.semana
+          setPagosSemana(semana)
+          const { data: salaries } = await supabase.from('published_salaries')
+            .select('*').eq('app_name', app).eq('semana', semana)
+          if (!salaries || salaries.length === 0) { setPagosData([]); setPagosLoading(false); return }
+          const userIds = (salaries as any[]).map((s: any) => s.user_id)
+          const salaryIds = (salaries as any[]).map((s: any) => s.id)
+          const [{ data: profiles }, { data: workers }, { data: confirmations, error: confErr }] = await Promise.all([
+            supabase.from('profiles').select('id, email').in('id', userIds),
+            supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera').eq('app_name', app).in('user_id', userIds),
+            supabase.from('payment_confirmations').select('salary_id, confirmed_at').in('salary_id', salaryIds),
+          ])
+          if (confErr?.code === '42P01') { setPagosNeedSetup(true); setPagosLoading(false); return }
+          const profileMap: Record<string,string> = Object.fromEntries(((profiles ?? []) as any[]).map((p: any) => [p.id, p.email]))
+          const workerMap: Record<string,any> = Object.fromEntries(((workers ?? []) as any[]).map((w: any) => [w.user_id, w]))
+          const confMap: Record<string,string> = Object.fromEntries(((confirmations ?? []) as any[]).map((c: any) => [c.salary_id, c.confirmed_at]))
+          const merged = (salaries as any[]).map((s: any) => {
+            const w = workerMap[s.user_id] ?? {}
+            const confAt = confMap[s.id]
+            return {
+              salary_id: s.id, user_id: s.user_id, semana: s.semana, usd: Number(s.usd),
+              apodo: (s.extras?.Apodo ?? s.extras?.apodo ?? s.extras?.Nick ?? w.nombre_en_app ?? '—') as string,
+              nombre_real: w.nombre_real ?? null, nombre_en_app: w.nombre_en_app ?? null,
+              email: profileMap[s.user_id] ?? '—',
+              metodo_pago: w.metodo_pago ?? null, billetera: w.billetera ?? null,
+              confirmed: !!confAt, confirmed_at: confAt ?? null,
+            }
+          })
+          setPagosData(merged); setPagosLoading(false)
+        }
+
         async function notifyApp(app: string, type: 'salary' | 'canal') {
           const key = `${app}_${type}`
           setNotifying(p => ({ ...p, [key]: true }))
@@ -338,6 +381,11 @@ import { useState, useEffect, useRef } from 'react'
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'notifs' ? 'bg-green-700 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Bell className="w-3.5 h-3.5" />
                 Notificaciones
+              </button>
+              <button onClick={() => { setTab('pagos'); fetchPagosData(pagosApp) }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'pagos' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                <DollarSign className="w-3.5 h-3.5" />
+                Control Pagos
               </button>
             </div>
 
@@ -667,6 +715,155 @@ import { useState, useEffect, useRef } from 'react'
                         </div>
                       ))}
                     </div>
+                  )}
+                </div>
+              )}
+
+
+              {tab === 'pagos' && (
+                <div className="space-y-5">
+                  {/* App selector + header */}
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">Control de Pagos Semanales</p>
+                      {pagosSemana && <p className="text-xs text-white/35 mt-0.5">Semana activa: {pagosSemana}</p>}
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
+                        <button key={a} onClick={() => { setPagosApp(a); fetchPagosData(a) }}
+                          className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === a ? 'bg-emerald-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
+                          {a}
+                        </button>
+                      ))}
+                      <button onClick={() => fetchPagosData(pagosApp)} disabled={pagosLoading}
+                        className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
+                        {pagosLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SQL setup notice */}
+                  {pagosNeedSetup && (
+                    <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-5">
+                      <p className="text-amber-300 text-sm font-bold mb-2">⚠️ Falta crear la tabla en Supabase</p>
+                      <p className="text-white/50 text-xs mb-3">Ejecuta este SQL en el Editor SQL de Supabase para activar el sistema de confirmación de pagos:</p>
+                      <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all text-left">{`CREATE TABLE IF NOT EXISTS payment_confirmations (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  salary_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  app_name text NOT NULL,
+  semana text NOT NULL,
+  confirmed_at timestamptz DEFAULT now(),
+  UNIQUE(salary_id)
+);
+ALTER TABLE payment_confirmations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "users_insert_own" ON payment_confirmations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "users_read_own" ON payment_confirmations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
+  auth.uid() IN (SELECT id FROM profiles WHERE is_admin = true)
+);`}
+                      </pre>
+                      <p className="text-white/30 text-xs mt-3">Después de crearlo, recarga esta página.</p>
+                    </div>
+                  )}
+
+                  {/* Layla / Howdy not yet */}
+                  {(pagosApp === 'Layla' || pagosApp === 'Howdy') && !pagosNeedSetup && (
+                    <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-10 text-center">
+                      <Clock className="w-10 h-10 text-amber-400/40 mx-auto mb-3" />
+                      <p className="text-amber-300/70 text-sm font-semibold">Nómina de {pagosApp} no implementada aún</p>
+                      <p className="text-white/30 text-xs mt-1">Disponible en cuanto subas la primera nómina de {pagosApp}.</p>
+                    </div>
+                  )}
+
+                  {/* Waha (or any app with data) */}
+                  {!pagosNeedSetup && (
+                    pagosLoading ? (
+                      <div className="space-y-3">
+                        {[1,2,3,4].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
+                      </div>
+                    ) : !pagosSemana ? (
+                      <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                        <DollarSign className="w-10 h-10 text-white/10 mx-auto mb-3" />
+                        <p className="text-white/40 text-sm">No hay nómina publicada para {pagosApp} todavía.</p>
+                        <p className="text-white/25 text-xs mt-1">Sube la nómina desde la sección Nómina para ver el control aquí.</p>
+                      </div>
+                    ) : pagosData.length === 0 ? (
+                      <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                        <p className="text-white/40 text-sm">No hay datos de pago para la semana {pagosSemana}.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-5">
+                        {/* Stats bar */}
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl p-4 text-center">
+                            <p className="text-2xl font-extrabold text-green-400">{pagosData.filter((r: any) => r.confirmed).length}</p>
+                            <p className="text-xs text-white/40 mt-1">Confirmaron pago</p>
+                          </div>
+                          <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-4 text-center">
+                            <p className="text-2xl font-extrabold text-amber-400">{pagosData.filter((r: any) => !r.confirmed).length}</p>
+                            <p className="text-xs text-white/40 mt-1">Sin confirmar</p>
+                          </div>
+                          <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
+                            <p className="text-2xl font-extrabold text-purple-400">{pagosData.length}</p>
+                            <p className="text-xs text-white/40 mt-1">Total cobraron</p>
+                          </div>
+                        </div>
+
+                        {/* Confirmed list */}
+                        {pagosData.filter((r: any) => r.confirmed).length > 0 && (
+                          <div>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-green-400/70 mb-3 px-1">
+                              ✓ Confirmaron recibir pago ({pagosData.filter((r: any) => r.confirmed).length})
+                            </h3>
+                            <div className="space-y-2">
+                              {pagosData.filter((r: any) => r.confirmed).map((row: any) => (
+                                <div key={row.salary_id} className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl px-5 py-3 flex items-center gap-4">
+                                  <div className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center shrink-0">
+                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                    <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-green-400">${row.usd.toFixed(2)} USD</span></p>
+                                    {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="text-xs text-green-400 font-bold">Confirmado ✓</p>
+                                    {row.confirmed_at && (
+                                      <p className="text-xs text-white/25">{new Date(row.confirmed_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Pending list */}
+                        {pagosData.filter((r: any) => !r.confirmed).length > 0 && (
+                          <div>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-3 px-1">
+                              ⏳ Faltan por confirmar ({pagosData.filter((r: any) => !r.confirmed).length})
+                            </h3>
+                            <div className="space-y-2">
+                              {pagosData.filter((r: any) => !r.confirmed).map((row: any) => (
+                                <div key={row.salary_id} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-5 py-3 flex items-center gap-4">
+                                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                                    <Clock className="w-4 h-4 text-amber-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                    <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-amber-400">${row.usd.toFixed(2)} USD</span></p>
+                                    {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
+                                  </div>
+                                  <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-3 py-1 rounded-full font-semibold shrink-0">Sin confirmar</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
                   )}
                 </div>
               )}
