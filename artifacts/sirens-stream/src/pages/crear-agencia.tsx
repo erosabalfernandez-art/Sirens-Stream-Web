@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
   import { Users, TrendingUp, DollarSign, CheckCircle2, ArrowRight, Star, Zap, Globe, Shield, Clock, Award } from "lucide-react";
 
   const ofertas_es = [
