@@ -10,6 +10,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { FloatingSocials } from "@/components/layout/FloatingSocials";
   import { AngelaChat } from "@/components/chat/SirenaChat";
   import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+  import { LanguageProvider } from "@/contexts/LanguageContext";
 
   function ScrollToTop() {
     const [location] = useLocation();
