@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-    import { CheckCircle2, ArrowRight, DollarSign, Clock, Shield, Link} from "lucide-react";
+    import {CheckCircle2, ArrowRight, DollarSign, Clock, Shield} from "lucide-react";
 
     /* ── Payment method SVG icons ── */
     const BinanceIcon = () => (
