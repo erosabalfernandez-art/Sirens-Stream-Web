@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
+  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 
   interface PublishedSalary {
     id: string
@@ -22,6 +22,8 @@ import { useState, useEffect } from 'react'
     const [salaries, setSalaries] = useState<PublishedSalary[]>([])
     const [fetching, setFetching] = useState(true)
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+    const [deleting, setDeleting] = useState<string | null>(null)
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => { if (user) { fetchSalaries() } }, [user])
@@ -35,6 +37,14 @@ import { useState, useEffect } from 'react'
         .order('created_at', { ascending: false })
       setSalaries((data as PublishedSalary[]) ?? [])
       setFetching(false)
+    }
+
+    async function deleteSalary(id: string) {
+      setDeleting(id)
+      const { error } = await supabase.from('published_salaries').delete().eq('id', id)
+      if (!error) setSalaries(prev => prev.filter(s => s.id !== id))
+      setDeleting(null)
+      setDeleteConfirm(null)
     }
 
     function toggle(id: string) {
@@ -58,7 +68,7 @@ import { useState, useEffect } from 'react'
               <span className="text-green-300 text-xs font-semibold uppercase tracking-wider">Mis Salarios</span>
             </div>
             <h1 className="text-2xl font-extrabold">Tu historial de pagos</h1>
-            <p className="text-white/40 text-sm mt-1">Eclipse Angels Agency</p>
+            <p className="text-white/40 text-sm mt-1">Eclipse Angels Agency · máx. 10 semanas guardadas</p>
           </div>
 
           {fetching ? (
@@ -81,6 +91,8 @@ import { useState, useEffect } from 'react'
                     <div className="space-y-3">
                       {appSalaries.map(s => {
                         const isOpen = expanded.has(s.id)
+                        const isConfirming = deleteConfirm === s.id
+                        const isDeleting = deleting === s.id
                         const extraEntries = s.extras ? Object.entries(s.extras).filter(([, v]) => v !== '' && v !== null) : []
                         return (
                           <div key={s.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
@@ -96,14 +108,33 @@ import { useState, useEffect } from 'react'
                                   </p>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <p className="text-xl font-extrabold text-green-400">
-                                  ${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-                                </p>
-                                <div className="flex items-center justify-end gap-1 mt-0.5">
-                                  <Gem className="w-3.5 h-3.5 text-purple-400" />
-                                  <span className="text-purple-300 text-sm font-semibold">{fmt(s.diamantes)}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                  <p className="text-xl font-extrabold text-green-400">
+                                    ${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                                  </p>
+                                  <div className="flex items-center justify-end gap-1 mt-0.5">
+                                    <Gem className="w-3.5 h-3.5 text-purple-400" />
+                                    <span className="text-purple-300 text-sm font-semibold">{fmt(s.diamantes)}</span>
+                                  </div>
                                 </div>
+                                {isConfirming ? (
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button onClick={() => deleteSalary(s.id)} disabled={isDeleting}
+                                      className="text-xs bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50">
+                                      {isDeleting ? '...' : 'Borrar'}
+                                    </button>
+                                    <button onClick={() => setDeleteConfirm(null)}
+                                      className="text-xs bg-white/8 hover:bg-white/15 text-white/60 font-semibold px-3 py-1.5 rounded-lg transition-all">
+                                      No
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => setDeleteConfirm(s.id)} title="Eliminar"
+                                    className="text-white/20 hover:text-red-400 transition-colors shrink-0 p-1">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             </div>
                             {extraEntries.length > 0 && (
