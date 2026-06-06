@@ -320,6 +320,17 @@ import React, { useState, useRef, useEffect } from 'react'
       const [historyFilterSemana, setHistoryFilterSemana] = useState('')
       const [historyFilterApp, setHistoryFilterApp] = useState('')
       const [deletingHistId, setDeletingHistId] = useState<string | null>(null)
+        // Nomina filter state (persisted in localStorage)
+        const [fPais, setFPais] = useState(() => { try { return localStorage.getItem('ea_nf_pais') ?? '' } catch { return '' } })
+        const [fPago, setFPago] = useState(() => { try { return localStorage.getItem('ea_nf_pago') ?? '' } catch { return '' } })
+        const [fEmail, setFEmail] = useState(() => { try { return localStorage.getItem('ea_nf_email') ?? '' } catch { return '' } })
+        const [fBilletera, setFBilletera] = useState(() => { try { return localStorage.getItem('ea_nf_billetera') ?? '' } catch { return '' } })
+        const [fAgente, setFAgente] = useState(() => { try { return localStorage.getItem('ea_nf_agente') ?? '' } catch { return '' } })
+        const [fNombreReal, setFNombreReal] = useState(() => { try { return localStorage.getItem('ea_nf_nombre_real') ?? '' } catch { return '' } })
+        const [fNombreApp, setFNombreApp] = useState(() => { try { return localStorage.getItem('ea_nf_nombre_app') ?? '' } catch { return '' } })
+        const [fIdApp, setFIdApp] = useState(() => { try { return localStorage.getItem('ea_nf_id_app') ?? '' } catch { return '' } })
+        const [fTelefono, setFTelefono] = useState(() => { try { return localStorage.getItem('ea_nf_telefono') ?? '' } catch { return '' } })
+        const [fSortDir, setFSortDir] = useState<'desc'|'asc'>(() => { try { return (localStorage.getItem('ea_nf_sort') as 'desc'|'asc') ?? 'desc' } catch { return 'desc' } })
 
       // Restore last processed nómina when navigating back
       useEffect(() => {
@@ -345,6 +356,17 @@ import React, { useState, useRef, useEffect } from 'react'
         if (step !== 'results' || cobradas.length === 0) return
         try { sessionStorage.setItem('ea_nomina_state', JSON.stringify({ cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary })) } catch {}
       }, [step, cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary])
+
+        // Persist nomina filters to localStorage
+        useEffect(() => {
+          try {
+            localStorage.setItem('ea_nf_pais', fPais); localStorage.setItem('ea_nf_pago', fPago)
+            localStorage.setItem('ea_nf_email', fEmail); localStorage.setItem('ea_nf_billetera', fBilletera)
+            localStorage.setItem('ea_nf_agente', fAgente); localStorage.setItem('ea_nf_nombre_real', fNombreReal)
+            localStorage.setItem('ea_nf_nombre_app', fNombreApp); localStorage.setItem('ea_nf_id_app', fIdApp)
+            localStorage.setItem('ea_nf_telefono', fTelefono); localStorage.setItem('ea_nf_sort', fSortDir)
+          } catch {}
+        }, [fPais, fPago, fEmail, fBilletera, fAgente, fNombreReal, fNombreApp, fIdApp, fTelefono, fSortDir])
 
     if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
@@ -526,6 +548,23 @@ import React, { useState, useRef, useEffect } from 'react'
 
     const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
     const totalDiamonds = cobradas.reduce((s, m) => s + m.nomina.diamantes, 0)
+        const cobradasFiltered = cobradas.filter(({ worker: w }) => {
+          if (fPais && w.pais !== fPais) return false
+          if (fPago && w.metodo_pago !== fPago) return false
+          if (fEmail && !w.profile_email.toLowerCase().includes(fEmail.toLowerCase())) return false
+          if (fBilletera && !(w.billetera ?? '').toLowerCase().includes(fBilletera.toLowerCase())) return false
+          if (fAgente && !(w.agente ?? '').toLowerCase().includes(fAgente.toLowerCase())) return false
+          if (fNombreReal && !(w.nombre_real ?? '').toLowerCase().includes(fNombreReal.toLowerCase())) return false
+          if (fNombreApp && !(w.nombre_en_app ?? '').toLowerCase().includes(fNombreApp.toLowerCase())) return false
+          if (fIdApp && !(w.id_aplicacion ?? '').toLowerCase().includes(fIdApp.toLowerCase())) return false
+          if (fTelefono && !(w.telefono ?? '').toLowerCase().includes(fTelefono.toLowerCase())) return false
+          return true
+        }).sort((a, b) => fSortDir === 'desc' ? b.nomina.usd - a.nomina.usd : a.nomina.usd - b.nomina.usd)
+        const nfHasFilters = !!(fPais || fPago || fEmail || fBilletera || fAgente || fNombreReal || fNombreApp || fIdApp || fTelefono)
+        function clearNominaFilters() {
+          setFPais(''); setFPago(''); setFEmail(''); setFBilletera('')
+          setFAgente(''); setFNombreReal(''); setFNombreApp(''); setFIdApp(''); setFTelefono('')
+        }
 
     if (loading) return <SplashLoader msg="Cargando..." />
     if (!profile?.is_admin) return <SplashLoader msg="Sin acceso" />
@@ -672,9 +711,103 @@ import React, { useState, useRef, useEffect } from 'react'
 
               {tab === 'cobradas' && (
                 <div className="space-y-4">
+                  {/* Filters */}
+                  <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Filter className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm font-semibold text-white/70">Filtros</span>
+                      <span className="ml-1 text-xs text-white/30">{cobradasFiltered.length}/{cobradas.length}</span>
+                      <button onClick={() => setFSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                        className="flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors ml-2">
+                        {fSortDir === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />} Salario
+                      </button>
+                      {nfHasFilters && (
+                        <button onClick={clearNominaFilters}
+                          className="ml-auto flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors">
+                          <X className="w-3 h-3" /> Limpiar
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">País</label>
+                        <select value={fPais} onChange={e => setFPais(e.target.value)}
+                          className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
+                          {COUNTRIES.map(c => <option key={c} value={c}>{c || 'Todos'}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Método de pago</label>
+                        <select value={fPago} onChange={e => setFPago(e.target.value)}
+                          className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
+                          {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m || 'Todos'}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Nombre real</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={fNombreReal} onChange={e => setFNombreReal(e.target.value)} placeholder="Nombre real..."
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Nombre en app</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={fNombreApp} onChange={e => setFNombreApp(e.target.value)} placeholder="Nickname en app..."
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">ID en app</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={fIdApp} onChange={e => setFIdApp(e.target.value)} placeholder="ID de cuenta..."
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Email</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="correo@..."
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Teléfono</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={fTelefono} onChange={e => setFTelefono(e.target.value)} placeholder="Número..."
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Billetera</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={fBilletera} onChange={e => setFBilletera(e.target.value)} placeholder="Buscar billetera..."
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Agente</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={fAgente} onChange={e => setFAgente(e.target.value)} placeholder="Nombre del agente..."
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {cobradasFiltered.length === 0 && cobradas.length > 0 && <Empty msg="No hay resultados con los filtros aplicados." />}
                   {cobradas.length === 0 && <Empty msg="Ninguna chica cobró o no se encontraron coincidencias." />}
-                  {cobradas.map(({ worker: w, nomina: n }) => {
+                  {cobradasFiltered.map(({ worker: w, nomina: n }) => {
                     const isOpen = expanded.has(n.uid)
+                    const waNum = [w.codigo_pais, w.telefono].filter(Boolean).join('').replace(/\D/g, '')
+                    const waLink = waNum ? `https://wa.me/${waNum}` : null
                     return (
                       <div key={n.uid} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
                         <div className="px-5 py-4 flex items-start justify-between gap-4">
@@ -684,10 +817,17 @@ import React, { useState, useRef, useEffect } from 'react'
                               <p className="font-bold text-base leading-tight">{n.apodo}</p>
                               {w.nombre_real && <p className="text-white/40 text-xs mt-0.5">{w.nombre_real}</p>}
                               <p className="text-white/30 text-xs mt-0.5">{w.profile_email}</p>
+                              {waLink ? (
+                                <a href={waLink} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-green-400 hover:text-green-300 transition-colors">
+                                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                  {w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono}
+                                </a>
+                              ) : (w.telefono && <p className="text-white/30 text-xs mt-0.5">{w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}</p>)}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-2xl font-extrabold text-green-400">${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
+                            <p className="text-2xl font-extrabold text-green-400">{`$${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}</p>
                             <div className="flex items-center justify-end gap-1 mt-0.5">
                               <Gem className="w-3.5 h-3.5 text-purple-400" />
                               <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
@@ -697,7 +837,7 @@ import React, { useState, useRef, useEffect } from 'react'
                         <div className="px-5 pb-4 border-t border-purple-500/8">
                           <p className="text-white/25 text-xs font-semibold uppercase tracking-wider mb-2.5 pt-3">Datos del perfil</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-                            {([['UID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Billetera', w.billetera],['Agente', w.agente],['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono]] as [string,string|null][]).map(([label, val]) => (
+                            {([['UID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Billetera', w.billetera],['Agente', w.agente]] as [string,string|null][]).map(([label, val]) => (
                               <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><CopyBtn value={val} /></div>
                             ))}
                           </div>
