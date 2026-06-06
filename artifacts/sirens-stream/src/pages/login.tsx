@@ -1,6 +1,7 @@
 import { useState } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
+  import { useLanguage } from '@/contexts/LanguageContext'
   import { LogIn, UserPlus, Eye, EyeOff } from 'lucide-react'
 
   type Tab = 'login' | 'register'
@@ -15,6 +16,21 @@ import { useState } from 'react'
     const [success, setSuccess] = useState<string | null>(null)
     const { signIn, signUp } = useAuth()
     const [, navigate] = useLocation()
+    const { lang } = useLanguage()
+
+    const T = {
+      title:      lang === 'pt' ? 'Portal das Trabalhadoras' : 'Portal de Trabajadoras',
+      tabLogin:   lang === 'pt' ? 'Entrar' : 'Iniciar sesión',
+      tabReg:     lang === 'pt' ? 'Criar conta' : 'Crear cuenta',
+      emailLabel: lang === 'pt' ? 'E-mail' : 'Correo electrónico',
+      passLabel:  lang === 'pt' ? 'Senha' : 'Contraseña',
+      loading:    lang === 'pt' ? 'Carregando...' : 'Cargando...',
+      btnLogin:   lang === 'pt' ? 'Entrar' : 'Iniciar sesión',
+      btnReg:     lang === 'pt' ? 'Criar conta' : 'Crear cuenta',
+      successMsg: lang === 'pt'
+        ? '¡Conta criada! Verifique seu e-mail para confirmar e depois entre.'
+        : '¡Cuenta creada! Revisa tu correo para confirmar tu cuenta y luego inicia sesión.',
+    }
 
     async function handleSubmit(e: React.FormEvent) {
       e.preventDefault()
@@ -28,7 +44,7 @@ import { useState } from 'react'
       } else {
         const { error } = await signUp(email, password)
         if (error) { setError(error); setLoading(false); return }
-        setSuccess('¡Cuenta creada! Revisa tu correo para confirmar tu cuenta y luego inicia sesión.')
+        setSuccess(T.successMsg)
         setLoading(false)
       }
     }
@@ -40,7 +56,7 @@ import { useState } from 'react'
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/25 mb-4">
               <LogIn className="w-6 h-6 text-purple-400" />
             </div>
-            <h1 className="text-2xl font-extrabold text-white">Portal de Trabajadoras</h1>
+            <h1 className="text-2xl font-extrabold text-white">{T.title}</h1>
             <p className="text-white/45 text-sm mt-1">Eclipse Angels Agency</p>
           </div>
 
@@ -49,20 +65,20 @@ import { useState } from 'react'
             {(['login', 'register'] as Tab[]).map(t => (
               <button key={t} onClick={() => { setTab(t); setError(null); setSuccess(null) }}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${tab === t ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]' : 'text-white/45 hover:text-white'}`}>
-                {t === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+                {t === 'login' ? T.tabLogin : T.tabReg}
               </button>
             ))}
           </div>
 
           <form onSubmit={handleSubmit} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">Correo electrónico</label>
+              <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">{T.emailLabel}</label>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="tu@correo.com"
                 className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 transition-colors" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">Contraseña</label>
+              <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">{T.passLabel}</label>
               <div className="relative">
                 <input type={showPass ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••" minLength={6}
@@ -78,7 +94,11 @@ import { useState } from 'react'
 
             <button type="submit" disabled={loading}
               className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-              {loading ? <span className="animate-pulse">Cargando...</span> : tab === 'login' ? <><LogIn className="w-4 h-4"/>Iniciar sesión</> : <><UserPlus className="w-4 h-4"/>Crear cuenta</>}
+              {loading
+                ? <span className="animate-pulse">{T.loading}</span>
+                : tab === 'login'
+                  ? <><LogIn className="w-4 h-4"/>{T.btnLogin}</>
+                  : <><UserPlus className="w-4 h-4"/>{T.btnReg}</>}
             </button>
           </form>
         </div>
