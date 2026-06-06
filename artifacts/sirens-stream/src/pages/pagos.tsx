@@ -138,7 +138,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
         badge: lang === 'pt' ? "Métodos de Pagamento" : "Métodos de Pago",
         h1a: lang === 'pt' ? "Receba no" : "Cobra en",
         h1b: lang === 'pt' ? "seu método favorito" : "tu método favorito",
-        sub: lang === 'pt' ? "Pagamos toda semana de forma pontual. Escolha o método que melhor se adapta ao seu país e preferência. Todos os pagamentos são em dólares americanos (USD)." : "{T.sub}",
+        sub: lang === 'pt' ? "Pagamos toda semana de forma pontual. Escolha o método que melhor se adapta ao seu país e preferência. Todos os pagamentos são em dólares americanos (USD)." : "Pagamos cada semana de forma puntual. Elige el método que mejor se adapte a tu país y preferencia. Todos los pagos son en dólares estadounidenses (USD).",
         trustItems: lang === 'pt' ? [
           { icon: Clock, text: "Pagamentos toda semana" },
           { icon: Shield, text: "100% seguro e garantido" },
@@ -152,10 +152,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
         ],
         methodsH: lang === 'pt' ? "Métodos disponíveis" : "Métodos disponibles",
         faqH: lang === 'pt' ? "Perguntas frequentes sobre pagamentos" : "Preguntas frecuentes sobre pagos",
-        ctaH3: lang === 'pt' ? "Pronta para começar a receber?" : "{T.ctaH3}",
-        ctaSub: lang === 'pt' ? "Entre na agência hoje e começa a gerar renda semanal em dólares na comodidade da sua casa." : "{T.ctaSub}",
-        ctaBtn: lang === 'pt' ? "Quero ser Streamer" : "{T.ctaBtn}",
-        ctaContact: lang === 'pt' ? "Entrar em contato" : "{T.ctaContact}",
+        ctaH3: lang === 'pt' ? "Pronta para começar a receber?" : "¿Lista para empezar a cobrar?",
+        ctaSub: lang === 'pt' ? "Entre na agência hoje e começa a gerar renda semanal em dólares na comodidade da sua casa." : "Únete a la agencia hoy y empieza a generar ingresos semanales en dólares desde la comodidad de tu hogar.",
+        ctaBtn: lang === 'pt' ? "Quero ser Streamer" : "Quiero ser Streamer",
+        ctaContact: lang === 'pt' ? "Entrar em contato" : "Contactar",
       };
       return (
         <div className="min-h-screen bg-[#07070f] text-white pt-16">
@@ -171,9 +171,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
               <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
                 {T.h1a} <span className="gradient-text">{T.h1b}</span>
               </h1>
-              <p className="text-white/50 max-w-xl mx-auto">
-                Pagamos cada semana de forma puntual. Elige el método que mejor se adapte a tu país y preferencia. Todos los pagos son en dólares estadounidenses (USD).
-              </p>
+              <p className="text-white/50 max-w-xl mx-auto">{T.sub}</p>
             </div>
           </section>
 
@@ -227,16 +225,16 @@ import { useLanguage } from "@/contexts/LanguageContext";
               {/* CTA */}
               <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-8 text-center">
                 <DollarSign className="w-10 h-10 text-purple-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-extrabold mb-2">¿Lista para empezar a cobrar?</h3>
-                <p className="text-white/50 text-sm mb-6 max-w-md mx-auto">Únete a la agencia hoy y empieza a generar ingresos semanales en dólares desde la comodidad de tu hogar.</p>
+                <h3 className="text-2xl font-extrabold mb-2">{T.ctaH3}</h3>
+                <p className="text-white/50 text-sm mb-6 max-w-md mx-auto">{T.ctaSub}</p>
                 <div className="flex flex-wrap gap-3 justify-center">
                   <Link href="/ser-streamer"
                     className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold px-7 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                    Quiero ser Streamer <ArrowRight className="w-4 h-4" />
+                    {T.ctaBtn} <ArrowRight className="w-4 h-4" />
                   </Link>
                   <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                    Contactar
+                    {T.ctaContact}
                   </a>
                 </div>
               </div>
