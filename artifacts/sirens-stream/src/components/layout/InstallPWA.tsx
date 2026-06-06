@@ -20,21 +20,29 @@ export function InstallPWA() {
   );
 
   useEffect(() => {
-    // Also listen for future prompts (e.g. after a reload)
-    const handler = (e: any) => {
+    // Sync any prompt already captured in main.tsx before React mounted
+    if ((window as any).__pwaPrompt) setDeferredPrompt((window as any).__pwaPrompt);
+
+    // Listen for future prompts (e.g. after a reload)
+    const promptHandler = (e: any) => {
       e.preventDefault();
       (window as any).__pwaPrompt = e;
       setDeferredPrompt(e);
     };
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => {
+    const installedHandler = () => {
       setInstalled(true);
       setDeferredPrompt(null);
       (window as any).__pwaPrompt = undefined;
-    });
-    // Sync from global in case it was captured before mount
-    if ((window as any).__pwaPrompt) setDeferredPrompt((window as any).__pwaPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    };
+
+    window.addEventListener("beforeinstallprompt", promptHandler);
+    window.addEventListener("appinstalled", installedHandler);
+
+    // Cleanup BOTH listeners to prevent memory leaks
+    return () => {
+      window.removeEventListener("beforeinstallprompt", promptHandler);
+      window.removeEventListener("appinstalled", installedHandler);
+    };
   }, []);
 
   const handleClick = async () => {
