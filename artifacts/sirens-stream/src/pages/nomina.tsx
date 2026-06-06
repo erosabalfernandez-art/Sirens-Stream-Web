@@ -272,11 +272,12 @@ import { useState, useRef, useEffect } from 'react'
         const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
         if (!error) {
           setPublishedOk(true)
-          await sendPushViaApi(
+          sendPushViaApi(
             cobradas.map(c => c.worker.user_id),
             `💰 Tu salario de ${nominaApp} está disponible`,
             `Semana ${semana} — Entra a ver tus ganancias.`,
-            '/salarios'
+            '/salarios',
+            true
           )
           setTimeout(() => setPublishedOk(false), 4000)
         }
