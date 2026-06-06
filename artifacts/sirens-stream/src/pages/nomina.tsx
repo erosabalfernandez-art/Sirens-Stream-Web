@@ -3,13 +3,14 @@ import React, { useState, useRef, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
 
-const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
     import { sendPushViaApi } from '@/lib/push'
   import * as XLSX from 'xlsx'
   import {
     Upload, ChevronDown, ChevronUp, Copy, Check,
     TrendingUp, Gem, Users, AlertTriangle, UserX,
     FileSpreadsheet, Sparkles, Loader2, Download, Trash2, Filter, Search, X} from 'lucide-react'
+
+const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
 
   interface NominaRow {
     uid: string
