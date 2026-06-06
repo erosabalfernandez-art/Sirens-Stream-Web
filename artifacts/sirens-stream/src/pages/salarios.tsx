@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase } from '@/lib/supabase'
-  import { subscribeToPush } from '@/lib/push'
-  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp, Bell } from 'lucide-react'
+  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 
   interface PublishedSalary {
     id: string
@@ -23,11 +22,9 @@ import { useState, useEffect } from 'react'
     const [salaries, setSalaries] = useState<PublishedSalary[]>([])
     const [fetching, setFetching] = useState(true)
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
-    const [pushEnabled, setPushEnabled] = useState<boolean | null>(null)
-    const [enablingPush, setEnablingPush] = useState(false)
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
-    useEffect(() => { if (user) { fetchSalaries(); checkPush() } }, [user])
+    useEffect(() => { if (user) { fetchSalaries() } }, [user])
 
     async function fetchSalaries() {
       setFetching(true)
@@ -38,21 +35,6 @@ import { useState, useEffect } from 'react'
         .order('published_at', { ascending: false })
       setSalaries((data as PublishedSalary[]) ?? [])
       setFetching(false)
-    }
-
-    async function checkPush() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setPushEnabled(false); return }
-      const reg = await navigator.serviceWorker.getRegistration('/sw.js').catch(() => null)
-      if (!reg) { setPushEnabled(false); return }
-      const sub = await reg.pushManager.getSubscription().catch(() => null)
-      setPushEnabled(!!sub)
-    }
-
-    async function enablePush() {
-      setEnablingPush(true)
-      const ok = await subscribeToPush(user!.id)
-      setPushEnabled(ok)
-      setEnablingPush(false)
     }
 
     function toggle(id: string) {
@@ -70,29 +52,13 @@ import { useState, useEffect } from 'react'
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
         <div className="max-w-3xl mx-auto px-4">
-          <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 rounded-full px-3 py-1 mb-3">
-                <DollarSign className="w-3 h-3 text-green-400" />
-                <span className="text-green-300 text-xs font-semibold uppercase tracking-wider">Mis Salarios</span>
-              </div>
-              <h1 className="text-2xl font-extrabold">Tu historial de pagos</h1>
-              <p className="text-white/40 text-sm mt-1">Eclipse Angels Agency</p>
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 rounded-full px-3 py-1 mb-3">
+              <DollarSign className="w-3 h-3 text-green-400" />
+              <span className="text-green-300 text-xs font-semibold uppercase tracking-wider">Mis Salarios</span>
             </div>
-            {pushEnabled === false && (
-              <button onClick={enablePush} disabled={enablingPush}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 shadow-lg">
-                {enablingPush
-                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : <Bell className="w-4 h-4" />}
-                Activar notificaciones
-              </button>
-            )}
-            {pushEnabled === true && (
-              <div className="flex items-center gap-2 text-green-400 text-sm font-semibold bg-green-500/10 px-3 py-2 rounded-xl border border-green-500/20">
-                <Bell className="w-4 h-4" /> Notificaciones activas
-              </div>
-            )}
+            <h1 className="text-2xl font-extrabold">Tu historial de pagos</h1>
+            <p className="text-white/40 text-sm mt-1">Eclipse Angels Agency</p>
           </div>
 
           {fetching ? (
@@ -173,4 +139,3 @@ import { useState, useEffect } from 'react'
       </div>
     )
   }
-  
