@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp, Trash2, CheckCircle2 } from 'lucide-react'
 
   interface PublishedSalary {
     id: string
@@ -33,6 +33,8 @@ import { useState, useEffect } from 'react'
         showDetails:  lang === 'pt' ? 'Ver detalhes'            : 'Ver detalles',
         deleteBtn:    lang === 'pt' ? 'Excluir'                 : 'Borrar',
         cancelBtn:    lang === 'pt' ? 'Não'                     : 'No',
+        confirmBtn:   lang === 'pt' ? 'Confirmar pagamento recebido' : 'Confirmar pago recibido',
+        confirmDone:  lang === 'pt' ? '✓ Pago confirmado'        : '✓ Pago confirmado',
       }
     const [, navigate] = useLocation()
     const [salaries, setSalaries] = useState<PublishedSalary[]>([])
@@ -40,9 +42,11 @@ import { useState, useEffect } from 'react'
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
     const [deleting, setDeleting] = useState<string | null>(null)
+    const [confirmed, setConfirmed] = useState<Set<string>>(new Set())
+    const [confirming, setConfirming] = useState<string | null>(null)
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
-    useEffect(() => { if (user) { fetchSalaries() } }, [user])
+    useEffect(() => { if (user) { fetchSalaries(); fetchConfirmed() } }, [user])
 
     async function fetchSalaries() {
       setFetching(true)
@@ -53,6 +57,26 @@ import { useState, useEffect } from 'react'
         .order('created_at', { ascending: false })
       setSalaries((data as PublishedSalary[]) ?? [])
       setFetching(false)
+    }
+
+    async function fetchConfirmed() {
+      const { data } = await supabase
+        .from('payment_confirmations')
+        .select('salary_id')
+        .eq('user_id', user!.id)
+      setConfirmed(new Set(((data ?? []) as any[]).map((r: any) => r.salary_id)))
+    }
+
+    async function confirmPayment(salaryId: string, appName: string, semana: string) {
+      setConfirming(salaryId)
+      await supabase.from('payment_confirmations').insert({
+        salary_id: salaryId,
+        user_id: user!.id,
+        app_name: appName,
+        semana,
+      })
+      setConfirmed(prev => new Set([...prev, salaryId]))
+      setConfirming(null)
     }
 
     async function deleteSalary(id: string) {
@@ -173,6 +197,25 @@ import { useState, useEffect } from 'react'
                                 )}
                               </>
                             )}
+                            {/* Confirmación de pago */}
+                            <div className="px-5 py-3 border-t border-purple-500/8">
+                              {confirmed.has(s.id) ? (
+                                <div className="flex items-center gap-2 text-green-400">
+                                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                  <span className="text-sm font-semibold">{T.confirmDone}</span>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => confirmPayment(s.id, s.app_name, s.semana)}
+                                  disabled={confirming === s.id}
+                                  className="flex items-center gap-2 text-sm font-semibold text-white/40 hover:text-green-400 transition-colors disabled:opacity-40">
+                                  {confirming === s.id
+                                    ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" />
+                                    : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                                  {T.confirmBtn}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )
                       })}
