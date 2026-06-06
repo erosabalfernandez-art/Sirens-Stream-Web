@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
   import { Link } from "wouter";
   import { ChevronDown, ChevronUp, CheckCircle2, Smartphone, Clock, DollarSign, MessageCircle, ArrowRight, X, BookOpen, Copy, Check, Send } from "lucide-react";
 
@@ -255,19 +255,14 @@ import { useState } from "react";
               style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
               onClick={() => setImgExpanded(false)}
             >
-              <img
-                src="/images/waha-guide-captura.png"
-                alt="Guía visual ampliada"
-                style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
-                onClick={e => e.stopPropagation()}
-              />
+              <ZoomableImage src="/images/waha-guide-captura.png" alt="Guía visual ampliada" />
               <button
                 onClick={() => setImgExpanded(false)}
                 style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
               >
                 <X className="w-4 h-4 text-white" />
               </button>
-              <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>Toca fuera para cerrar</p>
+              <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>Rueda/pellizco para zoom · Toca fuera para cerrar</p>
             </div>
           )}
         </>
@@ -361,17 +356,21 @@ import { useState } from "react";
                     </div>
                   </div>
                   {/* Imágenes expandibles */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-3 gap-2 pt-1">
                     <button onClick={() => setImgExpanded(0)} className="rounded-xl overflow-hidden border border-white/10 hover:border-purple-500/30 transition-colors block">
-                      <img src="/images/layla-guide-visual1.png" alt="Visual 1" className="w-full object-cover" />
-                      <p className="text-center text-white/40 text-xs py-2">🖼️ Visual 1</p>
+                      <img src="/images/layla-guide-visual1.jpg" alt="Visual 1" className="w-full object-cover aspect-[3/4]" />
+                      <p className="text-center text-white/40 text-xs py-1.5">🖼️ Visual 1</p>
                     </button>
                     <button onClick={() => setImgExpanded(1)} className="rounded-xl overflow-hidden border border-white/10 hover:border-purple-500/30 transition-colors block">
-                      <img src="/images/layla-guide-visual2.png" alt="Visual 2" className="w-full object-cover" />
-                      <p className="text-center text-white/40 text-xs py-2">🖼️ Visual 2</p>
+                      <img src="/images/layla-guide-visual2.jpg" alt="Visual 2" className="w-full object-cover aspect-[3/4]" />
+                      <p className="text-center text-white/40 text-xs py-1.5">🖼️ Visual 2</p>
+                    </button>
+                    <button onClick={() => setImgExpanded(2)} className="rounded-xl overflow-hidden border border-white/10 hover:border-purple-500/30 transition-colors block">
+                      <img src="/images/layla-guide-visual3.jpg" alt="Visual 3" className="w-full object-cover aspect-[3/4]" />
+                      <p className="text-center text-white/40 text-xs py-1.5">🖼️ Visual 3</p>
                     </button>
                   </div>
-                  <p className="text-center text-white/35 text-xs">👆 Toca imágenes para ampliar</p>
+                  <p className="text-center text-white/35 text-xs">👆 Toca para ampliar · Rueda/pellizco para zoom</p>
                   {/* Botones descarga + WhatsApp */}
                   <div className="space-y-2.5 pt-2">
                     <a href="#" target="_blank" rel="noopener noreferrer"
@@ -396,11 +395,9 @@ import { useState } from "react";
                 style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
                 onClick={() => setImgExpanded(null)}
               >
-                <img
-                  src={imgExpanded === 0 ? "/images/layla-guide-visual1.png" : "/images/layla-guide-visual2.png"}
+                <ZoomableImage
+                  src={imgExpanded === 0 ? "/images/layla-guide-visual1.jpg" : imgExpanded === 1 ? "/images/layla-guide-visual2.jpg" : "/images/layla-guide-visual3.jpg"}
                   alt="Guía visual ampliada"
-                  style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
-                  onClick={e => e.stopPropagation()}
                 />
                 <button
                   onClick={() => setImgExpanded(null)}
@@ -408,7 +405,7 @@ import { useState } from "react";
                 >
                   <X className="w-4 h-4 text-white" />
                 </button>
-                <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>Toca fuera para cerrar</p>
+                <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>Rueda/pellizco para zoom · Toca fuera para cerrar</p>
               </div>
             )}
           </>
@@ -540,12 +537,7 @@ import { useState } from "react";
                 style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
                 onClick={() => setImgExpanded(null)}
               >
-                <img
-                  src={guideImgs[imgExpanded].src}
-                  alt={guideImgs[imgExpanded].label}
-                  style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
-                  onClick={e => e.stopPropagation()}
-                />
+                <ZoomableImage src={guideImgs[imgExpanded].src} alt={guideImgs[imgExpanded].label} />
                 <button
                   onClick={() => setImgExpanded(null)}
                   style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
@@ -553,14 +545,54 @@ import { useState } from "react";
                   <X className="w-4 h-4 text-white" />
                 </button>
                 <p style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>
-                  {guideImgs[imgExpanded].label} · Toca fuera para cerrar
+                  {guideImgs[imgExpanded].label} · Rueda/pellizco para zoom · Toca fuera para cerrar
                 </p>
               </div>
             )}
           </>
         );
       }
-        /* ── Image Guide Modal ── */
+        /* ── Zoomable Image (pinch + wheel) ── */
+    function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+      const [scale, setScale] = useState(1)
+      const wrapRef = useRef<HTMLDivElement>(null)
+      const lastPinchDist = useRef<number | null>(null)
+      useEffect(() => {
+        const el = wrapRef.current
+        if (!el) return
+        const onWheel = (e: WheelEvent) => {
+          e.preventDefault()
+          setScale(s => Math.min(Math.max(1, s - e.deltaY * 0.003), 6))
+        }
+        el.addEventListener('wheel', onWheel, { passive: false })
+        return () => el.removeEventListener('wheel', onWheel)
+      }, [])
+      function onTouchMove(e: React.TouchEvent) {
+        if (e.touches.length === 2) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX
+          const dy = e.touches[0].clientY - e.touches[1].clientY
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (lastPinchDist.current !== null) {
+            setScale(s => Math.min(Math.max(1, s * (dist / lastPinchDist.current!)), 6))
+          }
+          lastPinchDist.current = dist
+        }
+      }
+      function onTouchEnd() { lastPinchDist.current = null }
+      function onDblClick() { setScale(1) }
+      return (
+        <div ref={wrapRef} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onDoubleClick={onDblClick}
+          onClick={e => e.stopPropagation()}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'none', cursor: scale > 1 ? 'zoom-out' : 'zoom-in', position: 'relative' }}>
+          <img src={src} alt={alt}
+            style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+              transform: `scale(${scale})`, transition: scale === 1 ? 'transform 0.2s ease' : 'none', userSelect: 'none', pointerEvents: 'none' }} />
+          {scale > 1 && <div style={{ position: 'absolute', bottom: -28, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>Doble toque/clic para restablecer · {Math.round(scale * 100)}%</div>}
+        </div>
+      )
+    }
+
+    /* ── Image Guide Modal ── */
   function GuideModal({ images, onClose }: { images: string[]; onClose: () => void }) {
     const [idx, setIdx] = useState(0);
     return (
@@ -569,7 +601,7 @@ import { useState } from "react";
           <button onClick={onClose} className="absolute -top-10 right-0 w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors">
             <X className="w-4 h-4 text-white" />
           </button>
-          <img src={images[idx]} alt="Guía" className="rounded-2xl max-h-[78vh] w-auto object-contain shadow-2xl" />
+          <ZoomableImage src={images[idx]} alt={title} />
           {images.length > 1 && (
             <div className="flex gap-2">
               {images.map((_, i) => (
@@ -578,7 +610,7 @@ import { useState } from "react";
               ))}
             </div>
           )}
-          <p className="text-white/35 text-xs">Toca fuera para cerrar · {idx + 1}/{images.length}</p>
+          <p className="text-white/35 text-xs">Rueda/pellizco para zoom · Toca fuera · {idx + 1}/{images.length}</p>
         </div>
       </div>
     );
