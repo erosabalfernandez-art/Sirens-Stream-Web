@@ -1,7 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
 import { User, LogOut, Shield, FileSpreadsheet, DollarSign, Radio } from "lucide-react";
 
 const PUBLIC_LINKS = [
@@ -22,7 +21,7 @@ export function Navbar() {
     await signOut();
     navigate("/");
   }
-  const [showAgencia, setShowAgencia] = useState(true);
+  const showAgencia = useShowAgencia();
 
   const isAdmin = profile?.is_admin;
 
@@ -30,17 +29,6 @@ export function Navbar() {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
-  }, []);
-
-  useEffect(() => {
-    supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "show_agencia")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setShowAgencia(data.value !== "false");
-      });
   }, []);
 
   const publicLinks = PUBLIC_LINKS.filter(
