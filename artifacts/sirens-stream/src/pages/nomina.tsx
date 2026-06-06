@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
-  import { supabase, type WorkerEntry } from '@/lib/supabase'
+  import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
     import { sendPushViaApi } from '@/lib/push'
   import * as XLSX from 'xlsx'
   import {
