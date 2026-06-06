@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useShowAgencia } from "@/hooks/useShowAgencia";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { User, LogOut, Shield, FileSpreadsheet, DollarSign, Radio, Globe, Link} from "lucide-react";
+import {User, LogOut, Shield, FileSpreadsheet, DollarSign, Radio, Globe} from "lucide-react";
 
 const NAV_LINKS = {
   es: [
