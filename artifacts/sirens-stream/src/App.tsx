@@ -1,17 +1,32 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-  import { useEffect } from "react";
-  import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-  import { Toaster } from "@/components/ui/toaster";
-  import { TooltipProvider } from "@/components/ui/tooltip";
-  import { Navbar } from "@/components/layout/Navbar";
-  import { InstallPWA } from "@/components/layout/InstallPWA";
-  import { UpdateBanner } from "@/components/layout/UpdateBanner";
-  import { Footer } from "@/components/layout/Footer";
-  import { FloatingSocials } from "@/components/layout/FloatingSocials";
-  import { AngelaChat } from "@/components/chat/SirenaChat";
-  import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-  import { LanguageProvider } from "@/contexts/LanguageContext";
-  import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
+import { useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Navbar } from "@/components/layout/Navbar";
+import { InstallPWA } from "@/components/layout/InstallPWA";
+import { UpdateBanner } from "@/components/layout/UpdateBanner";
+import { Footer } from "@/components/layout/Footer";
+import { FloatingSocials } from "@/components/layout/FloatingSocials";
+import { AngelaChat } from "@/components/chat/SirenaChat";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
+import Home from "@/pages/home";
+import SerStreamer from "@/pages/ser-streamer";
+import CrearAgencia from "@/pages/crear-agencia";
+import Apps from "@/pages/apps";
+import Nosotros from "@/pages/nosotros";
+import Pagos from "@/pages/pagos";
+import Contacto from "@/pages/contacto";
+import ErroresComunes from "@/pages/errores-comunes";
+import NotFound from "@/pages/not-found";
+import Login from "@/pages/login";
+import Perfil from "@/pages/perfil";
+import Admin from "@/pages/admin";
+import Nomina from "@/pages/nomina";
+import Salarios from "@/pages/salarios";
+import Canales from "@/pages/canales";
 
   function ScrollToTop() {
     const [location] = useLocation();
@@ -25,21 +40,6 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
     return null;
   }
 
-  import Home from "@/pages/home";
-  import SerStreamer from "@/pages/ser-streamer";
-  import CrearAgencia from "@/pages/crear-agencia";
-  import Apps from "@/pages/apps";
-  import Nosotros from "@/pages/nosotros";
-  import Pagos from "@/pages/pagos";
-  import Contacto from "@/pages/contacto";
-  import ErroresComunes from "@/pages/errores-comunes";
-  import NotFound from "@/pages/not-found";
-  import Login from "@/pages/login";
-  import Perfil from "@/pages/perfil";
-  import Admin from "@/pages/admin";
-  import Nomina from "@/pages/nomina";
-  import Salarios from "@/pages/salarios";
-  import Canales from "@/pages/canales";
 
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
