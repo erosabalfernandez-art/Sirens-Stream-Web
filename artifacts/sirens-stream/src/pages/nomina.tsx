@@ -302,6 +302,7 @@ import React, { useState, useRef, useEffect } from 'react'
     const [step, setStep] = useState<'upload' | 'results'>('upload')
     const [dragging, setDragging] = useState(false)
     const [parsing, setParsing] = useState(false)
+    const [parseError, setParseError] = useState<string | null>(null)
     const [cobradas, setCobradas] = useState<Matched[]>([])
     const [noCobro, setNoCobro] = useState<NoCobro[]>([])
     const [sinPerfil, setSinPerfil] = useState<NominaRow[]>([])
@@ -443,57 +444,83 @@ import React, { useState, useRef, useEffect } from 'react'
 
       async function processFile(file: File) {
       if (!file.name.match(/\.xlsx?$/i)) return
-      setParsing(true); setAiSummary(null)
+      setParsing(true); setAiSummary(null); setParseError(null)
+      try {
+        const buf = await file.arrayBuffer()
+        const wb = XLSX.read(buf, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
 
-      const buf = await file.arrayBuffer()
-      const wb = XLSX.read(buf, { type: 'array' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
+        const rawHeaders = (raw[0] as unknown[]) ?? []
+        const headers = rawHeaders.map(h => String(h ?? '').trim())
 
-      const headers = (raw[0] as string[]).map(h => String(h ?? '').trim())
-      const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0 && r[2])
-      const COL = (name: string) => headers.indexOf(name)
-      const mainCols = new Set([COL('Semana'), COL('UID del Host'), COL('Apodo'), COL('USD'), COL('Diamantes Totales'), COL('Nombre de la agencia')])
-
-      const nominaRows: NominaRow[] = dataRows.map(r => {
-        const extras: Record<string, string | number> = {}
-        headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
-        return {
-          uid: normalizeUID(r[COL('UID del Host')]),
-          apodo: String(r[COL('Apodo')] ?? ''),
-          usd: parseFloat(String(r[COL('USD')] ?? 0)) || 0,
-          diamantes: parseFloat(String(r[COL('Diamantes Totales')] ?? 0)) || 0,
-          semana: String(r[COL('Semana')] ?? ''),
-          extras,
+        // Case-insensitive column lookup so minor name differences don't break parsing
+        function COL(name: string): number {
+          const exact = headers.indexOf(name)
+          if (exact !== -1) return exact
+          const lower = name.toLowerCase()
+          return headers.findIndex(h => h.toLowerCase() === lower)
         }
-      })
 
-      const sem = nominaRows[0]?.semana ?? ''
-      setSemana(sem)
+        // Validate critical columns exist
+        const uidCol = COL('UID del Host')
+        const usdCol = COL('USD')
+        if (uidCol === -1 || usdCol === -1) {
+          const found = headers.filter(Boolean).join(', ')
+          throw new Error(
+            'Columnas no encontradas en el Excel.\n\nEsperadas: "UID del Host", "USD", "Apodo", "Semana", "Diamantes Totales"\nEncontradas: ' + (found || '(ninguna)')
+          )
+        }
 
-      const { data: entries } = await supabase.from('worker_entries').select('*').eq('app_name', 'Waha')
-      const { data: profs } = await supabase.from('profiles').select('id, email')
-      const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
-      const workers: WorkerRow[] = (entries ?? []).map((e: any) => ({ ...e, profile_email: emailMap[e.user_id] ?? '' }))
+        const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0 && r[2])
+        const mainCols = new Set([COL('Semana'), COL('UID del Host'), COL('Apodo'), COL('USD'), COL('Diamantes Totales'), COL('Nombre de la agencia')])
 
-      const cobradasList: Matched[] = []
-      const noCobroList: NoCobro[] = []
-      const sinPerfilList: NominaRow[] = []
-      const matchedWorkerIDs = new Set<string>()
+        const nominaRows: NominaRow[] = dataRows.map(r => {
+          const extras: Record<string, string | number> = {}
+          headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
+          return {
+            uid: normalizeUID(r[COL('UID del Host')]),
+            apodo: String(r[COL('Apodo')] ?? ''),
+            usd: parseFloat(String(r[COL('USD')] ?? 0)) || 0,
+            diamantes: parseFloat(String(r[COL('Diamantes Totales')] ?? 0)) || 0,
+            semana: String(r[COL('Semana')] ?? ''),
+            extras,
+          }
+        })
 
-      for (const nom of nominaRows) {
-        const worker = workers.find(w => normalizeUID(w.id_aplicacion) === nom.uid)
-        if (worker) {
-          matchedWorkerIDs.add(worker.id)
-          nom.usd > 0 ? cobradasList.push({ worker, nomina: nom }) : noCobroList.push({ worker, nomina: nom })
-        } else { sinPerfilList.push(nom) }
+        const sem = nominaRows[0]?.semana ?? ''
+        setSemana(sem)
+
+        const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', nominaApp)
+        if (entriesErr) throw new Error('Error de base de datos: ' + entriesErr.message)
+
+        const { data: profs } = await supabase.from('profiles').select('id, email')
+        const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
+        const workers: WorkerRow[] = (entries ?? []).map((e: any) => ({ ...e, profile_email: emailMap[e.user_id] ?? '' }))
+
+        const cobradasList: Matched[] = []
+        const noCobroList: NoCobro[] = []
+        const sinPerfilList: NominaRow[] = []
+        const matchedWorkerIDs = new Set<string>()
+
+        for (const nom of nominaRows) {
+          const worker = workers.find(w => normalizeUID(w.id_aplicacion) === nom.uid)
+          if (worker) {
+            matchedWorkerIDs.add(worker.id)
+            nom.usd > 0 ? cobradasList.push({ worker, nomina: nom }) : noCobroList.push({ worker, nomina: nom })
+          } else { sinPerfilList.push(nom) }
+        }
+        for (const w of workers) { if (!matchedWorkerIDs.has(w.id)) noCobroList.push({ worker: w, nomina: null }) }
+        cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
+
+        setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
+        setStep('results')
+        callGroq(cobradasList, noCobroList, sem)
+      } catch (err: any) {
+        setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
+      } finally {
+        setParsing(false)
       }
-      for (const w of workers) { if (!matchedWorkerIDs.has(w.id)) noCobroList.push({ worker: w, nomina: null }) }
-      cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
-
-      setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
-      setStep('results'); setParsing(false)
-      callGroq(cobradasList, noCobroList, sem)
     }
 
     function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
@@ -653,6 +680,13 @@ import React, { useState, useRef, useEffect } from 'react'
                 className={`border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all
                   ${dragging ? 'border-purple-400 bg-purple-500/10' : 'border-purple-500/25 bg-[#0d0d1e] hover:border-purple-500/50 hover:bg-purple-500/5'}`}>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onInput} />
+                {parseError && (
+                  <div className="mb-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-left">
+                    <p className="text-red-400 font-bold text-sm mb-1">❌ Error al procesar el archivo</p>
+                    <pre className="text-red-300/70 text-xs whitespace-pre-wrap">{parseError}</pre>
+                    <p className="text-white/30 text-xs mt-2">Verifica que el Excel sea de {nominaApp} y tenga las columnas correctas.</p>
+                  </div>
+                )}
                 {parsing ? (
                   <div className="space-y-3">
                     <div className="w-12 h-12 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
