@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase, type WorkerEntry } from '@/lib/supabase'
@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react'
   import {
     Upload, ChevronDown, ChevronUp, Copy, Check,
     TrendingUp, Gem, Users, AlertTriangle, UserX,
-    FileSpreadsheet, Sparkles, Loader2, Download
+    FileSpreadsheet, Sparkles, Loader2, Download, Trash2
   } from 'lucide-react'
 
   interface NominaRow {
@@ -22,6 +22,20 @@ import { useState, useRef, useEffect } from 'react'
   interface WorkerRow extends WorkerEntry { profile_email: string }
   interface Matched  { worker: WorkerRow; nomina: NominaRow }
   interface NoCobro  { worker: WorkerRow; nomina: NominaRow | null }
+
+  interface HistoryEntry {
+    id: string
+    app_name: string
+    semana: string
+    total_usd: number
+    total_diamantes: number
+    cobradas_count: number
+    nocobro_count: number
+    sinperfil_count: number
+    rows_data: { cobradas: Matched[]; noCobro: NoCobro[]; sinPerfil: NominaRow[] }
+    published: boolean
+    created_at: string
+  }
 
   function normalizeUID(val: unknown): string {
     if (val === null || val === undefined || val === '') return ''
@@ -179,6 +193,109 @@ import { useState, useRef, useEffect } from 'react'
   </html>`
   }
 
+
+  // ── History Panel ───────────────────────────────────────────────────────────
+  function HistoryPanel({
+    history, historyLoading, historyFilterSemana, setHistoryFilterSemana,
+    historyFilterApp, setHistoryFilterApp, deletingHistId, onDelete, onLoad, fmtNum,
+  }: {
+    history: HistoryEntry[]
+    historyLoading: boolean
+    historyFilterSemana: string
+    setHistoryFilterSemana: (v: string) => void
+    historyFilterApp: string
+    setHistoryFilterApp: (v: string) => void
+    deletingHistId: string | null
+    onDelete: (id: string) => void
+    onLoad: (entry: HistoryEntry) => void
+    fmtNum: (n: number) => string
+  }) {
+    const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null)
+    const filtered = history.filter(h => {
+      if (historyFilterApp && h.app_name !== historyFilterApp) return false
+      if (historyFilterSemana && !h.semana.toLowerCase().includes(historyFilterSemana.toLowerCase())) return false
+      return true
+    })
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-2 flex-wrap items-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-white/40 mr-1">App:</span>
+          {(['', 'Waha', 'Layla', 'Howdy'] as const).map(a => (
+            <button key={a} onClick={() => setHistoryFilterApp(a)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${historyFilterApp === a ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
+              {a || 'Todas'}
+            </button>
+          ))}
+          <input
+            value={historyFilterSemana}
+            onChange={e => setHistoryFilterSemana(e.target.value)}
+            placeholder="Buscar semana..."
+            className="ml-auto bg-[#0d0d1e] border border-purple-500/20 rounded-xl px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 w-56"
+          />
+        </div>
+        {historyLoading ? (
+          <div className="space-y-3">
+            {[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-16 text-center">
+            <FileSpreadsheet className="w-10 h-10 text-white/10 mx-auto mb-3" />
+            <p className="text-white/40 text-sm">{history.length === 0 ? 'No hay nóminas guardadas todavía.' : 'Sin resultados.'}</p>
+            <p className="text-white/25 text-xs mt-1">Las nóminas se guardan automáticamente al publicar.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map(h => {
+              const isConfirming = confirmDelete === h.id
+              const isDeleting = deletingHistId === h.id
+              const dateStr = new Date(h.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+              return (
+                <div key={h.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl px-5 py-4 flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 font-bold text-xs shrink-0">
+                    {h.app_name[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-semibold">{h.app_name}</span>
+                      <span className="font-bold text-sm">Semana {h.semana}</span>
+                      {h.published && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-semibold">Publicada</span>}
+                    </div>
+                    <p className="text-white/30 text-xs mt-0.5">
+                      {dateStr} · {h.cobradas_count} cobraron · {Number(h.total_usd).toLocaleString('es-ES', {'{'}minimumFractionDigits: 2{'}'}){'}'} USD · 💎 {'{'}fmtNum(Number(h.total_diamantes)){'}'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => onLoad(h)}
+                      className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-xl transition-all">
+                      ↩ Cargar
+                    </button>
+                    {isConfirming ? (
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => { onDelete(h.id); setConfirmDelete(null) }} disabled={isDeleting}
+                          className="text-xs bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50">
+                          {isDeleting ? '...' : 'Borrar'}
+                        </button>
+                        <button onClick={() => setConfirmDelete(null)}
+                          className="text-xs bg-white/8 hover:bg-white/15 text-white/60 font-semibold px-3 py-1.5 rounded-lg transition-all">
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDelete(h.id)} title="Eliminar"
+                        className="text-white/20 hover:text-red-400 transition-colors p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   export default function Nomina() {
     const { user, profile, loading } = useAuth()
     const [, navigate] = useLocation()
@@ -197,6 +314,12 @@ import { useState, useRef, useEffect } from 'react'
       const [publishedOk, setPublishedOk] = useState(false)
       const [nominaApp, setNominaApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
       const fileRef = useRef<HTMLInputElement>(null)
+      const [historyView, setHistoryView] = useState(false)
+      const [history, setHistory] = useState<HistoryEntry[]>([])
+      const [historyLoading, setHistoryLoading] = useState(false)
+      const [historyFilterSemana, setHistoryFilterSemana] = useState('')
+      const [historyFilterApp, setHistoryFilterApp] = useState('')
+      const [deletingHistId, setDeletingHistId] = useState<string | null>(null)
 
       // Restore last processed nómina when navigating back
       useEffect(() => {
@@ -280,6 +403,18 @@ import { useState, useRef, useEffect } from 'react'
             true
           )
           setTimeout(() => setPublishedOk(false), 4000)
+          // Guardar en historial de nóminas automáticamente
+          await saveNominaToHistory()
+          // Recortar a 10 salarios máx por trabajadora
+          await Promise.all(cobradas.map(async ({ worker: w }) => {
+            const { data: recs } = await supabase
+              .from('published_salaries').select('id')
+              .eq('user_id', w.user_id).order('created_at', { ascending: false })
+            if (recs && recs.length > 10) {
+              const toDelete = (recs as {id:string}[]).slice(10).map(r => r.id)
+              await supabase.from('published_salaries').delete().in('id', toDelete)
+            }
+          }))
         }
         setPublishing(false)
       }
@@ -343,6 +478,52 @@ import { useState, useRef, useEffect } from 'react'
     function onInput(e: React.ChangeEvent<HTMLInputElement>) { const f = e.target.files?.[0]; if (f) processFile(f) }
     function reset() { sessionStorage.removeItem('ea_nomina_state'); setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false) }
 
+    async function fetchHistory() {
+      setHistoryLoading(true)
+      const { data } = await supabase
+        .from('nomina_history')
+        .select('id,app_name,semana,total_usd,total_diamantes,cobradas_count,nocobro_count,sinperfil_count,published,created_at,rows_data')
+        .order('created_at', { ascending: false })
+      setHistory((data ?? []) as HistoryEntry[])
+      setHistoryLoading(false)
+    }
+
+    async function saveNominaToHistory() {
+      if (cobradas.length === 0) return
+      try {
+        await supabase.from('nomina_history').insert({
+          app_name: nominaApp,
+          semana,
+          total_usd: cobradas.reduce((s, m) => s + m.nomina.usd, 0),
+          total_diamantes: cobradas.reduce((s, m) => s + m.nomina.diamantes, 0),
+          cobradas_count: cobradas.length,
+          nocobro_count: noCobro.length,
+          sinperfil_count: sinPerfil.length,
+          rows_data: { cobradas, noCobro, sinPerfil },
+          published: true,
+        })
+      } catch { /* ignore */ }
+    }
+
+    async function deleteFromHistory(id: string) {
+      setDeletingHistId(id)
+      await supabase.from('nomina_history').delete().eq('id', id)
+      setHistory(prev => prev.filter(h => h.id !== id))
+      setDeletingHistId(null)
+    }
+
+    function loadFromHistory(entry: HistoryEntry) {
+      setCobradas(entry.rows_data.cobradas ?? [])
+      setNoCobro(entry.rows_data.noCobro ?? [])
+      setSinPerfil(entry.rows_data.sinPerfil ?? [])
+      setSemana(entry.semana)
+      setNominaApp(entry.app_name as 'Waha'|'Layla'|'Howdy')
+      setAiSummary(null)
+      setStep('results')
+      sessionStorage.removeItem('ea_nomina_state')
+      setHistoryView(false)
+    }
+
     const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
     const totalDiamonds = cobradas.reduce((s, m) => s + m.nomina.diamantes, 0)
 
@@ -360,10 +541,24 @@ import { useState, useRef, useEffect } from 'react'
             </div>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <h1 className="text-2xl font-extrabold">{`Nómina Semanal — ${nominaApp}`}</h1>
-                {semana && <p className="text-white/40 text-sm mt-0.5">Semana: {semana}</p>}
+                <h1 className="text-2xl font-extrabold">{historyView ? 'Historial de Nóminas' : `Nómina Semanal — ${nominaApp}`}</h1>
+                {!historyView && semana && <p className="text-white/40 text-sm mt-0.5">Semana: {semana}</p>}
               </div>
-              {step === 'results' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {step === 'upload' && !historyView && (
+                  <button onClick={() => { setHistoryView(true); fetchHistory() }}
+                    className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+                    📁 Historial
+                  </button>
+                )}
+                {historyView && (
+                  <button onClick={() => setHistoryView(false)}
+                    className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+                    ← Nueva nómina
+                  </button>
+                )}
+              </div>
+              {!historyView && step === 'results' && (
                 <div className="flex items-center gap-2">
                   {publishedOk && (
                       <span className="flex items-center gap-1.5 text-green-400 text-sm font-bold bg-green-500/10 px-3 py-2 rounded-xl border border-green-500/20">
@@ -388,7 +583,22 @@ import { useState, useRef, useEffect } from 'react'
             </div>
           </div>
 
-          {step === 'upload' && (
+          {historyView && (
+            <HistoryPanel
+              history={history}
+              historyLoading={historyLoading}
+              historyFilterSemana={historyFilterSemana}
+              setHistoryFilterSemana={setHistoryFilterSemana}
+              historyFilterApp={historyFilterApp}
+              setHistoryFilterApp={setHistoryFilterApp}
+              deletingHistId={deletingHistId}
+              onDelete={deleteFromHistory}
+              onLoad={loadFromHistory}
+              fmtNum={fmt}
+            />
+          )}
+
+          {!historyView && step === 'upload' && (
             <div className="space-y-4">
               <div className="flex gap-2 mb-4 flex-wrap items-center">
                 <span className="text-xs font-bold uppercase tracking-wider text-white/40 mr-2">App:</span>
