@@ -108,22 +108,30 @@ import { useState, useEffect } from "react";
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState(1);
 
+    // Exclude the "crear agencia" slide when the section is disabled
+    const activeSlides = showAgencia ? slides : slides.filter(s => s.cta.href !== '/crear-agencia');
+
+    // Clamp current index if activeSlides shrinks (e.g. agencia slide removed)
+    useEffect(() => {
+      setCurrent(c => c >= activeSlides.length ? 0 : c);
+    }, [activeSlides.length]);
+
     useEffect(() => {
       const t = setInterval(() => {
         setDirection(1);
-        setCurrent((c) => (c + 1) % slides.length);
+        setCurrent((c) => (c + 1) % activeSlides.length);
       }, 5000);
       return () => clearInterval(t);
-    }, []);
+    }, [activeSlides.length]);
 
     const goTo = (i: number) => {
       setDirection(i > current ? 1 : -1);
       setCurrent(i);
     };
-    const prev = () => { setDirection(-1); setCurrent((c) => (c - 1 + slides.length) % slides.length); };
-    const next = () => { setDirection(1); setCurrent((c) => (c + 1) % slides.length); };
+    const prev = () => { setDirection(-1); setCurrent((c) => (c - 1 + activeSlides.length) % activeSlides.length); };
+    const next = () => { setDirection(1); setCurrent((c) => (c + 1) % activeSlides.length); };
 
-    const slide = slides[current];
+    const slide = activeSlides[current] ?? activeSlides[0];
 
     return (
       <div className="min-h-screen bg-[#07070f] text-white">
@@ -273,7 +281,7 @@ import { useState, useEffect } from "react";
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <div className="flex gap-2">
-                {slides.map((_, i) => (
+                {activeSlides.map((_, i) => (
                   <button key={i} onClick={() => goTo(i)}
                     className={`h-1.5 rounded-full transition-all ${i === current ? "w-8 bg-blue-400" : "w-3 bg-white/20"}`} />
                 ))}
