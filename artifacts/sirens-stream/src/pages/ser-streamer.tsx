@@ -82,20 +82,24 @@ import { useLanguage } from "@/contexts/LanguageContext";
     const earnings = lang === 'pt' ? earnings_pt : earnings_es;
     const T = {
       badge: lang === 'pt' ? "Trabalhe de Casa em Dólares" : "Trabaja desde Casa en Dólares",
-      h1a: lang === 'pt' ? "Como Funciona ser" : "Cómo es ser",
-      h1b: lang === 'pt' ? "Chat Hostess" : "Chat Hostess",
-      subh: lang === 'pt' ? "Com apenas um celular, horarió livre e zero investimento" : "Con solo tu celular, horario libre y cero inversión",
-      ctaJoin: lang === 'pt' ? "Quero participar" : "{T.ctaJoin}",
-      ctaApps: lang === 'pt' ? "{T.ctaApps}" : "{T.ctaApps}",
-      reqBadge: lang === 'pt' ? "Quem buscamos?" : "{T.reqBadge}",
+      h1Hero: lang === 'pt' ? "Seu Celular é sua" : "Tu Celular es tu",
+      h1HeroHighlight: lang === 'pt' ? "Ferramenta de Trabalho" : "Herramienta de Trabalho",
+      heroDesc: lang === 'pt' ? "Na Eclipse Angels Agency você pode gerar renda real em dólares no conforto da sua casa usando apenas seu smartphone. Sem investimento, sem experiência prévia, com total acompanhamento." : "En Eclipse Angels Agency puedes generar ingresos reales en dólares desde la comodidad de tu hogar usando únicamente tu smartphone. Sin inversión, sin experiencia previa, con total acompañamiento.",
+      ctaJoin: lang === 'pt' ? "Quero participar" : "Quiero unirme",
+      ctaApps: lang === 'pt' ? "Apps Disponíveis" : "Apps Disponibles",
+      whatBadge: lang === 'pt' ? "No que consiste o trabalho?" : "¿En qué consiste el trabajo?",
+      whatH2: lang === 'pt' ? "O que faz uma Streamer na Eclipse Angels" : "Lo que hace una Streamer en Eclipse Angels",
+      whatDesc: lang === 'pt' ? "Você interage com usuários pelo celular através de mensagens, áudio e vídeo opcionais, e recebe diamantes e moedas que se convertem em dólares." : "Interactúas con usuarios desde tu celular a través de mensajes, audio y video opcionales, y recibes diamantes y monedas que se convierten en dólares.",
+      privacyNote: lang === 'pt' ? "✨ Privacidade garantida: Não precisa expor suas redes sociais pessoais. Você usa um perfil exclusivo para o app com nome e foto diferentes dos seus." : "✨ Privacidad garantizada: No necesitas exponer tus redes sociales personales. Usas un perfil exclusivo para la app con nombre y foto distintos a los tuyos.",
+      reqBadge: lang === 'pt' ? "Quem buscamos?" : "¿A quién buscamos?",
       reqH2a: lang === 'pt' ? "Requisitos para" : "Requisitos para",
       reqH2b: lang === 'pt' ? "participar" : "unirte",
-      reqDesc: lang === 'pt' ? "Você não precisa de experiência prévia. Só precisa de vontade de trabalhar e crescer. Nós ensinamos tudo do zero e acompanhamos cada passo." : "{T.reqDesc}",
-      earningsBadge: lang === 'pt' ? "Potencial de Ganhos" : "{T.earningsBadge}",
-      tipsTit: lang === 'pt' ? "Dicas para maximizar seus ganhos" : "{T.tipsTit}",
-      stepsBadge: lang === 'pt' ? "Processo de Entrada" : "{T.stepsBadge}",
-      stepsH2: lang === 'pt' ? "Como começo?" : "{T.stepsH2}",
-      stepsSub: lang === 'pt' ? "Em poucos passos você estará gerando renda pelo celular" : "{T.stepsSub}",
+      reqDesc: lang === 'pt' ? "Você não precisa de experiência prévia. Só precisa de vontade de trabalhar e crescer. Nós ensinamos tudo do zero e acompanhamos cada passo." : "No necesitas experiencia previa. Solo necesitas las ganas de trabajar y crecer. Nosotras te capacitamos desde cero y te acompañamos en cada paso.",
+      earningsBadge: lang === 'pt' ? "Potencial de Ganhos" : "Potencial de Ganancias",
+      tipsTit: lang === 'pt' ? "Dicas para maximizar seus ganhos" : "Consejos para maximizar tus ganancias",
+      stepsBadge: lang === 'pt' ? "Processo de Entrada" : "Proceso de Ingreso",
+      stepsH2: lang === 'pt' ? "Como começo?" : "¿Cómo empiezo?",
+      stepsSub: lang === 'pt' ? "Em poucos passos você estará gerando renda pelo celular" : "En pocos pasos estarás generando ingresos desde tu celular",
       steps: lang === 'pt' ? [
         { n: "01", t: "Entre em Contato", d: "Fale conosco pelo WhatsApp ou Instagram. Respondemos em menos de 24h." },
         { n: "02", t: "Entrevista Express", d: "Uma breve conversa para te conhecer e explicar tudo sem compromisso." },
@@ -110,11 +114,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
       menBadge: lang === 'pt' ? "É homem? Também tem lugar aqui" : "¿Eres hombre? También tienes lugar aquí",
       menH3: lang === 'pt' ? "Os homens também podem ganhar na" : "Los hombres también pueden ganar en",
       menDesc: lang === 'pt' ? "Você pode participar como recrutador — indique mulheres para a agência e ganhe comissão por cada uma que começar a trabalhar. Também pode se cadastrar em alguns de nossos aplicativos. De qualquer forma, fazendo parte da nossa equipe, você sempre sairá beneficiado." : "Puedes unirte como reclutador — refiere chicas a la agencia y gana comisión por cada una que empiece a trabajar. También puedes registrarte en algunas de nuestras aplicaciones. Sea como sea, siendo parte de nuestro equipo, siempre saldrás beneficiado.",
-      menBtn: lang === 'pt' ? "Quero ser recrutador" : "{T.menBtn}",
-      ctaH2: lang === 'pt' ? "Pronta para começar?" : "{T.ctaH2}",
-      ctaDesc: lang === 'pt' ? "Milhares de mulheres já geram renda real em dólares com a Eclipse Angels Agency. Seu momento é agora. Fale conosco e comece esta semana." : "{T.ctaDesc}",
-      ctaContact: lang === 'pt' ? "Entrar em contato" : "{T.ctaContact}",
-      ctaApps2: lang === 'pt' ? "{T.ctaApps}" : "{T.ctaApps}",
+      menBtn: lang === 'pt' ? "Quero ser recrutador" : "Quiero ser reclutador",
+      ctaH2: lang === 'pt' ? "Pronta para começar?" : "¿Lista para empezar?",
+      ctaDesc: lang === 'pt' ? "Milhares de mulheres já geram renda real em dólares com a Eclipse Angels Agency. Seu momento é agora. Fale conosco e comece esta semana." : "Miles de mujeres ya generan ingresos reales en dólares con Eclipse Angels Agency. Tu momento es ahora. Escríbenos y empieza esta semana.",
+      ctaContact: lang === 'pt' ? "Entrar em contato" : "Contactar ahora",
     };
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-16">
@@ -127,23 +130,23 @@ import { useLanguage } from "@/contexts/LanguageContext";
           <div className="relative max-w-4xl mx-auto px-5 text-center">
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 rounded-full px-4 py-1.5 mb-5">
               <Zap className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Ser Streamer</span>
+              <span className="text-blue-300 text-xs font-semibold uppercase tracking-wider">{T.badge}</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold mb-5 leading-[1.1]">
-              Tu Celular es tu<br />
-              <span className="gradient-text">Herramienta de Trabajo</span>
+              {T.h1Hero}<br />
+              <span className="gradient-text">{T.h1HeroHighlight}</span>
             </h1>
             <p className="text-white/55 max-w-2xl mx-auto text-lg leading-relaxed mb-8">
-              En Eclipse Angels Agency puedes generar ingresos reales en dólares desde la comodidad de tu hogar usando únicamente tu smartphone. Sin inversión, sin experiencia previa, con total acompañamiento.
+              {T.heroDesc}
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
-                Quiero unirme <ArrowRight className="w-4 h-4" />
+                {T.ctaJoin} <ArrowRight className="w-4 h-4" />
               </a>
               <Link href="/apps"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-3 rounded-xl text-sm hover:bg-white/10 transition-colors">
-                {T.ctaApps} Disponibles
+                {T.ctaApps}
               </Link>
             </div>
           </div>
@@ -153,9 +156,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
         <section className="py-20 bg-[#0a0a16]">
           <div className="max-w-4xl mx-auto px-5">
             <div className="text-center mb-12">
-              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">¿En qué consiste el trabajo?</span>
-              <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-3">Lo que hace una Streamer en Eclipse Angels</h2>
-              <p className="text-white/45 max-w-xl mx-auto text-sm">Interactúas con usuarios desde tu celular a través de mensajes, audio y video opcionales, y recibes diamantes y monedas que se convierten en dólares.</p>
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">{T.whatBadge}</span>
+              <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-3">{T.whatH2}</h2>
+              <p className="text-white/45 max-w-xl mx-auto text-sm">{T.whatDesc}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
               {activities.map((a, i) => (
@@ -169,9 +172,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
               ))}
             </div>
             <div className="bg-blue-500/8 border border-blue-500/20 rounded-2xl p-5 text-center">
-              <p className="text-blue-200/70 text-sm">
-                ✨ <strong>Privacidad garantizada:</strong> No necesitas exponer tus redes sociales personales. Usas un perfil exclusivo para la app con nombre y foto distintos a los tuyos.
-              </p>
+              <p className="text-blue-200/70 text-sm">{T.privacyNote}</p>
             </div>
           </div>
         </section>
@@ -181,10 +182,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
           <div className="max-w-4xl mx-auto px-5">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">¿A quién buscamos?</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">{T.reqBadge}</span>
                 <h2 className="text-3xl md:text-4xl font-extrabold mt-2 mb-4">{T.reqH2a} <span className="gradient-text">{T.reqH2b}</span></h2>
                 <p className="text-white/50 text-sm mb-7 leading-relaxed">
-                  No necesitas experiencia previa. Solo necesitas las ganas de trabajar y crecer. Nosotras te capacitamos desde cero y te acompañamos en cada paso.
+                  {T.reqDesc}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {requisitos.map((r, i) => (
@@ -200,7 +201,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
                 <div className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-6">
                   <div className="flex items-center gap-2 mb-5">
                     <TrendingUp className="w-5 h-5 text-blue-400" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Potencial de Ganancias</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">{T.earningsBadge}</span>
                   </div>
                   {earnings.map((e, i) => (
                     <div key={i} className={`flex items-center justify-between py-3 ${i > 0 ? "border-t border-white/5" : ""}`}>
@@ -210,7 +211,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
                   ))}
                 </div>
                 <div className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl p-5">
-                  <h4 className="font-bold text-white text-sm mb-3">Consejos para maximizar tus ganancias</h4>
+                  <h4 className="font-bold text-white text-sm mb-3">{T.tipsTit}</h4>
                   <div className="space-y-2">
                     {tips.slice(0, 4).map((tip, i) => (
                       <div key={i} className="flex items-start gap-2 text-xs text-white/50">
@@ -229,9 +230,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
         <section className="py-20 bg-[#0a0a16]">
           <div className="max-w-4xl mx-auto px-5">
             <div className="text-center mb-12">
-              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">Proceso de Ingreso</span>
-              <h2 className="text-3xl font-extrabold mt-2 mb-3">¿Cómo empiezo?</h2>
-              <p className="text-white/45 text-sm">En pocos pasos estarás generando ingresos desde tu celular</p>
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-400/70">{T.stepsBadge}</span>
+              <h2 className="text-3xl font-extrabold mt-2 mb-3">{T.stepsH2}</h2>
+              <p className="text-white/45 text-sm">{T.stepsSub}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {T.steps.map((s, i) => (
@@ -267,7 +268,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
                   </p>
                   <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency%20como%20reclutador" target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                    Quiero ser reclutador <ArrowRight className="w-4 h-4" />
+                    {T.menBtn} <ArrowRight className="w-4 h-4" />
                   </a>
                 </div>
               </div>
@@ -279,14 +280,14 @@ import { useLanguage } from "@/contexts/LanguageContext";
         <section className="py-20 bg-[#07070f]">
           <div className="max-w-xl mx-auto px-5 text-center">
             <DollarSign className="w-12 h-12 text-blue-400 mx-auto mb-5" />
-            <h2 className="text-3xl font-extrabold mb-3">¿Lista para empezar?</h2>
+            <h2 className="text-3xl font-extrabold mb-3">{T.ctaH2}</h2>
             <p className="text-white/50 text-sm mb-7 leading-relaxed">
-              Miles de mujeres ya generan ingresos reales en dólares con Eclipse Angels Agency. Tu momento es ahora. Escríbenos y empieza esta semana.
+              {T.ctaDesc}
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <a href="https://wa.me/5595984381686?text=Hola%2C%20quiero%20unirme%20a%20Eclipse%20Angels%20Agency" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(59,130,246,0.4)]">
-                Contactar ahora <ArrowRight className="w-4 h-4" />
+                {T.ctaContact} <ArrowRight className="w-4 h-4" />
               </a>
               <Link href="/apps"
                 className="flex items-center gap-2 bg-white/6 border border-white/12 text-white font-bold px-7 py-4 rounded-xl text-sm hover:bg-white/10 transition-colors">
