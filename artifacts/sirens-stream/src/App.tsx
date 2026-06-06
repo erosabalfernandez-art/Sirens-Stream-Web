@@ -5,6 +5,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { TooltipProvider } from "@/components/ui/tooltip";
   import { Navbar } from "@/components/layout/Navbar";
   import { InstallPWA } from "@/components/layout/InstallPWA";
+  import { UpdateBanner } from "@/components/layout/UpdateBanner";
   import { Footer } from "@/components/layout/Footer";
   import { FloatingSocials } from "@/components/layout/FloatingSocials";
   import { AngelaChat } from "@/components/chat/SirenaChat";
@@ -121,6 +122,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <Router />
             </WouterRouter>
+            <UpdateBanner />
             <Toaster />
             <InstallPWA />
           </AuthProvider>
