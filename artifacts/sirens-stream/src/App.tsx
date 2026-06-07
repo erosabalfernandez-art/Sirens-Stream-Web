@@ -29,6 +29,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import Nomina from "@/pages/nomina";
   import Salarios from "@/pages/salarios";
   import Canales from "@/pages/canales";
+  import AgentePanel from "@/pages/agente";
 
   function ScrollToTop() {
     const [location] = useLocation();
@@ -81,7 +82,8 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
               <Route path="/canales"   component={Canales} />
               {profile?.is_admin && <Route path="/admin"   component={Admin} />}
               {profile?.is_admin && <Route path="/nomina"  component={Nomina} />}
-              <Route component={() => <RedirectTo href="/perfil" />} />
+              {profile?.is_agent && <Route path="/agente" component={AgentePanel} />}
+              <Route component={() => <RedirectTo href={profile?.is_agent && !profile?.is_admin ? "/agente" : "/perfil"} />} />
             </Switch>
           </main>
         </div>
