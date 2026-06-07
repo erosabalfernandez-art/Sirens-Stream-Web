@@ -318,6 +318,8 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
     const [aiLoading, setAiLoading] = useState(false)
     const [publishing, setPublishing] = useState(false)
       const [publishedOk, setPublishedOk] = useState(false)
+        const [publishingAgents, setPublishingAgents] = useState(false)
+        const [agentPublishOk, setAgentPublishOk] = useState(false)
       const [nominaApp, setNominaApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
       const fileRef = useRef<HTMLInputElement>(null)
       const [historyView, setHistoryView] = useState(false)
@@ -449,7 +451,35 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
         setPublishing(false)
       }
 
-      // Uses Groq AI to map unknown column headers to the required fields.
+      async function publishAgentCommissions() {
+          const agentMap: Record<string, { uid: string; nombre: string; salary_usd: number; commission_usd: number }[]> = {}
+          for (const { worker: w, nomina: nm } of cobradas) {
+            const agente = (w as any).agente as string | null
+            if (!agente) continue
+            if (!agentMap[agente]) agentMap[agente] = []
+            agentMap[agente].push({ uid: nm.uid, nombre: nm.apodo, salary_usd: nm.usd, commission_usd: nm.comision })
+          }
+          const agentNames = Object.keys(agentMap)
+          if (agentNames.length === 0) return
+          const semana = cobradas[0]?.nomina?.semana ?? ''
+          const { data: agentProfiles } = await supabase.from('profiles').select('id, agent_name').in('agent_name', agentNames)
+          const agentIdMap: Record<string, string> = {}
+          for (const p of (agentProfiles ?? [])) { if (p.agent_name) agentIdMap[p.agent_name] = p.id }
+          const inserts = agentNames.map(name => ({
+            agent_user_id: agentIdMap[name] ?? null,
+            agent_name: name,
+            app_name: nominaApp,
+            semana,
+            total_commission_usd: agentMap[name].reduce((s, wk) => s + wk.commission_usd, 0),
+            workers_data: agentMap[name],
+          }))
+          setPublishingAgents(true); setAgentPublishOk(false)
+          const { error } = await supabase.from('agent_commissions').upsert(inserts, { onConflict: 'agent_name,app_name,semana' })
+          if (!error) { setAgentPublishOk(true); setTimeout(() => setAgentPublishOk(false), 4000) }
+          setPublishingAgents(false)
+        }
+
+        // Uses Groq AI to map unknown column headers to the required fields.
       // Returns indices for each field, or -1 if not found.
       async function detectColumnsWithAI(headers: string[]): Promise<Record<string, number>> {
         const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined
@@ -539,6 +569,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
         let semanaCol = smartCOL('Semana')
         let diaCol   = smartCOL('Diamantes Totales')
         let agenciaCol = smartCOL('Nombre de la agencia')
+          let comisionCol = smartCOL('Comisión')
 
         // If keyword detection failed, let AI identify the columns
         if (uidCol === -1 || usdCol === -1) {
@@ -570,7 +601,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
         }
 
         const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
-        const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol].filter(i => i !== -1))
+        const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol, comisionCol].filter(i => i !== -1))
 
         const nominaRows: NominaRow[] = dataRows.map(r => {
           const extras: Record<string, string | number> = {}
@@ -580,6 +611,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
             apodo: String(apodoCol !== -1 ? (r[apodoCol] ?? '') : ''),
             usd: parseFloat(String(usdCol !== -1 ? (r[usdCol] ?? 0) : 0)) || 0,
             diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
+              comision: parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0,
             semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : ''),
             extras,
           }
