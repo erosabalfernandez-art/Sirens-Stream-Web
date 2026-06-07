@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, Users } from 'lucide-react'
   import { sendPushViaApi } from '@/lib/push'
 
     interface WorkerRow extends WorkerEntry {
@@ -106,7 +106,7 @@ import { useState, useEffect, useRef } from 'react'
       const [filterIdApp, setFilterIdApp] = useState(() => { try { return localStorage.getItem('ea_af_id_app') ?? '' } catch { return '' } })
       const [filterTelefono, setFilterTelefono] = useState(() => { try { return localStorage.getItem('ea_af_telefono') ?? '' } catch { return '' } })
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos' | 'agentes'>('list')
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
@@ -118,6 +118,12 @@ import { useState, useEffect, useRef } from 'react'
         const [channelPosting, setChannelPosting] = useState(false)
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
+          const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;is_agent:boolean}[]>([])
+          const [agentFormName, setAgentFormName] = useState('')
+          const [agentFormEmail, setAgentFormEmail] = useState('')
+          const [agentFormPassword, setAgentFormPassword] = useState('')
+          const [creatingAgent, setCreatingAgent] = useState(false)
+          const [agentCreateMsg, setAgentCreateMsg] = useState<{ok:boolean;msg:string}|null>(null)
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
         const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy') ?? 'Waha' } catch { return 'Waha' } })
@@ -331,7 +337,36 @@ import { useState, useEffect, useRef } from 'react'
         setFilterNombreApp(''); setFilterIdApp(''); setFilterTelefono('')
       }
 
-      if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
+      async function fetchAgents() {
+          const { data } = await supabase.from('profiles').select('id, email, agent_name, is_agent').eq('is_agent', true).order('created_at', { ascending: false })
+          setAgents((data ?? []) as {id:string;email:string;agent_name:string|null;is_agent:boolean}[])
+        }
+
+        async function createAgent() {
+          if (!agentFormName.trim() || !agentFormEmail.trim() || !agentFormPassword.trim()) {
+            setAgentCreateMsg({ ok: false, msg: 'Completa todos los campos.' }); return
+          }
+          setCreatingAgent(true); setAgentCreateMsg(null)
+          const { createClient } = await import('@supabase/supabase-js')
+          const tmpClient = createClient(
+            import.meta.env.VITE_SUPABASE_URL as string,
+            import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+          )
+          const { data: signUpData, error: signUpError } = await tmpClient.auth.signUp({ email: agentFormEmail.trim(), password: agentFormPassword.trim() })
+          if (signUpError || !signUpData.user) {
+            setAgentCreateMsg({ ok: false, msg: signUpError?.message ?? 'Error al crear cuenta.' })
+            setCreatingAgent(false); return
+          }
+          const userId = signUpData.user.id
+          await supabase.from('profiles').upsert({ id: userId, email: agentFormEmail.trim(), is_agent: true, agent_name: agentFormName.trim(), is_admin: false }, { onConflict: 'id' })
+          setAgentCreateMsg({ ok: true, msg: `✓ Agente "${agentFormName.trim()}" creado. Email: ${agentFormEmail.trim()}` })
+          setAgentFormName(''); setAgentFormEmail(''); setAgentFormPassword('')
+          await fetchAgents()
+          setCreatingAgent(false)
+        }
+
+        if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
       if (!profile?.is_admin) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Verificando acceso...</div></div>
 
       return (
