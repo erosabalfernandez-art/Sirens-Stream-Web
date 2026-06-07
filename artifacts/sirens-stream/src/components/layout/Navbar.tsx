@@ -45,6 +45,7 @@ export function Navbar() {
   const { lang } = useLanguage();
   const showAgencia = useShowAgencia();
   const isAdmin = profile?.is_admin;
+    const isAgent = !!(profile?.is_agent && !profile?.is_admin);
 
   async function handleSignOut() {
     await signOut();
