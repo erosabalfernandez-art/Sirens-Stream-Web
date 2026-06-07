@@ -422,6 +422,11 @@ import { useState, useEffect, useRef } from 'react'
                 <DollarSign className="w-3.5 h-3.5" />
                 Control Pagos
               </button>
+              <button onClick={() => { setTab('agentes'); fetchAgents() }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'agentes' ? 'bg-amber-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                <Users className="w-3.5 h-3.5" />
+                Agentes
+              </button>
             </div>
 
             {tab === 'config' && (
@@ -997,7 +1002,57 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
               </div>
             )}
   
+                {tab === 'agentes' && (
+                  <div className="space-y-6">
+                    <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-6">
+                      <div className="flex items-center gap-2 mb-5">
+                        <Users className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm font-semibold text-white/70">Crear cuenta de agente</span>
+                      </div>
+                      {agentCreateMsg && (
+                        <div className={`mb-4 p-3 rounded-xl text-sm font-semibold ${agentCreateMsg.ok ? 'bg-green-500/10 border border-green-500/20 text-green-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
+                          {agentCreateMsg.msg}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <input value={agentFormName} onChange={e => setAgentFormName(e.target.value)}
+                          placeholder="Nombre del agente" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                        <input value={agentFormEmail} onChange={e => setAgentFormEmail(e.target.value)}
+                          placeholder="Correo electrónico" type="email" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                        <input value={agentFormPassword} onChange={e => setAgentFormPassword(e.target.value)}
+                          placeholder="Contraseña" type="password" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                      </div>
+                      <button onClick={createAgent} disabled={creatingAgent}
+                        className="mt-3 flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
+                        {creatingAgent ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Users className="w-4 h-4" />}
+                        {creatingAgent ? 'Creando...' : 'Crear agente'}
+                      </button>
+                    </div>
+                    <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-3 border-b border-purple-500/10">
+                        <span className="text-xs font-bold uppercase tracking-wider text-white/40">Agentes registrados</span>
+                        <span className="text-xs text-white/30">{agents.length} agente{agents.length !== 1 ? 's' : ''}</span>
+                      </div>
+                      {agents.length === 0 ? (
+                        <div className="p-8 text-center text-white/25 text-sm">No hay agentes registrados aún.</div>
+                      ) : (
+                        <div className="divide-y divide-white/4">
+                          {agents.map(ag => (
+                            <div key={ag.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-white/80 text-sm font-semibold">{ag.agent_name || '—'}</p>
+                                <p className="text-white/35 text-xs">{ag.email}</p>
+                              </div>
+                              <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Agente</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
