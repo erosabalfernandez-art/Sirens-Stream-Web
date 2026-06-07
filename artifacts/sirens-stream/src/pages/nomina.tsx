@@ -324,6 +324,8 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
       const [historyFilterSemana, setHistoryFilterSemana] = useState('')
       const [historyFilterApp, setHistoryFilterApp] = useState('')
       const [deletingHistId, setDeletingHistId] = useState<string | null>(null)
+          const [paidMarks, setPaidMarks] = useState<Set<string>>(new Set())
+          const [togglingPaid, setTogglingPaid] = useState<string | null>(null)
         // Nomina filter state (persisted in localStorage)
         const [fPais, setFPais] = useState(() => { try { return localStorage.getItem('ea_nf_pais') ?? '' } catch { return '' } })
         const [fPago, setFPago] = useState(() => { try { return localStorage.getItem('ea_nf_pago') ?? '' } catch { return '' } })
@@ -606,6 +608,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
         cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
 
         setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
+        loadPaidMarks(nominaApp, sem)
         setStep('results')
         callGroq(cobradasList, noCobroList, sem)
       } catch (err: any) {
@@ -615,9 +618,26 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
       }
     }
 
-    function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
+    async function loadPaidMarks(app: string, week: string) {
+        const { data } = await supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', week)
+        setPaidMarks(new Set(((data ?? []) as {uid:string}[]).map((r: any) => r.uid)))
+      }
+
+      async function togglePaid(uid: string) {
+        setTogglingPaid(uid)
+        if (paidMarks.has(uid)) {
+          await supabase.from('admin_paid_marks').delete().eq('app_name', nominaApp).eq('semana', semana).eq('uid', uid)
+          setPaidMarks(prev => { const s = new Set(prev); s.delete(uid); return s })
+        } else {
+          await supabase.from('admin_paid_marks').insert({ app_name: nominaApp, semana, uid })
+          setPaidMarks(prev => new Set([...prev, uid]))
+        }
+        setTogglingPaid(null)
+      }
+
+      function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
     function onInput(e: React.ChangeEvent<HTMLInputElement>) { const f = e.target.files?.[0]; if (f) processFile(f) }
-    function reset() { sessionStorage.removeItem('ea_nomina_state'); setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false) }
+    function reset() { sessionStorage.removeItem('ea_nomina_state'); setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()) }
 
     async function fetchHistory() {
       setHistoryLoading(true)
@@ -945,7 +965,16 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
                           <div className="flex items-start gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-300 font-extrabold text-sm shrink-0">W</div>
                             <div className="min-w-0">
-                              <p className="font-bold text-base leading-tight">{n.apodo}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-base leading-tight">{n.apodo}</p>
+                                <button
+                                  onClick={() => togglePaid(n.uid)}
+                                  disabled={togglingPaid === n.uid}
+                                  title={paidMarks.has(n.uid) ? 'Quitar marca de pagado' : 'Marcar como pagado'}
+                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${paidMarks.has(n.uid) ? 'bg-green-500 border-green-500 text-white' : 'border-white/25 text-transparent hover:border-green-400/60'}`}>
+                                  <Check className="w-3 h-3" />
+                                </button>
+                              </div>
                               {w.nombre_real && <p className="text-white/40 text-xs mt-0.5">{w.nombre_real}</p>}
                               <p className="text-white/30 text-xs mt-0.5">{w.profile_email}</p>
                               {waLink ? (
