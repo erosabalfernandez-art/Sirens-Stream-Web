@@ -86,6 +86,7 @@ import React, { useState, useEffect } from 'react'
               <button onClick={() => setFilterApp('')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!filterApp ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/40 hover:text-white'}`}>Todas</button>
               {apps.map(a => <button key={a} onClick={() => setFilterApp(a)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterApp === a ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/40 hover:text-white'}`}>{a}</button>)}
             </div>
+          )}
 
           {/* Push notifications */}
           <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-5 mb-4 flex items-center justify-between gap-4">
@@ -117,7 +118,6 @@ import React, { useState, useEffect } from 'react'
             </div>
           </div>
 
-          )}
           {commLoading ? (
             <div className="text-white/30 text-sm text-center py-12">Cargando comisiones...</div>
           ) : filtered.length === 0 ? (
