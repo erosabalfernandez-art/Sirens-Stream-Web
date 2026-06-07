@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
+  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff } from 'lucide-react'
+  import { subscribeToPush } from '@/lib/push'
 
   interface AgentCommission {
     id: string; agent_name: string; app_name: string; semana: string
@@ -20,9 +21,17 @@ import React, { useState, useEffect } from 'react'
     const [commLoading, setCommLoading] = useState(true)
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [filterApp, setFilterApp] = useState('')
+    const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'>('idle')
 
     useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent) navigate('/') }, [loading, profile])
     useEffect(() => { if (profile?.is_agent) fetchCommissions() }, [profile])
+
+    useEffect(() => {
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') setNotifStatus('granted')
+        else if (Notification.permission === 'denied') setNotifStatus('denied')
+      }
+    }, [])
 
     async function fetchCommissions() {
       setCommLoading(true)
@@ -32,6 +41,13 @@ import React, { useState, useEffect } from 'react'
     }
 
     function toggleExpand(id: string) { setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s }) }
+
+    async function subscribeNotif() {
+      if (!profile?.id) return
+      setNotifStatus('requesting')
+      const ok = await subscribeToPush(profile.id)
+      setNotifStatus(ok ? 'granted' : 'denied')
+    }
 
     if (loading || profile === undefined) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse text-sm">Cargando...</div></div>
     if (!profile?.is_agent) return null
@@ -70,6 +86,37 @@ import React, { useState, useEffect } from 'react'
               <button onClick={() => setFilterApp('')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!filterApp ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/40 hover:text-white'}`}>Todas</button>
               {apps.map(a => <button key={a} onClick={() => setFilterApp(a)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterApp === a ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/40 hover:text-white'}`}>{a}</button>)}
             </div>
+
+          {/* Push notifications */}
+          <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-5 mb-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
+                <Bell className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Notificaciones push</p>
+                <p className="text-white/35 text-xs mt-0.5">Recibe alertas de nuevas comisiones en tu dispositivo</p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              {notifStatus === 'granted' ? (
+                <span className="flex items-center gap-1.5 text-green-400 text-xs font-bold bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20">
+                  <Bell className="w-3.5 h-3.5" /> Activadas
+                </span>
+              ) : notifStatus === 'denied' ? (
+                <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20">
+                  <BellOff className="w-3.5 h-3.5" /> Bloqueadas
+                </span>
+              ) : (
+                <button onClick={subscribeNotif} disabled={notifStatus === 'requesting'}
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
+                  {notifStatus === 'requesting' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+                  {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
+                </button>
+              )}
+            </div>
+          </div>
+
           )}
           {commLoading ? (
             <div className="text-white/30 text-sm text-center py-12">Cargando comisiones...</div>
