@@ -37,6 +37,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
     rows_data: { cobradas: Matched[]; noCobro: NoCobro[]; sinPerfil: NominaRow[] }
     published: boolean
     created_at: string
+    file_name?: string
   }
 
   function normalizeUID(val: unknown): string {
@@ -215,7 +216,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
     const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null)
     const filtered = history.filter(h => {
       if (historyFilterApp && h.app_name !== historyFilterApp) return false
-      if (historyFilterSemana && !h.semana.toLowerCase().includes(historyFilterSemana.toLowerCase())) return false
+      if (historyFilterSemana && !h.semana.toLowerCase().includes(historyFilterSemana.toLowerCase()) && !(h.file_name ?? '').toLowerCase().includes(historyFilterSemana.toLowerCase())) return false
       return true
     })
     return (
@@ -259,7 +260,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-semibold">{h.app_name}</span>
-                      <span className="font-bold text-sm">Semana {h.semana}</span>
+                      <span className="font-bold text-sm">{h.file_name ? h.file_name.replace(/\.xlsx?$/i, '') : `Semana ${h.semana}`}</span>
                       {h.published && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-semibold">Publicada</span>}
                     </div>
                     <p className="text-white/30 text-xs mt-0.5">
@@ -310,6 +311,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
     const [noCobro, setNoCobro] = useState<NoCobro[]>([])
     const [sinPerfil, setSinPerfil] = useState<NominaRow[]>([])
     const [semana, setSemana] = useState('')
+    const [fileName, setFileName] = useState('')
     const [tab, setTab] = useState<'cobradas' | 'nocobro' | 'sinperfil'>('cobradas')
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [aiSummary, setAiSummary] = useState<string | null>(null)
@@ -484,6 +486,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
       async function processFile(file: File) {
       if (!file.name.match(/\.xlsx?$/i)) return
       setParsing(true); setAiSummary(null); setParseError(null)
+      setFileName(file.name)
       try {
         const buf = await file.arrayBuffer()
         const wb = XLSX.read(buf, { type: 'array' })
@@ -637,13 +640,13 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
 
       function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
     function onInput(e: React.ChangeEvent<HTMLInputElement>) { const f = e.target.files?.[0]; if (f) processFile(f) }
-    function reset() { sessionStorage.removeItem('ea_nomina_state'); setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()) }
+    function reset() { sessionStorage.removeItem('ea_nomina_state'); setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()); setFileName('') }
 
     async function fetchHistory() {
       setHistoryLoading(true)
       const { data } = await supabase
         .from('nomina_history')
-        .select('id,app_name,semana,total_usd,total_diamantes,cobradas_count,nocobro_count,sinperfil_count,published,created_at,rows_data')
+        .select('id,app_name,semana,total_usd,total_diamantes,cobradas_count,nocobro_count,sinperfil_count,published,created_at,rows_data,file_name')
         .order('created_at', { ascending: false })
       setHistory((data ?? []) as HistoryEntry[])
       setHistoryLoading(false)
@@ -662,6 +665,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
           sinperfil_count: sinPerfil.length,
           rows_data: { cobradas, noCobro, sinPerfil },
           published: true,
+          file_name: fileName,
         })
       } catch { /* ignore */ }
     }
@@ -674,6 +678,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
     }
 
     function loadFromHistory(entry: HistoryEntry) {
+      setFileName(entry.file_name ?? '')
       setCobradas(entry.rows_data.cobradas ?? [])
       setNoCobro(entry.rows_data.noCobro ?? [])
       setSinPerfil(entry.rows_data.sinPerfil ?? [])
