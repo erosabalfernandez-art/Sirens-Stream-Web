@@ -1,4 +1,6 @@
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { useShowAgencia } from "@/hooks/useShowAgencia";
 import { useLanguage } from "@/contexts/LanguageContext";
   import {Users, TrendingUp, DollarSign, CheckCircle2, ArrowRight, Star, Zap, Globe, Shield, Clock, Award} from "lucide-react";
 
@@ -108,6 +110,23 @@ import { useLanguage } from "@/contexts/LanguageContext";
     "Com visão de negócio a longo prazo",
   ];
   export default function CrearAgencia() {
+    const showAgencia = useShowAgencia();
+    const [, navigate] = useLocation();
+    const [checked, setChecked] = useState(false);
+
+    useEffect(() => {
+      // Small delay to let geo-check resolve before deciding to block
+      const t = setTimeout(() => setChecked(true), 1200);
+      return () => clearTimeout(t);
+    }, []);
+
+    useEffect(() => {
+      if (checked && !showAgencia) navigate('/');
+    }, [checked, showAgencia, navigate]);
+
+    if (!checked) return null; // wait for geo-check
+    if (!showAgencia) return null; // redirect in progress
+
     const { lang } = useLanguage();
     const ofertas = lang === 'pt' ? ofertas_pt : ofertas_es;
     const requisitos = lang === 'pt' ? requisitos_pt : requisitos_es;
