@@ -133,6 +133,8 @@ import { useState, useEffect, useRef } from 'react'
         const [pagosNeedSetup, setPagosNeedSetup] = useState(false)
         const [testPushSending, setTestPushSending] = useState<Record<string, boolean>>({})
         const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
+        const [testPushAgents, setTestPushAgents] = useState(false)
+        const [testPushAgentsOk, setTestPushAgentsOk] = useState(false)
         async function fetchPagosData(app: string) {
           try { localStorage.setItem('ea_pagos_app', app) } catch {}
           setPagosLoading(true); setPagosNeedSetup(false)
@@ -212,6 +214,15 @@ import { useState, useEffect, useRef } from 'react'
           setTestPushSending(p => ({ ...p, [worker.id]: false }))
           setTestPushOk(p => ({ ...p, [worker.id]: true }))
           setTimeout(() => setTestPushOk(p => ({ ...p, [worker.id]: false })), 4000)
+        }
+
+        async function sendTestPushToAllAgents() {
+          setTestPushAgents(true); setTestPushAgentsOk(false)
+          const { data: agentProfs } = await supabase.from('profiles').select('id').eq('is_agent', true)
+          const ids = ((agentProfs ?? []) as {id:string}[]).map(p => p.id)
+          if (ids.length > 0) await sendPushViaApi(ids, '🔔 Notificación de prueba (Agentes)', 'Esta es una notificación de prueba enviada desde el panel admin.', '/agente')
+          setTestPushAgents(false); setTestPushAgentsOk(true)
+          setTimeout(() => setTestPushAgentsOk(false), 4000)
         }
 
         useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
@@ -1004,6 +1015,18 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
   
                 {tab === 'agentes' && (
                   <div className="space-y-6">
+                    {/* Botón de prueba de notificación para agentes */}
+                    <div className="bg-[#0d0d1e] border border-blue-500/15 rounded-2xl p-5 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-0.5 flex items-center gap-2"><Bell className="w-4 h-4 text-blue-400" /> Notificación de prueba para agentes</p>
+                        <p className="text-white/35 text-xs">Envía una push de prueba a todas las cuentas de agente para verificar que les llegan las notificaciones.</p>
+                      </div>
+                      <button onClick={sendTestPushToAllAgents} disabled={testPushAgents}
+                        className={`shrink-0 flex items-center gap-2 ${testPushAgentsOk ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all`}>
+                        {testPushAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+                        {testPushAgentsOk ? '✓ Enviado' : (testPushAgents ? 'Enviando...' : 'Enviar prueba')}
+                      </button>
+                    </div>
                     <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-6">
                       <div className="flex items-center gap-2 mb-5">
                         <Users className="w-4 h-4 text-amber-400" />
