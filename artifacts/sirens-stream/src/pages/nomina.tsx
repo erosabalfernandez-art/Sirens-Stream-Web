@@ -414,7 +414,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
       setAiLoading(false)
     }
 
-    async function publicarSalarios() {
+    async function publicarSalarios(notifyWorkers = true) {
         if (cobradas.length === 0) return
         setPublishing(true); setPublishedOk(false)
         const inserts = cobradas.map(({ worker: w, nomina: n }) => ({
@@ -428,13 +428,15 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
         const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
         if (!error) {
           setPublishedOk(true)
-          sendPushViaApi(
-            cobradas.map(c => c.worker.user_id),
-            `💰 Tu salario de ${nominaApp} está disponible`,
-            `Semana ${semana} — Entra a ver tus ganancias.`,
-            '/salarios',
-            true
-          )
+          if (notifyWorkers) {
+            sendPushViaApi(
+              cobradas.map(c => c.worker.user_id),
+              `💰 Tu salario de ${nominaApp} está disponible`,
+              `Semana ${semana} — Entra a ver tus ganancias.`,
+              '/salarios',
+              true
+            )
+          }
           setTimeout(() => setPublishedOk(false), 4000)
           // Guardar en historial de nóminas automáticamente
           await saveNominaToHistory()
@@ -476,8 +478,31 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
           }))
           setPublishingAgents(true); setAgentPublishOk(false)
           const { error } = await supabase.from('agent_commissions').upsert(inserts, { onConflict: 'agent_name,app_name,semana' })
-          if (!error) { setAgentPublishOk(true); setTimeout(() => setAgentPublishOk(false), 4000) }
+          if (!error) {
+            setAgentPublishOk(true)
+            const agentUserIds = Object.values(agentIdMap).filter(Boolean) as string[]
+            if (agentUserIds.length > 0) {
+              sendPushViaApi(agentUserIds, `💰 Comisiones de ${nominaApp} disponibles`, `Semana ${semana} — Entra a ver tus comisiones.`, '/agente', true)
+            }
+            setTimeout(() => setAgentPublishOk(false), 4000)
+          }
           setPublishingAgents(false)
+        }
+
+        async function publicarLaylaParaAgentes() {
+          if (cobradas.length === 0) return
+          setPublishing(true); setPublishedOk(false)
+          const inserts = cobradas.map(({ worker: w, nomina: n }) => ({ user_id: w.user_id, app_name: nominaApp, semana: n.semana, usd: n.usd, diamantes: n.diamantes, extras: n.extras }))
+          const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
+          if (!error) {
+            setPublishedOk(true)
+            const { data: agentProfs } = await supabase.from('profiles').select('id').eq('is_agent', true)
+            const agentIds = ((agentProfs ?? []) as {id:string}[]).map(p => p.id)
+            if (agentIds.length > 0) sendPushViaApi(agentIds, `💰 Nómina de ${nominaApp} disponible`, `Semana ${semana} — Revisa las comisiones.`, '/agente', true)
+            setTimeout(() => setPublishedOk(false), 4000)
+            await saveNominaToHistory()
+          }
+          setPublishing(false)
         }
 
         // Uses Groq AI to map unknown column headers to the required fields.
@@ -531,11 +556,12 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
         // Each entry is [canonical name, ...keyword hints (any word in header)]
         const COLUMN_ALIASES: [string, string[]][] = [
           ['UID del Host',        ['uid', 'host id', 'id del host', 'id host', 'host_id', 'userid', 'user id']],
-          ['USD',                 ['usd', 'dólar', 'dollar', 'monto', 'pago usd', 'ganancia', 'ingreso', 'earning']],
-          ['Apodo',               ['apodo', 'nick', 'nickname', 'nombre en app', 'nombre_app', 'username']],
-          ['Semana',              ['semana', 'week', 'periodo', 'período', 'date', 'fecha']],
-          ['Diamantes Totales',   ['diamante', 'diamond', 'gem', 'piedra', 'coins', 'total dia']],
-          ['Nombre de la agencia',['agencia', 'agency', 'manager', 'nombre agencia']],
+          ['USD',                 ['usd', 'host salary', 'salario en usd', 'dólar', 'dollar', 'monto', 'pago usd', 'ganancia', 'ingreso', 'earning']],
+          ['Apodo',               ['name', 'nombre', 'apodo', 'nick', 'nickname', 'nombre en app', 'nombre_app', 'username']],
+          ['Semana',              ['week', 'semana', 'periodo', 'período', 'date', 'fecha']],
+          ['Diamantes Totales',   ['total monedas', 'total diamante', 'diamante', 'diamond', 'gem', 'piedra', 'coins', 'moneda', 'total dia']],
+          ['Nombre de la agencia',['agency', 'agencia', 'manager', 'nombre agencia']],
+          ['Comisión',            ['agc salary', '10 porciento', '12% del salario', 'commission', 'comisión', 'comision', '10%', '12%']],
         ]
 
         function smartCOL(canonical: string): number {
@@ -546,9 +572,15 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
           const lower = canonical.toLowerCase()
           const ci = headers.findIndex(h => h.toLowerCase() === lower)
           if (ci !== -1) return ci
-          // 3. Keyword hints
+          // 3. Keyword hints — exact equality first, then substring
           const aliases = COLUMN_ALIASES.find(([c]) => c === canonical)
           if (aliases) {
+            // 3a. Exact: whole header equals keyword (avoids 'AGC UID' matching 'uid')
+            for (const kw of aliases[1]) {
+              const idx = headers.findIndex(h => h.toLowerCase() === kw)
+              if (idx !== -1) return idx
+            }
+            // 3b. Substring match
             for (const kw of aliases[1]) {
               const idx = headers.findIndex(h => h.toLowerCase().includes(kw))
               if (idx !== -1) return idx
@@ -781,20 +813,29 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
                         ✓ Publicado
                       </span>
                     )}
+                    {/* Layla: solo un botón para agentes */}
+                    {nominaApp === 'Layla' && (
+                      <button onClick={publicarLaylaParaAgentes} disabled={publishing || cobradas.length === 0}
+                        className={`flex items-center gap-2 ${publishedOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
+                        {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                        {publishedOk ? '✓ Publicado para agentes' : (publishing ? 'Publicando...' : '💰 Publicar para Agentes')}
+                      </button>
+                    )}
+                    {/* Waha / Howdy: dos botones */}
                     {nominaApp !== 'Layla' && (
-                        <button onClick={publicarSalarios} disabled={publishing || cobradas.length === 0}
-                          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
-                          {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                          {publishing ? 'Publicando...' : `⬆ Publicar ${nominaApp}`}
-                        </button>
-                      )}
-                      {rows.some(r => r.comision > 0) && (
-                        <button onClick={publishAgentCommissions} disabled={publishingAgents || cobradas.length === 0}
-                          className={`flex items-center gap-2 ${agentPublishOk ? 'bg-green-600 hover:bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
-                          {publishingAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                          {agentPublishOk ? '✓ Comisiones publicadas' : (publishingAgents ? 'Publicando...' : '💰 Publicar para Agentes')}
-                        </button>
-                      )}
+                      <button onClick={() => publicarSalarios(true)} disabled={publishing || cobradas.length === 0}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
+                        {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                        {publishing ? 'Publicando...' : '⬆ Publicar para Trabajadoras'}
+                      </button>
+                    )}
+                    {nominaApp !== 'Layla' && (
+                      <button onClick={publishAgentCommissions} disabled={publishingAgents || cobradas.length === 0}
+                        className={`flex items-center gap-2 ${agentPublishOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
+                        {publishingAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                        {agentPublishOk ? '✓ Publicado para agentes' : (publishingAgents ? 'Publicando...' : '💰 Publicar para Agentes')}
+                      </button>
+                    )}
                     <button onClick={exportarPDF}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
                     <Download className="w-4 h-4" /> Exportar PDF
