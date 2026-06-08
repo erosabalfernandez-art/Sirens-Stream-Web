@@ -13,6 +13,7 @@ import { Router, type IRouter } from 'express';
       import coliderRouter from './colider';
       import siteSettingsRouter from './site-settings';
     import channelsRouter from './channels';
+import profileRouter from './profile';
 
       const router: IRouter = Router();
 
@@ -30,6 +31,7 @@ import { Router, type IRouter } from 'express';
       router.use(coliderRouter);
       router.use(siteSettingsRouter);
     router.use(channelsRouter);
+  router.use(profileRouter);
 
       export default router;
       
