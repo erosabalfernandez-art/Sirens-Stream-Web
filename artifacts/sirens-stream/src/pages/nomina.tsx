@@ -231,666 +231,529 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
             </button>
           ))}
           <input
-            value={historyFilterSemana}
-            onChange={e => setHistoryFilterSemana(e.target.value)}
+            type="text" value={historyFilterSemana} onChange={e => setHistoryFilterSemana(e.target.value)}
             placeholder="Buscar semana..."
-            className="ml-auto bg-[#0d0d1e] border border-purple-500/20 rounded-xl px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 w-56"
-          />
+            className="bg-[#0d0d1e] border border-purple-500/20 rounded-xl px-3 py-1.5 text-xs text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 w-40" />
         </div>
-        {historyLoading ? (
-          <div className="space-y-3">
-            {[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-16 text-center">
-            <FileSpreadsheet className="w-10 h-10 text-white/10 mx-auto mb-3" />
-            <p className="text-white/40 text-sm">{history.length === 0 ? 'No hay nóminas guardadas todavía.' : 'Sin resultados.'}</p>
-            <p className="text-white/25 text-xs mt-1">Las nóminas se guardan automáticamente al publicar.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {filtered.map(h => {
-              const isConfirming = confirmDelete === h.id
-              const isDeleting = deletingHistId === h.id
-              const dateStr = new Date(h.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
-              return (
-                <div key={h.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl px-5 py-4 flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 font-bold text-xs shrink-0">
-                    {h.app_name[0]}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-semibold">{h.app_name}</span>
-                      <span className="font-bold text-sm">{h.file_name ? h.file_name.replace(/\.xlsx?$/i, '') : `Semana ${h.semana}`}</span>
-                      {h.published && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-semibold">Publicada</span>}
-                    </div>
-                    <p className="text-white/30 text-xs mt-0.5">
-                      {dateStr} · {h.cobradas_count} cobraron · {Number(h.total_usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD · 💎 {fmtNum(Number(h.total_diamantes))}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => onLoad(h)}
-                      className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-xl transition-all">
-                      ↩ Cargar
-                    </button>
-                    {isConfirming ? (
-                      <div className="flex items-center gap-1.5">
-                        <button onClick={() => { onDelete(h.id); setConfirmDelete(null) }} disabled={isDeleting}
-                          className="text-xs bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50">
-                          {isDeleting ? '...' : 'Borrar'}
-                        </button>
-                        <button onClick={() => setConfirmDelete(null)}
-                          className="text-xs bg-white/8 hover:bg-white/15 text-white/60 font-semibold px-3 py-1.5 rounded-lg transition-all">
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setConfirmDelete(h.id)} title="Eliminar"
-                        className="text-white/20 hover:text-red-400 transition-colors p-1">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+        {historyLoading && <div className="text-white/40 animate-pulse text-sm py-4 text-center">Cargando historial...</div>}
+        {!historyLoading && filtered.length === 0 && <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-10 text-center"><p className="text-white/30 text-sm">Sin nóminas guardadas.</p></div>}
+        {filtered.map(h => {
+          const dateStr = new Date(h.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+          return (
+            <div key={h.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${h.app_name === 'Waha' ? 'bg-purple-500/20 text-purple-300' : h.app_name === 'Layla' ? 'bg-pink-500/20 text-pink-300' : 'bg-blue-500/20 text-blue-300'}`}>{h.app_name}</span>
+                <div>
+                  <span className="font-bold text-sm">{h.file_name ? h.file_name.replace(/\.xlsx?$/i, '') : `Semana ${h.semana}`}</span>
+                  <p className="text-white/35 text-xs mt-0.5">
+                    {dateStr} · {h.cobradas_count} cobraron · {Number(h.total_usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD · 💎 {fmtNum(Number(h.total_diamantes))}
+                  </p>
                 </div>
-              )
-            })}
-          </div>
-        )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => onLoad(h)}
+                  className="text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 px-3 py-1.5 rounded-xl transition-all">
+                  Cargar
+                </button>
+                {confirmDelete === h.id ? (
+                  <>
+                    <button onClick={() => { onDelete(h.id); setConfirmDelete(null) }}
+                      className="text-xs font-semibold bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-xl transition-all">
+                      {deletingHistId === h.id ? '...' : '¿Eliminar?'}
+                    </button>
+                    <button onClick={() => setConfirmDelete(null)} className="text-xs text-white/30 hover:text-white px-2 py-1.5 transition-colors">✕</button>
+                  </>
+                ) : (
+                  <button onClick={() => setConfirmDelete(h.id)}
+                    className="text-white/20 hover:text-red-400 transition-colors p-1.5">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
     )
   }
 
-  export default function Nomina() {
-    const { user, profile, loading } = useAuth()
-    const [, navigate] = useLocation()
-    const [step, setStep] = useState<'upload' | 'results'>('upload')
-    const [dragging, setDragging] = useState(false)
-    const [parsing, setParsing] = useState(false)
-    const [parseError, setParseError] = useState<string | null>(null)
-    const [aiColDetect, setAiColDetect] = useState<string | null>(null)
-    const [cobradas, setCobradas] = useState<Matched[]>([])
-    const [noCobro, setNoCobro] = useState<NoCobro[]>([])
-    const [sinPerfil, setSinPerfil] = useState<NominaRow[]>([])
-    const [semana, setSemana] = useState('')
-    const [fileName, setFileName] = useState('')
-    const [tab, setTab] = useState<'cobradas' | 'nocobro' | 'sinperfil'>('cobradas')
-    const [expanded, setExpanded] = useState<Set<string>>(new Set())
-    const [aiSummary, setAiSummary] = useState<string | null>(null)
-    const [aiLoading, setAiLoading] = useState(false)
-    const [publishing, setPublishing] = useState(false)
-      const [publishedOk, setPublishedOk] = useState(false)
-        const [publishingAgents, setPublishingAgents] = useState(false)
-        const [agentPublishOk, setAgentPublishOk] = useState(false)
-      const [nominaApp, setNominaApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
-      const fileRef = useRef<HTMLInputElement>(null)
-      const [historyView, setHistoryView] = useState(false)
-      const [history, setHistory] = useState<HistoryEntry[]>([])
-      const [historyLoading, setHistoryLoading] = useState(false)
-      const [historyFilterSemana, setHistoryFilterSemana] = useState('')
-      const [historyFilterApp, setHistoryFilterApp] = useState('')
-      const [deletingHistId, setDeletingHistId] = useState<string | null>(null)
-          const [paidMarks, setPaidMarks] = useState<Set<string>>(new Set())
-          const [togglingPaid, setTogglingPaid] = useState<string | null>(null)
-        // Nomina filter state (persisted in localStorage)
-        const [fPais, setFPais] = useState(() => { try { return localStorage.getItem('ea_nf_pais') ?? '' } catch { return '' } })
-        const [fPago, setFPago] = useState(() => { try { return localStorage.getItem('ea_nf_pago') ?? '' } catch { return '' } })
-        const [fEmail, setFEmail] = useState(() => { try { return localStorage.getItem('ea_nf_email') ?? '' } catch { return '' } })
-        const [fBilletera, setFBilletera] = useState(() => { try { return localStorage.getItem('ea_nf_billetera') ?? '' } catch { return '' } })
-        const [fAgente, setFAgente] = useState(() => { try { return localStorage.getItem('ea_nf_agente') ?? '' } catch { return '' } })
-        const [fNombreReal, setFNombreReal] = useState(() => { try { return localStorage.getItem('ea_nf_nombre_real') ?? '' } catch { return '' } })
-        const [fNombreApp, setFNombreApp] = useState(() => { try { return localStorage.getItem('ea_nf_nombre_app') ?? '' } catch { return '' } })
-        const [fIdApp, setFIdApp] = useState(() => { try { return localStorage.getItem('ea_nf_id_app') ?? '' } catch { return '' } })
-        const [fTelefono, setFTelefono] = useState(() => { try { return localStorage.getItem('ea_nf_telefono') ?? '' } catch { return '' } })
-        const [fSortDir, setFSortDir] = useState<'desc'|'asc'>(() => { try { return (localStorage.getItem('ea_nf_sort') as 'desc'|'asc') ?? 'desc' } catch { return 'desc' } })
+// ── Shared helper components ────────────────────────────────────────────────
+function TabBtn({ active, color, onClick, children }: { active: boolean; color: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${active ? color + ' text-white' : 'text-white/40 hover:text-white'}`}>
+      {children}
+    </button>
+  )
+}
+function Empty({ msg }: { msg: string }) {
+  return <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-10 text-center"><p className="text-white/30 text-sm">{msg}</p></div>
+}
+function SplashLoader({ msg }: { msg: string }) {
+  return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">{msg}</div></div>
+}
 
-      // Restore last processed nómina when navigating back (per-app, from localStorage)
-      useEffect(() => {
-        try {
-          const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-          const s = all[nominaApp]
-          if (s?.cobradas?.length > 0) {
-            setCobradas(s.cobradas)
-            setNoCobro(s.noCobro ?? [])
-            setSinPerfil(s.sinPerfil ?? [])
-            setSemana(s.semana ?? '')
-            setFileName(s.fileName ?? '')
-            if (s.aiSummary) setAiSummary(s.aiSummary)
-            setStep('results')
-          }
-        } catch {}
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [])
+// ── App colors ────────────────────────────────────────────────────────────────
+const APP_COLORS = {
+  Waha:  { accent: 'bg-purple-600', border: 'border-purple-500/30', dot: 'bg-purple-400', tag: 'bg-purple-500/20 text-purple-300' },
+  Layla: { accent: 'bg-pink-600',   border: 'border-pink-500/30',   dot: 'bg-pink-400',   tag: 'bg-pink-500/20 text-pink-300' },
+  Howdy: { accent: 'bg-blue-600',   border: 'border-blue-500/30',   dot: 'bg-blue-400',   tag: 'bg-blue-500/20 text-blue-300' },
+}
 
-      // Auto-save whenever results change
-      useEffect(() => {
-        if (step !== 'results' || cobradas.length === 0) return
-        try {
-          const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-          all[nominaApp] = { cobradas, noCobro, sinPerfil, semana, aiSummary, fileName }
-          localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
-        } catch {}
-      }, [step, cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary, fileName])
+// ── Per-app accordion section ─────────────────────────────────────────────────
+function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy'; reloadKey: number }) {
+  const color = APP_COLORS[app]
 
-        // Persist nomina filters to localStorage
-        useEffect(() => {
-          try {
-            localStorage.setItem('ea_nf_pais', fPais); localStorage.setItem('ea_nf_pago', fPago)
-            localStorage.setItem('ea_nf_email', fEmail); localStorage.setItem('ea_nf_billetera', fBilletera)
-            localStorage.setItem('ea_nf_agente', fAgente); localStorage.setItem('ea_nf_nombre_real', fNombreReal)
-            localStorage.setItem('ea_nf_nombre_app', fNombreApp); localStorage.setItem('ea_nf_id_app', fIdApp)
-            localStorage.setItem('ea_nf_telefono', fTelefono); localStorage.setItem('ea_nf_sort', fSortDir)
-          } catch {}
-        }, [fPais, fPago, fEmail, fBilletera, fAgente, fNombreReal, fNombreApp, fIdApp, fTelefono, fSortDir])
+  // Accordion open state (auto-open if has saved data)
+  const [sectionOpen, setSectionOpen] = useState<boolean>(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+      return !!(all[app]?.cobradas?.length > 0)
+    } catch { return false }
+  })
 
-    if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
+  // Per-app state
+  const [step, setStep] = useState<'upload' | 'results'>('upload')
+  const [dragging, setDragging] = useState(false)
+  const [parsing, setParsing] = useState(false)
+  const [parseError, setParseError] = useState<string | null>(null)
+  const [aiColDetect, setAiColDetect] = useState<string | null>(null)
+  const [cobradas, setCobradas] = useState<Matched[]>([])
+  const [noCobro, setNoCobro] = useState<NoCobro[]>([])
+  const [sinPerfil, setSinPerfil] = useState<NominaRow[]>([])
+  const [semana, setSemana] = useState('')
+  const [fileName, setFileName] = useState('')
+  const [tab, setTab] = useState<'cobradas' | 'nocobro' | 'sinperfil'>('cobradas')
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [publishedOk, setPublishedOk] = useState(false)
+  const [publishingAgents, setPublishingAgents] = useState(false)
+  const [agentPublishOk, setAgentPublishOk] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [paidMarks, setPaidMarks] = useState<Set<string>>(new Set())
+  const [togglingPaid, setTogglingPaid] = useState<string | null>(null)
 
-    function toggleExpanded(key: string) {
-      setExpanded(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
-    }
+  // Filter states
+  const [fPais, setFPais] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_pais`) ?? '' } catch { return '' } })
+  const [fPago, setFPago] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_pago`) ?? '' } catch { return '' } })
+  const [fEmail, setFEmail] = useState('')
+  const [fBilletera, setFBilletera] = useState('')
+  const [fAgente, setFAgente] = useState('')
+  const [fNombreReal, setFNombreReal] = useState('')
+  const [fNombreApp, setFNombreApp] = useState('')
+  const [fIdApp, setFIdApp] = useState('')
+  const [fTelefono, setFTelefono] = useState('')
+  const [fSortDir, setFSortDir] = useState<'desc'|'asc'>('desc')
 
-    function exportarPDF() {
-      const html = buildPDF(semana, cobradas, noCobro, sinPerfil, aiSummary)
-      const win = window.open('', '_blank')
-      if (!win) return
-      win.document.write(html)
-      win.document.close()
-    }
-
-    async function callGroq(matchedList: Matched[], noCobroList: NoCobro[], sem: string) {
-      const apiKey = import.meta.env.VITE_GROQ_API_KEY
-      if (!apiKey) return
-      setAiLoading(true)
-      try {
-        const totalUSD = matchedList.reduce((s, m) => s + m.nomina.usd, 0)
-        const totalDia = matchedList.reduce((s, m) => s + m.nomina.diamantes, 0)
-        const paises = [...new Set(matchedList.map(m => m.worker.pais).filter(Boolean))]
-        const top3 = matchedList.slice(0, 3).map(m => `${m.nomina.apodo} ($${m.nomina.usd.toFixed(2)})`).join(', ')
-        const prompt = `Eres asistente de Eclipse Angels Agency. Genera un resumen ejecutivo breve (máx 4 oraciones) de la nómina de la semana ${sem}. Datos: ${matchedList.length} chicas cobraron, total pagado $${totalUSD.toFixed(2)} USD, ${fmt(totalDia)} diamantes totales. Top 3: ${top3}. ${noCobroList.length} chicas no cobraron. Países activos: ${paises.join(', ')}. Sé directo y profesional.`
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: prompt }], max_tokens: 250 })
-        })
-        const data = await res.json()
-        setAiSummary(data.choices?.[0]?.message?.content ?? null)
-      } catch { /* ignore */ }
-      setAiLoading(false)
-    }
-
-    async function publicarSalarios(notifyWorkers = true) {
-        if (cobradas.length === 0) return
-        setPublishing(true); setPublishedOk(false)
-        const inserts = cobradas.map(({ worker: w, nomina: n }) => ({
-          user_id: w.user_id,
-          app_name: nominaApp,
-          semana: n.semana,
-          usd: n.usd,
-          diamantes: n.diamantes,
-          extras: n.extras,
-        }))
-        const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
-        if (!error) {
-          setPublishedOk(true)
-          if (notifyWorkers) {
-            sendPushViaApi(
-              cobradas.map(c => c.worker.user_id),
-              `💰 Tu salario de ${nominaApp} está disponible`,
-              `Semana ${semana} — Entra a ver tus ganancias.`,
-              '/salarios',
-              true
-            )
-          }
-          setTimeout(() => setPublishedOk(false), 4000)
-          // Guardar en historial de nóminas automáticamente
-          await saveNominaToHistory()
-          // Recortar a 10 salarios máx por trabajadora
-          await Promise.all(cobradas.map(async ({ worker: w }) => {
-            const { data: recs } = await supabase
-              .from('published_salaries').select('id')
-              .eq('user_id', w.user_id).order('created_at', { ascending: false })
-            if (recs && recs.length > 10) {
-              const toDelete = (recs as {id:string}[]).slice(10).map(r => r.id)
-              await supabase.from('published_salaries').delete().in('id', toDelete)
-            }
-          }))
-        }
-        setPublishing(false)
-      }
-
-      async function publishAgentCommissions() {
-          const agentMap: Record<string, { uid: string; nombre: string; salary_usd: number; commission_usd: number }[]> = {}
-          for (const { worker: w, nomina: nm } of cobradas) {
-            const agente = (w as any).agente as string | null
-            if (!agente) continue
-            if (!agentMap[agente]) agentMap[agente] = []
-            agentMap[agente].push({ uid: nm.uid, nombre: nm.apodo, salary_usd: nm.usd, commission_usd: nm.comision })
-          }
-          const agentNames = Object.keys(agentMap)
-          if (agentNames.length === 0) return
-          const semana = cobradas[0]?.nomina?.semana ?? ''
-          const { data: agentProfiles } = await supabase.from('profiles').select('id, agent_name').in('agent_name', agentNames)
-          const agentIdMap: Record<string, string> = {}
-          for (const p of (agentProfiles ?? [])) { if (p.agent_name) agentIdMap[p.agent_name] = p.id }
-          const inserts = agentNames.map(name => ({
-            agent_user_id: agentIdMap[name] ?? null,
-            agent_name: name,
-            app_name: nominaApp,
-            semana,
-            total_commission_usd: agentMap[name].reduce((s, wk) => s + wk.commission_usd, 0),
-            workers_data: agentMap[name],
-          }))
-          setPublishingAgents(true); setAgentPublishOk(false)
-          const { error } = await supabase.from('agent_commissions').upsert(inserts, { onConflict: 'agent_name,app_name,semana' })
-          if (!error) {
-            setAgentPublishOk(true)
-            const agentUserIds = Object.values(agentIdMap).filter(Boolean) as string[]
-            if (agentUserIds.length > 0) {
-              sendPushViaApi(agentUserIds, `💰 Comisiones de ${nominaApp} disponibles`, `Semana ${semana} — Entra a ver tus comisiones.`, '/agente', true)
-            }
-            setTimeout(() => setAgentPublishOk(false), 4000)
-          }
-          setPublishingAgents(false)
-        }
-
-        // Uses Groq AI to map unknown column headers to the required fields.
-      // Returns indices for each field, or -1 if not found.
-      async function detectColumnsWithAI(headers: string[]): Promise<Record<string, number>> {
-        const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined
-        if (!apiKey) return {}
-        try {
-          const prompt = [
-            'You are analyzing a streaming platform payroll spreadsheet.',
-            'Given these column headers (as a JSON array), return a JSON object mapping each field to its 0-based column index.',
-            'Fields to identify: uid (user/host ID), usd (dollar earnings), apodo (nickname/display name), semana (week/period), diamantes (diamonds/gems/coins), agencia (agency name).',
-            'If a field is not present use -1. Return ONLY valid JSON, no markdown, no explanation.',
-            'Headers: ' + JSON.stringify(headers),
-          ].join(' ')
-
-          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              model: 'llama-3.1-8b-instant',
-              messages: [{ role: 'user', content: prompt }],
-              max_tokens: 120,
-              temperature: 0,
-            }),
-          })
-          const data = await res.json()
-          const raw = data.choices?.[0]?.message?.content ?? '{}'
-          // Extract JSON from response (strip any markdown fences)
-          const jsonStr = raw.replace(/```json?\n?/gi, '').replace(/```/g, '').trim()
-          return JSON.parse(jsonStr) as Record<string, number>
-        } catch {
-          return {}
-        }
-      }
-
-      async function processFile(file: File) {
-      if (!file.name.match(/\.xlsx?$/i)) return
-      setParsing(true); setAiSummary(null); setParseError(null)
-      setFileName(file.name)
-      try {
-        const buf = await file.arrayBuffer()
-        const wb = XLSX.read(buf, { type: 'array' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
-
-        const rawHeaders = (raw[0] as unknown[]) ?? []
-        const headers = rawHeaders.map(h => String(h ?? '').trim())
-
-        // Smart column detection: exact → case-insensitive → keyword match
-        // Each entry is [canonical name, ...keyword hints (any word in header)]
-        const COLUMN_ALIASES: [string, string[]][] = [
-          ['UID del Host',        ['uid', 'host id', 'id del host', 'id host', 'host_id', 'userid', 'user id']],
-          ['USD',                 ['usd', 'host salary', 'salario en usd', 'dólar', 'dollar', 'monto', 'pago usd', 'ganancia', 'ingreso', 'earning']],
-          ['Apodo',               ['name', 'nombre', 'apodo', 'nick', 'nickname', 'nombre en app', 'nombre_app', 'username']],
-          ['Semana',              ['week', 'semana', 'periodo', 'período', 'date', 'fecha']],
-          ['Diamantes Totales',   ['total monedas', 'total diamante', 'diamante', 'diamond', 'gem', 'piedra', 'coins', 'moneda', 'total dia']],
-          ['Nombre de la agencia',['agency', 'agencia', 'manager', 'nombre agencia']],
-          ['Comisión',            ['agc salary', '10 porciento', '12% del salario', 'commission', 'comisión', 'comision', '10%', '12%']],
-        ]
-
-        function smartCOL(canonical: string): number {
-          // 1. Exact match
-          const exact = headers.indexOf(canonical)
-          if (exact !== -1) return exact
-          // 2. Case-insensitive exact
-          const lower = canonical.toLowerCase()
-          const ci = headers.findIndex(h => h.toLowerCase() === lower)
-          if (ci !== -1) return ci
-          // 3. Keyword hints — exact equality first, then substring
-          const aliases = COLUMN_ALIASES.find(([c]) => c === canonical)
-          if (aliases) {
-            // 3a. Exact: whole header equals keyword (avoids 'AGC UID' matching 'uid')
-            for (const kw of aliases[1]) {
-              const idx = headers.findIndex(h => h.toLowerCase() === kw)
-              if (idx !== -1) return idx
-            }
-            // 3b. Substring match
-            for (const kw of aliases[1]) {
-              const idx = headers.findIndex(h => h.toLowerCase().includes(kw))
-              if (idx !== -1) return idx
-            }
-          }
-          // 4. Partial: canonical words present anywhere in header
-          const words = lower.split(/\s+/)
-          const idx = headers.findIndex(h => {
-            const hl = h.toLowerCase()
-            return words.every(w => hl.includes(w))
-          })
-          return idx
-        }
-
-        // Validate critical columns exist
-        let uidCol   = smartCOL('UID del Host')
-        let usdCol   = smartCOL('USD')
-        let apodoCol = smartCOL('Apodo')
-        let semanaCol = smartCOL('Semana')
-        let diaCol   = smartCOL('Diamantes Totales')
-        let agenciaCol = smartCOL('Nombre de la agencia')
-          let comisionCol = smartCOL('Comisión')
-
-        // If keyword detection failed, let AI identify the columns
-        if (uidCol === -1 || usdCol === -1) {
-          setAiColDetect('🤖 Columnas no reconocidas — usando IA para identificarlas…')
-          const aiMap = await detectColumnsWithAI(headers)
-          if (uidCol   === -1 && aiMap.uid   !== undefined) uidCol   = aiMap.uid
-          if (usdCol   === -1 && aiMap.usd   !== undefined) usdCol   = aiMap.usd
-          if (apodoCol === -1 && aiMap.apodo !== undefined) apodoCol = aiMap.apodo
-          if (semanaCol=== -1 && aiMap.semana!== undefined) semanaCol= aiMap.semana
-          if (diaCol   === -1 && aiMap.diamantes!==undefined) diaCol = aiMap.diamantes
-          if (agenciaCol=== -1 && aiMap.agencia!==undefined) agenciaCol=aiMap.agencia
-
-          if (uidCol >= 0 && usdCol >= 0) {
-            const names = [
-              uidCol>=0 && `UID→"${headers[uidCol]}"`,
-              usdCol>=0 && `USD→"${headers[usdCol]}"`,
-              apodoCol>=0 && `Apodo→"${headers[apodoCol]}"`,
-              semanaCol>=0 && `Semana→"${headers[semanaCol]}"`,
-            ].filter(Boolean).join(', ')
-            setAiColDetect(`✅ IA identificó las columnas: ${names}`)
-          } else {
-            const found = headers.filter(Boolean).join(' | ')
-            throw new Error(
-              'No se encontraron las columnas de UID o USD (ni con IA).\n\nColumnas en el archivo:\n' + (found || '(ninguna)') + '\n\nRevisa que el Excel tenga una columna con el ID del usuario y otra con el monto.'
-            )
-          }
-        } else {
-          setAiColDetect(null)
-        }
-
-        const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
-        const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol, comisionCol].filter(i => i !== -1))
-
-        const nominaRows: NominaRow[] = dataRows.map(r => {
-          const extras: Record<string, string | number> = {}
-          headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
-          return {
-            uid: normalizeUID(uidCol !== -1 ? r[uidCol] : ''),
-            apodo: String(apodoCol !== -1 ? (r[apodoCol] ?? '') : ''),
-            usd: parseFloat(String(usdCol !== -1 ? (r[usdCol] ?? 0) : 0)) || 0,
-            diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
-              comision: parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0,
-            semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : ''),
-            extras,
-          }
-        }).filter(r => r.uid !== '')
-
-        const sem = nominaRows[0]?.semana ?? ''
-        setSemana(sem)
-
-        const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', nominaApp)
-        if (entriesErr) throw new Error('Error de base de datos: ' + entriesErr.message)
-
-        const { data: profs } = await supabase.from('profiles').select('id, email')
-        const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
-        const workers: WorkerRow[] = (entries ?? []).map((e: any) => ({ ...e, profile_email: emailMap[e.user_id] ?? '' }))
-
-        const cobradasList: Matched[] = []
-        const noCobroList: NoCobro[] = []
-        const sinPerfilList: NominaRow[] = []
-        const matchedWorkerIDs = new Set<string>()
-
-        for (const nom of nominaRows) {
-          const worker = workers.find(w => normalizeUID(w.id_aplicacion) === nom.uid)
-          if (worker) {
-            matchedWorkerIDs.add(worker.id)
-            nom.usd > 0 ? cobradasList.push({ worker, nomina: nom }) : noCobroList.push({ worker, nomina: nom })
-          } else { sinPerfilList.push(nom) }
-        }
-        for (const w of workers) { if (!matchedWorkerIDs.has(w.id)) noCobroList.push({ worker: w, nomina: null }) }
-        cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
-
-        setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
-        loadPaidMarks(nominaApp, sem)
+  // Load from localStorage on mount and when reloadKey changes
+  useEffect(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+      const s = all[app]
+      if (s?.cobradas?.length > 0) {
+        setCobradas(s.cobradas)
+        setNoCobro(s.noCobro ?? [])
+        setSinPerfil(s.sinPerfil ?? [])
+        setSemana(s.semana ?? '')
+        setFileName(s.fileName ?? '')
+        if (s.aiSummary) setAiSummary(s.aiSummary)
         setStep('results')
-        callGroq(cobradasList, noCobroList, sem)
-      } catch (err: any) {
-        setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
-      } finally {
-        setParsing(false)
+        setSectionOpen(true)
+      } else {
+        setCobradas([]); setNoCobro([]); setSinPerfil([])
+        setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
       }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadKey])
+
+  // Auto-save whenever results change
+  useEffect(() => {
+    if (step !== 'results' || cobradas.length === 0) return
+    try {
+      const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+      all[app] = { cobradas, noCobro, sinPerfil, semana, aiSummary, fileName }
+      localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
+    } catch {}
+  }, [step, cobradas, noCobro, sinPerfil, semana, aiSummary, fileName, app])
+
+  // Persist filter prefs
+  useEffect(() => {
+    try {
+      localStorage.setItem(`ea_nf_${app}_pais`, fPais)
+      localStorage.setItem(`ea_nf_${app}_pago`, fPago)
+    } catch {}
+  }, [fPais, fPago, app])
+
+  function toggleExpanded(key: string) {
+    setExpanded(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
+  }
+
+  function exportarPDF() {
+    const html = buildPDF(semana, cobradas, noCobro, sinPerfil, aiSummary)
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(html)
+    win.document.close()
+  }
+
+  async function callGroq(matchedList: Matched[], noCobroList: NoCobro[], sem: string) {
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY
+    if (!apiKey) return
+    setAiLoading(true)
+    try {
+      const totalUSD = matchedList.reduce((s, m) => s + m.nomina.usd, 0)
+      const totalDia = matchedList.reduce((s, m) => s + m.nomina.diamantes, 0)
+      const paises = [...new Set(matchedList.map(m => m.worker.pais).filter(Boolean))]
+      const top3 = matchedList.slice(0, 3).map(m => `${m.nomina.apodo} ($${m.nomina.usd.toFixed(2)})`).join(', ')
+      const prompt = `Eres asistente de Eclipse Angels Agency. Genera un resumen ejecutivo breve (máx 4 oraciones) de la nómina de la semana ${sem}. Datos: ${matchedList.length} chicas cobraron, total pagado $${totalUSD.toFixed(2)} USD, ${fmt(totalDia)} diamantes totales. Top 3: ${top3}. ${noCobroList.length} chicas no cobraron. Países activos: ${paises.join(', ')}. Sé directo y profesional.`
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: prompt }], max_tokens: 250 })
+      })
+      const data = await res.json()
+      setAiSummary(data.choices?.[0]?.message?.content ?? null)
+    } catch { /* ignore */ }
+    setAiLoading(false)
+  }
+
+  async function publicarSalarios(notifyWorkers = true) {
+    if (cobradas.length === 0) return
+    setPublishing(true); setPublishedOk(false)
+    const inserts = cobradas.map(({ worker: w, nomina: n }) => ({
+      user_id: w.user_id,
+      app_name: app,
+      semana: n.semana,
+      usd: n.usd,
+      diamantes: n.diamantes,
+      extras: n.extras,
+    }))
+    const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
+    if (!error) {
+      setPublishedOk(true)
+      if (notifyWorkers) {
+        sendPushViaApi(
+          cobradas.map(c => c.worker.user_id),
+          `💰 Tu salario de ${app} está disponible`,
+          `Semana ${semana} — Entra a ver tus ganancias.`,
+          '/salarios',
+          true
+        )
+      }
+      setTimeout(() => setPublishedOk(false), 4000)
+      await saveNominaToHistory()
+      await Promise.all(cobradas.map(async ({ worker: w }) => {
+        const { data: recs } = await supabase
+          .from('published_salaries').select('id')
+          .eq('user_id', w.user_id).order('created_at', { ascending: false })
+        if (recs && recs.length > 10) {
+          const toDelete = (recs as {id:string}[]).slice(10).map(r => r.id)
+          await supabase.from('published_salaries').delete().in('id', toDelete)
+        }
+      }))
     }
+    setPublishing(false)
+  }
 
-    async function loadPaidMarks(app: string, week: string) {
-        const { data } = await supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', week)
-        setPaidMarks(new Set(((data ?? []) as {uid:string}[]).map((r: any) => r.uid)))
+  async function publishAgentCommissions() {
+    const agentMap: Record<string, { uid: string; nombre: string; salary_usd: number; commission_usd: number }[]> = {}
+    for (const { worker: w, nomina: nm } of cobradas) {
+      const agente = (w as any).agente as string | null
+      if (!agente) continue
+      if (!agentMap[agente]) agentMap[agente] = []
+      agentMap[agente].push({ uid: nm.uid, nombre: nm.apodo, salary_usd: nm.usd, commission_usd: nm.comision })
+    }
+    const agentNames = Object.keys(agentMap)
+    if (agentNames.length === 0) return
+    const sem = cobradas[0]?.nomina?.semana ?? ''
+    const { data: agentProfiles } = await supabase.from('profiles').select('id, agent_name').in('agent_name', agentNames)
+    const agentIdMap: Record<string, string> = {}
+    for (const p of (agentProfiles ?? [])) { if (p.agent_name) agentIdMap[p.agent_name] = p.id }
+    const inserts = agentNames.map(name => ({
+      agent_user_id: agentIdMap[name] ?? null,
+      agent_name: name,
+      app_name: app,
+      semana: sem,
+      total_commission_usd: agentMap[name].reduce((s, wk) => s + wk.commission_usd, 0),
+      workers_data: agentMap[name],
+    }))
+    setPublishingAgents(true); setAgentPublishOk(false)
+    const { error } = await supabase.from('agent_commissions').upsert(inserts, { onConflict: 'agent_name,app_name,semana' })
+    if (!error) {
+      setAgentPublishOk(true)
+      const agentUserIds = Object.values(agentIdMap).filter(Boolean) as string[]
+      if (agentUserIds.length > 0) {
+        sendPushViaApi(agentUserIds, `💰 Comisiones de ${app} disponibles`, `Semana ${sem} — Entra a ver tus comisiones.`, '/agente', true)
+      }
+      setTimeout(() => setAgentPublishOk(false), 4000)
+    }
+    setPublishingAgents(false)
+  }
+
+  async function detectColumnsWithAI(headers: string[]): Promise<Record<string, number>> {
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined
+    if (!apiKey) return {}
+    try {
+      const prompt = [
+        'You are analyzing a streaming platform payroll spreadsheet.',
+        'Given these column headers (as a JSON array), return a JSON object mapping each field to its 0-based column index.',
+        'Fields to identify: uid (user/host ID), usd (dollar earnings), apodo (nickname/display name), semana (week/period), diamantes (diamonds/gems/coins), agencia (agency name).',
+        'If a field is not present use -1. Return ONLY valid JSON, no markdown, no explanation.',
+        'Headers: ' + JSON.stringify(headers),
+      ].join(' ')
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: prompt }], max_tokens: 120, temperature: 0 }),
+      })
+      const data = await res.json()
+      const raw = data.choices?.[0]?.message?.content ?? '{}'
+      const jsonStr = raw.replace(/```json?\n?/gi, '').replace(/```/g, '').trim()
+      return JSON.parse(jsonStr) as Record<string, number>
+    } catch { return {} }
+  }
+
+  async function processFile(file: File) {
+    if (!file.name.match(/\.xlsx?$/i)) return
+    setParsing(true); setAiSummary(null); setParseError(null)
+    setFileName(file.name)
+    try {
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
+
+      const rawHeaders = (raw[0] as unknown[]) ?? []
+      const headers = rawHeaders.map(h => String(h ?? '').trim())
+
+      const COLUMN_ALIASES: [string, string[]][] = [
+        ['UID del Host',        ['uid', 'host id', 'id del host', 'id host', 'host_id', 'userid', 'user id']],
+        ['USD',                 ['usd', 'host salary', 'salario en usd', 'dólar', 'dollar', 'monto', 'pago usd', 'ganancia', 'ingreso', 'earning']],
+        ['Apodo',               ['name', 'nombre', 'apodo', 'nick', 'nickname', 'nombre en app', 'nombre_app', 'username']],
+        ['Semana',              ['week', 'semana', 'periodo', 'período', 'date', 'fecha']],
+        ['Diamantes Totales',   ['total monedas', 'total diamante', 'diamante', 'diamond', 'gem', 'piedra', 'coins', 'moneda', 'total dia']],
+        ['Nombre de la agencia',['agency', 'agencia', 'manager', 'nombre agencia']],
+        ['Comisión',            ['agc salary', '10 porciento', '12% del salario', 'commission', 'comisión', 'comision', '10%', '12%']],
+      ]
+
+      function smartCOL(canonical: string): number {
+        const exact = headers.indexOf(canonical)
+        if (exact !== -1) return exact
+        const lower = canonical.toLowerCase()
+        const ci = headers.findIndex(h => h.toLowerCase() === lower)
+        if (ci !== -1) return ci
+        const aliases = COLUMN_ALIASES.find(([c]) => c === canonical)
+        if (aliases) {
+          for (const kw of aliases[1]) {
+            const idx = headers.findIndex(h => h.toLowerCase() === kw)
+            if (idx !== -1) return idx
+          }
+          for (const kw of aliases[1]) {
+            const idx = headers.findIndex(h => h.toLowerCase().includes(kw))
+            if (idx !== -1) return idx
+          }
+        }
+        const words = lower.split(/\s+/)
+        const idx = headers.findIndex(h => { const hl = h.toLowerCase(); return words.every(w => hl.includes(w)) })
+        return idx
       }
 
-      async function togglePaid(uid: string) {
-        setTogglingPaid(uid)
-        if (paidMarks.has(uid)) {
-          await supabase.from('admin_paid_marks').delete().eq('app_name', nominaApp).eq('semana', semana).eq('uid', uid)
-          setPaidMarks(prev => { const s = new Set(prev); s.delete(uid); return s })
+      let uidCol    = smartCOL('UID del Host')
+      let usdCol    = smartCOL('USD')
+      let apodoCol  = smartCOL('Apodo')
+      let semanaCol = smartCOL('Semana')
+      let diaCol    = smartCOL('Diamantes Totales')
+      let agenciaCol  = smartCOL('Nombre de la agencia')
+      let comisionCol = smartCOL('Comisión')
+
+      if (uidCol === -1 || usdCol === -1) {
+        setAiColDetect('🤖 Columnas no reconocidas — usando IA para identificarlas…')
+        const aiMap = await detectColumnsWithAI(headers)
+        if (uidCol    === -1 && aiMap.uid       !== undefined) uidCol    = aiMap.uid
+        if (usdCol    === -1 && aiMap.usd       !== undefined) usdCol    = aiMap.usd
+        if (apodoCol  === -1 && aiMap.apodo     !== undefined) apodoCol  = aiMap.apodo
+        if (semanaCol === -1 && aiMap.semana    !== undefined) semanaCol = aiMap.semana
+        if (diaCol    === -1 && aiMap.diamantes !== undefined) diaCol    = aiMap.diamantes
+        if (agenciaCol=== -1 && aiMap.agencia   !== undefined) agenciaCol= aiMap.agencia
+
+        if (uidCol >= 0 && usdCol >= 0) {
+          const names = [
+            uidCol>=0 && `UID→"${headers[uidCol]}"`,
+            usdCol>=0 && `USD→"${headers[usdCol]}"`,
+            apodoCol>=0 && `Apodo→"${headers[apodoCol]}"`,
+            semanaCol>=0 && `Semana→"${headers[semanaCol]}"`,
+          ].filter(Boolean).join(', ')
+          setAiColDetect(`✅ IA identificó las columnas: ${names}`)
         } else {
-          await supabase.from('admin_paid_marks').insert({ app_name: nominaApp, semana, uid })
-          setPaidMarks(prev => new Set([...prev, uid]))
+          const found = headers.filter(Boolean).join(' | ')
+          throw new Error(
+            'No se encontraron las columnas de UID o USD (ni con IA).\n\nColumnas en el archivo:\n' + (found || '(ninguna)') + '\n\nRevisa que el Excel tenga una columna con el ID del usuario y otra con el monto.'
+          )
         }
-        setTogglingPaid(null)
+      } else {
+        setAiColDetect(null)
       }
 
-      function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
-    function onInput(e: React.ChangeEvent<HTMLInputElement>) { const f = e.target.files?.[0]; if (f) processFile(f) }
-    function reset() {
-        try { const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); delete all[nominaApp]; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all)) } catch {}
-        setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()); setFileName('')
-      }
+      const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
+      const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol, comisionCol].filter(i => i !== -1))
 
-      function switchApp(newApp: 'Waha'|'Layla'|'Howdy') {
-        if (newApp === nominaApp) return
-        // Save current app state
-        try {
-          const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-          if (cobradas.length > 0 || step === 'results') {
-            all[nominaApp] = { cobradas, noCobro, sinPerfil, semana, aiSummary, fileName }
-            localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
-          }
-          // Restore new app state
-          const s = all[newApp]
-          if (s?.cobradas?.length > 0) {
-            setCobradas(s.cobradas); setNoCobro(s.noCobro ?? []); setSinPerfil(s.sinPerfil ?? [])
-            setSemana(s.semana ?? ''); setFileName(s.fileName ?? '')
-            if (s.aiSummary) setAiSummary(s.aiSummary); else setAiSummary(null)
-            setStep('results')
-          } else {
-            setCobradas([]); setNoCobro([]); setSinPerfil([])
-            setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
-          }
-        } catch {
-          setCobradas([]); setNoCobro([]); setSinPerfil([])
-          setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
+      const nominaRows: NominaRow[] = dataRows.map(r => {
+        const extras: Record<string, string | number> = {}
+        headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
+        return {
+          uid: normalizeUID(uidCol !== -1 ? r[uidCol] : ''),
+          apodo: String(apodoCol !== -1 ? (r[apodoCol] ?? '') : ''),
+          usd: parseFloat(String(usdCol !== -1 ? (r[usdCol] ?? 0) : 0)) || 0,
+          diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
+          comision: parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0,
+          semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : ''),
+          extras,
         }
-        setExpanded(new Set()); setPublishedOk(false); setAgentPublishOk(false); setPaidMarks(new Set())
-        setNominaApp(newApp)
+      }).filter(r => r.uid !== '')
+
+      const sem = nominaRows[0]?.semana ?? ''
+      setSemana(sem)
+
+      const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', app)
+      if (entriesErr) throw new Error('Error de base de datos: ' + entriesErr.message)
+
+      const { data: profs } = await supabase.from('profiles').select('id, email')
+      const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
+      const workers: WorkerRow[] = (entries ?? []).map((e: any) => ({ ...e, profile_email: emailMap[e.user_id] ?? '' }))
+
+      const cobradasList: Matched[] = []
+      const noCobroList: NoCobro[] = []
+      const sinPerfilList: NominaRow[] = []
+      const matchedWorkerIDs = new Set<string>()
+
+      for (const nom of nominaRows) {
+        const worker = workers.find(w => normalizeUID(w.id_aplicacion) === nom.uid)
+        if (worker) {
+          matchedWorkerIDs.add(worker.id)
+          nom.usd > 0 ? cobradasList.push({ worker, nomina: nom }) : noCobroList.push({ worker, nomina: nom })
+        } else { sinPerfilList.push(nom) }
       }
+      for (const w of workers) { if (!matchedWorkerIDs.has(w.id)) noCobroList.push({ worker: w, nomina: null }) }
+      cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
 
-    async function fetchHistory() {
-      setHistoryLoading(true)
-      const { data } = await supabase
-        .from('nomina_history')
-        .select('id,app_name,semana,total_usd,total_diamantes,cobradas_count,nocobro_count,sinperfil_count,published,created_at,rows_data,file_name')
-        .order('created_at', { ascending: false })
-      setHistory((data ?? []) as HistoryEntry[])
-      setHistoryLoading(false)
-    }
-
-    async function saveNominaToHistory() {
-      if (cobradas.length === 0) return
-      try {
-        await supabase.from('nomina_history').insert({
-          app_name: nominaApp,
-          semana,
-          total_usd: cobradas.reduce((s, m) => s + m.nomina.usd, 0),
-          total_diamantes: cobradas.reduce((s, m) => s + m.nomina.diamantes, 0),
-          cobradas_count: cobradas.length,
-          nocobro_count: noCobro.length,
-          sinperfil_count: sinPerfil.length,
-          rows_data: { cobradas, noCobro, sinPerfil },
-          published: true,
-          file_name: fileName,
-        })
-      } catch { /* ignore */ }
-    }
-
-    async function deleteFromHistory(id: string) {
-      setDeletingHistId(id)
-      await supabase.from('nomina_history').delete().eq('id', id)
-      setHistory(prev => prev.filter(h => h.id !== id))
-      setDeletingHistId(null)
-    }
-
-    function loadFromHistory(entry: HistoryEntry) {
-      setFileName(entry.file_name ?? '')
-      setCobradas(entry.rows_data.cobradas ?? [])
-      setNoCobro(entry.rows_data.noCobro ?? [])
-      setSinPerfil(entry.rows_data.sinPerfil ?? [])
-      setSemana(entry.semana)
-      setNominaApp(entry.app_name as 'Waha'|'Layla'|'Howdy')
-      setAiSummary(null)
+      setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
+      loadPaidMarks(app, sem)
       setStep('results')
-      sessionStorage.removeItem('ea_nomina_state')
-      setHistoryView(false)
+      callGroq(cobradasList, noCobroList, sem)
+    } catch (err: any) {
+      setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
+    } finally {
+      setParsing(false)
     }
+  }
 
-    const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
-    const totalDiamonds = cobradas.reduce((s, m) => s + m.nomina.diamantes, 0)
-        const cobradasFiltered = cobradas.filter(({ worker: w }) => {
-          if (fPais && w.pais !== fPais) return false
-          if (fPago && w.metodo_pago !== fPago) return false
-          if (fEmail && !w.profile_email.toLowerCase().includes(fEmail.toLowerCase())) return false
-          if (fBilletera && !(w.billetera ?? '').toLowerCase().includes(fBilletera.toLowerCase())) return false
-          if (fAgente && !(w.agente ?? '').toLowerCase().includes(fAgente.toLowerCase())) return false
-          if (fNombreReal && !(w.nombre_real ?? '').toLowerCase().includes(fNombreReal.toLowerCase())) return false
-          if (fNombreApp && !(w.nombre_en_app ?? '').toLowerCase().includes(fNombreApp.toLowerCase())) return false
-          if (fIdApp && !(w.id_aplicacion ?? '').toLowerCase().includes(fIdApp.toLowerCase())) return false
-          if (fTelefono && !(w.telefono ?? '').toLowerCase().includes(fTelefono.toLowerCase())) return false
-          return true
-        }).sort((a, b) => fSortDir === 'desc' ? b.nomina.usd - a.nomina.usd : a.nomina.usd - b.nomina.usd)
-        const nfHasFilters = !!(fPais || fPago || fEmail || fBilletera || fAgente || fNombreReal || fNombreApp || fIdApp || fTelefono)
-        function clearNominaFilters() {
-          setFPais(''); setFPago(''); setFEmail(''); setFBilletera('')
-          setFAgente(''); setFNombreReal(''); setFNombreApp(''); setFIdApp(''); setFTelefono('')
-        }
+  async function loadPaidMarks(a: string, week: string) {
+    const { data } = await supabase.from('admin_paid_marks').select('uid').eq('app_name', a).eq('semana', week)
+    setPaidMarks(new Set(((data ?? []) as {uid:string}[]).map((r: any) => r.uid)))
+  }
 
-    if (loading) return <SplashLoader msg="Cargando..." />
-    if (!profile?.is_admin) return <SplashLoader msg="Sin acceso" />
+  async function togglePaid(uid: string) {
+    setTogglingPaid(uid)
+    if (paidMarks.has(uid)) {
+      await supabase.from('admin_paid_marks').delete().eq('app_name', app).eq('semana', semana).eq('uid', uid)
+      setPaidMarks(prev => { const s = new Set(prev); s.delete(uid); return s })
+    } else {
+      await supabase.from('admin_paid_marks').insert({ app_name: app, semana, uid })
+      setPaidMarks(prev => new Set([...prev, uid]))
+    }
+    setTogglingPaid(null)
+  }
 
-    return (
-      <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
-        <div className="max-w-4xl mx-auto px-4">
+  function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
+  function onInput(e: React.ChangeEvent<HTMLInputElement>) { const f = e.target.files?.[0]; if (f) processFile(f) }
 
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/25 rounded-full px-3 py-1 mb-3">
-              <FileSpreadsheet className="w-3 h-3 text-purple-400" />
-              <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">Admin · Nómina</span>
-            </div>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <h1 className="text-2xl font-extrabold">{historyView ? 'Historial de Nóminas' : `Nómina Semanal — ${nominaApp}`}</h1>
-                {!historyView && semana && <p className="text-white/40 text-sm mt-0.5">Semana: {semana}</p>}
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {step === 'upload' && !historyView && (
-                  <button onClick={() => { setHistoryView(true); fetchHistory() }}
-                    className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
-                    📁 Historial
-                  </button>
-                )}
-                {historyView && (
-                  <button onClick={() => setHistoryView(false)}
-                    className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
-                    ← Nueva nómina
-                  </button>
-                )}
-              </div>
-              {!historyView && step === 'results' && (
-                <div className="flex items-center gap-2">
-                  {publishedOk && (
-                      <span className="flex items-center gap-1.5 text-green-400 text-sm font-bold bg-green-500/10 px-3 py-2 rounded-xl border border-green-500/20">
-                        ✓ Publicado
-                      </span>
-                    )}
-                    {/* Todas las apps: Publicar Trabajadoras y Publicar Agentes separados */}
-                    <button onClick={() => publicarSalarios(true)} disabled={publishing || cobradas.length === 0}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
-                      {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                      {publishing ? 'Publicando...' : '⬆ Publicar para Trabajadoras'}
-                    </button>
-                    <button onClick={publishAgentCommissions} disabled={publishingAgents || cobradas.length === 0}
-                      className={`flex items-center gap-2 ${agentPublishOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
-                      {publishingAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                      {agentPublishOk ? '✓ Publicado para agentes' : (publishingAgents ? 'Publicando...' : '💰 Publicar para Agentes')}
-                    </button>
-                                        <button onClick={exportarPDF}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
-                    <Download className="w-4 h-4" /> Exportar PDF
-                  </button>
-                  <button onClick={reset}
-                    className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
-                    <Upload className="w-4 h-4" /> Nueva nómina
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+  function reset() {
+    try { const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); delete all[app]; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all)) } catch {}
+    setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([])
+    setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()); setFileName('')
+  }
 
-          {historyView && (
-            <HistoryPanel
-              history={history}
-              historyLoading={historyLoading}
-              historyFilterSemana={historyFilterSemana}
-              setHistoryFilterSemana={setHistoryFilterSemana}
-              historyFilterApp={historyFilterApp}
-              setHistoryFilterApp={setHistoryFilterApp}
-              deletingHistId={deletingHistId}
-              onDelete={deleteFromHistory}
-              onLoad={loadFromHistory}
-              fmtNum={fmt}
-            />
+  async function saveNominaToHistory() {
+    if (cobradas.length === 0) return
+    try {
+      await supabase.from('nomina_history').insert({
+        app_name: app,
+        semana,
+        total_usd: cobradas.reduce((s, m) => s + m.nomina.usd, 0),
+        total_diamantes: cobradas.reduce((s, m) => s + m.nomina.diamantes, 0),
+        cobradas_count: cobradas.length,
+        nocobro_count: noCobro.length,
+        sinperfil_count: sinPerfil.length,
+        rows_data: { cobradas, noCobro, sinPerfil },
+        published: true,
+        file_name: fileName,
+      })
+    } catch { /* ignore */ }
+  }
+
+  // Derived values
+  const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
+  const totalDiamonds = cobradas.reduce((s, m) => s + m.nomina.diamantes, 0)
+  const cobradasFiltered = cobradas.filter(({ worker: w }) => {
+    if (fPais && w.pais !== fPais) return false
+    if (fPago && w.metodo_pago !== fPago) return false
+    if (fEmail && !w.profile_email.toLowerCase().includes(fEmail.toLowerCase())) return false
+    if (fBilletera && !(w.billetera ?? '').toLowerCase().includes(fBilletera.toLowerCase())) return false
+    if (fAgente && !(w.agente ?? '').toLowerCase().includes(fAgente.toLowerCase())) return false
+    if (fNombreReal && !(w.nombre_real ?? '').toLowerCase().includes(fNombreReal.toLowerCase())) return false
+    if (fNombreApp && !(w.nombre_en_app ?? '').toLowerCase().includes(fNombreApp.toLowerCase())) return false
+    if (fIdApp && !(w.id_aplicacion ?? '').toLowerCase().includes(fIdApp.toLowerCase())) return false
+    if (fTelefono && !(w.telefono ?? '').toLowerCase().includes(fTelefono.toLowerCase())) return false
+    return true
+  }).sort((a, b) => fSortDir === 'desc' ? b.nomina.usd - a.nomina.usd : a.nomina.usd - b.nomina.usd)
+  const nfHasFilters = !!(fPais || fPago || fEmail || fBilletera || fAgente || fNombreReal || fNombreApp || fIdApp || fTelefono)
+  function clearNominaFilters() { setFPais(''); setFPago(''); setFEmail(''); setFBilletera(''); setFAgente(''); setFNombreReal(''); setFNombreApp(''); setFIdApp(''); setFTelefono('') }
+
+  return (
+    <div className={`border rounded-2xl overflow-hidden ${sectionOpen ? color.border : 'border-purple-500/10'} bg-[#0a0a18] transition-all`}>
+      {/* ── Accordion header ── */}
+      <button
+        onClick={() => setSectionOpen(o => !o)}
+        className={`w-full flex items-center justify-between px-5 py-4 transition-all ${sectionOpen ? color.accent : 'hover:bg-white/3'}`}>
+        <div className="flex items-center gap-3">
+          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${step === 'results' && cobradas.length > 0 ? 'bg-green-400' : 'bg-white/15'}`} />
+          <span className="font-extrabold text-lg tracking-tight">{app}</span>
+          {step === 'results' && cobradas.length > 0 && (
+            <span className="text-xs text-white/60 font-normal hidden sm:inline">
+              {semana && `${semana} · `}{cobradas.length} cobraron · ${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD
+            </span>
           )}
+          {step === 'upload' && (
+            <span className="text-xs text-white/30 font-normal">Sin nómina cargada</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {step === 'results' && cobradas.length > 0 && !sectionOpen && (
+            <span className="text-xs bg-green-500/15 text-green-400 px-2.5 py-0.5 rounded-full font-semibold border border-green-500/20">✓ Lista</span>
+          )}
+          {sectionOpen ? <ChevronUp className="w-5 h-5 text-white/70" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+        </div>
+      </button>
 
-          {!historyView && step === 'upload' && (
-            <div className="space-y-4">
-              <div className="flex gap-2 mb-4 flex-wrap items-center">
-                <span className="text-xs font-bold uppercase tracking-wider text-white/40 mr-2">App:</span>
-                {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
-                  <button key={a} onClick={() => switchApp(a)}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${nominaApp === a ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
-                    {a}
-                  </button>
-                ))}
-              </div>
+      {/* ── Accordion content ── */}
+      {sectionOpen && (
+        <div className="border-t border-purple-500/10">
+          {/* ── Upload zone ── */}
+          {step === 'upload' && (
+            <div className="p-5 space-y-4">
               <div onDragOver={e => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
                 onDrop={onDrop} onClick={() => fileRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all
-                  ${dragging ? 'border-purple-400 bg-purple-500/10' : 'border-purple-500/25 bg-[#0d0d1e] hover:border-purple-500/50 hover:bg-purple-500/5'}`}>
+                className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all
+                  ${dragging ? 'border-purple-400 bg-purple-500/10' : 'border-purple-500/20 bg-[#0d0d1e] hover:border-purple-500/40 hover:bg-purple-500/5'}`}>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onInput} />
                 {parseError && (
                   <div className="mb-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-left">
                     <p className="text-red-400 font-bold text-sm mb-1">❌ Error al procesar el archivo</p>
                     <pre className="text-red-300/70 text-xs whitespace-pre-wrap">{parseError}</pre>
-                    <p className="text-white/30 text-xs mt-2">Verifica que el Excel sea de {nominaApp} y tenga las columnas correctas.</p>
+                    <p className="text-white/30 text-xs mt-2">Verifica que el Excel sea de {app} y tenga las columnas correctas.</p>
                   </div>
                 )}
                 {aiColDetect && !parseError && (
@@ -909,7 +772,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
                       <FileSpreadsheet className="w-8 h-8 text-purple-400" />
                     </div>
                     <div>
-                      <p className="text-white font-bold text-lg mb-1">Sube la nómina de {nominaApp}</p>
+                      <p className="text-white font-bold text-lg mb-1">Sube la nómina de {app}</p>
                       <p className="text-white/40 text-sm">Arrastra el Excel aquí, o haz clic para seleccionar</p>
                       <p className="text-white/25 text-xs mt-2">.xlsx / .xls</p>
                     </div>
@@ -919,326 +782,453 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
             </div>
           )}
 
+          {/* ── Results ── */}
           {step === 'results' && (
             <>
-              {(aiLoading || aiSummary) && (
-                <div className="bg-[#0d0d1e] border border-purple-500/25 rounded-2xl p-4 mb-6 flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
-                    {aiLoading ? <Loader2 className="w-4 h-4 text-purple-400 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-400" />}
+              {/* Action buttons row */}
+              <div className="px-5 pt-4 pb-2 flex items-center gap-2 flex-wrap">
+                {publishedOk && (
+                  <span className="flex items-center gap-1.5 text-green-400 text-sm font-bold bg-green-500/10 px-3 py-2 rounded-xl border border-green-500/20">
+                    ✓ Publicado
+                  </span>
+                )}
+                <button onClick={() => publicarSalarios(true)} disabled={publishing || cobradas.length === 0}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
+                  {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                  {publishing ? 'Publicando...' : '⬆ Publicar para Trabajadoras'}
+                </button>
+                <button onClick={publishAgentCommissions} disabled={publishingAgents || cobradas.length === 0}
+                  className={`flex items-center gap-2 ${agentPublishOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
+                  {publishingAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                  {agentPublishOk ? '✓ Publicado para agentes' : (publishingAgents ? 'Publicando...' : '💰 Publicar para Agentes')}
+                </button>
+                <button onClick={exportarPDF}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
+                  <Download className="w-4 h-4" /> Exportar PDF
+                </button>
+                <button onClick={reset}
+                  className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+                  <Upload className="w-4 h-4" /> Nueva nómina
+                </button>
+              </div>
+
+              <div className="p-5 space-y-6">
+                {/* AI summary */}
+                {(aiLoading || aiSummary) && (
+                  <div className="bg-[#0d0d1e] border border-purple-500/25 rounded-2xl p-4 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
+                      {aiLoading ? <Loader2 className="w-4 h-4 text-purple-400 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-400" />}
+                    </div>
+                    <div>
+                      <p className="text-purple-300 text-xs font-bold uppercase tracking-wider mb-1">Análisis IA</p>
+                      {aiLoading ? <p className="text-white/40 text-sm animate-pulse">Generando resumen...</p>
+                        : <p className="text-white/75 text-sm leading-relaxed">{aiSummary}</p>}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-purple-300 text-xs font-bold uppercase tracking-wider mb-1">Análisis IA</p>
-                    {aiLoading ? <p className="text-white/40 text-sm animate-pulse">Generando resumen...</p>
-                      : <p className="text-white/75 text-sm leading-relaxed">{aiSummary}</p>}
-                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { icon: <TrendingUp className="w-4 h-4" />, label: 'Total pagado', value: `$${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, color: 'text-green-400' },
+                    { icon: <Gem className="w-4 h-4" />, label: 'Diamantes', value: fmt(totalDiamonds), color: 'text-purple-400' },
+                    { icon: <Users className="w-4 h-4" />, label: 'Cobraron', value: String(cobradas.length), color: 'text-blue-400' },
+                    { icon: <UserX className="w-4 h-4" />, label: 'No cobraron', value: String(noCobro.length), color: 'text-orange-400' },
+                  ].map(s => (
+                    <div key={s.label} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-4">
+                      <div className={`flex items-center gap-2 mb-1 ${s.color}`}>{s.icon}<span className="text-xs font-semibold uppercase tracking-wide opacity-80">{s.label}</span></div>
+                      <p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p>
+                    </div>
+                  ))}
                 </div>
-              )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                {[
-                  { icon: <TrendingUp className="w-4 h-4" />, label: 'Total pagado', value: `$${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, color: 'text-green-400' },
-                  { icon: <Gem className="w-4 h-4" />, label: 'Diamantes', value: fmt(totalDiamonds), color: 'text-purple-400' },
-                  { icon: <Users className="w-4 h-4" />, label: 'Cobraron', value: String(cobradas.length), color: 'text-blue-400' },
-                  { icon: <UserX className="w-4 h-4" />, label: 'No cobraron', value: String(noCobro.length), color: 'text-orange-400' },
-                ].map(s => (
-                  <div key={s.label} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-4">
-                    <div className={`flex items-center gap-2 mb-1 ${s.color}`}>{s.icon}<span className="text-xs font-semibold uppercase tracking-wide opacity-80">{s.label}</span></div>
-                    <p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p>
-                  </div>
-                ))}
-              </div>
+                {/* Tabs */}
+                <div className="flex rounded-xl bg-[#0d0d1e] border border-purple-500/10 p-1 w-fit gap-1 flex-wrap">
+                  <TabBtn active={tab === 'cobradas'}  color="bg-green-600"  onClick={() => setTab('cobradas')}>✓ Cobraron ({cobradas.length})</TabBtn>
+                  <TabBtn active={tab === 'nocobro'}   color="bg-orange-600" onClick={() => setTab('nocobro')}>No cobraron ({noCobro.length})</TabBtn>
+                  <TabBtn active={tab === 'sinperfil'} color="bg-yellow-600" onClick={() => setTab('sinperfil')}>Sin perfil ({sinPerfil.length})</TabBtn>
+                </div>
 
-              <div className="flex rounded-xl bg-[#0d0d1e] border border-purple-500/10 p-1 mb-6 w-fit gap-1 flex-wrap">
-                <TabBtn active={tab === 'cobradas'} color="bg-green-600"  onClick={() => setTab('cobradas')}>✓ Cobraron ({cobradas.length})</TabBtn>
-                <TabBtn active={tab === 'nocobro'}  color="bg-orange-600" onClick={() => setTab('nocobro')}>No cobraron ({noCobro.length})</TabBtn>
-                <TabBtn active={tab === 'sinperfil'} color="bg-yellow-600" onClick={() => setTab('sinperfil')}>Sin perfil ({sinPerfil.length})</TabBtn>
-              </div>
-
-              {tab === 'cobradas' && (
-                <div className="space-y-4">
-                  {/* Filters */}
-                  <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Filter className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm font-semibold text-white/70">Filtros</span>
-                      <span className="ml-1 text-xs text-white/30">{cobradasFiltered.length}/{cobradas.length}</span>
-                      <button onClick={() => setFSortDir(d => d === 'desc' ? 'asc' : 'desc')}
-                        className="flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors ml-2">
-                        {fSortDir === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />} Salario
-                      </button>
-                      {nfHasFilters && (
-                        <button onClick={clearNominaFilters}
-                          className="ml-auto flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors">
-                          <X className="w-3 h-3" /> Limpiar
+                {/* Cobradas tab */}
+                {tab === 'cobradas' && (
+                  <div className="space-y-4">
+                    <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Filter className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm font-semibold text-white/70">Filtros</span>
+                        <span className="ml-1 text-xs text-white/30">{cobradasFiltered.length}/{cobradas.length}</span>
+                        <button onClick={() => setFSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                          className="flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors ml-2">
+                          {fSortDir === 'desc' ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />} Salario
                         </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">País</label>
-                        <select value={fPais} onChange={e => setFPais(e.target.value)}
-                          className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                          {COUNTRIES.map(c => <option key={c} value={c}>{c || 'Todos'}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">Método de pago</label>
-                        <select value={fPago} onChange={e => setFPago(e.target.value)}
-                          className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                          {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m || 'Todos'}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">Nombre real</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                          <input type="text" value={fNombreReal} onChange={e => setFNombreReal(e.target.value)} placeholder="Nombre real..."
-                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">Nombre en app</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                          <input type="text" value={fNombreApp} onChange={e => setFNombreApp(e.target.value)} placeholder="Nickname en app..."
-                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">ID en app</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                          <input type="text" value={fIdApp} onChange={e => setFIdApp(e.target.value)} placeholder="ID de cuenta..."
-                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">Email</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                          <input type="text" value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="correo@..."
-                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">Teléfono</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                          <input type="text" value={fTelefono} onChange={e => setFTelefono(e.target.value)} placeholder="Número..."
-                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">Billetera</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                          <input type="text" value={fBilletera} onChange={e => setFBilletera(e.target.value)} placeholder="Buscar billetera..."
-                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/40 mb-1">Agente</label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                          <input type="text" value={fAgente} onChange={e => setFAgente(e.target.value)} placeholder="Nombre del agente..."
-                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {cobradasFiltered.length === 0 && cobradas.length > 0 && <Empty msg="No hay resultados con los filtros aplicados." />}
-                  {cobradas.length === 0 && <Empty msg="Ninguna chica cobró o no se encontraron coincidencias." />}
-                  {cobradasFiltered.map(({ worker: w, nomina: n }) => {
-                    const isOpen = expanded.has(n.uid)
-                    const waNum = [w.codigo_pais, w.telefono].filter(Boolean).join('').replace(/\D/g, '')
-                    const waLink = waNum ? `https://wa.me/${waNum}` : null
-                    return (
-                      <div key={n.uid} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
-                        <div className="px-5 py-4 flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-300 font-extrabold text-sm shrink-0">W</div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-base leading-tight">{n.apodo}</p>
-                                <button
-                                  onClick={() => togglePaid(n.uid)}
-                                  disabled={togglingPaid === n.uid}
-                                  title={paidMarks.has(n.uid) ? 'Quitar marca de pagado' : 'Marcar como pagado'}
-                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${paidMarks.has(n.uid) ? 'bg-green-500 border-green-500 text-white' : 'border-white/25 text-transparent hover:border-green-400/60'}`}>
-                                  <Check className="w-3 h-3" />
-                                </button>
-                              </div>
-                              {w.nombre_real && <p className="text-white/40 text-xs mt-0.5">{w.nombre_real}</p>}
-                              <p className="text-white/30 text-xs mt-0.5">{w.profile_email}</p>
-                              {waLink ? (
-                                <a href={waLink} target="_blank" rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-green-400 hover:text-green-300 transition-colors">
-                                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                  {w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono}
-                                </a>
-                              ) : (w.telefono && <p className="text-white/30 text-xs mt-0.5">{w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}</p>)}
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-2xl font-extrabold text-green-400">{`$${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}</p>
-                            <div className="flex items-center justify-end gap-1 mt-0.5">
-                              <Gem className="w-3.5 h-3.5 text-purple-400" />
-                              <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="px-5 pb-4 border-t border-purple-500/8">
-                          <p className="text-white/25 text-xs font-semibold uppercase tracking-wider mb-2.5 pt-3">Datos del perfil</p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-                            {([['UID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Billetera', w.billetera],['Agente', w.agente]] as [string,string|null][]).map(([label, val]) => (
-                              <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><CopyBtn value={val} /></div>
-                            ))}
-                          </div>
-                        </div>
-                        <button onClick={() => toggleExpanded(n.uid)}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 border-t border-purple-500/8 text-xs font-semibold text-white/35 hover:text-purple-300 hover:bg-purple-500/5 transition-all">
-                          {isOpen ? <><ChevronUp className="w-3.5 h-3.5" />Ocultar detalles de nómina</> : <><ChevronDown className="w-3.5 h-3.5" />Ver todos los campos de nómina</>}
-                        </button>
-                        {isOpen && (
-                          <div className="px-5 pb-5 border-t border-purple-500/8">
-                            <p className="text-white/25 text-xs font-semibold uppercase tracking-wider mb-2.5 pt-3">Todos los campos de la nómina</p>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-                              {Object.entries(n.extras).map(([key, val]) => (
-                                <div key={key}><p className="text-white/30 text-xs mb-0.5">{key}</p><CopyBtn value={String(val)} /></div>
-                              ))}
-                            </div>
-                          </div>
+                        {nfHasFilters && (
+                          <button onClick={clearNominaFilters} className="ml-auto flex items-center gap-1 text-xs text-white/35 hover:text-white transition-colors">
+                            <X className="w-3 h-3" /> Limpiar
+                          </button>
                         )}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {tab === 'nocobro' && (
-                <div className="space-y-3">
-                  {noCobro.length === 0 && <Empty msg="¡Todas las chicas registradas cobraron esta semana!" />}
-                  {noCobro.map(({ worker: w, nomina: n }) => {
-                    const key = n ? n.uid : 'db_' + w.id
-                    const isOpen = expanded.has('nc_' + key)
-                    const ncWaNum = [w.codigo_pais, w.telefono].filter(Boolean).join('').replace(/\D/g, '')
-                    const ncWaLink = ncWaNum ? `https://wa.me/${ncWaNum}` : null
-                    return (
-                      <div key={key} className="bg-[#0d0d1e] border border-orange-500/20 rounded-2xl overflow-hidden">
-                        <div className="px-5 py-4 flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-                            <UserX className="w-4 h-4 text-orange-400" />
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">País</label>
+                          <select value={fPais} onChange={e => setFPais(e.target.value)}
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
+                            {COUNTRIES.map(c => <option key={c} value={c}>{c || 'Todos'}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Método de pago</label>
+                          <select value={fPago} onChange={e => setFPago(e.target.value)}
+                            className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
+                            {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m || 'Todos'}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Nombre real</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                            <input type="text" value={fNombreReal} onChange={e => setFNombreReal(e.target.value)} placeholder="Nombre real..."
+                              className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2 flex-wrap">
-                              <div>
-                                <p className="font-bold text-sm">{n?.apodo || w.nombre_en_app || w.nombre_real || 'Sin nombre'}</p>
-                                {w.nombre_real && <p className="text-white/40 text-xs">{w.nombre_real}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Nombre en app</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                            <input type="text" value={fNombreApp} onChange={e => setFNombreApp(e.target.value)} placeholder="Nickname en app..."
+                              className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">ID en app</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                            <input type="text" value={fIdApp} onChange={e => setFIdApp(e.target.value)} placeholder="ID de cuenta..."
+                              className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Email</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                            <input type="text" value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="correo@..."
+                              className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Teléfono</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                            <input type="text" value={fTelefono} onChange={e => setFTelefono(e.target.value)} placeholder="Número..."
+                              className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Billetera</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                            <input type="text" value={fBilletera} onChange={e => setFBilletera(e.target.value)} placeholder="Buscar billetera..."
+                              className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-white/40 mb-1">Agente</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                            <input type="text" value={fAgente} onChange={e => setFAgente(e.target.value)} placeholder="Nombre del agente..."
+                              className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {cobradasFiltered.length === 0 && cobradas.length > 0 && <Empty msg="No hay resultados con los filtros aplicados." />}
+                    {cobradas.length === 0 && <Empty msg="Ninguna chica cobró o no se encontraron coincidencias." />}
+                    {cobradasFiltered.map(({ worker: w, nomina: n }) => {
+                      const cardOpen = expanded.has(n.uid)
+                      const waNum = [w.codigo_pais, w.telefono].filter(Boolean).join('').replace(/\D/g, '')
+                      const waLink = waNum ? `https://wa.me/${waNum}` : null
+                      return (
+                        <div key={n.uid} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
+                          <div className="px-5 py-4 flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-300 font-extrabold text-sm shrink-0">W</div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-base leading-tight">{n.apodo}</p>
+                                  <button
+                                    onClick={() => togglePaid(n.uid)}
+                                    disabled={togglingPaid === n.uid}
+                                    title={paidMarks.has(n.uid) ? 'Quitar marca de pagado' : 'Marcar como pagado'}
+                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${paidMarks.has(n.uid) ? 'bg-green-500 border-green-500 text-white' : 'border-white/25 text-transparent hover:border-green-400/60'}`}>
+                                    <Check className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                {w.nombre_real && <p className="text-white/40 text-xs mt-0.5">{w.nombre_real}</p>}
                                 <p className="text-white/30 text-xs mt-0.5">{w.profile_email}</p>
-                                {ncWaLink ? (
-                                  <a href={ncWaLink} target="_blank" rel="noopener noreferrer"
+                                {waLink ? (
+                                  <a href={waLink} target="_blank" rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-green-400 hover:text-green-300 transition-colors">
                                     <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                                     {w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono}
                                   </a>
-                                ) : (w.telefono ? <p className="text-white/30 text-xs mt-0.5">{w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}</p> : null)}
+                                ) : (w.telefono && <p className="text-white/30 text-xs mt-0.5">{w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}</p>)}
                               </div>
-                              <span className="text-orange-400/70 text-xs font-semibold shrink-0 pt-0.5">No cobró</span>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                              {([['ID en app', w.id_aplicacion],['País', w.pais],['Pago', w.metodo_pago],['Billetera', w.billetera]] as [string,string|null][]).map(([l,v]) => (
-                                <div key={l}><p className="text-white/25 text-xs mb-0.5">{l}</p><p className="text-white/60 text-xs font-medium">{v||'—'}</p></div>
+                            <div className="text-right shrink-0">
+                              <p className="text-2xl font-extrabold text-green-400">{`$${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}</p>
+                              <div className="flex items-center justify-end gap-1 mt-0.5">
+                                <Gem className="w-3.5 h-3.5 text-purple-400" />
+                                <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="px-5 pb-4 border-t border-purple-500/8">
+                            <p className="text-white/25 text-xs font-semibold uppercase tracking-wider mb-2.5 pt-3">Datos del perfil</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+                              {([['UID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Billetera', w.billetera],['Agente', w.agente]] as [string,string|null][]).map(([label, val]) => (
+                                <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><CopyBtn value={val} /></div>
                               ))}
                             </div>
                           </div>
-                        </div>
-                        {n && (
-                          <>
-                            <button onClick={() => toggleExpanded('nc_' + key)}
-                              className="w-full flex items-center justify-center gap-2 px-5 py-3 border-t border-orange-500/10 text-xs font-semibold text-white/35 hover:text-orange-300 hover:bg-orange-500/5 transition-all">
-                              {isOpen ? <><ChevronUp className="w-3.5 h-3.5" />Ocultar detalles de nómina</> : <><ChevronDown className="w-3.5 h-3.5" />Ver todos los campos de nómina</>}
-                            </button>
-                            {isOpen && (
-                              <div className="px-5 pb-5 border-t border-orange-500/10">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 pt-3">
-                                  {Object.entries(n.extras).map(([k, v]) => (
-                                    <div key={k}><p className="text-white/30 text-xs mb-0.5">{k}</p><CopyBtn value={String(v)} /></div>
-                                  ))}
-                                </div>
+                          <button onClick={() => toggleExpanded(n.uid)}
+                            className="w-full flex items-center justify-center gap-2 px-5 py-3 border-t border-purple-500/8 text-xs font-semibold text-white/35 hover:text-purple-300 hover:bg-purple-500/5 transition-all">
+                            {cardOpen ? <><ChevronUp className="w-3.5 h-3.5" />Ocultar detalles de nómina</> : <><ChevronDown className="w-3.5 h-3.5" />Ver todos los campos de nómina</>}
+                          </button>
+                          {cardOpen && (
+                            <div className="px-5 pb-5 border-t border-purple-500/8">
+                              <p className="text-white/25 text-xs font-semibold uppercase tracking-wider mb-2.5 pt-3">Todos los campos de la nómina</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+                                {Object.entries(n.extras).map(([key, val]) => (
+                                  <div key={key}><p className="text-white/30 text-xs mb-0.5">{key}</p><CopyBtn value={String(val)} /></div>
+                                ))}
                               </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
-              {tab === 'sinperfil' && (
-                <div className="space-y-3">
-                  {sinPerfil.length === 0 && <Empty msg="Todas las chicas de la nómina tienen perfil en el sistema." />}
-                  {sinPerfil.map(n => {
-                    const isOpen = expanded.has('sp_' + n.uid)
-                    return (
-                      <div key={n.uid} className="bg-[#0d0d1e] border border-yellow-500/20 rounded-2xl overflow-hidden">
-                        <div className="px-5 py-4 flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
-                              <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                {/* No cobro tab */}
+                {tab === 'nocobro' && (
+                  <div className="space-y-3">
+                    {noCobro.length === 0 && <Empty msg="¡Todas las chicas registradas cobraron esta semana!" />}
+                    {noCobro.map(({ worker: w, nomina: n }) => {
+                      const key = n ? n.uid : 'db_' + w.id
+                      const ncOpen = expanded.has('nc_' + key)
+                      const ncWaNum = [w.codigo_pais, w.telefono].filter(Boolean).join('').replace(/\D/g, '')
+                      const ncWaLink = ncWaNum ? `https://wa.me/${ncWaNum}` : null
+                      return (
+                        <div key={key} className="bg-[#0d0d1e] border border-orange-500/20 rounded-2xl overflow-hidden">
+                          <div className="px-5 py-4 flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                              <UserX className="w-4 h-4 text-orange-400" />
                             </div>
-                            <div>
-                              <p className="font-bold text-sm">{n.apodo}</p>
-                              <p className="text-white/30 text-xs mt-0.5">UID: {n.uid}</p>
-                              <p className="text-yellow-400/60 text-xs mt-0.5">Sin perfil registrado</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 flex-wrap">
+                                <div>
+                                  <p className="font-bold text-sm">{n?.apodo || w.nombre_en_app || w.nombre_real || 'Sin nombre'}</p>
+                                  {w.nombre_real && <p className="text-white/40 text-xs">{w.nombre_real}</p>}
+                                  <p className="text-white/30 text-xs mt-0.5">{w.profile_email}</p>
+                                  {ncWaLink ? (
+                                    <a href={ncWaLink} target="_blank" rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-green-400 hover:text-green-300 transition-colors">
+                                      <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                      {w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono}
+                                    </a>
+                                  ) : (w.telefono ? <p className="text-white/30 text-xs mt-0.5">{w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}</p> : null)}
+                                </div>
+                                <span className="text-orange-400/70 text-xs font-semibold shrink-0 pt-0.5">No cobró</span>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                                {([['ID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Agente', w.agente]] as [string,string|null][]).map(([label, val]) => (
+                                  <div key={label}><p className="text-white/25 text-xs mb-0.5">{label}</p><CopyBtn value={val} /></div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-xl font-extrabold text-green-400">${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
-                            <div className="flex items-center justify-end gap-1 mt-0.5">
-                              <Gem className="w-3.5 h-3.5 text-purple-400" />
-                              <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
-                            </div>
-                          </div>
+                          {n && (
+                            <>
+                              <button onClick={() => toggleExpanded('nc_' + key)}
+                                className="w-full flex items-center justify-center gap-2 px-5 py-3 border-t border-orange-500/10 text-xs font-semibold text-white/35 hover:text-orange-300 hover:bg-orange-500/5 transition-all">
+                                {ncOpen ? <><ChevronUp className="w-3.5 h-3.5" />Ocultar campos de nómina</> : <><ChevronDown className="w-3.5 h-3.5" />Ver campos de nómina</>}
+                              </button>
+                              {ncOpen && (
+                                <div className="px-5 pb-5 border-t border-orange-500/10">
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 pt-3">
+                                    {Object.entries(n.extras).map(([k, v]) => (
+                                      <div key={k}><p className="text-white/30 text-xs mb-0.5">{k}</p><CopyBtn value={String(v)} /></div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
-                        <button onClick={() => toggleExpanded('sp_' + n.uid)}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 border-t border-yellow-500/10 text-xs font-semibold text-white/35 hover:text-yellow-300 hover:bg-yellow-500/5 transition-all">
-                          {isOpen ? <><ChevronUp className="w-3.5 h-3.5" />Ocultar detalles</> : <><ChevronDown className="w-3.5 h-3.5" />Ver todos los campos de nómina</>}
-                        </button>
-                        {isOpen && (
-                          <div className="px-5 pb-5 border-t border-yellow-500/10">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 pt-3">
-                              {Object.entries(n.extras).map(([k, v]) => (
-                                <div key={k}><p className="text-white/30 text-xs mb-0.5">{k}</p><CopyBtn value={String(v)} /></div>
-                              ))}
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Sin perfil tab */}
+                {tab === 'sinperfil' && (
+                  <div className="space-y-3">
+                    {sinPerfil.length === 0 && <Empty msg="Todas las chicas de la nómina tienen perfil en el sistema." />}
+                    {sinPerfil.map(n => {
+                      const spOpen = expanded.has('sp_' + n.uid)
+                      return (
+                        <div key={n.uid} className="bg-[#0d0d1e] border border-yellow-500/20 rounded-2xl overflow-hidden">
+                          <div className="px-5 py-4 flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
+                                <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm">{n.apodo}</p>
+                                <p className="text-white/30 text-xs mt-0.5">UID: {n.uid}</p>
+                                <p className="text-yellow-400/60 text-xs mt-0.5">Sin perfil registrado</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-xl font-extrabold text-green-400">${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
+                              <div className="flex items-center justify-end gap-1 mt-0.5">
+                                <Gem className="w-3.5 h-3.5 text-purple-400" />
+                                <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
+                              </div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                          <button onClick={() => toggleExpanded('sp_' + n.uid)}
+                            className="w-full flex items-center justify-center gap-2 px-5 py-3 border-t border-yellow-500/10 text-xs font-semibold text-white/35 hover:text-yellow-300 hover:bg-yellow-500/5 transition-all">
+                            {spOpen ? <><ChevronUp className="w-3.5 h-3.5" />Ocultar detalles</> : <><ChevronDown className="w-3.5 h-3.5" />Ver todos los campos de nómina</>}
+                          </button>
+                          {spOpen && (
+                            <div className="px-5 pb-5 border-t border-yellow-500/10">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 pt-3">
+                                {Object.entries(n.extras).map(([k, v]) => (
+                                  <div key={k}><p className="text-white/30 text-xs mb-0.5">{k}</p><CopyBtn value={String(v)} /></div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
-      </div>
-    )
+      )}
+    </div>
+  )
+}
+
+// ── Parent component ──────────────────────────────────────────────────────────
+export default function Nomina() {
+  const { user, profile, loading } = useAuth()
+  const [, navigate] = useLocation()
+  const [historyView, setHistoryView] = useState(false)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyFilterSemana, setHistoryFilterSemana] = useState('')
+  const [historyFilterApp, setHistoryFilterApp] = useState('')
+  const [deletingHistId, setDeletingHistId] = useState<string | null>(null)
+  // Used to signal each section to reload from localStorage (e.g. after loading history)
+  const [reloadKeys, setReloadKeys] = useState<Record<string, number>>({ Waha: 0, Layla: 0, Howdy: 0 })
+
+  if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
+
+  if (loading) return <SplashLoader msg="Cargando..." />
+  if (!profile?.is_admin) return <SplashLoader msg="Sin acceso" />
+
+  async function fetchHistory() {
+    setHistoryLoading(true)
+    const { data } = await supabase
+      .from('nomina_history')
+      .select('id,app_name,semana,total_usd,total_diamantes,cobradas_count,nocobro_count,sinperfil_count,published,created_at,rows_data,file_name')
+      .order('created_at', { ascending: false })
+    setHistory((data ?? []) as HistoryEntry[])
+    setHistoryLoading(false)
   }
 
-  function TabBtn({ active, color, onClick, children }: { active: boolean; color: string; onClick: () => void; children: React.ReactNode }) {
-    return (
-      <button onClick={onClick}
-        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${active ? color + ' text-white' : 'text-white/40 hover:text-white'}`}>
-        {children}
-      </button>
-    )
+  function loadFromHistory(entry: HistoryEntry) {
+    try {
+      const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+      all[entry.app_name] = {
+        cobradas: entry.rows_data.cobradas ?? [],
+        noCobro: entry.rows_data.noCobro ?? [],
+        sinPerfil: entry.rows_data.sinPerfil ?? [],
+        semana: entry.semana,
+        fileName: entry.file_name ?? '',
+        aiSummary: null,
+      }
+      localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
+    } catch {}
+    setReloadKeys(prev => ({ ...prev, [entry.app_name]: (prev[entry.app_name] ?? 0) + 1 }))
+    setHistoryView(false)
   }
-  function Empty({ msg }: { msg: string }) {
-    return <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-10 text-center"><p className="text-white/30 text-sm">{msg}</p></div>
+
+  async function deleteFromHistory(id: string) {
+    setDeletingHistId(id)
+    await supabase.from('nomina_history').delete().eq('id', id)
+    setHistory(prev => prev.filter(h => h.id !== id))
+    setDeletingHistId(null)
   }
-  function SplashLoader({ msg }: { msg: string }) {
-    return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">{msg}</div></div>
-  }
-  
+
+  return (
+    <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
+      <div className="max-w-4xl mx-auto px-4">
+
+        <div className="mb-6">
+          <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/25 rounded-full px-3 py-1 mb-3">
+            <FileSpreadsheet className="w-3 h-3 text-purple-400" />
+            <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">Admin · Nómina</span>
+          </div>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-extrabold">{historyView ? 'Historial de Nóminas' : 'Nómina Semanal'}</h1>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {!historyView && (
+                <button onClick={() => { setHistoryView(true); fetchHistory() }}
+                  className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+                  📁 Historial
+                </button>
+              )}
+              {historyView && (
+                <button onClick={() => setHistoryView(false)}
+                  className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+                  ← Volver
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {historyView ? (
+          <HistoryPanel
+            history={history}
+            historyLoading={historyLoading}
+            historyFilterSemana={historyFilterSemana}
+            setHistoryFilterSemana={setHistoryFilterSemana}
+            historyFilterApp={historyFilterApp}
+            setHistoryFilterApp={setHistoryFilterApp}
+            deletingHistId={deletingHistId}
+            onDelete={deleteFromHistory}
+            onLoad={loadFromHistory}
+            fmtNum={fmt}
+          />
+        ) : (
+          <div className="space-y-3">
+            <AppNominaSection app="Waha"  reloadKey={reloadKeys.Waha}  />
+            <AppNominaSection app="Layla" reloadKey={reloadKeys.Layla} />
+            <AppNominaSection app="Howdy" reloadKey={reloadKeys.Howdy} />
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}
