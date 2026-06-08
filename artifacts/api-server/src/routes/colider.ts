@@ -59,11 +59,15 @@ import { Router } from 'express'
       const wm: Record<string,any> = {}
       for (const w of workers) wm[`${w.user_id}__${w.app_name}`] = w
       const enriched = salaries.map((s: any) => ({ ...s, ...wm[`${s.user_id}__${s.app_name}`] ?? {} }))
-      const agents = await sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`)
-      const rates = await sbGet('exchange_rates?select=id,rate')
-      const rm: Record<string,number> = {}
-      for (const r of rates) rm[r.id] = r.rate
-      res.json({ workers: enriched, agents, exchange_rates: rm })
+      const [agents, rates, settingData] = await Promise.all([
+          sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`),
+          sbGet('exchange_rates?select=id,rate'),
+          sbGet('site_settings?key=eq.exchange_rates_valid_semana&select=value&limit=1').catch(() => [] as any[]),
+        ])
+        const rm: Record<string,number> = {}
+        for (const r of rates) rm[r.id] = r.rate
+        const validSemana: string = (settingData[0] as any)?.value ?? ''
+        res.json({ workers: enriched, agents, exchange_rates: validSemana === semana ? rm : {} })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
 
