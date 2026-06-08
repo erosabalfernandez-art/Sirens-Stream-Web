@@ -384,32 +384,30 @@ import { useState, useEffect, useRef } from 'react'
           }
 
         async function createAgent() {
-          if (!agentFormName.trim() || !agentFormEmail.trim() || !agentFormPassword.trim()) {
-            setAgentCreateMsg({ ok: false, msg: 'Completa todos los campos.' }); return
+            if (!agentFormName.trim() || !agentFormEmail.trim() || !agentFormPassword.trim()) {
+              setAgentCreateMsg({ ok: false, msg: 'Completa todos los campos.' }); return
+            }
+            setCreatingAgent(true); setAgentCreateMsg(null)
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const res = await fetch(`${apiBase}/api/create-agent`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: agentFormEmail.trim(), password: agentFormPassword.trim(), agent_name: agentFormName.trim() }),
+              })
+              const json = await res.json() as { ok?: boolean; agent_code?: string; error?: string }
+              if (!res.ok || !json.ok) {
+                setAgentCreateMsg({ ok: false, msg: json.error ?? 'Error al crear cuenta.' })
+                setCreatingAgent(false); return
+              }
+              setAgentCreateMsg({ ok: true, msg: `✓ Agente "${agentFormName.trim()}" creado. Código de agente: ${json.agent_code}` })
+              setAgentFormName(''); setAgentFormEmail(''); setAgentFormPassword('')
+              await fetchAgents()
+            } catch {
+              setAgentCreateMsg({ ok: false, msg: 'Error de red al crear agente.' })
+            }
+            setCreatingAgent(false)
           }
-          setCreatingAgent(true); setAgentCreateMsg(null)
-          const { createClient } = await import('@supabase/supabase-js')
-          const tmpClient = createClient(
-            import.meta.env.VITE_SUPABASE_URL as string,
-            import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-            { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
-          )
-          const { data: signUpData, error: signUpError } = await tmpClient.auth.signUp({ email: agentFormEmail.trim(), password: agentFormPassword.trim() })
-          if (signUpError || !signUpData.user) {
-            setAgentCreateMsg({ ok: false, msg: signUpError?.message ?? 'Error al crear cuenta.' })
-            setCreatingAgent(false); return
-          }
-          const userId = signUpData.user.id
-          const nameKey = agentFormName.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'AGENT'
-          const { data: existingCodes } = await supabase.from('profiles').select('agent_code').not('agent_code', 'is', null)
-          const samePrefixCount = ((existingCodes ?? []) as {agent_code:string|null}[]).filter(p => p.agent_code?.startsWith(nameKey + '-')).length
-          const agentCode = `${nameKey}-${String(samePrefixCount + 1).padStart(3, '0')}`
-          await supabase.from('profiles').upsert({ id: userId, email: agentFormEmail.trim(), is_agent: true, agent_name: agentFormName.trim(), agent_code: agentCode, is_admin: false }, { onConflict: 'id' })
-          setAgentCreateMsg({ ok: true, msg: `✓ Agente "${agentFormName.trim()}" creado. Código de agente: ${agentCode}` })
-          setAgentFormName(''); setAgentFormEmail(''); setAgentFormPassword('')
-          await fetchAgents()
-          setCreatingAgent(false)
-        }
 
           async function fetchRates() {
             const { data } = await supabase.from('exchange_rates').select('*')
