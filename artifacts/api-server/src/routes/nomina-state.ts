@@ -22,7 +22,7 @@ router.get('/nomina-state', async (req, res) => {
   }
   try {
     const r = await fetch(
-      sbUrl(`nomina_history?app_name=eq.${encodeURIComponent(app)}&select=id,app_name,semana,rows_data,file_name,created_at&order=created_at.desc&limit=1`),
+      sbUrl(`nomina_history?app_name=eq.${encodeURIComponent(app)}&select=id,app_name,semana,rows_data,file_name,created_at,published&order=created_at.desc&limit=1`),
       { headers: sbHeaders() as Record<string,string> },
     );
     if (!r.ok) return res.status(r.status).json({ error: await r.text() });
