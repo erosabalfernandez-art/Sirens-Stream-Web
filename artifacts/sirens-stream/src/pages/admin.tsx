@@ -131,6 +131,8 @@ import { useState, useEffect, useRef } from 'react'
           const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean;phone:string|null}[]>([])
             const [grantingChannels, setGrantingChannels] = useState<Record<string,boolean>>({})
             const [channelsGranted, setChannelsGranted] = useState<Record<string,boolean>>({})
+            const [grantingColiderChannels, setGrantingColiderChannels] = useState<Record<string,boolean>>({})
+            const [coliderChannelsGranted, setColiderChannelsGranted] = useState<Record<string,boolean>>({})
             const [agentDetails, setAgentDetails] = useState<{commTotals:Record<string,number>;workerCounts:Record<string,number>;commApps:Record<string,string[]>}|null>(null)
           const [agentFormName, setAgentFormName] = useState('')
           const [agentFormEmail, setAgentFormEmail] = useState('')
@@ -376,13 +378,14 @@ import { useState, useEffect, useRef } from 'react'
               ...(coliderProfs ?? []).map((r: any) => r.id),
             ])]
           } else {
-            const [{ data: channelUsers }, { data: agentProfs }] = await Promise.all([
+            const [{ data: channelUsers }, { data: agentProfs }, { data: colProfs }] = await Promise.all([
               supabase.from('channel_requests').select('user_id').eq('app_name', app).eq('status', 'approved'),
               supabase.from('profiles').select('id').eq('is_agent', true),
             ])
             ids = [...new Set([
               ...(channelUsers ?? []).map((r: any) => r.user_id),
               ...(agentProfs ?? []).map((r: any) => r.id),
+              ...(colProfs ?? []).map((r: any) => r.id),
             ])]
           }
           const msg = type === 'salary'
@@ -847,6 +850,21 @@ import { useState, useEffect, useRef } from 'react'
                 if (json.ok) setChannelsGranted(p => ({ ...p, [agentId]: true }))
               } catch {}
               setGrantingChannels(p => ({ ...p, [agentId]: false }))
+            }
+
+            async function grantColiderChannels(coliderId: string) {
+              setGrantingColiderChannels(p => ({ ...p, [coliderId]: true }))
+              try {
+                const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+                const res = await fetch(`${apiBase}/api/grant-agent-channels`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: coliderId }),
+                })
+                const json = await res.json() as { ok?: boolean; error?: string }
+                if (json.ok) setColiderChannelsGranted(p => ({ ...p, [coliderId]: true }))
+              } catch {}
+              setGrantingColiderChannels(p => ({ ...p, [coliderId]: false }))
             }
 
             async function fetchRates() {
@@ -1905,7 +1923,18 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                   </a>
                                 )}
                               </div>
-                              <span className="text-xs bg-teal-500/10 border border-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">Colider</span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    onClick={() => grantColiderChannels(c.id)}
+                                    disabled={grantingColiderChannels[c.id] || coliderChannelsGranted[c.id]}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-600/20 hover:bg-teal-600/40 border border-teal-500/30 text-teal-300 disabled:opacity-50 transition-all">
+                                    {grantingColiderChannels[c.id]
+                                      ? <div className="w-3 h-3 border-2 border-teal-300 border-t-transparent rounded-full animate-spin" />
+                                      : coliderChannelsGranted[c.id] ? '✓' : <Radio className="w-3 h-3" />}
+                                    {coliderChannelsGranted[c.id] ? 'Dados' : 'Dar canales'}
+                                  </button>
+                                  <span className="text-xs bg-teal-500/10 border border-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">Colider</span>
+                                </div>
                             </div>
                           ))}
                         </div>
