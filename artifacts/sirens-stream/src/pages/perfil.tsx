@@ -61,7 +61,7 @@ import { useState, useEffect } from 'react'
       const [formError, setFormError] = useState<string | null>(null)
       const [confirmClear, setConfirmClear] = useState(false)
       const [expandedApp, setExpandedApp] = useState<string | null>(null)
-      const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'>('idle')
+      const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
       const [laylaPayNotified, setLaylaPayNotified] = useState<Record<string, boolean>>({})
       const [laylaPayNotifying, setLaylaPayNotifying] = useState<Record<string, boolean>>({})
       const [laylaPayNeedSetup, setLaylaPayNeedSetup] = useState(false)
@@ -169,8 +169,8 @@ import { useState, useEffect } from 'react'
       async function enableNotifications() {
         if (!user) return
         setNotifStatus('requesting')
-        const ok = await subscribeToPush(user.id)
-        setNotifStatus(ok ? 'granted' : 'denied')
+        const result = await subscribeToPush(user.id)
+        setNotifStatus(result)
       }
 
       const paymentMethods = getPaymentMethods(form.pais)
