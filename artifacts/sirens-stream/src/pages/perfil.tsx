@@ -145,6 +145,16 @@ import { useState, useEffect } from 'react'
               <div>
                 <h1 className="text-2xl font-extrabold">{T.title}</h1>
                 <p className="text-white/40 text-sm mt-0.5">{user?.email}</p>
+                {user && (
+                  <div className="mt-2 inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
+                    <span className="text-purple-400/50 text-xs">Tu ID:</span>
+                    <span className="text-purple-300 text-xs font-mono font-bold tracking-wider">{'SS-' + user.id.replace(/-/g,'').slice(0,6).toUpperCase()}</span>
+                    <button onClick={() => navigator.clipboard.writeText('SS-' + user.id.replace(/-/g,'').slice(0,6).toUpperCase())}
+                      className="text-purple-400/30 hover:text-purple-400 transition-colors" title="Copiar ID">
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
               <button onClick={signOut} className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm transition-colors">
                 <LogOut className="w-4 h-4" /> {T.logout}
@@ -234,7 +244,7 @@ import { useState, useEffect } from 'react'
                               ['País', entry.pais],
                               ['Método de pago', entry.metodo_pago],
                               ...(entry.billetera ? [['Billetera', entry.billetera]] : []),
-                              ...(entry.agente ? [['Agente', entry.agente]] : []),
+                              ...(entry.agente ? [['ID de agente', entry.agente]] : []),
                             ] as [string, string | null][]).map(([label, value]) => (
                               <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><p className="text-white/80 text-sm font-medium">{value || '—'}</p></div>
                             ))}
@@ -316,8 +326,8 @@ import { useState, useEffect } from 'react'
                   <Field label={walletLabel || 'Billetera / Dirección de pago'}>
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
-                  <Field label="Agente (opcional)">
-                    <FInput value={form.agente} onChange={v => setForm(f => ({ ...f, agente: v }))} placeholder="Nombre de tu agente" />
+                  <Field label="ID de agente (opcional)">
+                    <FInput value={form.agente} onChange={v => setForm(f => ({ ...f, agente: v }))} placeholder="Código de tu agente (ej: MARIA-001)" />
                   </Field>
 
                   {formError && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{formError}</p>}
