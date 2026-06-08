@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eclipse-angels-v3';
+const CACHE_NAME = 'eclipse-angels-v4';
 const SHELL_ASSETS = ['/index.html'];
 
 self.addEventListener('install', (event) => {
