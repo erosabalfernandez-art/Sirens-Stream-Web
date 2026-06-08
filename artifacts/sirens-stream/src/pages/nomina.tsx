@@ -1272,75 +1272,6 @@ export default function Nomina() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
 
-        {/* 💱 Tipo de Cambio Cuba - siempre visible para el admin */}
-        {!historyView && (
-        <div className="bg-[#0d0d1e] border border-green-500/15 rounded-2xl overflow-hidden mb-3">
-          <button onClick={() => setShowCambio(prev => !prev)}
-            className="w-full flex items-center justify-between px-5 py-3 hover:bg-green-500/5 transition-colors">
-            <div className="flex items-center gap-2">
-              <span className="text-base">💱</span>
-              <span className="text-green-300 text-sm font-bold">Tipo de Cambio Cuba</span>
-              {(nominaRates['efectivo_worker'] > 0 || nominaRates['transferencia_worker'] > 0 || nominaRates['efectivo_agent'] > 0 || nominaRates['transferencia_agent'] > 0) && (
-                <span className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full">Publicado</span>
-              )}
-            </div>
-            <span className="text-white/30 text-xs">{showCambio ? '▲ Cerrar' : '▼ Editar'}</span>
-          </button>
-          {showCambio && (
-            <div className="border-t border-green-500/10 p-5 space-y-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3">💜 Para Trabajadoras</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {([
-                    { id: 'efectivo_worker' as const, label: 'Efectivo Cuba', color: 'amber' },
-                    { id: 'transferencia_worker' as const, label: 'Transferencia Cuba', color: 'blue' },
-                  ]).map(({ id, label, color }) => (
-                    <div key={id} className="bg-black/20 border border-white/10 rounded-xl p-4">
-                      <p className="text-white/60 text-xs font-bold mb-1">{label}</p>
-                      <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
-                      <div className="flex gap-2">
-                        <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
-                          onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
-                          placeholder="Ej: 400"
-                          className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
-                        <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
-                          className={`shrink-0 text-white text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
-                          {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-3">🧡 Para Agentes</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {([
-                    { id: 'efectivo_agent' as const, label: 'Efectivo Cuba', color: 'amber' },
-                    { id: 'transferencia_agent' as const, label: 'Transferencia Cuba', color: 'blue' },
-                  ]).map(({ id, label, color }) => (
-                    <div key={id} className="bg-black/20 border border-white/10 rounded-xl p-4">
-                      <p className="text-white/60 text-xs font-bold mb-1">{label}</p>
-                      <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
-                      <div className="flex gap-2">
-                        <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
-                          onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
-                          placeholder="Ej: 400"
-                          className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
-                        <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
-                          className={`shrink-0 text-white text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
-                          {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        )}
-
               <h1 className="text-2xl font-extrabold">{historyView ? 'Historial de Nóminas' : 'Nómina Semanal'}</h1>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -1359,6 +1290,75 @@ export default function Nomina() {
             </div>
           </div>
         </div>
+
+        {/* 💱 Tipo de Cambio Cuba */}
+        {!historyView && (
+          <div className="bg-[#0d0d1e] border border-green-500/15 rounded-2xl overflow-hidden mb-4">
+            <button onClick={() => setShowCambio(prev => !prev)}
+              className="w-full flex items-center justify-between px-5 py-3 hover:bg-green-500/5 transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="text-base">💱</span>
+                <span className="text-green-300 text-sm font-bold">Tipo de Cambio Cuba</span>
+                {(nominaRates['efectivo_worker'] > 0 || nominaRates['transferencia_worker'] > 0 || nominaRates['efectivo_agent'] > 0 || nominaRates['transferencia_agent'] > 0) && (
+                  <span className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full">Publicado</span>
+                )}
+              </div>
+              <span className="text-white/30 text-xs">{showCambio ? '▲ Cerrar' : '▼ Editar'}</span>
+            </button>
+            {showCambio && (
+              <div className="border-t border-green-500/10 p-5 space-y-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3">💜 Para Trabajadoras</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {([
+                      { id: 'efectivo_worker' as const, label: 'Efectivo Cuba', color: 'amber' },
+                      { id: 'transferencia_worker' as const, label: 'Transferencia Cuba', color: 'blue' },
+                    ]).map(({ id, label, color }) => (
+                      <div key={id} className="bg-black/20 border border-white/10 rounded-xl p-4">
+                        <p className="text-white/60 text-xs font-bold mb-1">{label}</p>
+                        <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
+                        <div className="flex gap-2">
+                          <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
+                            onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                            placeholder="Ej: 400"
+                            className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
+                          <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
+                            className={`shrink-0 text-white text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
+                            {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-3">🧡 Para Agentes</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {([
+                      { id: 'efectivo_agent' as const, label: 'Efectivo Cuba', color: 'amber' },
+                      { id: 'transferencia_agent' as const, label: 'Transferencia Cuba', color: 'blue' },
+                    ]).map(({ id, label, color }) => (
+                      <div key={id} className="bg-black/20 border border-white/10 rounded-xl p-4">
+                        <p className="text-white/60 text-xs font-bold mb-1">{label}</p>
+                        <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
+                        <div className="flex gap-2">
+                          <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
+                            onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                            placeholder="Ej: 400"
+                            className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
+                          <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
+                            className={`shrink-0 text-white text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
+                            {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {historyView ? (
           <HistoryPanel
