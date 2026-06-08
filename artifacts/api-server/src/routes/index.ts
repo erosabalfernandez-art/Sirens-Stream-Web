@@ -8,6 +8,7 @@ import { Router, type IRouter } from 'express';
   import agentCommissionsRouter from './agent-commissions';
   import publishRouter from './publish';
   import createAgentRouter from './create-agent';
+  import agentWorkersRouter from './agent-workers';
 
   const router: IRouter = Router();
 
@@ -20,6 +21,7 @@ import { Router, type IRouter } from 'express';
   router.use(agentCommissionsRouter);
   router.use(publishRouter);
   router.use(createAgentRouter);
+  router.use(agentWorkersRouter);
 
   export default router;
   
