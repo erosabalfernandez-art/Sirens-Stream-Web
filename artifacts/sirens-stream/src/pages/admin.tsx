@@ -905,10 +905,15 @@ import { useState, useEffect, useRef } from 'react'
               const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id))]
               if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Transferencia actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', false)
             } else {
-              const { data } = await supabase.from('profiles').select('id').eq('is_agent', true)
-              const ids = ((data ?? []) as {id:string}[]).map(p => p.id)
+              const [{ data: agentData }, { data: coliderData }] = await Promise.all([
+                supabase.from('profiles').select('id').eq('is_agent', true),
+                supabase.from('profiles').select('id').eq('is_colider', true),
+              ])
+              const agentIds = ((agentData ?? []) as {id:string}[]).map(p => p.id)
+              const coliderIds = ((coliderData ?? []) as {id:string}[]).map(p => p.id).filter(cid => !agentIds.includes(cid))
               const label = id === 'efectivo_agent' ? 'Efectivo' : 'Transferencia'
-              if (ids.length > 0) sendPushViaApi(ids, `💱 Cambio ${label} para agentes actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/agente', false)
+              if (agentIds.length > 0) sendPushViaApi(agentIds, `💱 Cambio ${label} actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/agente', false)
+              if (coliderIds.length > 0) sendPushViaApi(coliderIds, `💱 Cambio ${label} actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/colider', false)
             }
             setSavingRate(null); setRateSaved(id); setTimeout(() => setRateSaved(null), 3000)
           }
