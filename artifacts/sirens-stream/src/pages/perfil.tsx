@@ -27,6 +27,14 @@ import { useState, useEffect } from 'react'
       pais: '', metodo_pago: '', billetera: '', agente: ''
     }
 
+      const DRAFT_KEY = 'ea_perfil_draft_new'
+      function loadDraft(): EntryFormData {
+        try { const raw = localStorage.getItem(DRAFT_KEY); if (raw) return { ...EMPTY_FORM, ...JSON.parse(raw) } } catch {}
+        return EMPTY_FORM
+      }
+      function saveDraft(f: EntryFormData) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(f)) } catch {} }
+      function clearDraft() { try { localStorage.removeItem(DRAFT_KEY) } catch {} }
+
     export default function Perfil() {
       const { user, loading, signOut } = useAuth()
         const { lang } = useLanguage()
@@ -68,6 +76,11 @@ import { useState, useEffect } from 'react'
         }
       }, [])
 
+        // Persist draft in localStorage — data survives navigation/background
+        useEffect(() => {
+          if (showForm && !editingId) saveDraft(form)
+        }, [form, showForm, editingId])
+
       async function fetchEntries() {
         setLoadingEntries(true)
         const { data } = await supabase.from('worker_entries').select('*').eq('user_id', user!.id).order('created_at', { ascending: true })
@@ -100,7 +113,7 @@ import { useState, useEffect } from 'react'
         setLaylaPayNotifying(p => ({ ...p, [entryId]: false }))
       }
 
-      function openAdd() { setEditingId(null); setForm(EMPTY_FORM); setFormError(null); setShowForm(true) }
+      function openAdd() { setEditingId(null); setForm(loadDraft()); setFormError(null); setShowForm(true) }
 
       function openEdit(entry: WorkerEntry) {
         setEditingId(entry.id)
@@ -146,6 +159,7 @@ import { useState, useEffect } from 'react'
           }
         setSaving(false)
         if (error) { setFormError(error); return }
+        if (!editingId) clearDraft()
         setShowForm(false); fetchEntries()
       }
 
