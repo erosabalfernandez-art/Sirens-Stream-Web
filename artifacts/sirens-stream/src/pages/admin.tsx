@@ -118,7 +118,7 @@ import { useState, useEffect, useRef } from 'react'
         const [channelPosting, setChannelPosting] = useState(false)
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
-          const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;is_agent:boolean}[]>([])
+          const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[]>([])
           const [agentFormName, setAgentFormName] = useState('')
           const [agentFormEmail, setAgentFormEmail] = useState('')
           const [agentFormPassword, setAgentFormPassword] = useState('')
@@ -349,8 +349,8 @@ import { useState, useEffect, useRef } from 'react'
       }
 
       async function fetchAgents() {
-          const { data } = await supabase.from('profiles').select('id, email, agent_name, is_agent').eq('is_agent', true).order('created_at', { ascending: false })
-          setAgents((data ?? []) as {id:string;email:string;agent_name:string|null;is_agent:boolean}[])
+          const { data } = await supabase.from('profiles').select('id, email, agent_name, agent_code, is_agent').eq('is_agent', true).order('created_at', { ascending: false })
+          setAgents((data ?? []) as {id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[])
         }
 
         async function createAgent() {
@@ -370,8 +370,12 @@ import { useState, useEffect, useRef } from 'react'
             setCreatingAgent(false); return
           }
           const userId = signUpData.user.id
-          await supabase.from('profiles').upsert({ id: userId, email: agentFormEmail.trim(), is_agent: true, agent_name: agentFormName.trim(), is_admin: false }, { onConflict: 'id' })
-          setAgentCreateMsg({ ok: true, msg: `✓ Agente "${agentFormName.trim()}" creado. Email: ${agentFormEmail.trim()}` })
+          const nameKey = agentFormName.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'AGENT'
+          const { data: existingCodes } = await supabase.from('profiles').select('agent_code').not('agent_code', 'is', null)
+          const samePrefixCount = ((existingCodes ?? []) as {agent_code:string|null}[]).filter(p => p.agent_code?.startsWith(nameKey + '-')).length
+          const agentCode = `${nameKey}-${String(samePrefixCount + 1).padStart(3, '0')}`
+          await supabase.from('profiles').upsert({ id: userId, email: agentFormEmail.trim(), is_agent: true, agent_name: agentFormName.trim(), agent_code: agentCode, is_admin: false }, { onConflict: 'id' })
+          setAgentCreateMsg({ ok: true, msg: `✓ Agente "${agentFormName.trim()}" creado. Código de agente: ${agentCode}` })
           setAgentFormName(''); setAgentFormEmail(''); setAgentFormPassword('')
           await fetchAgents()
           setCreatingAgent(false)
@@ -1065,6 +1069,12 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                               <div>
                                 <p className="text-white/80 text-sm font-semibold">{ag.agent_name || '—'}</p>
                                 <p className="text-white/35 text-xs">{ag.email}</p>
+                                {ag.agent_code && (
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-amber-400/60 text-xs">Código:</span>
+                                    <span className="text-amber-300 font-mono font-bold text-xs tracking-wider">{ag.agent_code}</span>
+                                  </div>
+                                )}
                               </div>
                               <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Agente</span>
                             </div>
