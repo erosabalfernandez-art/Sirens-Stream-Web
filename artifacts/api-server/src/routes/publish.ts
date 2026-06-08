@@ -131,7 +131,9 @@ import { Router } from 'express';
           const notifItems = valid.map(insert => ({
             userId: insert.user_id,
             title: `💰 Tu salario de ${insert.app_name} está disponible`,
-            body: `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} · ${Number(insert.diamantes).toLocaleString('es-ES')} 💎`,
+                        body: insert.app_name === 'Layla'
+              ? `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} USD`
+              : `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} · ${Number(insert.diamantes).toLocaleString('es-ES')} 💎`,
             url: '/salarios',
           }));
           dispatchPushIndividual(notifItems).catch(() => {});
