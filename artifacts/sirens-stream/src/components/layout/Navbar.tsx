@@ -43,8 +43,8 @@ import { Link, useLocation } from "wouter";
     const [result, setResult] = useState<{ ok: boolean; allConfirmed?: boolean; pending?: { type: string; app: string; name: string }[]; message?: string; semana?: string; error?: string } | null>(null);
 
     useEffect(() => {
-      const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api');
-      fetch(`${apiBase}/cierre-semanal`, {
+      const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '');
+      fetch(`${apiBase}/api/cierre-semanal`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       }).then(r => r.json()).then(d => { setResult(d); setLoading(false); }).catch(() => { setResult({ ok: false, error: 'Error de red' }); setLoading(false); });
