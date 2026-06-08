@@ -449,6 +449,239 @@ import { useState, useEffect, useRef } from 'react'
         }
 
         async function postMessage() {
+            if (!channelContent.trim() && !channelImage.trim()) return
+            setChannelPosting(true)
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const res = await fetch(`${apiBase}/api/post-channel-message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  app_name: channelApp,
+                  content: channelContent.trim() || null,
+                  image_url: channelImage.trim() || null,
+                  created_by: user!.id,
+                }),
+              })
+              if (res.ok) {
+                setChannelContent(''); setChannelImage('')
+                fetchChannelMessages(channelApp)
+              }
+            } catch {}
+            setChannelPosting(false)
+          }
+
+        async function fetchAgentPayData() {
+            setAgentPayLoading(true)
+            const { data: latestComm } = await supabase
+              .from('agent_commissions').select('semana')
+              .order('semana', { ascending: false }).limit(1).maybeSingle()
+            if (!latestComm) { setAgentPayData({confirmed: [], pending: []}); setAgentPayLoading(false); return }
+            const semana = latestComm.semana
+            const { data: comms } = await supabase
+              .from('agent_commissions')
+              .select('id, agent_name, app_name, semana, total_commission_usd, agent_user_id')
+              .eq('semana', semana)
+            const { data: confs } = await supabase
+              .from('agent_payment_confirmations')
+              .select('commission_id, confirmed_at')
+              .in('commission_id', (comms ?? []).map((c: any) => c.id))
+            const confSet = new Set(((confs ?? []) as any[]).map((c: any) => c.commission_id))
+            const confMap: Record<string, string> = {}
+            ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
+            const all = (comms ?? []) as any[]
+            setAgentPayData({
+              confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({...c, confirmed_at: confMap[c.id]})),
+              pending: all.filter((c: any) => !confSet.has(c.id)),
+            })
+            setPagosSemana(semana)
+            setAgentPayLoading(false)
+          }
+
+          async function fetchLaylaDirectNotifs() {
+            setLaylaDirectLoading(true)
+            setLaylaDirectNeedSetup(false)
+            const { data: notifs, error } = await supabase
+              .from('direct_payment_notifications')
+              .select('*')
+              .eq('app_name', 'Layla')
+              .order('notified_at', { ascending: false })
+            if (error?.code === '42P01') {
+              setLaylaDirectNeedSetup(true)
+              setLaylaDirectLoading(false)
+              return
+            }
+            if (!notifs || notifs.length === 0) {
+              setLaylaDirectNotifs([])
+              setLaylaDirectLoading(false)
+              return
+            }
+            const userIds = (notifs as any[]).map((n: any) => n.user_id)
+            const [{ data: workers }, { data: profs }] = await Promise.all([
+              supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera').eq('app_name', 'Layla').in('user_id', userIds),
+              supabase.from('profiles').select('id, email').in('id', userIds),
+            ])
+            const wMap: Record<string, any> = Object.fromEntries(((workers ?? []) as any[]).map((w: any) => [w.user_id, w]))
+            const eMap: Record<string, string> = Object.fromEntries(((profs ?? []) as any[]).map((p: any) => [p.id, p.email]))
+            const merged = (notifs as any[]).map((n: any) => ({
+              ...n,
+              nombre_en_app: wMap[n.user_id]?.nombre_en_app ?? null,
+              nombre_real: wMap[n.user_id]?.nombre_real ?? null,
+              email: eMap[n.user_id] ?? '—',
+              metodo_pago: wMap[n.user_id]?.metodo_pago ?? null,
+              billetera: wMap[n.user_id]?.billetera ?? null,
+            }))
+            setLaylaDirectNotifs(merged)
+            setLaylaDirectLoading(false)
+          }
+
+          async function fetchNoCobro() {
+              setNoCobroLoading(true)
+              setNoCobroSetupNeeded(false)
+              try {
+                const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
+                const r = await fetch(`${apiBase}/no-cobro`, { credentials: 'include' })
+                if (!r.ok) { const e = await r.json().catch(() => ({})); if ((e?.error ?? '').includes('42P01') || (e?.error ?? '').includes('does not exist')) { setNoCobroSetupNeeded(true); setNoCobroLoading(false); return } }
+                const d = await r.json()
+                if (d.ok) { setNoCobroEntries(d.entries ?? []) }
+              } catch {}
+              setNoCobroLoading(false)
+            }
+
+          async function handleToggleJustified(id: string, justified: boolean) {
+            setTogglingJustified(id)
+            try {
+              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
+              await fetch(`${apiBase}/toggle-justified`, {
+                method: 'PATCH', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, justified }),
+              })
+              setNoCobroEntries(prev => prev.map(e => e.id === id ? { ...e, justified } : e))
+            } catch {}
+            setTogglingJustified(null)
+          }
+
+          async function notifyApp(app: string, type: 'salary' | 'canal') {
+          const key = `${app}_${type}`
+          setNotifying(p => ({ ...p, [key]: true }))
+          setNotifOk(p => ({ ...p, [key]: false }))
+          let ids: string[] = []
+          if (type === 'salary') {
+            const { data } = await supabase.from('worker_entries').select('user_id').eq('app_name', app)
+            ids = [...new Set((data ?? []).map((r: any) => r.user_id))]
+          } else {
+            const { data } = await supabase.from('channel_requests').select('user_id').eq('app_name', app).eq('status', 'approved')
+            ids = (data ?? []).map((r: any) => r.user_id)
+          }
+          const msg = type === 'salary'
+            ? { title: `💰 Tu salario de ${app} está disponible`, body: 'Entra a ver tus ganancias en tu perfil.', url: '/salarios' }
+            : { title: `📢 Nuevo en tu canal ${app}`, body: 'Hay una actualización en tu canal. ¡Revísala!', url: '/canales' }
+          let sent = 0; let logError: string | undefined
+          if (ids.length > 0) {
+            const result = await sendPushViaApi(ids, msg.title, msg.body, msg.url)
+            sent = result.sent; logError = result.error
+          }
+          setNotifLogs(prev => [{
+            id: crypto.randomUUID(), ts: new Date(), app, type,
+            title: msg.title, total: ids.length, sent, error: logError
+          }, ...prev].slice(0, 50))
+          setNotifying(p => ({ ...p, [key]: false }))
+          setNotifOk(p => ({ ...p, [key]: true }))
+          setTimeout(() => setNotifOk(p => ({ ...p, [key]: false })), 4000)
+        }
+
+        async function sendTestPushToWorker(worker: WorkerRow) {
+          setTestPushSending(p => ({ ...p, [worker.id]: true }))
+          setTestPushOk(p => ({ ...p, [worker.id]: false }))
+          await sendPushViaApi(
+            [worker.user_id],
+            '🔔 Notificación de prueba',
+            `Hola${worker.nombre_real ? ` ${worker.nombre_real}` : ''}! Esta es una notificación de prueba enviada desde el panel admin.`,
+            '/perfil'
+          )
+          setTestPushSending(p => ({ ...p, [worker.id]: false }))
+          setTestPushOk(p => ({ ...p, [worker.id]: true }))
+          setTimeout(() => setTestPushOk(p => ({ ...p, [worker.id]: false })), 4000)
+        }
+
+        async function sendTestPushToAllAgents() {
+          setTestPushAgents(true); setTestPushAgentsOk(false)
+          const { data: agentProfs } = await supabase.from('profiles').select('id').eq('is_agent', true)
+          const ids = ((agentProfs ?? []) as {id:string}[]).map(p => p.id)
+          if (ids.length > 0) await sendPushViaApi(ids, '🔔 Notificación de prueba (Agentes)', 'Esta es una notificación de prueba enviada desde el panel admin.', '/agente')
+          setTestPushAgents(false); setTestPushAgentsOk(true)
+          setTimeout(() => setTestPushAgentsOk(false), 4000)
+        }
+
+        async function sendTestPushToAgent(ag: {id:string;agent_name:string|null}) {
+          setTestPushSending(p => ({ ...p, [ag.id]: true }))
+          setTestPushOk(p => ({ ...p, [ag.id]: false }))
+          const greeting = ag.agent_name ? ` ${ag.agent_name}` : ''
+          await sendPushViaApi(
+            [ag.id],
+            '🔔 Notificación de prueba',
+            `Hola${greeting}! Esta es una notificación de prueba enviada desde el panel admin.`,
+            '/agente'
+          )
+          setTestPushSending(p => ({ ...p, [ag.id]: false }))
+          setTestPushOk(p => ({ ...p, [ag.id]: true }))
+          setTimeout(() => setTestPushOk(p => ({ ...p, [ag.id]: false })), 4000)
+        }
+
+        useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
+
+      useEffect(() => {
+        if (!loading && user && profile !== undefined) {
+          if (profile && !profile.is_admin) navigate('/perfil')
+          if (profile?.is_admin) fetchAll()
+        }
+      }, [loading, user, profile])
+
+      async function fetchSolicitudes() {
+          setLoadingSol(true)
+          const { data: reqs } = await supabase.from('channel_requests').select('*').order('created_at', { ascending: false })
+          if (Object.keys(emailMapRef.current).length === 0) {
+            const { data: profs } = await supabase.from('profiles').select('id, email')
+            emailMapRef.current = Object.fromEntries(((profs ?? []) as any[]).map((p: any) => [p.id, p.email]))
+          }
+          const pm = emailMapRef.current
+          setSolicitudes(((reqs ?? []) as any[]).map((r: any) => ({ ...r, profile_email: pm[r.user_id] ?? 'desconocido' })))
+          setLoadingSol(false)
+        }
+
+        async function resolveRequest(id: string, status: 'approved' | 'rejected', sol?: { user_id: string; app_name: string }) {
+            await supabase.from('channel_requests').update({ status, resolved_at: new Date().toISOString(), resolved_by: user!.id }).eq('id', id)
+            if (sol?.user_id) {
+              if (status === 'approved') {
+                sendPushViaApi(
+                  [sol.user_id],
+                  `✅ Acceso aprobado — Canal ${sol.app_name}`,
+                  `Ya tienes acceso al canal ${sol.app_name}. ¡Revisa los comunicados!`,
+                  '/canales',
+                  true
+                )
+              } else {
+                sendPushViaApi(
+                  [sol.user_id],
+                  `❌ Solicitud de canal ${sol.app_name}`,
+                  `Tu solicitud al canal ${sol.app_name} no fue aprobada. Contáctanos si tienes dudas.`,
+                  '/canales',
+                  true
+                )
+              }
+            }
+            fetchSolicitudes()
+          }
+
+        async function fetchChannelMessages(app: string) {
+          setLoadingMsgs(true)
+          const { data } = await supabase.from('channel_messages').select('*').eq('app_name', app).order('created_at', { ascending: false })
+          setChannelMessages((data ?? []) as any[])
+          setLoadingMsgs(false)
+        }
+
+        async function postMessage() {
           if (!channelContent.trim() && !channelImage.trim()) return
           setChannelPosting(true)
           const { error } = await supabase.from('channel_messages').insert({
