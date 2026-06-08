@@ -124,7 +124,7 @@ import React, { useState, useEffect } from 'react'
         await supabase.from('agent_payment_confirmations').insert({
           commission_id: commId,
           user_id: profile!.id,
-          agent_name: profile!.nombre_real ?? profile!.nombre_en_app ?? '',
+          agent_name: profile!.agent_name ?? '',
           semana,
           app_name: appName,
         })
