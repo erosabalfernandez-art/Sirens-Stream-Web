@@ -139,16 +139,22 @@ import { useState, useEffect } from 'react'
 
     async function notifyAdmin() {
       setNotifying(true); setNotifyMsg('')
-      try {
-        const r = await fetch(`${API}/api/colider/notify-admin`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ semana })
-        })
-        const d = await r.json()
-        if (!r.ok) { setNotifyMsg(`❌ ${d.error ?? 'Error'}`); return }
-        setWeekStatus(prev => ({ ...prev!, notified: true, admin_closed: false }))
-        setNotifyMsg('✅ Admin notificado.')
-      } catch { setNotifyMsg('❌ Error de conexión') }
+      for (let attempt = 0; attempt <= 1; attempt++) {
+        try {
+          if (attempt > 0) {
+            setNotifyMsg('⏳ Servidor iniciando, espera...')
+            await new Promise(res => setTimeout(res, 8000))
+          }
+          const r = await fetch(`${API}/api/colider/notify-admin`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ semana })
+          })
+          const d = await r.json()
+          if (!r.ok) { setNotifyMsg(`❌ ${d.error ?? 'Error'}`); break }
+          setWeekStatus(prev => ({ ...prev!, notified: true, admin_closed: false }))
+          setNotifyMsg('✅ Admin notificado.'); setNotifying(false); return
+        } catch { if (attempt === 0) continue; setNotifyMsg('❌ Error de red — intenta de nuevo') }
+      }
       setNotifying(false)
     }
 
