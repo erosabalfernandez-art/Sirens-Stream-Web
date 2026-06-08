@@ -53,14 +53,7 @@ import { useState, useEffect, useRef } from 'react'
                   {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </span>
               </button>
-                <button onClick={() => setTab('cambio')}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'cambio' ? 'bg-green-600 text-white' : 'text-white/40 hover:text-white'}`}>
-                  💱 Cambio
-                </button>
-                <button onClick={() => { setTab('nocobro'); fetchNoCobro() }}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'nocobro' ? 'bg-red-600 text-white' : 'text-white/40 hover:text-white'}`}>
-                  🚨 No Cobraron
-                </button>
+
               {href && (
                 <a href={href} target="_blank" rel="noopener noreferrer"
                    className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/25 transition-colors font-semibold shrink-0">
@@ -981,6 +974,14 @@ import { useState, useEffect, useRef } from 'react'
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'agentes' ? 'bg-amber-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Users className="w-3.5 h-3.5" />
                 Agentes
+              </button>
+              <button onClick={() => setTab('cambio')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'cambio' ? 'bg-green-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                💱 Cambio
+              </button>
+              <button onClick={() => { setTab('nocobro'); fetchNoCobro() }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'nocobro' ? 'bg-red-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                🚨 No Cobraron
               </button>
             </div>
 
