@@ -31,7 +31,7 @@ import { Router } from 'express'
       const ar = await fetch(`${SB}/auth/v1/admin/users`, { method: 'POST', headers: h(), body: JSON.stringify({ email, password, email_confirm: true }) })
       if (!ar.ok) { res.status(400).json({ error: await ar.text() }); return }
       const { id } = await ar.json()
-      await sbPost('profiles', { id, email, is_colider: true, colider_name: colider_name ?? null, telefono: telefono ?? null }, 'resolution=merge-duplicates,return=minimal')
+      await sbPost('profiles?on_conflict=id', { id, email, is_colider: true, colider_name: colider_name ?? null, telefono: telefono ?? null }, 'resolution=merge-duplicates,return=minimal')
       res.json({ ok: true, userId: id })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
