@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
   import { useLanguage } from '@/contexts/LanguageContext'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
-  import { supabase } from '@/lib/supabase'
   import { MessageSquare, Clock, Radio } from 'lucide-react'
 
   interface ChannelMessage {
@@ -47,15 +46,16 @@ import { useState, useEffect } from 'react'
     async function fetchData() {
         setFetching(true)
         const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-        const [accessRes, msgRes] = await Promise.all([
+        const [accessRes, msgsRes] = await Promise.all([
           fetch(`${apiBase}/api/channel-access?user_id=${user!.id}`).then(r => r.ok ? r.json() : { requests: [] }),
-          supabase.from('channel_messages').select('*').order('created_at', { ascending: false }),
+          // Use service-role API endpoint so Supabase RLS never blocks workers from seeing messages
+          fetch(`${apiBase}/api/channel-messages?user_id=${user!.id}`).then(r => r.ok ? r.json() : { messages: [] }),
         ])
         const reqs: ChannelRequest[] = accessRes.requests ?? []
         setRequests(reqs)
-        const approved = reqs.filter(r => r.status === 'approved').map(r => r.app_name)
-        const msgs = ((msgRes.data as ChannelMessage[]) ?? []).filter(m => approved.includes(m.app_name))
+        const msgs: ChannelMessage[] = msgsRes.messages ?? []
         setMessages(msgs)
+        const approved = reqs.filter(r => r.status === 'approved').map(r => r.app_name)
         if (approved.length > 0) setActiveApp(prev => prev ?? approved[0])
         setFetching(false)
       }
