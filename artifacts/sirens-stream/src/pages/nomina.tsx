@@ -411,6 +411,16 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
     } catch {}
   }, [fPais, fPago, app])
 
+  // ▶ FIX: Persist aiSummary to localStorage once Groq async response arrives
+  useEffect(() => {
+    if (!aiSummary) return
+    try {
+      const _aiCache = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+      if (_aiCache[app]) { _aiCache[app].aiSummary = aiSummary; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_aiCache)) }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiSummary])
+
   function toggleExpanded(key: string) {
     setExpanded(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
   }
@@ -664,6 +674,13 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
       cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
 
       setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
+      // ▶ FIX: Save to localStorage immediately using local vars — React state isn't committed yet
+      // This keeps nomina data alive across navigation, tab switch, and page refresh for ALL 3 apps
+      try {
+        const _nomCache = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+        _nomCache[app] = { cobradas: cobradasList, noCobro: noCobroList, sinPerfil: sinPerfilList, semana: sem, fileName: file.name, aiSummary: null }
+        localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_nomCache))
+      } catch {}
       loadPaidMarks(app, sem)
       // Save via API server (service role → bypasses RLS) so data persists across navigation/sessions
       try {
