@@ -213,13 +213,31 @@ import { useState, useEffect } from 'react'
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="text-right">
-                                  <p className="text-xl font-extrabold text-green-400">
-                                    ${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-                                  </p>
-                                  <div className="flex items-center justify-end gap-1 mt-0.5">
-                                    <Gem className="w-3.5 h-3.5 text-purple-400" />
-                                    <span className="text-purple-300 text-sm font-semibold">{fmt(s.diamantes)}</span>
-                                  </div>
+                                  {isCubanPay ? (
+                                    cupRate > 0 ? (
+                                      <>
+                                        <p className="text-xl font-extrabold text-amber-300">
+                                          {(Number(s.usd) * cupRate).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-base font-bold text-amber-400/70">CUP</span>
+                                        </p>
+                                        <p className="text-amber-400/50 text-xs mt-0.5 text-right">1 USD = {cupRate.toLocaleString('es-ES')}</p>
+                                      </>
+                                    ) : (
+                                      <div className="text-right">
+                                        <p className="text-sm font-semibold text-white/25">⏳ Cambio pendiente</p>
+                                        <p className="text-white/15 text-xs mt-0.5">En espera del tipo de cambio</p>
+                                      </div>
+                                    )
+                                  ) : (
+                                    <>
+                                      <p className="text-xl font-extrabold text-green-400">
+                                        ${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                                      </p>
+                                      <div className="flex items-center justify-end gap-1 mt-0.5">
+                                        <Gem className="w-3.5 h-3.5 text-purple-400" />
+                                        <span className="text-purple-300 text-sm font-semibold">{fmt(s.diamantes)}</span>
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                                 {isConfirming ? (
                                   <div className="flex items-center gap-1.5 shrink-0">
@@ -240,15 +258,6 @@ import { useState, useEffect } from 'react'
                                 )}
                               </div>
                             </div>
-                              {isCubanPay && cupRate > 0 && (
-                                <div className="px-5 py-3 border-t border-amber-500/10 bg-amber-500/5 flex items-center justify-between gap-4">
-                                  <div>
-                                    <p className="text-amber-400/70 text-xs font-semibold">{metodo.includes('Efectivo') ? 'Efectivo Cuba' : 'Transferencia Cuba'}</p>
-                                    <p className="text-amber-300/40 text-xs">1 USD = {cupRate.toLocaleString('es-ES')} CUP</p>
-                                  </div>
-                                  <p className="text-amber-300 font-extrabold text-lg">{(cupTotal).toLocaleString('es-ES')} <span className="text-amber-400/60 font-semibold text-sm">CUP</span></p>
-                                </div>
-                              )}
                               {extraEntries.length > 0 && (
                               <>
                                 <button onClick={() => toggle(s.id)}
