@@ -146,8 +146,8 @@ import React, { useState, useEffect } from 'react'
       async function subscribeNotif() {
       if (!profile?.id) return
       setNotifStatus('requesting')
-      const ok = await subscribeToPush(profile.id)
-      setNotifStatus(ok ? 'granted' : 'denied')
+      const result = await subscribeToPush(profile.id)
+      setNotifStatus(result)
     }
 
     function toggleExpand(id: string) {
