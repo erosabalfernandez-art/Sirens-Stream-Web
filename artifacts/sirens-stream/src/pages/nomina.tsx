@@ -678,7 +678,6 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
       loadPaidMarks(app, sem)
       // Save to Supabase immediately so data persists across navigation and sessions
       try {
-        await supabase.from('nomina_history').delete().eq('app_name', app).eq('semana', sem)
         await supabase.from('nomina_history').insert({
           app_name: app,
           semana: sem,
