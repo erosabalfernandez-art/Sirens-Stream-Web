@@ -63,6 +63,7 @@ import React, { useState, useEffect } from 'react'
     const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'>('comisiones')
     const [workerAppFilter, setWorkerAppFilter] = useState('')
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
+    const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
 
     useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent) navigate('/') }, [loading, profile])
     useEffect(() => {
@@ -108,7 +109,12 @@ import React, { useState, useEffect } from 'react'
       setExchangeRates(r)
     }
 
-    async function subscribeNotif() {
+    function selectPayMethod(method: 'efectivo' | 'transferencia') {
+        setAgentPayMethod(method)
+        if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
+      }
+
+      async function subscribeNotif() {
       if (!profile?.id) return
       setNotifStatus('requesting')
       const ok = await subscribeToPush(profile.id)
@@ -292,58 +298,78 @@ import React, { useState, useEffect } from 'react'
                 </div>
               </div>
               {/* CUP summary for agent - show both rates if set */}
-              {(exchangeRates['efectivo_agent'] > 0 || exchangeRates['transferencia_agent'] > 0) && commissions.length > 0 && (
-                <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-4 mb-4">
-                  <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-3">💱 Total en Moneda Nacional (CUP)</p>
-                  <div className="space-y-3">
-                    {/* Per-app breakdown */}
-                    {commApps.map(app => {
-                      const appComms = commissions.filter(c => c.app_name === app)
-                      const appTotalUsd = appComms.reduce((s, c) => s + (c.total_commission_usd || 0), 0)
-                      return (
-                        <div key={app} className="border-b border-amber-500/10 pb-2 last:border-0 last:pb-0">
-                          <p className="text-white/60 text-xs font-bold mb-1.5">{app} · ${fmt(appTotalUsd)} USD</p>
-                          <div className="flex gap-4 flex-wrap">
-                            {exchangeRates['efectivo_agent'] > 0 && (
-                              <div>
-                                <p className="text-amber-400/50 text-xs">💵 Efectivo · 1 USD = {(exchangeRates['efectivo_agent']).toLocaleString('es-ES')} CUP</p>
-                                <p className="text-amber-300 font-extrabold text-lg">{(appTotalUsd * exchangeRates['efectivo_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-xs font-semibold">CUP</span></p>
+              {commissions.length > 0 && (
+                  <div className="mb-4">
+                    {/* Payment method selector */}
+                    {!agentPayMethod ? (
+                      <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-5 mb-3">
+                        <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">💱 Elige tu método de cobro</p>
+                        <p className="text-white/40 text-xs mb-4">Selecciona cómo recibirás tus comisiones. Solo puedes elegir uno.</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button onClick={() => selectPayMethod('efectivo')}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-amber-500/30 hover:border-amber-400 hover:bg-amber-500/10 transition-all">
+                            <span className="text-2xl">💵</span>
+                            <span className="text-white font-bold text-sm">Efectivo Cuba</span>
+                            {(exchangeRates['efectivo_agent'] ?? 0) > 0 && <span className="text-amber-400/60 text-xs">1 USD = {(exchangeRates['efectivo_agent']).toLocaleString('es-ES')} CUP</span>}
+                          </button>
+                          <button onClick={() => selectPayMethod('transferencia')}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-blue-500/30 hover:border-blue-400 hover:bg-blue-500/10 transition-all">
+                            <span className="text-2xl">🏦</span>
+                            <span className="text-white font-bold text-sm">Transferencia Cuba</span>
+                            {(exchangeRates['transferencia_agent'] ?? 0) > 0 && <span className="text-blue-400/60 text-xs">1 USD = {(exchangeRates['transferencia_agent']).toLocaleString('es-ES')} CUP</span>}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={
+                        `bg-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-500/8 border border-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-500/20 rounded-2xl p-4 mb-3`
+                      }>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{agentPayMethod === 'efectivo' ? '💵' : '🏦'}</span>
+                            <div>
+                              <p className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-400 text-xs font-bold uppercase tracking-wider`}>
+                                {agentPayMethod === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'}
+                              </p>
+                              {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && (
+                                <p className="text-white/30 text-xs">1 USD = {(exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES')} CUP</p>
+                              )}
+                            </div>
+                          </div>
+                          <button onClick={() => setAgentPayMethod(null)}
+                            className="text-white/30 hover:text-white/60 text-xs transition-colors px-2 py-1 rounded-lg border border-white/10">
+                            Cambiar
+                          </button>
+                        </div>
+                        {/* Per-app totals */}
+                        <div className="space-y-2">
+                          {commApps.map(app => {
+                            const appUsd = commissions.filter(c => c.app_name === app).reduce((s, c) => s + (c.total_commission_usd || 0), 0)
+                            const rate = exchangeRates[`${agentPayMethod}_agent`] ?? 0
+                            const cup = appUsd * rate
+                            return (
+                              <div key={app} className="flex items-center justify-between">
+                                <span className="text-white/50 text-sm">{app} · <span className="text-green-400 font-bold">${fmt(appUsd)}</span></span>
+                                <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-300 font-extrabold text-lg`}>
+                                  {rate > 0 ? cup.toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP' : <span className="text-white/25 text-sm">— sin tasa publicada</span>}
+                                </span>
                               </div>
-                            )}
-                            {exchangeRates['transferencia_agent'] > 0 && (
-                              <div>
-                                <p className="text-amber-400/50 text-xs">🏦 Transferencia · 1 USD = {(exchangeRates['transferencia_agent']).toLocaleString('es-ES')} CUP</p>
-                                <p className="text-amber-300 font-extrabold text-lg">{(appTotalUsd * exchangeRates['transferencia_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-xs font-semibold">CUP</span></p>
-              </div>
-                            )}
-                          </div>
+                            )
+                          })}
+                          {commApps.length > 1 && (
+                            <div className="flex items-center justify-between border-t border-white/8 pt-2 mt-1">
+                              <span className="text-white/40 text-sm font-bold">Total · <span className="text-green-400">${fmt(totalUSD)}</span></span>
+                              <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-300 font-extrabold text-xl`}>
+                                {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
+                                  ? (totalUSD * (exchangeRates[`${agentPayMethod}_agent`])).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP'
+                                  : <span className="text-white/25 text-sm">— sin tasa</span>}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )
-                    })}
-                    {/* Grand total if multiple apps */}
-                    {commApps.length > 1 && (
-                      <div className="border-t border-amber-500/20 pt-2 mt-1 flex gap-6 flex-wrap">
-                        <div>
-                          <p className="text-amber-400/50 text-xs uppercase tracking-wider mb-1">Total todas las apps</p>
-                          <p className="text-white/50 text-xs">${fmt(totalUSD)} USD</p>
-                        </div>
-                        {exchangeRates['efectivo_agent'] > 0 && (
-                          <div>
-                            <p className="text-amber-400/50 text-xs">💵 Efectivo total</p>
-                            <p className="text-amber-300 font-extrabold text-xl">{(totalUSD * exchangeRates['efectivo_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-sm">CUP</span></p>
-                          </div>
-                        )}
-                        {exchangeRates['transferencia_agent'] > 0 && (
-                          <div>
-                            <p className="text-amber-400/50 text-xs">🏦 Transferencia total</p>
-                            <p className="text-amber-300 font-extrabold text-xl">{(totalUSD * exchangeRates['transferencia_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-sm">CUP</span></p>
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
-                </div>
-              )}
 
               {commApps.length > 1 && (
                 <div className="flex gap-2 mb-4 flex-wrap">
@@ -369,9 +395,14 @@ import React, { useState, useEffect } from 'react'
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="text-white font-semibold text-sm">{c.app_name}</span>
-                              <span className="text-white/30 text-xs">·</span>
-                              <span className="text-white/50 text-xs">{c.semana}</span>
-                            </div>
+                                <span className="text-white/30 text-xs">·</span>
+                                <span className="text-white/50 text-xs">{c.semana}</span>
+                                {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && (
+                                  <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-400 text-xs font-bold`}>
+                                    · {(c.total_commission_usd * (exchangeRates[`${agentPayMethod}_agent`])).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
+                                  </span>
+                                )}
+                              </div>
                             <div className="text-white/35 text-xs mt-0.5">{(c.workers_data ?? []).length} trabajadoras</div>
                           </div>
                         </div>
