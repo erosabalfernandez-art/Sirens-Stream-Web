@@ -144,6 +144,7 @@ import { useState, useEffect, useRef } from 'react'
           const [creatingColider, setCreatingColider] = useState(false)
           const [coliderCreateMsg, setColiderCreateMsg] = useState<{ok:boolean;msg:string}|null>(null)
           const [coliders, setColiders] = useState<{id:string;email:string;colider_name:string|null;telefono:string|null}[]>([])
+          const [coliderSetupNeeded, setColiderSetupNeeded] = useState(false)
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
         const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes') ?? 'Waha' } catch { return 'Waha' } })
@@ -580,7 +581,14 @@ import { useState, useEffect, useRef } from 'react'
             try {
               const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
               const r = await fetch(`${apiBase}/api/admin/coliders`)
-              if (r.ok) { const d = await r.json() as { coliders: {id:string;email:string;colider_name:string|null;telefono:string|null}[] }; setColiders(d.coliders ?? []) }
+              if (r.ok) {
+                const d = await r.json() as { coliders: {id:string;email:string;colider_name:string|null;telefono:string|null}[] }
+                setColiders(d.coliders ?? [])
+                setColiderSetupNeeded(false)
+              } else {
+                const err = await r.json().catch(() => ({})) as { error?: string }
+                if (err?.error?.includes('does not exist') || err?.error?.includes('PGRST205')) setColiderSetupNeeded(true)
+              }
             } catch {}
           }
 
@@ -1442,6 +1450,41 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                         <Shield className="w-4 h-4 text-teal-400" />
                         <span className="text-sm font-semibold text-white/70">Crear cuenta de cobrador (Colider)</span>
                       </div>
+                      {coliderSetupNeeded && (
+                        <div className="mb-4 bg-amber-500/8 border border-amber-500/20 rounded-xl p-4">
+                          <p className="text-amber-300 text-sm font-bold mb-2">⚠️ Falta migración de base de datos</p>
+                          <p className="text-white/50 text-xs mb-2">Ejecuta este SQL en el Editor SQL de Supabase:</p>
+                          <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all">{`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_colider boolean DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS colider_name text;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS telefono text;
+
+CREATE TABLE IF NOT EXISTS colider_marks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  semana text NOT NULL,
+  person_uid text NOT NULL,
+  person_type text NOT NULL CHECK (person_type IN ('worker', 'agent')),
+  person_name text, person_real_name text, person_phone text,
+  person_app text, salary_usd numeric DEFAULT 0, salary_cuba numeric DEFAULT 0,
+  metodo_pago text, paid boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(),
+  UNIQUE(semana, person_uid, person_app)
+);
+
+CREATE TABLE IF NOT EXISTS colider_week_status (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  semana text NOT NULL UNIQUE,
+  notified boolean DEFAULT false, notified_at timestamptz,
+  admin_closed boolean DEFAULT false, admin_closed_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE colider_marks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE colider_week_status ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON colider_marks TO service_role;
+GRANT ALL ON colider_week_status TO service_role;`}</pre>
+                          <p className="text-white/30 text-xs mt-2">Luego recarga esta página.</p>
+                        </div>
+                      )}
                       {coliderCreateMsg && (
                         <div className={`mb-4 p-3 rounded-xl text-sm font-semibold ${coliderCreateMsg.ok ? 'bg-green-500/10 border border-green-500/20 text-green-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
                           {coliderCreateMsg.msg}
