@@ -16,10 +16,15 @@ import { Router } from 'express';
     const user_id = req.query.user_id as string | undefined;
     if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
     try {
-      const r = await fetch(
-        sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&select=app_name,status`),
-        { headers: sbH() }
-      );
+      // Check if user is agent or colider — only return admin-granted (approved) channels
+      const profileRes = await fetch(sbUrl(`profiles?id=eq.${encodeURIComponent(user_id)}&select=is_agent,is_colider&limit=1`), { headers: sbH() });
+      const profiles: {is_agent:boolean;is_colider:boolean}[] = profileRes.ok ? await profileRes.json() : [];
+      const p = profiles[0];
+      const isAgentOrColider = p?.is_agent || p?.is_colider;
+      const filter = isAgentOrColider
+        ? `channel_requests?user_id=eq.${encodeURIComponent(user_id)}&status=eq.approved&select=app_name,status`
+        : `channel_requests?user_id=eq.${encodeURIComponent(user_id)}&select=app_name,status`;
+      const r = await fetch(sbUrl(filter), { headers: sbH() });
       if (!r.ok) return res.status(r.status).json({ error: await r.text() });
       const requests = await r.json();
       return res.json({ requests });
@@ -76,16 +81,12 @@ import { Router } from 'express';
       const ids = usersRows.map((u) => u.user_id).filter(Boolean);
 
       // Send push notifications to workers + agents (fire-and-forget)
+      // Send push notifications only to users with approved channel access (fire-and-forget)
       setImmediate(async () => {
         try {
           const preview = content?.trim().slice(0, 80) ?? '📷 Imagen';
-          // Get agent IDs to include in channel notifications
-          const agentsRes = await fetch(sbUrl('profiles?is_agent=eq.true&select=id'), { headers: sbH() });
-          const agentRows: {id:string}[] = agentsRes.ok ? await agentsRes.json() : [];
-          const agentIds = agentRows.map(a => a.id);
-          const allIds = [...new Set([...ids, ...agentIds])];
-          if (allIds.length > 0) {
-            await dispatchPush(allIds, `📢 Nuevo comunicado — ${app_name}`, preview, '/canales');
+          if (ids.length > 0) {
+            await dispatchPush(ids, `📢 Nuevo comunicado — ${app_name}`, preview, '/canales');
           }
         } catch {}
       });
