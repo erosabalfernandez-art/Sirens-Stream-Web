@@ -53,6 +53,10 @@ import { useState, useEffect, useRef } from 'react'
                   {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </span>
               </button>
+                <button onClick={() => setTab('cambio')}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'cambio' ? 'bg-green-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                  💱 Cambio
+                </button>
               {href && (
                 <a href={href} target="_blank" rel="noopener noreferrer"
                    className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/25 transition-colors font-semibold shrink-0">
@@ -106,7 +110,7 @@ import { useState, useEffect, useRef } from 'react'
       const [filterIdApp, setFilterIdApp] = useState(() => { try { return localStorage.getItem('ea_af_id_app') ?? '' } catch { return '' } })
       const [filterTelefono, setFilterTelefono] = useState(() => { try { return localStorage.getItem('ea_af_telefono') ?? '' } catch { return '' } })
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos' | 'agentes'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos' | 'agentes' | 'cambio'>('list')
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
@@ -135,6 +139,10 @@ import { useState, useEffect, useRef } from 'react'
         const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
         const [testPushAgents, setTestPushAgents] = useState(false)
         const [testPushAgentsOk, setTestPushAgentsOk] = useState(false)
+        const [rates, setRates] = useState<Record<string,number>>({})
+        const [rateInputs, setRateInputs] = useState<Record<string,string>>({})
+        const [savingRate, setSavingRate] = useState<string|null>(null)
+        const [rateSaved, setRateSaved] = useState<string|null>(null)
         async function fetchPagosData(app: string) {
           try { localStorage.setItem('ea_pagos_app', app) } catch {}
           setPagosLoading(true); setPagosNeedSetup(false)
@@ -287,6 +295,7 @@ import { useState, useEffect, useRef } from 'react'
 
         async function fetchAll() {
         setLoadingData(true)
+        fetchRates()
         const [{ data: entries }, { data: profiles }] = await Promise.all([
           supabase.from('worker_entries').select('*').order('created_at', { ascending: false }),
           supabase.from('profiles').select('id, email'),
@@ -381,7 +390,38 @@ import { useState, useEffect, useRef } from 'react'
           setCreatingAgent(false)
         }
 
-        if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
+          async function fetchRates() {
+            const { data } = await supabase.from('exchange_rates').select('*')
+            const r: Record<string,number> = {}; const inp: Record<string,string> = {}
+            for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate; inp[row.id] = String(row.rate === 0 ? '' : row.rate) }
+            setRates(r); setRateInputs(inp)
+          }
+
+          async function publishRate(id: string) {
+            const rate = parseFloat(rateInputs[id] || '0')
+            if (isNaN(rate) || rate < 0) return
+            setSavingRate(id)
+            await supabase.from('exchange_rates').upsert({ id, rate, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+            setRates(prev => ({ ...prev, [id]: rate }))
+            // Notify affected users
+            if (id === 'efectivo_worker') {
+              const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Efectivo (Cuba)').in('app_name', ['Waha', 'Howdy'])
+              const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id))]
+              if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Efectivo actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', false)
+            } else if (id === 'transferencia_worker') {
+              const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Transferencia Bancaria (Cuba)').in('app_name', ['Waha', 'Howdy'])
+              const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id))]
+              if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Transferencia actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', false)
+            } else {
+              const { data } = await supabase.from('profiles').select('id').eq('is_agent', true)
+              const ids = ((data ?? []) as {id:string}[]).map(p => p.id)
+              const label = id === 'efectivo_agent' ? 'Efectivo' : 'Transferencia'
+              if (ids.length > 0) sendPushViaApi(ids, `💱 Cambio ${label} para agentes actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/agente', false)
+            }
+            setSavingRate(null); setRateSaved(id); setTimeout(() => setRateSaved(null), 3000)
+          }
+
+          if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
       if (!profile?.is_admin) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Verificando acceso...</div></div>
 
       return (
@@ -1083,7 +1123,84 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                       )}
                     </div>
                   </div>
-                )}
+    
+              {tab === 'cambio' && (
+                <div className="space-y-8 max-w-2xl">
+
+                  {/* TRABAJADORAS */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-4 flex items-center gap-2">
+                      <span className="text-base">💱</span> Cambio para Trabajadoras
+                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">— Waha y Howdy únicamente</span>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {([
+                        { id: 'efectivo_worker',       label: 'Efectivo Cuba',       color: 'amber' },
+                        { id: 'transferencia_worker',  label: 'Transferencia Cuba',  color: 'blue'  },
+                      ] as const).map(({ id, label, color }) => (
+                        <div key={id} className={`bg-[#0d0d1e] border border-${color}-500/15 rounded-2xl p-5`}>
+                          <p className={`text-${color}-400 text-xs font-bold uppercase tracking-wider mb-1`}>{label}</p>
+                          <p className="text-white/30 text-xs mb-3">Cambio actual: <span className="text-white/60 font-semibold">{(rates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
+                          <div className="flex gap-2">
+                            <input
+                              type="number" min="0" step="any"
+                              value={rateInputs[id] ?? ''}
+                              onChange={e => setRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                              placeholder="Ej: 400"
+                              className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50"
+                            />
+                            <button
+                              onClick={() => publishRate(id)}
+                              disabled={savingRate === id}
+                              className={`flex items-center gap-1.5 ${rateSaved === id ? 'bg-green-600' : `bg-${color}-600 hover:bg-${color}-500`} disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shrink-0`}>
+                              {savingRate === id ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                              {rateSaved === id ? '✓ Publicado' : (savingRate === id ? '...' : 'Publicar')}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* AGENTES */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-4 flex items-center gap-2">
+                      <span className="text-base">💱</span> Cambio para Agentes
+                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">— independiente al de trabajadoras</span>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {([
+                        { id: 'efectivo_agent',       label: 'Efectivo Cuba',       color: 'amber' },
+                        { id: 'transferencia_agent',  label: 'Transferencia Cuba',  color: 'blue'  },
+                      ] as const).map(({ id, label, color }) => (
+                        <div key={id} className={`bg-[#0d0d1e] border border-${color}-500/15 rounded-2xl p-5`}>
+                          <p className={`text-${color}-400 text-xs font-bold uppercase tracking-wider mb-1`}>{label}</p>
+                          <p className="text-white/30 text-xs mb-3">Cambio actual: <span className="text-white/60 font-semibold">{(rates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
+                          <div className="flex gap-2">
+                            <input
+                              type="number" min="0" step="any"
+                              value={rateInputs[id] ?? ''}
+                              onChange={e => setRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                              placeholder="Ej: 400"
+                              className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50"
+                            />
+                            <button
+                              onClick={() => publishRate(id)}
+                              disabled={savingRate === id}
+                              className={`flex items-center gap-1.5 ${rateSaved === id ? 'bg-green-600' : `bg-${color}-600 hover:bg-${color}-500`} disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shrink-0`}>
+                              {savingRate === id ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                              {rateSaved === id ? '✓ Publicado' : (savingRate === id ? '...' : 'Publicar')}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              )}
 
           </div>
         </div>
