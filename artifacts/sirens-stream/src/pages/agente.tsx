@@ -308,12 +308,13 @@ import React, { useState, useEffect } from 'react'
             <>
               <div className="grid grid-cols-3 gap-3 mb-6">
                 <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
-                  {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
-                      ? <p className="text-2xl font-extrabold text-amber-300">{(totalUSD * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-base">CUP</span></p>
-                      : <p className="text-lg font-semibold text-white/25">⏳ Pendiente</p>
+                    <p className="text-2xl font-extrabold text-green-400">${fmt(totalUSD)} <span className="text-sm font-bold">USD</span></p>
+                    {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
+                      ? <p className="text-sm font-bold text-amber-300 mt-0.5">{(totalUSD * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP</p>
+                      : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
                     }
-                  <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Total ganado</p>
-                </div>
+                    <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Total ganado</p>
+                  </div>
                 <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
                   <p className="text-2xl font-extrabold text-purple-400">{commissions.length}</p>
                   <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Semanas</p>
@@ -434,12 +435,15 @@ import React, { useState, useEffect } from 'react'
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
-                              ? <span className={agentPayMethod === 'efectivo' ? 'text-amber-400 font-extrabold text-lg' : 'text-blue-400 font-extrabold text-lg'}>
-                                  {(c.total_commission_usd * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
-                                </span>
-                              : <span className="text-white/25 text-sm font-semibold">⏳ Pendiente</span>
-                            }
+                          <div className="text-right shrink-0">
+                                <p className="text-green-400 font-extrabold text-base">${c.total_commission_usd.toFixed(2)} <span className="text-sm">USD</span></p>
+                                {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
+                                  ? <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-400' : 'text-blue-400'}`}>
+                                      {(c.total_commission_usd * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
+                                    </p>
+                                  : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
+                                }
+                              </div>
                           {expanded.has(c.id) ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                         </div>
                       </button>
