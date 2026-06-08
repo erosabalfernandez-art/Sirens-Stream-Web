@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
     import { useAuth } from "@/contexts/AuthContext";
     import { useShowAgencia } from "@/hooks/useShowAgencia";
     import { useLanguage } from "@/contexts/LanguageContext";
-    import {User, LogOut, Shield, FileSpreadsheet, DollarSign, Radio, Globe, CheckCircle, Zap} from "lucide-react";
+    import {User, Users, LogOut, Shield, FileSpreadsheet, DollarSign, Radio, Globe, CheckCircle, Zap} from "lucide-react";
 
     const NAV_LINKS = {
       es: [
@@ -172,6 +172,7 @@ import { Link, useLocation } from "wouter";
       const showAgencia = useShowAgencia();
       const isAdmin = profile?.is_admin;
         const isAgent = !!(profile?.is_agent && !profile?.is_admin);
+          const isColider = !!(profile?.is_colider && !profile?.is_admin);
 
       async function handleSignOut() {
         await signOut();
