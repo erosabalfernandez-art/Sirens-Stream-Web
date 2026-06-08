@@ -37,7 +37,7 @@ import { useState, useEffect } from 'react'
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => {
-      if (!loading && profile && !(profile as any).is_colider && !(profile as any).is_admin) navigate('/perfil')
+      if (!loading && profile && !profile?.is_colider && !profile?.is_admin) navigate('/perfil')
     }, [loading, profile])
     useEffect(() => { if (user) fetchWeeks() }, [user])
     useEffect(() => { if (semana) loadData() }, [semana])
