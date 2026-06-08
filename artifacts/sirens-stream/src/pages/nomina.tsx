@@ -1479,25 +1479,25 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                             <p className="text-white/30 text-xs mt-0.5">Solo visible para admin · calculado de esta nómina</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-green-400 font-extrabold text-base">{totUSD.toFixed(2){'}'} USD total</p>
-                            {rEf > 0 && <p className="text-amber-400 text-xs font-bold">{'{'}(totUSD*rEf).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'} 💵 ef.</p>}
-                            {rTr > 0 && <p className="text-blue-400 text-xs font-bold">{'{'}(totUSD*rTr).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'} 🏦 transf.</p>}
+                            <p className="text-green-400 font-extrabold text-base">{totUSD.toFixed(2)} USD total</p>
+                            {rEf > 0 && <p className="text-amber-400 text-xs font-bold">{(totUSD*rEf).toLocaleString('es-ES',{maximumFractionDigits:0})} 💵 ef.</p>}
+                            {rTr > 0 && <p className="text-blue-400 text-xs font-bold">{(totUSD*rTr).toLocaleString('es-ES',{maximumFractionDigits:0})} 🏦 transf.</p>}
                           </div>
                         </div>
                         <div className="divide-y divide-amber-500/8">
-                          {'{'}ags.map(([name, d]) => (
-                            <div key={'{'}name{'}'} className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+                          {ags.map(([name, d]) => (
+                            <div key={name} className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
                               <div>
-                                <p className="font-bold text-sm text-amber-200">{'{'}name{'}'}</p>
-                                <p className="text-white/30 text-xs">{'{'}d.cnt{'}'} chica{'{'}d.cnt!==1?'s':''{'}'}</p>
+                                <p className="font-bold text-sm text-amber-200">{name}</p>
+                                <p className="text-white/30 text-xs">{d.cnt} chica{d.cnt!==1?'s':''}</p>
                               </div>
                               <div className="flex items-center gap-4 flex-wrap text-right">
-                                <div><p className="text-white/30 text-xs">USD</p><p className="text-green-400 font-extrabold text-base">{d.usd.toFixed(2){'}'}</p></div>
-                                {rEf > 0 && <div><p className="text-white/30 text-xs">💵 Efectivo</p><p className="text-amber-400 font-bold text-base">{'{'}(d.usd*rEf).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'}</p></div>}
-                                {rTr > 0 && <div><p className="text-white/30 text-xs">🏦 Transf.</p><p className="text-blue-400 font-bold text-base">{'{'}(d.usd*rTr).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'}</p></div>}
+                                <div><p className="text-white/30 text-xs">USD</p><p className="text-green-400 font-extrabold text-base">{d.usd.toFixed(2)}</p></div>
+                                {rEf > 0 && <div><p className="text-white/30 text-xs">💵 Efectivo</p><p className="text-amber-400 font-bold text-base">{(d.usd*rEf).toLocaleString('es-ES',{maximumFractionDigits:0})}</p></div>}
+                                {rTr > 0 && <div><p className="text-white/30 text-xs">🏦 Transf.</p><p className="text-blue-400 font-bold text-base">{(d.usd*rTr).toLocaleString('es-ES',{maximumFractionDigits:0})}</p></div>}
                               </div>
                             </div>
-                          )){ '}'}
+                          ))}
                         </div>
                       </div>
                     )
