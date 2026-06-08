@@ -10,6 +10,7 @@ import { Router, type IRouter } from 'express';
   import createAgentRouter from './create-agent';
   import agentWorkersRouter from './agent-workers';
   import cierreSemanalRouter from './cierre-semanal'
+import coliderRouter from './colider'
   import coliderRouter from './colider';
 
   const router: IRouter = Router();
@@ -25,6 +26,7 @@ import { Router, type IRouter } from 'express';
   router.use(createAgentRouter);
   router.use(agentWorkersRouter);
   router.use(cierreSemanalRouter)
+  router.use(coliderRouter)
     router.use(coliderRouter);
 
   export default router;
