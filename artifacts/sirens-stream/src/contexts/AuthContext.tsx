@@ -19,37 +19,24 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
     const [loading, setLoading] = useState(true)
 
     async function loadProfile(userId: string, retries = 3): Promise<void> {
+      const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-          // Race the Supabase query against a per-attempt timeout so slow
-          // mobile connections don't hang the UI indefinitely.
-          const queryPromise = supabase
-            .from('profiles')
-            .select('id, email, is_admin, is_agent, is_colider, agent_name, agent_code, colider_name, phone, telefono, created_at')
-            .eq('id', userId)
-            .single()
-
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('profile_timeout')), 4000)
-          )
-
-          const { data, error } = await Promise.race([queryPromise, timeoutPromise])
-
-          if (data) {
+          const controller = new AbortController()
+          const tid = setTimeout(() => controller.abort(), 5000)
+          const res = await fetch(`${apiBase}/api/profile?user_id=${encodeURIComponent(userId)}`, { signal: controller.signal })
+          clearTimeout(tid)
+          if (res.ok) {
+            const data = await res.json()
             setProfile(data as Profile)
             return
           }
-          if (error) console.error(`[Auth] Profile load attempt ${attempt} failed:`, error.message)
+          console.warn(`[Auth] loadProfile attempt ${attempt} HTTP ${res.status}`)
         } catch (err: any) {
-          if (err?.message === 'profile_timeout') {
-            console.warn(`[Auth] loadProfile attempt ${attempt} timed out`)
-          } else {
-            console.error(`[Auth] Profile load attempt ${attempt} threw:`, err)
-          }
+          console.warn(`[Auth] loadProfile attempt ${attempt} failed:`, err?.message)
         }
         if (attempt < retries) await new Promise(r => setTimeout(r, attempt * 500))
       }
-      // All retries exhausted — signal "no profile found" so routing doesn't hang
       setProfile(null)
     }
 
