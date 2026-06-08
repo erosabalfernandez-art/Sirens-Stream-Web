@@ -365,38 +365,27 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
           return
         }
       } catch {}
-      // Fallback: load latest entry from Supabase nomina_history
+      // Fallback: load latest entry from API server (uses service role → bypasses RLS)
       try {
-        const { data } = await supabase
-          .from('nomina_history')
-          .select('*')
-          .eq('app_name', app)
-          .order('created_at', { ascending: false })
-          .limit(1)
-        const entry = (data ?? [])[0]
-        if (entry?.rows_data?.cobradas?.length > 0) {
-          setCobradas(entry.rows_data.cobradas)
-          setNoCobro(entry.rows_data.noCobro ?? [])
-          setSinPerfil(entry.rows_data.sinPerfil ?? [])
-          setSemana(entry.semana ?? '')
-          setFileName(entry.file_name ?? '')
-          setStep('results')
-          setSectionOpen(true)
-          try {
-            const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-            all[app] = {
-              cobradas: entry.rows_data.cobradas,
-              noCobro: entry.rows_data.noCobro ?? [],
-              sinPerfil: entry.rows_data.sinPerfil ?? [],
-              semana: entry.semana,
-              aiSummary: null,
-              fileName: entry.file_name ?? '',
-            }
-            localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
-          } catch {}
-        } else {
-          setCobradas([]); setNoCobro([]); setSinPerfil([])
-          setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
+        const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+        const r = await fetch(`${apiBase}/api/nomina-state?app=${encodeURIComponent(app)}`)
+        if (r.ok) {
+          const { entry } = await r.json() as { entry: { app_name: string; semana: string; rows_data: { cobradas: Matched[]; noCobro: NoCobro[]; sinPerfil: NominaRow[] }; file_name?: string } | null }
+          if (entry?.rows_data?.cobradas?.length > 0) {
+            setCobradas(entry.rows_data.cobradas)
+            setNoCobro(entry.rows_data.noCobro ?? [])
+            setSinPerfil(entry.rows_data.sinPerfil ?? [])
+            setSemana(entry.semana ?? '')
+            setFileName(entry.file_name ?? '')
+            setStep('results')
+            setSectionOpen(true)
+            try {
+              const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+              all[app] = { cobradas: entry.rows_data.cobradas, noCobro: entry.rows_data.noCobro ?? [], sinPerfil: entry.rows_data.sinPerfil ?? [], semana: entry.semana, aiSummary: null, fileName: entry.file_name ?? '' }
+              localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
+            } catch {}
+            return
+          }
         }
       } catch {}
     }
@@ -676,19 +665,22 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
 
       setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
       loadPaidMarks(app, sem)
-      // Save to Supabase immediately so data persists across navigation and sessions
+      // Save via API server (service role → bypasses RLS) so data persists across navigation/sessions
       try {
-        await supabase.from('nomina_history').insert({
-          app_name: app,
-          semana: sem,
-          total_usd: cobradasList.reduce((s, m) => s + m.nomina.usd, 0),
-          total_diamantes: cobradasList.reduce((s, m) => s + m.nomina.diamantes, 0),
-          cobradas_count: cobradasList.length,
-          nocobro_count: noCobroList.length,
-          sinperfil_count: sinPerfilList.length,
-          rows_data: { cobradas: cobradasList, noCobro: noCobroList, sinPerfil: sinPerfilList },
-          published: false,
-          file_name: file.name,
+        const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+        await fetch(`${apiBase}/api/nomina-state`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            app_name: app,
+            semana: sem,
+            total_usd: cobradasList.reduce((s, m) => s + m.nomina.usd, 0),
+            total_diamantes: cobradasList.reduce((s, m) => s + m.nomina.diamantes, 0),
+            cobradas: cobradasList,
+            noCobro: noCobroList,
+            sinPerfil: sinPerfilList,
+            file_name: file.name,
+          }),
         })
       } catch {}
       setStep('results')
