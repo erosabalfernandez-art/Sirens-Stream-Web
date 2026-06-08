@@ -1455,6 +1455,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                       )
                     })}
                   </div>
+                )}
                 {/* ===== Admin: Agent Commissions Panel ===== */}
                   {cobradas.length > 0 && (() => {
                     const agMap: Record<string, { usd: number; cnt: number }> = {}
