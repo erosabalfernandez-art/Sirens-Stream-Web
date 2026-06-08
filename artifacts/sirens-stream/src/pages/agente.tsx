@@ -210,7 +210,35 @@ import React, { useState, useEffect } from 'react'
             </div>
           </div>
 
-          {/* Tab switcher */}
+          {/* Push notification banner - always visible when not activated */}
+            {notifStatus !== 'granted' && (
+              <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-4 mb-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
+                    <Bell className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">Notificaciones push</p>
+                    <p className="text-white/35 text-xs mt-0.5">
+                      {notifStatus === 'denied' ? 'Notificaciones bloqueadas en el navegador' : 'Recibe alertas cuando publican tus comisiones'}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {notifStatus === 'denied' ? (
+                    <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20"><BellOff className="w-3.5 h-3.5" /> Bloqueadas</span>
+                  ) : (
+                    <button onClick={subscribeNotif} disabled={notifStatus === 'requesting'}
+                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
+                      {notifStatus === 'requesting' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+                      {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tab switcher */}
           <div className="flex bg-[#0d0d1e] border border-purple-500/10 p-1 rounded-xl mb-6 gap-1 flex-wrap">
             <button onClick={() => setMainTab('comisiones')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === 'comisiones' ? 'bg-amber-600 text-white' : 'text-white/40 hover:text-white'}`}>
@@ -251,31 +279,6 @@ import React, { useState, useEffect } from 'react'
                   {commApps.map(a => <button key={a} onClick={() => setFilterApp(a)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterApp === a ? 'bg-amber-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/40 hover:text-white'}`}>{a}</button>)}
                 </div>
               )}
-
-              <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-5 mb-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
-                    <Bell className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">Notificaciones push</p>
-                    <p className="text-white/35 text-xs mt-0.5">Recibe alertas de nuevas comisiones</p>
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  {notifStatus === 'granted' ? (
-                    <span className="flex items-center gap-1.5 text-green-400 text-xs font-bold bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20"><Bell className="w-3.5 h-3.5" /> Activadas</span>
-                  ) : notifStatus === 'denied' ? (
-                    <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20"><BellOff className="w-3.5 h-3.5" /> Bloqueadas</span>
-                  ) : (
-                    <button onClick={subscribeNotif} disabled={notifStatus === 'requesting'}
-                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
-                      {notifStatus === 'requesting' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
-                      {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
-                    </button>
-                  )}
-                </div>
-              </div>
 
               {commLoading ? (
                 <div className="text-white/30 text-sm text-center py-12">Cargando comisiones...</div>
