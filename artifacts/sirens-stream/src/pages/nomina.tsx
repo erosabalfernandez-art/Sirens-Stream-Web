@@ -943,12 +943,13 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       const nominaRows: NominaRow[] = dataRows.map(r => {
         const extras: Record<string, string | number> = {}
         headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
+          const usd = parseFloat(String(usdCol !== -1 ? (r[usdCol] ?? 0) : 0)) || 0
         return {
           uid: normalizeUID(uidCol !== -1 ? r[uidCol] : ''),
           apodo: String(apodoCol !== -1 ? (r[apodoCol] ?? '') : ''),
-          usd: parseFloat(String(usdCol !== -1 ? (r[usdCol] ?? 0) : 0)) || 0,
+          usd,
           diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
-          comision: parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0,
+          comision: app === 'Waha' ? usd * 0.10 : (parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0),
           semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : ''),
           extras,
         }
