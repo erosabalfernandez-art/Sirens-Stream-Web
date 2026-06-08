@@ -975,10 +975,6 @@ import { useState, useEffect, useRef } from 'react'
                 <Users className="w-3.5 h-3.5" />
                 Agentes
               </button>
-              <button onClick={() => setTab('cambio')}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'cambio' ? 'bg-green-600 text-white' : 'text-white/40 hover:text-white'}`}>
-                💱 Cambio
-              </button>
               <button onClick={() => { setTab('nocobro'); fetchNoCobro() }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'nocobro' ? 'bg-red-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 🚨 No Cobraron
