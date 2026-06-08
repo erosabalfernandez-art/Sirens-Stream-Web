@@ -238,6 +238,25 @@ import React, { useState, useEffect } from 'react'
               </div>
             )}
 
+              {/* Canales card */}
+              <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5 mb-2">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                      <MessageSquare className="w-4 h-4 text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Canales de la agencia</p>
+                      <p className="text-white/35 text-xs mt-0.5">Comunicados y noticias oficiales de Eclipse Angels</p>
+                    </div>
+                  </div>
+                  <a href="/canales"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shrink-0">
+                    Ver canales →
+                  </a>
+                </div>
+              </div>
+
             {/* Tab switcher */}
           <div className="flex bg-[#0d0d1e] border border-purple-500/10 p-1 rounded-xl mb-6 gap-1 flex-wrap">
             <button onClick={() => setMainTab('comisiones')}
