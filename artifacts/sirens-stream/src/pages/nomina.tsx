@@ -343,18 +343,17 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
         const [fTelefono, setFTelefono] = useState(() => { try { return localStorage.getItem('ea_nf_telefono') ?? '' } catch { return '' } })
         const [fSortDir, setFSortDir] = useState<'desc'|'asc'>(() => { try { return (localStorage.getItem('ea_nf_sort') as 'desc'|'asc') ?? 'desc' } catch { return 'desc' } })
 
-      // Restore last processed nómina when navigating back
+      // Restore last processed nómina when navigating back (per-app, from localStorage)
       useEffect(() => {
         try {
-          const saved = sessionStorage.getItem('ea_nomina_state')
-          if (!saved) return
-          const s = JSON.parse(saved)
-          if (s.cobradas?.length > 0) {
+          const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+          const s = all[nominaApp]
+          if (s?.cobradas?.length > 0) {
             setCobradas(s.cobradas)
             setNoCobro(s.noCobro ?? [])
             setSinPerfil(s.sinPerfil ?? [])
             setSemana(s.semana ?? '')
-            setNominaApp(s.nominaApp ?? 'Waha')
+            setFileName(s.fileName ?? '')
             if (s.aiSummary) setAiSummary(s.aiSummary)
             setStep('results')
           }
@@ -365,8 +364,12 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
       // Auto-save whenever results change
       useEffect(() => {
         if (step !== 'results' || cobradas.length === 0) return
-        try { sessionStorage.setItem('ea_nomina_state', JSON.stringify({ cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary })) } catch {}
-      }, [step, cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary])
+        try {
+          const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+          all[nominaApp] = { cobradas, noCobro, sinPerfil, semana, aiSummary, fileName }
+          localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
+        } catch {}
+      }, [step, cobradas, noCobro, sinPerfil, semana, nominaApp, aiSummary, fileName])
 
         // Persist nomina filters to localStorage
         useEffect(() => {
