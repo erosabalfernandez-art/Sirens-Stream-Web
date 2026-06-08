@@ -442,7 +442,8 @@ const APP_COLORS = {
         }
 
         setPublishedOk(true)
-        setTimeout(() => setPublishedOk(false), 5000)
+        try { const _pls2 = JSON.parse(localStorage.getItem('ea_nomina_layla_published') || 'false'); void _pls2 } catch {} 
+        localStorage.setItem('ea_nomina_layla_published', 'true')
       } catch (e: unknown) {
         alert(`❌ Error: ${e instanceof Error ? e.message : 'Error de red'}`)
       }
@@ -640,8 +641,27 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           setSemana(s.semana ?? '')
           setFileName(s.fileName ?? '')
           if (s.aiSummary) setAiSummary(s.aiSummary)
+          if (s.publishedOk) setPublishedOk(true)
           setStep('results')
           setSectionOpen(true)
+          // Background check: if cierre was done, clear stale data
+          void (async () => {
+            try {
+              const _ab = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+              const _rb = await fetch(`${_ab}/api/nomina-state?app=${encodeURIComponent(app)}`)
+              if (_rb.ok) {
+                const { entry: _eb } = await _rb.json() as { entry: { rows_data?: { cobradas?: unknown[]; noCobro?: unknown[]; sinPerfil?: unknown[] }; published?: boolean } | null }
+                if (!_eb || (!_eb.rows_data?.cobradas?.length && !_eb.rows_data?.noCobro?.length && !_eb.rows_data?.sinPerfil?.length)) {
+                  try { const _a = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); delete _a[app]; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_a)) } catch {}
+                  setCobradas([]); setNoCobro([]); setSinPerfil([])
+                  setSemana(''); setFileName(''); setAiSummary(null)
+                  setPublishedOk(false); setStep('upload')
+                } else if (_eb.published) {
+                  setPublishedOk(true)
+                }
+              }
+            } catch {}
+          })()
           return
         }
       } catch {}
@@ -650,18 +670,19 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
         const r = await fetch(`${apiBase}/api/nomina-state?app=${encodeURIComponent(app)}`)
         if (r.ok) {
-          const { entry } = await r.json() as { entry: { app_name: string; semana: string; rows_data: { cobradas: Matched[]; noCobro: NoCobro[]; sinPerfil: NominaRow[] }; file_name?: string } | null }
+          const { entry } = await r.json() as { entry: { app_name: string; semana: string; rows_data: { cobradas: Matched[]; noCobro: NoCobro[]; sinPerfil: NominaRow[] }; file_name?: string; published?: boolean } | null }
           if (entry?.rows_data && (entry.rows_data.cobradas?.length > 0 || entry.rows_data.noCobro?.length > 0 || entry.rows_data.sinPerfil?.length > 0)) {
             setCobradas(entry.rows_data.cobradas)
             setNoCobro(entry.rows_data.noCobro ?? [])
             setSinPerfil(entry.rows_data.sinPerfil ?? [])
             setSemana(entry.semana ?? '')
             setFileName(entry.file_name ?? '')
+            if (entry.published) setPublishedOk(true)
             setStep('results')
             setSectionOpen(true)
             try {
               const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-              all[app] = { cobradas: entry.rows_data.cobradas, noCobro: entry.rows_data.noCobro ?? [], sinPerfil: entry.rows_data.sinPerfil ?? [], semana: entry.semana, aiSummary: null, fileName: entry.file_name ?? '' }
+              all[app] = { cobradas: entry.rows_data.cobradas, noCobro: entry.rows_data.noCobro ?? [], sinPerfil: entry.rows_data.sinPerfil ?? [], semana: entry.semana, aiSummary: null, fileName: entry.file_name ?? '', publishedOk: entry.published ?? false }
               localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
             } catch {}
             return
@@ -760,7 +781,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         const result = await r.json() as { ok?: boolean; error?: string; saved?: number }
         if (!r.ok) { alert(`❌ Error al publicar salarios:\n${result.error ?? r.status}`); setPublishing(false); return }
         setPublishedOk(true)
-        setTimeout(() => setPublishedOk(false), 4000)
+        try { const _pls = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); if (_pls[app]) { _pls[app].publishedOk = true; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_pls)) } } catch {}
         await Promise.all(cobradas.map(async ({ worker: w }) => {
           const { data: recs } = await supabase.from('published_salaries').select('id').eq('user_id', w.user_id).order('created_at', { ascending: false })
           if (recs && recs.length > 10) {
@@ -806,7 +827,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         if (!r.ok) { alert(`❌ Error al publicar comisiones:\n${result.error ?? r.status}`); setPublishingAgents(false); return }
         setAgentPublishOk(true)
         const agentUserIds = result.agentUserIds ?? []
-        setTimeout(() => setAgentPublishOk(false), 4000)
       } catch (e: unknown) {
         alert(`❌ Error al publicar comisiones: ${e instanceof Error ? e.message : 'Error de red'}`)
       }
@@ -1131,7 +1151,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                 )}
                 <button
                   onClick={async () => { await publicarSalarios(true); await publishAgentCommissions() }}
-                  disabled={publishing || publishingAgents || cobradas.length === 0}
+                  disabled={publishing || publishingAgents || cobradas.length === 0 || publishedOk}
                   className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
                   {(publishing || publishingAgents) ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                   {(publishing || publishingAgents) ? 'Publicando...' : (publishedOk || agentPublishOk) ? '✓ Publicado' : '🚀 Publicar'}
@@ -1140,10 +1160,16 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
                   <Download className="w-4 h-4" /> Exportar PDF
                 </button>
+                {publishedOk ? (
+                  <span className="flex items-center gap-1.5 text-yellow-400/70 text-xs font-semibold bg-yellow-500/10 px-3 py-2 rounded-xl border border-yellow-500/20">
+                    🔒 Haz cierre semanal para subir otra nómina
+                  </span>
+                ) : (
                 <button onClick={reset}
                   className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
                   <Upload className="w-4 h-4" /> Nueva nómina
                 </button>
+                )}
               </div>
 
               <div className="p-5 space-y-6">
