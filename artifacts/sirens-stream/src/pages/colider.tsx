@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
-  import { Phone, CheckCircle, Circle, Bell, BellOff, Lock, Clock, Users, DollarSign } from 'lucide-react'
+  import { Phone, CheckCircle, Circle, Bell, BellOff, Lock, Clock, Users, DollarSign, AlertTriangle } from 'lucide-react'
 import { subscribeToPush } from '@/lib/push'
 
   const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
@@ -19,6 +19,20 @@ import { subscribeToPush } from '@/lib/push'
     metodo_pago: string | null
   }
 
+
+  interface NoCobro {
+    id: string
+    user_id: string
+    app_name: string
+    semana: string
+    nombre_en_app: string | null
+    nombre_real: string | null
+    email: string | null
+    justified: boolean
+    reason: string
+    created_at: string
+  }
+
   function fmtCup(n: number) { return n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }
 
   export default function Colider() {
@@ -33,7 +47,9 @@ import { subscribeToPush } from '@/lib/push'
     const [loadingData, setLoadingData] = useState(false)
     const [notifying, setNotifying] = useState(false)
     const [toggling, setToggling] = useState<string | null>(null)
-    const [tab, setTab] = useState<'workers' | 'agents'>('workers')
+    const [tab, setTab] = useState<'workers' | 'agents' | 'nocobro'>('workers')
+    const [noCobroData, setNoCobroData] = useState<NoCobro[]>([])
+    const [noCobroLoading, setNoCobroLoading] = useState(false)
     const [notifyMsg, setNotifyMsg] = useState('')
   const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
 
@@ -56,6 +72,7 @@ import { subscribeToPush } from '@/lib/push'
       if (!loading && profile && !profile?.is_colider && !profile?.is_admin) navigate('/perfil')
     }, [loading, profile])
     useEffect(() => { if (user) fetchWeeks() }, [user])
+    useEffect(() => { if (user) fetchNoCobro() }, [user])
     useEffect(() => { if (semana) loadData() }, [semana])
 
     async function fetchWeeks() {
@@ -66,6 +83,15 @@ import { subscribeToPush } from '@/lib/push'
         setWeeks(w)
         if (w.length > 0) setSemana(w[0])
       } catch {}
+    }
+
+    async function fetchNoCobro() {
+      setNoCobroLoading(true)
+      try {
+        const r = await fetch(`${API}/api/agent/no-cobro`)
+        if (r.ok) { const d = await r.json() as { entries: NoCobro[] }; setNoCobroData(d.entries ?? []) }
+      } catch {}
+      setNoCobroLoading(false)
     }
 
     async function loadData() {
@@ -264,15 +290,20 @@ import { subscribeToPush } from '@/lib/push'
             </div>
           )}
 
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-4 flex-wrap">
             {(['workers', 'agents'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === t ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>
                 {t === 'workers' ? `👩 Trabajadoras (${workers.length})` : `🧡 Agentes (${agents.length})`}
               </button>
             ))}
+            <button onClick={() => setTab('nocobro')}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'nocobro' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>
+              🚨 Sin cobrar{noCobroData.length > 0 ? ` (${noCobroData.length})` : ''}
+            </button>
           </div>
 
+          {tab !== 'nocobro' && (
           {loadingData ? (
             <div className="space-y-2 mb-6">
               {[1,2,3].map(i => <div key={i} className="h-20 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
@@ -320,6 +351,51 @@ import { subscribeToPush } from '@/lib/push'
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          )}
+
+          {/* ====== SIN COBRAR TAB ====== */}
+          {tab === 'nocobro' && (
+            <div className="mb-6">
+              {noCobroLoading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
+              ) : noCobroData.length === 0 ? (
+                <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-12 text-center">
+                  <AlertTriangle className="w-8 h-8 text-white/15 mx-auto mb-3" />
+                  <p className="text-white/35 text-sm">Ninguna persona aparece sin cobrar todavía.</p>
+                  <p className="text-white/25 text-xs mt-1">Aparecerán aquí al publicar nóminas.</p>
+                </div>
+              ) : (() => {
+                const grouped = new Map<string, NoCobro[]>()
+                for (const e of noCobroData) {
+                  const k = e.user_id + '__' + e.app_name
+                  if (!grouped.has(k)) grouped.set(k, [])
+                  grouped.get(k)!.push(e)
+                }
+                const sorted = [...grouped.values()]
+                  .map(g => ({ ...g.sort((a, b) => b.semana.localeCompare(a.semana))[0], weeks_count: g.length }))
+                  .sort((a, b) => (b as any).weeks_count - (a as any).weeks_count)
+                return (
+                  <div className="space-y-2">
+                    {sorted.map((e: any) => (
+                      <div key={e.id} className="bg-[#0d0d1e] border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-white truncate">{e.nombre_real ?? e.nombre_en_app ?? e.email ?? e.user_id}</p>
+                          {e.nombre_en_app && e.nombre_en_app !== e.nombre_real && <p className="text-white/40 text-xs">{e.nombre_en_app}</p>}
+                          <p className="text-red-400/70 text-xs mt-0.5">{e.app_name} · Semana {e.semana}</p>
+                          {e.reason === 'zero_commission' && <p className="text-amber-400/60 text-xs">Comisión $0</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          {(e as any).weeks_count > 1 && <span className="text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">{(e as any).weeks_count} semanas</span>}
+                          {e.justified && <p className="text-green-400 text-xs font-bold mt-1">✓ Justificado</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           )}
 
