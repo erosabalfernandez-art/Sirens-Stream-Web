@@ -55,7 +55,20 @@ import { Router } from 'express';
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!r.ok) return res.status(r.status).json({ error: await r.text() });
-      const data = (await r.json()) as unknown[];
+      // Exclude agent's own worker entries from commission calculation
+        const rawData = (await r.json()) as Array<{
+          id: string; agent_name: string; app_name: string; semana: string;
+          total_commission_usd: number;
+          workers_data: Array<{ uid: string; nombre: string; salary_usd: number; commission_usd: number }> | null;
+          created_at: string;
+        }>;
+        const data = rawData.map(row => {
+          const wd = row.workers_data ?? [];
+          const filteredWorkers = wd.filter(w => w.uid !== agentId);
+          if (filteredWorkers.length === wd.length) return row as unknown;
+          const newTotal = filteredWorkers.reduce((sum, w) => sum + Number(w.commission_usd || 0), 0);
+          return { ...row, workers_data: filteredWorkers, total_commission_usd: newTotal } as unknown;
+        });
 
       // Fix any null agent_user_ids in background (fire & forget)
       void fetch(
