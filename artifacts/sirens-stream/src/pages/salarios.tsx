@@ -140,6 +140,47 @@ import { useState, useEffect } from 'react'
             </div>
           ) : (
             <div className="space-y-6">
+              {/* CUP summary banner - only show when Cuban pay method & rate set */}
+              {(() => {
+                const cupApps = apps.filter(app => {
+                  const m = workerPayMethods[app] ?? ''
+                  const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
+                  const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
+                  return isCuban && (exchangeRates[rk] ?? 0) > 0
+                })
+                if (cupApps.length === 0) return null
+                let grandTotal = 0
+                return (
+                  <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-4 mb-4">
+                    <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-3">💱 Resumen en Moneda Nacional (CUP)</p>
+                    <div className="space-y-2">
+                      {cupApps.map(app => {
+                        const m = workerPayMethods[app] ?? ''
+                        const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
+                        const rate = exchangeRates[rk] ?? 0
+                        const totalUsd = salaries.filter(s => s.app_name === app).reduce((sum, s) => sum + Number(s.usd), 0)
+                        const cup = totalUsd * rate
+                        grandTotal += cup
+                        return (
+                          <div key={app} className="flex items-center justify-between py-1">
+                            <div>
+                              <span className="text-white/80 text-sm font-bold">{app}</span>
+                              <span className="text-white/30 text-xs ml-2">{m.includes('Efectivo') ? '💵 Efectivo' : '🏦 Transferencia'} · 1 USD = {rate.toLocaleString('es-ES')} CUP</span>
+                            </div>
+                            <p className="text-amber-300 font-extrabold text-base">{cup.toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-xs font-semibold">CUP</span></p>
+                          </div>
+                        )
+                      })}
+                      {cupApps.length > 1 && (
+                        <div className="flex items-center justify-between border-t border-amber-500/20 pt-2 mt-1">
+                          <span className="text-amber-400/70 text-xs font-bold uppercase tracking-wider">Total todas las apps</span>
+                          <p className="text-amber-300 font-extrabold text-xl">{grandTotal.toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-sm font-semibold">CUP</span></p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
               {apps.map(app => {
                 const appSalaries = salaries.filter(s => s.app_name === app)
                 return (
@@ -151,6 +192,11 @@ import { useState, useEffect } from 'react'
                         const isConfirming = deleteConfirm === s.id
                         const isDeleting = deleting === s.id
                         const extraEntries = s.extras ? Object.entries(s.extras).filter(([, v]) => v !== '' && v !== null) : []
+                        const metodo = workerPayMethods[s.app_name] ?? ''
+                        const isCubanPay = metodo === 'Efectivo (Cuba)' || metodo === 'Transferencia Bancaria (Cuba)'
+                        const rateKey = metodo === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
+                        const cupRate = isCubanPay ? (exchangeRates[rateKey] ?? 0) : 0
+                        const cupTotal = Number(s.usd) * cupRate
                         return (
                           <div key={s.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
                             <div className="px-5 py-4 flex items-center justify-between gap-4">
