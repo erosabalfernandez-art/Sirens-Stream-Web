@@ -1590,7 +1590,13 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
             body: JSON.stringify({ semana }),
           })
           const d = await r.json()
-          if (r.ok) { setCloseMsg('✅ Semana cerrada. Colider puede volver a notificar.'); await fetchProgress(); setClosingWeek(false); return }
+          if (r.ok) {
+              setCloseMsg('✅ Semana cerrada. Colider puede volver a notificar.'); await fetchProgress()
+              await Promise.all(['efectivo_worker','transferencia_worker','efectivo_agent','transferencia_agent'].map(erId => supabase.from('exchange_rates').upsert({ id: erId, rate: 0, updated_at: new Date().toISOString() }, { onConflict: 'id' })))
+              fetch(`${API}/api/site-settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'exchange_rates_valid_semana', value: '' }) }).catch(() => {})
+              window.dispatchEvent(new CustomEvent('ea_rates_cleared'))
+              setClosingWeek(false); return
+            }
           setCloseMsg('❌ ' + (d.error ?? 'Error')); break
         } catch { if (attempt === 0) continue; setCloseMsg('❌ Error de red — intenta de nuevo') }
       }
@@ -1674,6 +1680,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [nominaRateSaved, setNominaRateSaved] = useState<string|null>(null)
   const [showCambio, setShowCambio] = useState(false)
   const [nominaRateSemana, setNominaRateSemana] = useState(() => { try { return localStorage.getItem('ea_cambio_semana') ?? '' } catch { return '' } })
+  const [publishedRateSemana, setPublishedRateSemana] = useState('')
 
   if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
@@ -1681,27 +1688,76 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   if (!profile?.is_admin) return <SplashLoader msg="Sin acceso" />
 
   useEffect(() => {
-    supabase.from('exchange_rates').select('*').then(({ data }) => {
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    Promise.all([
+      supabase.from('exchange_rates').select('*'),
+      fetch(`${apiBase}/api/site-settings/exchange_rates_valid_semana`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]).then(([{ data }, semRes]) => {
       const r: Record<string,number> = {}
       for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate }
       setNominaRates(r)
+      setPublishedRateSemana((semRes as any)?.value ?? '')
     })
+    const clearHandler = () => { setNominaRates({}); setPublishedRateSemana('') }
+    window.addEventListener('ea_rates_cleared', clearHandler)
+    return () => window.removeEventListener('ea_rates_cleared', clearHandler)
   }, [])
 
   async function publishNominaRate(id: string) {
+    const isPublished = (nominaRates[id] ?? 0) > 0 && !!publishedRateSemana && nominaRateSemana.trim() === publishedRateSemana
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    if (isPublished) {
+      setNominaSavingRate(id)
+      await supabase.from('exchange_rates').upsert({ id, rate: 0, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+      const updatedRates = { ...nominaRates, [id]: 0 }
+      setNominaRates(updatedRates)
+      const allZero = Object.values(updatedRates).every(v => !v || v === 0)
+      if (allZero) {
+        await fetch(`${apiBase}/api/site-settings`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'exchange_rates_valid_semana', value: '' }),
+        }).catch(() => {})
+        setPublishedRateSemana('')
+      }
+      setNominaSavingRate(null); setNominaRateSaved(id); setTimeout(() => setNominaRateSaved(null), 3000)
+      return
+    }
     const rate = parseFloat(nominaRateInputs[id] || '0')
     if (isNaN(rate) || rate < 0) return
     setNominaSavingRate(id)
     await supabase.from('exchange_rates').upsert({ id, rate, updated_at: new Date().toISOString() }, { onConflict: 'id' })
     setNominaRates(prev => ({ ...prev, [id]: rate }))
-    // Save the semana this rate applies to (so workers only see CUP after this)
     if (nominaRateSemana.trim()) {
-      const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
       await fetch(`${apiBase}/api/site-settings`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'exchange_rates_valid_semana', value: nominaRateSemana.trim() }),
       }).catch(() => {})
+      setPublishedRateSemana(nominaRateSemana.trim())
+      const rateFieldMap: Record<string, string> = {
+        efectivo_worker: 'cup_efectivo_rate', transferencia_worker: 'cup_transferencia_rate',
+        efectivo_agent: 'cup_efectivo_agent_rate', transferencia_agent: 'cup_transferencia_agent_rate',
+      }
+      await fetch(`${apiBase}/api/publish-salaries/tag-cup-rates`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ semana: nominaRateSemana.trim(), cups: { [rateFieldMap[id]]: rate } }),
+      }).catch(() => {})
     }
+    if (id === 'efectivo_worker') {
+      const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Efectivo (Cuba)')
+      const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id).filter(Boolean))]
+      if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Efectivo actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', true)
+    } else if (id === 'transferencia_worker') {
+      const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Transferencia Bancaria (Cuba)')
+      const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id).filter(Boolean))]
+      if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Transferencia actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', true)
+    } else {
+      const { data } = await supabase.from('profiles').select('id').eq('is_agent', true)
+      const ids = ((data ?? []) as {id:string}[]).map(p => p.id)
+      const label = id === 'efectivo_agent' ? 'Efectivo' : 'Transferencia'
+      if (ids.length > 0) sendPushViaApi(ids, `💱 Cambio ${label} para agentes actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/agente', true)
+    }
+    setNominaSavingRate(null); setNominaRateSaved(id); setTimeout(() => setNominaRateSaved(null), 3000)
+  }
     // Notify affected users based on payment method / role
     if (id === 'efectivo_worker') {
       const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Efectivo (Cuba)')
@@ -1832,8 +1888,8 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                             placeholder="Ej: 400"
                             className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
                           <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
-                            className={`shrink-0 text-white text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
-                            {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
+                            className={`shrink-0 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : (nominaRates[id] ?? 0) > 0 && publishedRateSemana && publishedRateSemana === nominaRateSemana.trim() ? 'bg-rose-700 hover:bg-rose-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
+                            {nominaRateSaved === id ? '✓' : nominaSavingRate === id ? '...' : (nominaRates[id] ?? 0) > 0 && publishedRateSemana && publishedRateSemana === nominaRateSemana.trim() ? 'Despublicar' : 'Publicar'}
                           </button>
                         </div>
                       </div>
@@ -1856,8 +1912,8 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                             placeholder="Ej: 400"
                             className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
                           <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
-                            className={`shrink-0 text-white text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
-                            {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
+                            className={`shrink-0 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600' : (nominaRates[id] ?? 0) > 0 && publishedRateSemana && publishedRateSemana === nominaRateSemana.trim() ? 'bg-rose-700 hover:bg-rose-600' : color === 'amber' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
+                            {nominaRateSaved === id ? '✓' : nominaSavingRate === id ? '...' : (nominaRates[id] ?? 0) > 0 && publishedRateSemana && publishedRateSemana === nominaRateSemana.trim() ? 'Despublicar' : 'Publicar'}
                           </button>
                         </div>
                       </div>
