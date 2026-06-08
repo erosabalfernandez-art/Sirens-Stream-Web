@@ -301,6 +301,285 @@ const APP_COLORS = {
 }
 
 // ── Per-app accordion section ─────────────────────────────────────────────────
+
+  // ── Layla Manual Entry Section ──────────────────────────────────────────────
+  const LAYLA_RATE = 15500 // monedas por dólar
+
+  function LaylaManualSection() {
+    const [open, setOpen] = useState<boolean>(false)
+    const [workers, setWorkers] = useState<WorkerEntry[]>([])
+    const [loadingWorkers, setLoadingWorkers] = useState(false)
+    const [semana, setSemana] = useState('')
+    const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string }>>({})
+    const [publishing, setPublishing] = useState(false)
+    const [publishedOk, setPublishedOk] = useState(false)
+
+    useEffect(() => {
+      if (!open || workers.length > 0) return
+      setLoadingWorkers(true)
+      supabase.from('worker_entries').select('*').eq('app_name', 'Layla').then(({ data }) => {
+        setWorkers((data ?? []) as WorkerEntry[])
+        setLoadingWorkers(false)
+      })
+    }, [open])
+
+    function setField(id: string, field: 'retiradas' | 'comerciales', val: string) {
+      setValues(prev => ({ ...prev, [id]: { ...(prev[id] ?? { retiradas: '', comerciales: '' }), [field]: val } }))
+    }
+
+    function calcUSD(retiradas: string) {
+      const n = parseFloat(retiradas) || 0
+      return n / LAYLA_RATE
+    }
+
+    function calcCommission(comerciales: string) {
+      const n = parseFloat(comerciales) || 0
+      return (n / LAYLA_RATE) * 0.12
+    }
+
+    const totalUSD = workers.reduce((s, w) => s + calcUSD(values[w.id]?.retiradas ?? ''), 0)
+
+    async function publicar() {
+      if (!semana.trim()) { alert('Por favor escribe la semana antes de publicar.'); return }
+      const hasData = workers.some(w => {
+        const v = values[w.id]
+        return v && (parseFloat(v.retiradas) > 0 || parseFloat(v.comerciales) > 0)
+      })
+      if (!hasData) { alert('Ingresa los datos de al menos una trabajadora.'); return }
+
+      setPublishing(true)
+      try {
+        const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+
+        // Build salary inserts for workers
+        const salaryInserts = workers
+          .map(w => {
+            const v = values[w.id] ?? { retiradas: '0', comerciales: '0' }
+            const usd = calcUSD(v.retiradas)
+            const monRetiradas = parseFloat(v.retiradas) || 0
+            const monComerciales = parseFloat(v.comerciales) || 0
+            return { user_id: w.user_id, app_name: 'Layla', semana, usd, diamantes: monRetiradas, extras: { monedas_comerciales: monComerciales } }
+          })
+          .filter(i => i.usd > 0 || i.diamantes > 0)
+
+        // Build cobradas array for history
+        const cobradas = workers
+          .filter(w => calcUSD(values[w.id]?.retiradas ?? '') > 0)
+          .map(w => {
+            const v = values[w.id]
+            const usd = calcUSD(v.retiradas)
+            const monComerciales = parseFloat(v.comerciales) || 0
+            return {
+              worker: { ...w, profile_email: '' },
+              nomina: {
+                uid: w.id_aplicacion ?? '',
+                apodo: w.nombre_en_app ?? w.nombre_real ?? '',
+                usd,
+                diamantes: parseFloat(v.retiradas) || 0,
+                semana,
+                comision: calcCommission(v.comerciales),
+                extras: { monedas_comerciales: monComerciales },
+              },
+            }
+          })
+
+        const total_usd = salaryInserts.reduce((s, i) => s + i.usd, 0)
+        const total_diamantes = salaryInserts.reduce((s, i) => s + i.diamantes, 0)
+
+        // Publish salaries to workers
+        const r1 = await fetch(`${apiBase}/api/publish-salaries`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inserts: salaryInserts, app_name: 'Layla', semana,
+            cobradas, noCobro: [], sinPerfil: [],
+            total_usd, total_diamantes,
+            file_name: `Layla-manual-${semana}`,
+          }),
+        })
+        if (!r1.ok) {
+          const e = await r1.json() as { error?: string }
+          alert(`❌ Error al publicar salarios: ${e.error ?? r1.status}`)
+          setPublishing(false); return
+        }
+
+        // Build agent commission inserts
+        const agentMap: Record<string, { uid: string; nombre: string; salary_usd: number; commission_usd: number }[]> = {}
+        for (const w of workers) {
+          const agente = w.agente
+          if (!agente) continue
+          const v = values[w.id] ?? { retiradas: '0', comerciales: '0' }
+          const commission = calcCommission(v.comerciales)
+          if (commission <= 0) continue
+          if (!agentMap[agente]) agentMap[agente] = []
+          agentMap[agente].push({
+            uid: w.id_aplicacion ?? '',
+            nombre: w.nombre_en_app ?? w.nombre_real ?? '',
+            salary_usd: calcUSD(v.retiradas),
+            commission_usd: commission,
+          })
+        }
+
+        const agentInserts = Object.entries(agentMap).map(([name, wkrs]) => ({
+          agent_user_id: null as string | null,
+          agent_name: name,
+          app_name: 'Layla',
+          semana,
+          total_commission_usd: wkrs.reduce((s, wk) => s + wk.commission_usd, 0),
+          workers_data: wkrs,
+        }))
+
+        if (agentInserts.length > 0) {
+          const r2 = await fetch(`${apiBase}/api/publish-agents`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inserts: agentInserts }),
+          })
+          if (!r2.ok) {
+            const e = await r2.json() as { error?: string }
+            alert(`❌ Error al publicar comisiones de agentes: ${e.error ?? r2.status}`)
+          }
+        }
+
+        setPublishedOk(true)
+        setTimeout(() => setPublishedOk(false), 5000)
+      } catch (e: unknown) {
+        alert(`❌ Error: ${e instanceof Error ? e.message : 'Error de red'}`)
+      }
+      setPublishing(false)
+    }
+
+    return (
+      <div className="rounded-2xl border border-pink-500/30 bg-[#0a0a1a] overflow-hidden">
+        {/* Header */}
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-pink-500/5 transition-colors">
+          <div className="flex items-center gap-3">
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${publishedOk ? 'bg-green-400' : 'bg-pink-400/40'}`} />
+            <span className="font-extrabold text-lg tracking-tight">Layla</span>
+            <span className="text-xs bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded-lg font-bold">Entrada manual</span>
+            {publishedOk && <span className="text-xs text-green-400 font-bold bg-green-500/10 px-2 py-0.5 rounded-lg border border-green-500/20">✓ Publicado</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            {open ? <ChevronUp className="w-5 h-5 text-white/70" /> : <ChevronDown className="w-5 h-5 text-white/40" />}
+          </div>
+        </button>
+
+        {/* Content */}
+        {open && (
+          <div className="border-t border-pink-500/10 p-5 space-y-5">
+            {/* Semana */}
+            <div>
+              <label className="text-white/50 text-xs font-bold uppercase tracking-wider mb-2 block">Semana</label>
+              <input
+                type="text"
+                placeholder="Ej: 9-15 Jun 2025"
+                value={semana}
+                onChange={e => setSemana(e.target.value)}
+                className="w-full sm:w-72 bg-[#0d0d1e] border border-purple-500/20 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-pink-500/50"
+              />
+            </div>
+
+            {/* Conversion note */}
+            <div className="flex items-center gap-2 text-white/25 text-xs">
+              <span>📐</span>
+              <span>15,500 monedas = $1.00 USD · Comisión agente = 12% de monedas comerciales</span>
+            </div>
+
+            {/* Workers */}
+            {loadingWorkers ? (
+              <div className="flex items-center justify-center gap-3 text-white/30 py-10">
+                <div className="w-5 h-5 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm">Cargando trabajadoras...</span>
+              </div>
+            ) : workers.length === 0 ? (
+              <div className="text-white/25 text-sm text-center py-10">No hay trabajadoras registradas en Layla.</div>
+            ) : (
+              <div className="space-y-3">
+                {workers.map(w => {
+                  const v = values[w.id] ?? { retiradas: '', comerciales: '' }
+                  const usd = calcUSD(v.retiradas)
+                  const comm = calcCommission(v.comerciales)
+                  const nombre = w.nombre_en_app ?? w.nombre_real ?? '—'
+                  return (
+                    <div key={w.id} className="bg-[#0d0d1e] border border-pink-500/15 rounded-2xl p-4">
+                      {/* Worker header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-9 h-9 rounded-xl bg-pink-500/15 flex items-center justify-center shrink-0">
+                          <span className="text-pink-300 font-extrabold text-sm">{nombre[0]?.toUpperCase()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-bold text-sm truncate">{nombre}</p>
+                          {w.agente && <p className="text-white/30 text-xs">Agente: {w.agente}</p>}
+                        </div>
+                        {usd > 0 && (
+                          <div className="text-right shrink-0">
+                            <p className="text-green-400 font-extrabold text-sm">${usd.toFixed(2)} USD</p>
+                            {comm > 0 && <p className="text-amber-400/70 text-xs">Com. agente: ${comm.toFixed(2)}</p>}
+                          </div>
+                        )}
+                      </div>
+                      {/* Input fields */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-white/40 text-xs font-semibold mb-1.5 block">💎 Monedas retiradas</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="0"
+                            value={v.retiradas}
+                            onChange={e => setField(w.id, 'retiradas', e.target.value)}
+                            className="w-full bg-[#13132a] border border-purple-500/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/15 focus:outline-none focus:border-pink-500/40 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white/40 text-xs font-semibold mb-1.5 block">🪙 Monedas comerciales</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="0"
+                            value={v.comerciales}
+                            onChange={e => setField(w.id, 'comerciales', e.target.value)}
+                            className="w-full bg-[#13132a] border border-purple-500/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/15 focus:outline-none focus:border-pink-500/40 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Summary + Publish button */}
+            {workers.length > 0 && (
+              <div className="bg-[#0d0d1e] border border-pink-500/20 rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-white/40 text-xs uppercase tracking-wider font-bold mb-0.5">Total a publicar</p>
+                  <p className="text-green-400 font-extrabold text-2xl">${totalUSD.toFixed(2)} <span className="text-base font-bold">USD</span></p>
+                  <p className="text-white/20 text-xs mt-0.5">15,500 monedas = $1.00</p>
+                </div>
+                <button
+                  onClick={publicar}
+                  disabled={publishing || !semana.trim()}
+                  className="flex items-center gap-2 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-pink-900/30 text-sm">
+                  {publishing
+                    ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Publicando...</>
+                    : publishedOk
+                    ? '✓ Publicado'
+                    : '🚀 Publicar resultados'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  
 function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy'; reloadKey: number }) {
   const color = APP_COLORS[app]
 
@@ -1388,7 +1667,7 @@ export default function Nomina() {
         ) : (
           <div className="space-y-3">
             <AppNominaSection app="Waha"  reloadKey={reloadKeys.Waha}  />
-            <AppNominaSection app="Layla" reloadKey={reloadKeys.Layla} />
+            <LaylaManualSection />
             <AppNominaSection app="Howdy" reloadKey={reloadKeys.Howdy} />
           </div>
         )}
