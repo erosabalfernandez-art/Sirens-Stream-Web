@@ -208,5 +208,30 @@ import { Router } from 'express';
       }
     });
 
-    export default router;
+  // PATCH /api/publish-salaries/tag-cup-rates
+  // Saves the exchange rate into published_salaries.extras so CUP amounts persist after unpublish
+  router.patch('/publish-salaries/tag-cup-rates', async (req, res) => {
+    const { semana, cups } = req.body as { semana: string; cups: Record<string, number> }
+    if (!semana || !cups) { res.status(400).json({ error: 'semana and cups required' }); return }
+    try {
+      const fetchRes = await fetch(sbUrl(`published_salaries?semana=eq.${encodeURIComponent(semana)}&select=id,extras`), {
+        headers: sbHeaders() as Record<string, string>,
+      })
+      const records = await fetchRes.json() as { id: string; extras: Record<string, unknown> | null }[]
+      if (!Array.isArray(records) || records.length === 0) { res.json({ ok: true, updated: 0 }); return }
+      await Promise.all(records.map(record =>
+        fetch(sbUrl(`published_salaries?id=eq.${record.id}`), {
+          method: 'PATCH',
+          headers: sbHeaders('return=minimal') as Record<string, string>,
+          body: JSON.stringify({ extras: { ...(record.extras ?? {}), ...cups } }),
+        })
+      ))
+      res.json({ ok: true, updated: records.length })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'unknown error'
+      res.status(500).json({ error: msg })
+    }
+  })
+
+      export default router;
   
