@@ -272,6 +272,59 @@ import React, { useState, useEffect } from 'react'
                   <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Trabajadoras</p>
                 </div>
               </div>
+              {/* CUP summary for agent - show both rates if set */}
+              {(exchangeRates['efectivo_agent'] > 0 || exchangeRates['transferencia_agent'] > 0) && commissions.length > 0 && (
+                <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-4 mb-4">
+                  <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-3">💱 Total en Moneda Nacional (CUP)</p>
+                  <div className="space-y-3">
+                    {/* Per-app breakdown */}
+                    {commApps.map(app => {
+                      const appComms = commissions.filter(c => c.app_name === app)
+                      const appTotalUsd = appComms.reduce((s, c) => s + (c.total_commission_usd || 0), 0)
+                      return (
+                        <div key={app} className="border-b border-amber-500/10 pb-2 last:border-0 last:pb-0">
+                          <p className="text-white/60 text-xs font-bold mb-1.5">{app} · ${fmt(appTotalUsd)} USD</p>
+                          <div className="flex gap-4 flex-wrap">
+                            {exchangeRates['efectivo_agent'] > 0 && (
+                              <div>
+                                <p className="text-amber-400/50 text-xs">💵 Efectivo · 1 USD = {(exchangeRates['efectivo_agent']).toLocaleString('es-ES')} CUP</p>
+                                <p className="text-amber-300 font-extrabold text-lg">{(appTotalUsd * exchangeRates['efectivo_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-xs font-semibold">CUP</span></p>
+                              </div>
+                            )}
+                            {exchangeRates['transferencia_agent'] > 0 && (
+                              <div>
+                                <p className="text-amber-400/50 text-xs">🏦 Transferencia · 1 USD = {(exchangeRates['transferencia_agent']).toLocaleString('es-ES')} CUP</p>
+                                <p className="text-amber-300 font-extrabold text-lg">{(appTotalUsd * exchangeRates['transferencia_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-xs font-semibold">CUP</span></p>
+              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {/* Grand total if multiple apps */}
+                    {commApps.length > 1 && (
+                      <div className="border-t border-amber-500/20 pt-2 mt-1 flex gap-6 flex-wrap">
+                        <div>
+                          <p className="text-amber-400/50 text-xs uppercase tracking-wider mb-1">Total todas las apps</p>
+                          <p className="text-white/50 text-xs">${fmt(totalUSD)} USD</p>
+                        </div>
+                        {exchangeRates['efectivo_agent'] > 0 && (
+                          <div>
+                            <p className="text-amber-400/50 text-xs">💵 Efectivo total</p>
+                            <p className="text-amber-300 font-extrabold text-xl">{(totalUSD * exchangeRates['efectivo_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-sm">CUP</span></p>
+                          </div>
+                        )}
+                        {exchangeRates['transferencia_agent'] > 0 && (
+                          <div>
+                            <p className="text-amber-400/50 text-xs">🏦 Transferencia total</p>
+                            <p className="text-amber-300 font-extrabold text-xl">{(totalUSD * exchangeRates['transferencia_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/50 text-sm">CUP</span></p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {commApps.length > 1 && (
                 <div className="flex gap-2 mb-4 flex-wrap">
