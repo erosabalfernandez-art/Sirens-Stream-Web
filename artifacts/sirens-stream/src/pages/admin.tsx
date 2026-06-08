@@ -154,9 +154,11 @@ import { useState, useEffect, useRef } from 'react'
           const [coliderSetupNeeded, setColiderSetupNeeded] = useState(false)
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
-        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes') ?? 'Waha' } catch { return 'Waha' } })
+        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'|'Colider'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes'|'Colider') ?? 'Waha' } catch { return 'Waha' } })
           const [agentPayData, setAgentPayData] = useState<{confirmed: any[], pending: any[]}>({confirmed: [], pending: []})
           const [agentPayLoading, setAgentPayLoading] = useState(false)
+          const [coliderMarks, setColiderMarks] = useState<{paid: any[], pending: any[]}>({paid: [], pending: []})
+          const [coliderMarksLoading, setColiderMarksLoading] = useState(false)
         const [pagosData, setPagosData] = useState<any[]>([])
         const [pagosLoading, setPagosLoading] = useState(false)
         const [pagosSemana, setPagosSemana] = useState('')
@@ -502,7 +504,22 @@ import { useState, useEffect, useRef } from 'react'
             setLaylaDirectLoading(true)
             setLaylaDirectNeedSetup(false)
             const { data: notifs, error } = await supabase
-              .from('direct_payment_notifications')
+              .from('direct_payment_notifications')          async function fetchColiderMarks() {
+            setColiderMarksLoading(true)
+            const { data: marks } = await supabase
+              .from('colider_marks')
+              .select('*')
+              .order('created_at', { ascending: false })
+            if (marks) {
+              setColiderMarks({
+                paid: (marks as any[]).filter((m: any) => m.paid),
+                pending: (marks as any[]).filter((m: any) => !m.paid),
+              })
+            }
+            setColiderMarksLoading(false)
+          }
+
+          
               .select('*')
               .eq('app_name', 'Layla')
               .order('notified_at', { ascending: false })
@@ -1301,25 +1318,43 @@ import { useState, useEffect, useRef } from 'react'
               {tab === 'pagos' && (
                 <div className="space-y-5">
                   {/* App selector + header */}
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div>
-                      <p className="text-sm font-bold text-white">Control de Pagos Semanales</p>
-                      {pagosSemana && <p className="text-xs text-white/35 mt-0.5">Semana activa: {pagosSemana}</p>}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <p className="text-sm font-bold text-white">Control de Pagos Semanales</p>
+                        {pagosSemana && <p className="text-xs text-white/35 mt-0.5">Semana activa: {pagosSemana}</p>}
+                      </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
-                        <button key={a} onClick={() => { setPagosApp(a); if (a === 'Layla') { fetchLaylaDirectNotifs() } else { fetchPagosData(a) } }}
-                          className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === a ? 'bg-emerald-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
-                          {a}
-                        </button>
-                      ))}
-                      <button onClick={() => { setPagosApp('Agentes'); try { localStorage.setItem('ea_pagos_app', 'Agentes') } catch {} fetchAgentPayData() }}
-                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === 'Agentes' ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
-                            Agentes
+                    {/* Trabajadoras */}
+                    <div className="bg-[#07070f] border border-purple-500/10 rounded-2xl p-3">
+                      <p className="text-xs font-bold uppercase tracking-widest text-purple-400/60 mb-2">Trabajadoras</p>
+                      <div className="flex gap-2 flex-wrap items-center">
+                        {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
+                          <button key={a} onClick={() => { setPagosApp(a); try { localStorage.setItem('ea_pagos_app', a) } catch {} if (a === 'Layla') { fetchLaylaDirectNotifs() } else { fetchPagosData(a) } }}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === a ? 'bg-emerald-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
+                            {a}
                           </button>
-                        <button onClick={() => fetchPagosData(pagosApp)} disabled={pagosLoading}
-                        className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
-                        {pagosLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
+                        ))}
+                        <button onClick={() => fetchPagosData(pagosApp)} disabled={pagosLoading || pagosApp === 'Agentes' || pagosApp === 'Colider'}
+                          className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
+                          {pagosLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
+                        </button>
+                      </div>
+                    </div>
+                    {/* Agentes */}
+                    <div className="bg-[#07070f] border border-amber-500/10 rounded-2xl p-3">
+                      <p className="text-xs font-bold uppercase tracking-widest text-amber-400/60 mb-2">Agentes</p>
+                      <button onClick={() => { setPagosApp('Agentes'); try { localStorage.setItem('ea_pagos_app', 'Agentes') } catch {} fetchAgentPayData() }}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === 'Agentes' ? 'bg-amber-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
+                        Agentes
+                      </button>
+                    </div>
+                    {/* Colider */}
+                    <div className="bg-[#07070f] border border-teal-500/10 rounded-2xl p-3">
+                      <p className="text-xs font-bold uppercase tracking-widest text-teal-400/60 mb-2">Colider</p>
+                      <button onClick={() => { setPagosApp('Colider'); try { localStorage.setItem('ea_pagos_app', 'Colider') } catch {} fetchColiderMarks() }}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === 'Colider' ? 'bg-teal-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
+                        Colider
                       </button>
                     </div>
                   </div>
@@ -1416,7 +1451,143 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                     </div>
                   )}
 
-                  {/* Waha: published salaries control */}
+                  {/* Agentes: payment confirmations */}
+                  {pagosApp === 'Agentes' && (
+                    agentPayLoading ? (
+                      <div className="space-y-3">
+                        {[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
+                      </div>
+                    ) : (
+                      <div className="space-y-5">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl p-4 text-center">
+                            <p className="text-2xl font-extrabold text-green-400">{agentPayData.confirmed.length}</p>
+                            <p className="text-xs text-white/40 mt-1">Confirmaron pago</p>
+                          </div>
+                          <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-4 text-center">
+                            <p className="text-2xl font-extrabold text-amber-400">{agentPayData.pending.length}</p>
+                            <p className="text-xs text-white/40 mt-1">Sin confirmar</p>
+                          </div>
+                        </div>
+                        {agentPayData.confirmed.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-green-400 uppercase tracking-widest mb-3">✓ Confirmaron pago recibido</p>
+                            <div className="space-y-2">
+                              {agentPayData.confirmed.map((row: any) => (
+                                <div key={row.id} className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl px-4 py-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400 font-bold text-xs">{(row.agent_name ?? '?')[0]?.toUpperCase()}</div>
+                                    <div>
+                                      <p className="text-white text-sm font-semibold">{row.agent_name}</p>
+                                      <p className="text-white/35 text-xs">{row.app_name} · {row.semana}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-green-400 font-extrabold text-sm">${Number(row.total_commission_usd || 0).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                    <p className="text-white/25 text-xs">{row.confirmed_at ? new Date(row.confirmed_at).toLocaleDateString('es-ES', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : ''}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {agentPayData.pending.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">⏳ Sin confirmar</p>
+                            <div className="space-y-2">
+                              {agentPayData.pending.map((row: any) => (
+                                <div key={row.id} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400/60 font-bold text-xs">{(row.agent_name ?? '?')[0]?.toUpperCase()}</div>
+                                    <div>
+                                      <p className="text-white/70 text-sm font-semibold">{row.agent_name}</p>
+                                      <p className="text-white/35 text-xs">{row.app_name} · {row.semana}</p>
+                                    </div>
+                                  </div>
+                                  <p className="text-amber-400/70 font-bold text-sm">${Number(row.total_commission_usd || 0).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {agentPayData.confirmed.length === 0 && agentPayData.pending.length === 0 && (
+                          <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                            <p className="text-white/40 text-sm">No hay comisiones de agentes para la semana activa.</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+
+                  {/* Colider: payment marks */}
+                  {pagosApp === 'Colider' && (
+                    coliderMarksLoading ? (
+                      <div className="space-y-3">
+                        {[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
+                      </div>
+                    ) : (
+                      <div className="space-y-5">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl p-4 text-center">
+                            <p className="text-2xl font-extrabold text-green-400">{coliderMarks.paid.length}</p>
+                            <p className="text-xs text-white/40 mt-1">Marcados como pagados</p>
+                          </div>
+                          <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-4 text-center">
+                            <p className="text-2xl font-extrabold text-amber-400">{coliderMarks.pending.length}</p>
+                            <p className="text-xs text-white/40 mt-1">Pendientes</p>
+                          </div>
+                        </div>
+                        {coliderMarks.paid.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-green-400 uppercase tracking-widest mb-3">✓ Pagos entregados</p>
+                            <div className="space-y-2">
+                              {coliderMarks.paid.map((row: any) => (
+                                <div key={row.id} className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl px-4 py-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400 font-bold text-xs">{(row.person_name ?? '?')[0]?.toUpperCase()}</div>
+                                    <div>
+                                      <p className="text-white text-sm font-semibold">{row.person_name || '—'}</p>
+                                      <p className="text-white/35 text-xs">{row.person_app || row.person_type} · {row.semana}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    {row.salary_usd > 0 && <p className="text-green-400 font-extrabold text-sm">${Number(row.salary_usd).toFixed(2)}</p>}
+                                    <p className="text-xs text-green-400">Pagado ✓</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {coliderMarks.pending.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">⏳ Pendientes de pago</p>
+                            <div className="space-y-2">
+                              {coliderMarks.pending.map((row: any) => (
+                                <div key={row.id} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400/60 font-bold text-xs">{(row.person_name ?? '?')[0]?.toUpperCase()}</div>
+                                    <div>
+                                      <p className="text-white/70 text-sm font-semibold">{row.person_name || '—'}</p>
+                                      <p className="text-white/35 text-xs">{row.person_app || row.person_type} · {row.semana}</p>
+                                    </div>
+                                  </div>
+                                  {row.salary_usd > 0 && <p className="text-amber-400/70 font-bold text-sm">${Number(row.salary_usd).toFixed(2)}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {coliderMarks.paid.length === 0 && coliderMarks.pending.length === 0 && (
+                          <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl p-12 text-center">
+                            <p className="text-white/40 text-sm">No hay marcas de colider para mostrar.</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+
+                                    {/* Waha: published salaries control */}
                   {pagosApp === 'Waha' && !pagosNeedSetup && (
                     pagosLoading ? (
                       <div className="space-y-3">
