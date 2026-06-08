@@ -116,6 +116,7 @@ import { useState, useEffect, useRef } from 'react'
       const [expanded, setExpanded] = useState<string | null>(null)
       const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos' | 'agentes' | 'cambio' | 'nocobro' | 'chicas'>('list')
         const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+        const [chicasModal, setChicasModal] = useState<WorkerRow[] | null>(null)
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
@@ -2042,12 +2043,12 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                   {/* ─── NO COBRARON TAB ─────────────────────────────────────────────── */}
 
                 {tab === 'chicas' && (() => {
-                  // Group workers by agent name
-                  const agentMap: Record<string, { app: string; nombre: string; nombre_en_app: string | null }[]> = {}
+                  // Group workers by agent, store full WorkerRow objects
+                  const agentMap: Record<string, WorkerRow[]> = {}
                   for (const w of workers) {
                     const agente = w.agente?.trim() || '(Sin agente)'
                     if (!agentMap[agente]) agentMap[agente] = []
-                    agentMap[agente].push({ app: w.app_name, nombre: w.nombre_real || w.nombre_en_app || '—', nombre_en_app: w.nombre_en_app })
+                    agentMap[agente].push(w)
                   }
                   const agentNames = Object.keys(agentMap).sort((a, b) => {
                     if (a === '(Sin agente)') return 1
@@ -2055,21 +2056,55 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                     return a.localeCompare(b)
                   })
                   const APPS_ORDER = ['Waha', 'Layla', 'Howdy']
+
+                  // Group girl entries by real name key
+                  function groupGirls(rows: WorkerRow[]) {
+                    const map: Record<string, WorkerRow[]> = {}
+                    for (const w of rows) {
+                      const key = (w.nombre_real || w.nombre_en_app || w.id).toLowerCase().trim()
+                      if (!map[key]) map[key] = []
+                      map[key].push(w)
+                    }
+                    return Object.values(map).sort((a, b) => (a[0].nombre_real || '').localeCompare(b[0].nombre_real || ''))
+                  }
+
                   return (
-                    <div className="space-y-3">
-                      <p className="text-white/40 text-xs mb-4">
+                    <div className="space-y-4">
+                      {/* Agent names header */}
+                      <div className="bg-[#0d0d1e] border border-indigo-500/15 rounded-2xl p-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-indigo-400/50 mb-3">Agentes</p>
+                        <div className="flex flex-wrap gap-2">
+                          {agentNames.map(agente => {
+                            const cnt = groupGirls(agentMap[agente]).length
+                            const isActive = selectedAgent === agente
+                            return (
+                              <button key={agente}
+                                onClick={() => setSelectedAgent(isActive ? null : agente)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${isActive ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20'}`}>
+                                <Users className="w-3 h-3" />
+                                {agente}
+                                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-white/20' : 'bg-indigo-500/20'}`}>{cnt}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      <p className="text-white/30 text-xs">
                         {agentNames.length} agente{agentNames.length !== 1 ? 's' : ''} · {workers.length} entrada{workers.length !== 1 ? 's' : ''} totales
                       </p>
+
+                      {/* Agent accordion cards */}
                       {agentNames.map(agente => {
-                        const chicas = agentMap[agente]
+                        const agentWorkers = agentMap[agente]
                         const isOpen = selectedAgent === agente
-                        const byApp: Record<string, typeof chicas> = {}
-                        for (const c of chicas) {
-                          if (!byApp[c.app]) byApp[c.app] = []
-                          byApp[c.app].push(c)
+                        const byApp: Record<string, WorkerRow[]> = {}
+                        for (const w of agentWorkers) {
+                          if (!byApp[w.app_name]) byApp[w.app_name] = []
+                          byApp[w.app_name].push(w)
                         }
-                        // Unique girls across all apps
-                        const uniqueNames = [...new Set(chicas.map(c => c.nombre))]
+                        const uniqueGirls = groupGirls(agentWorkers)
+
                         return (
                           <div key={agente} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
                             <button
@@ -2077,13 +2112,13 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                               className="w-full flex items-center justify-between px-5 py-4 hover:bg-purple-500/5 transition-colors text-left"
                             >
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
-                                  <Users className="w-4 h-4 text-purple-400" />
+                                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 flex items-center justify-center shrink-0">
+                                  <Users className="w-4 h-4 text-indigo-400" />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-white text-sm">{agente}</p>
+                                  <p className="font-bold text-white text-sm">{agente}</p>
                                   <p className="text-white/35 text-xs mt-0.5">
-                                    {uniqueNames.length} chica{uniqueNames.length !== 1 ? 's' : ''} · {chicas.length} entrada{chicas.length !== 1 ? 's' : ''}
+                                    {uniqueGirls.length} chica{uniqueGirls.length !== 1 ? 's' : ''} · {agentWorkers.length} entrada{agentWorkers.length !== 1 ? 's' : ''}
                                   </p>
                                 </div>
                               </div>
@@ -2101,36 +2136,40 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
 
                             {isOpen && (
                               <div className="border-t border-purple-500/10 px-5 py-5 space-y-5">
-                                {/* All girls together */}
+                                {/* All girls */}
                                 <div>
                                   <p className="text-xs font-bold uppercase tracking-widest text-purple-400/60 mb-3">
-                                    Todas ({uniqueNames.length})
+                                    Todas ({uniqueGirls.length})
                                   </p>
                                   <div className="flex flex-wrap gap-2">
-                                    {uniqueNames.sort().map(nombre => (
-                                      <span key={nombre}
-                                        className="bg-purple-500/10 border border-purple-500/20 text-purple-200 text-xs font-medium px-3 py-1.5 rounded-xl">
-                                        {nombre}
-                                      </span>
-                                    ))}
+                                    {uniqueGirls.map((entries, i) => {
+                                      const nombre = entries[0].nombre_real || entries[0].nombre_en_app || '—'
+                                      return (
+                                        <button key={i} onClick={() => setChicasModal(entries)}
+                                          className="bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/20 hover:border-purple-400/40 text-purple-200 text-xs font-medium px-3 py-1.5 rounded-xl transition-all">
+                                          {nombre}
+                                        </button>
+                                      )
+                                    })}
                                   </div>
                                 </div>
 
-                                {/* Separated by app */}
+                                {/* By app */}
                                 {APPS_ORDER.filter(a => byApp[a]).map(appName => (
                                   <div key={appName}>
                                     <p className="text-xs font-bold uppercase tracking-widest text-blue-400/60 mb-3">
                                       {appName} ({byApp[appName].length})
                                     </p>
                                     <div className="flex flex-wrap gap-2">
-                                      {byApp[appName].sort((a, b) => a.nombre.localeCompare(b.nombre)).map((c, i) => (
-                                        <span key={i}
-                                          className="bg-blue-500/10 border border-blue-500/15 text-blue-200 text-xs font-medium px-3 py-1.5 rounded-xl">
-                                          {c.nombre}
-                                          {c.nombre_en_app && c.nombre_en_app !== c.nombre && (
-                                            <span className="text-blue-400/50 ml-1">({c.nombre_en_app})</span>
+                                      {byApp[appName].sort((a, b) => (a.nombre_real || '').localeCompare(b.nombre_real || '')).map((w, i) => (
+                                        <button key={i}
+                                          onClick={() => setChicasModal(agentWorkers.filter(aw => (aw.nombre_real || aw.nombre_en_app || '').toLowerCase().trim() === (w.nombre_real || w.nombre_en_app || '').toLowerCase().trim()))}
+                                          className="bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/15 hover:border-blue-400/30 text-blue-200 text-xs font-medium px-3 py-1.5 rounded-xl transition-all">
+                                          {w.nombre_real || w.nombre_en_app || '—'}
+                                          {w.nombre_en_app && w.nombre_real && w.nombre_en_app !== w.nombre_real && (
+                                            <span className="text-blue-400/40 ml-1">({w.nombre_en_app})</span>
                                           )}
-                                        </span>
+                                        </button>
                                       ))}
                                     </div>
                                   </div>
@@ -2140,6 +2179,45 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                           </div>
                         )
                       })}
+
+                      {/* Girl detail modal */}
+                      {chicasModal && chicasModal.length > 0 && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+                          onClick={() => setChicasModal(null)}>
+                          <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+                            onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-purple-500/10 sticky top-0 bg-[#0d0d1e]">
+                              <div>
+                                <p className="font-bold text-white text-base">{chicasModal[0].nombre_real || chicasModal[0].nombre_en_app || '—'}</p>
+                                <p className="text-white/40 text-xs mt-0.5">{chicasModal[0].profile_email}</p>
+                              </div>
+                              <button onClick={() => setChicasModal(null)} className="text-white/30 hover:text-white transition-colors ml-4">
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                            <div className="p-5 space-y-3">
+                              {chicasModal.map((w, i) => (
+                                <div key={i} className="bg-[#07070f] rounded-xl p-4 border border-purple-500/10">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-6 h-6 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 font-bold text-xs shrink-0">{w.app_name[0]}</div>
+                                    <span className="text-blue-300 text-xs font-bold">{w.app_name}</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    {w.nombre_real && <div><p className="text-white/30 mb-0.5">Nombre real</p><p className="text-white/80 font-medium">{w.nombre_real}</p></div>}
+                                    {w.nombre_en_app && <div><p className="text-white/30 mb-0.5">Nombre en app</p><p className="text-white/80 font-medium">{w.nombre_en_app}</p></div>}
+                                    {w.id_aplicacion && <div><p className="text-white/30 mb-0.5">ID en app</p><p className="text-white/80 font-medium font-mono">{w.id_aplicacion}</p></div>}
+                                    {w.metodo_pago && <div><p className="text-white/30 mb-0.5">Método de pago</p><p className="text-white/80 font-medium">{w.metodo_pago}</p></div>}
+                                    {w.billetera && <div className="col-span-2"><p className="text-white/30 mb-0.5">{w.metodo_pago || 'Billetera'}</p><p className="text-white/80 font-medium font-mono break-all">{w.billetera}</p></div>}
+                                    {w.pais && <div><p className="text-white/30 mb-0.5">País</p><p className="text-white/80 font-medium">{w.pais}</p></div>}
+                                    {w.telefono && <div><p className="text-white/30 mb-0.5">Teléfono</p><p className="text-white/80 font-medium">{w.telefono}</p></div>}
+                                    {w.agente && <div><p className="text-white/30 mb-0.5">Agente</p><p className="text-white/80 font-medium">{w.agente}</p></div>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })()}
