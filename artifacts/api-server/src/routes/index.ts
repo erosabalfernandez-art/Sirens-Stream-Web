@@ -9,6 +9,7 @@ import { Router, type IRouter } from 'express';
   import publishRouter from './publish';
   import createAgentRouter from './create-agent';
   import agentWorkersRouter from './agent-workers';
+  import cierreSemanalRouter from './cierre-semanal';
 
   const router: IRouter = Router();
 
@@ -22,6 +23,7 @@ import { Router, type IRouter } from 'express';
   router.use(publishRouter);
   router.use(createAgentRouter);
   router.use(agentWorkersRouter);
+  router.use(cierreSemanalRouter);
 
   export default router;
   
