@@ -1129,15 +1129,12 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
                     ✓ Publicado
                   </span>
                 )}
-                <button onClick={() => publicarSalarios(true)} disabled={publishing || cobradas.length === 0}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
-                  {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                  {publishing ? 'Publicando...' : '⬆ Publicar para Trabajadoras'}
-                </button>
-                <button onClick={publishAgentCommissions} disabled={publishingAgents || cobradas.length === 0}
-                  className={`flex items-center gap-2 ${agentPublishOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
-                  {publishingAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                  {agentPublishOk ? '✓ Publicado para agentes' : (publishingAgents ? 'Publicando...' : '💰 Publicar para Agentes')}
+                <button
+                  onClick={async () => { await publicarSalarios(true); await publishAgentCommissions() }}
+                  disabled={publishing || publishingAgents || cobradas.length === 0}
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
+                  {(publishing || publishingAgents) ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                  {(publishing || publishingAgents) ? 'Publicando...' : (publishedOk || agentPublishOk) ? '✓ Publicado' : '🚀 Publicar'}
                 </button>
                 <button onClick={exportarPDF}
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
