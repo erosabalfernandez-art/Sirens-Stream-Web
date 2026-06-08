@@ -689,7 +689,38 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
 
       function onDrop(e: React.DragEvent) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f) }
     function onInput(e: React.ChangeEvent<HTMLInputElement>) { const f = e.target.files?.[0]; if (f) processFile(f) }
-    function reset() { sessionStorage.removeItem('ea_nomina_state'); setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()); setFileName('') }
+    function reset() {
+        try { const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); delete all[nominaApp]; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all)) } catch {}
+        setStep('upload'); setSemana(''); setCobradas([]); setNoCobro([]); setSinPerfil([]); setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()); setFileName('')
+      }
+
+      function switchApp(newApp: 'Waha'|'Layla'|'Howdy') {
+        if (newApp === nominaApp) return
+        // Save current app state
+        try {
+          const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+          if (cobradas.length > 0 || step === 'results') {
+            all[nominaApp] = { cobradas, noCobro, sinPerfil, semana, aiSummary, fileName }
+            localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
+          }
+          // Restore new app state
+          const s = all[newApp]
+          if (s?.cobradas?.length > 0) {
+            setCobradas(s.cobradas); setNoCobro(s.noCobro ?? []); setSinPerfil(s.sinPerfil ?? [])
+            setSemana(s.semana ?? ''); setFileName(s.fileName ?? '')
+            if (s.aiSummary) setAiSummary(s.aiSummary); else setAiSummary(null)
+            setStep('results')
+          } else {
+            setCobradas([]); setNoCobro([]); setSinPerfil([])
+            setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
+          }
+        } catch {
+          setCobradas([]); setNoCobro([]); setSinPerfil([])
+          setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
+        }
+        setExpanded(new Set()); setPublishedOk(false); setAgentPublishOk(false); setPaidMarks(new Set())
+        setNominaApp(newApp)
+      }
 
     async function fetchHistory() {
       setHistoryLoading(true)
@@ -841,7 +872,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
               <div className="flex gap-2 mb-4 flex-wrap items-center">
                 <span className="text-xs font-bold uppercase tracking-wider text-white/40 mr-2">App:</span>
                 {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
-                  <button key={a} onClick={() => setNominaApp(a)}
+                  <button key={a} onClick={() => switchApp(a)}
                     className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${nominaApp === a ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/50 hover:text-white'}`}>
                     {a}
                   </button>
