@@ -54,9 +54,12 @@ import { useState, useEffect } from 'react'
       const [confirmClear, setConfirmClear] = useState(false)
       const [expandedApp, setExpandedApp] = useState<string | null>(null)
       const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'>('idle')
+      const [laylaPayNotified, setLaylaPayNotified] = useState<Record<string, boolean>>({})
+      const [laylaPayNotifying, setLaylaPayNotifying] = useState<Record<string, boolean>>({})
+      const [laylaPayNeedSetup, setLaylaPayNeedSetup] = useState(false)
 
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
-      useEffect(() => { if (user) fetchEntries() }, [user])
+      useEffect(() => { if (user) { fetchEntries(); fetchLaylaPayStatus() } }, [user])
 
       useEffect(() => {
         if ('Notification' in window) {
@@ -70,6 +73,31 @@ import { useState, useEffect } from 'react'
         const { data } = await supabase.from('worker_entries').select('*').eq('user_id', user!.id).order('created_at', { ascending: true })
         setEntries((data as WorkerEntry[]) ?? [])
         setLoadingEntries(false)
+      }
+
+      async function fetchLaylaPayStatus() {
+        if (!user) return
+        const { data, error } = await supabase
+          .from('direct_payment_notifications')
+          .select('semana')
+          .eq('user_id', user.id)
+          .eq('app_name', 'Layla')
+        if (error?.code === '42P01') { setLaylaPayNeedSetup(true); return }
+        const map: Record<string, boolean> = {}
+        for (const row of (data ?? []) as any[]) map[row.semana] = true
+        setLaylaPayNotified(map)
+      }
+
+      async function notifyLaylaPayment(entryId: string) {
+        const semana = new Date().toISOString().slice(0,10).replace(/-/g,'').slice(0,8)
+        if (laylaPayNotified[semana]) return
+        setLaylaPayNotifying(p => ({ ...p, [entryId]: true }))
+        const { error } = await supabase.from('direct_payment_notifications').insert({
+          user_id: user!.id, app_name: 'Layla', semana, nota: null,
+        })
+        if (error?.code === '42P01') setLaylaPayNeedSetup(true)
+        else if (!error) setLaylaPayNotified(p => ({ ...p, [semana]: true }))
+        setLaylaPayNotifying(p => ({ ...p, [entryId]: false }))
       }
 
       function openAdd() { setEditingId(null); setForm(EMPTY_FORM); setFormError(null); setShowForm(true) }
@@ -249,6 +277,27 @@ import { useState, useEffect } from 'react'
                               <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><p className="text-white/80 text-sm font-medium">{value || '—'}</p></div>
                             ))}
                           </div>
+                        </div>
+                      )}
+                      {/* Layla payment notification button */}
+                      {entry.app_name === 'Layla' && !laylaPayNeedSetup && (
+                        <div className="px-5 py-3 border-t border-purple-500/8">
+                          {laylaPayNotified[new Date().toISOString().slice(0,10).replace(/-/g,'').slice(0,8)] ? (
+                            <div className="flex items-center gap-2 text-green-400">
+                              <Check className="w-4 h-4 shrink-0" />
+                              <span className="text-sm font-semibold">Pago recibido notificado ✓</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={e => { e.stopPropagation(); notifyLaylaPayment(entry.id) }}
+                              disabled={!!laylaPayNotifying[entry.id]}
+                              className="flex items-center gap-2 text-sm font-semibold text-white/40 hover:text-green-400 transition-colors disabled:opacity-40">
+                              {laylaPayNotifying[entry.id]
+                                ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" />
+                                : <Check className="w-4 h-4 shrink-0" />}
+                              Notificar pago recibido
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
