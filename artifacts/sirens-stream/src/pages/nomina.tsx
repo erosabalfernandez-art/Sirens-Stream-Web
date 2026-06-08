@@ -873,6 +873,73 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
                 </button>
               </div>
 
+              {/* 💱 Cambio Cuba widget for admin */}
+              <div className="bg-[#0d0d1e] border border-green-500/15 rounded-2xl overflow-hidden">
+                <button onClick={() => setShowCambio(prev => !prev)}
+                  className="w-full flex items-center justify-between px-5 py-3 hover:bg-green-500/5 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">💱</span>
+                    <span className="text-green-300 text-sm font-bold">Tipo de Cambio Cuba</span>
+                    {(nominaRates['efectivo_worker'] > 0 || nominaRates['transferencia_worker'] > 0 || nominaRates['efectivo_agent'] > 0 || nominaRates['transferencia_agent'] > 0) && (
+                      <span className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full">Publicado</span>
+                    )}
+                  </div>
+                  <span className="text-white/30 text-xs">{showCambio ? '▲ Cerrar' : '▼ Editar'}</span>
+                </button>
+                {showCambio && (
+                  <div className="border-t border-green-500/10 p-5 space-y-5">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3">💜 Para Trabajadoras</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {([
+                          { id: 'efectivo_worker', label: 'Efectivo Cuba', color: 'amber' },
+                          { id: 'transferencia_worker', label: 'Transferencia Cuba', color: 'blue' },
+                        ] as const).map(({ id, label, color }) => (
+                          <div key={id} className={`bg-black/20 border border-${color}-500/15 rounded-xl p-4`}>
+                            <p className={`text-${color}-400 text-xs font-bold mb-1`}>{label}</p>
+                            <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
+                            <div className="flex gap-2">
+                              <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
+                                onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                                placeholder="Ej: 400"
+                                className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
+                              <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
+                                className={`shrink-0 text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600 text-white' : `bg-${color}-600 hover:bg-${color}-500 text-white`}`}>
+                                {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-3">🧡 Para Agentes</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {([
+                          { id: 'efectivo_agent', label: 'Efectivo Cuba', color: 'amber' },
+                          { id: 'transferencia_agent', label: 'Transferencia Cuba', color: 'blue' },
+                        ] as const).map(({ id, label, color }) => (
+                          <div key={id} className={`bg-black/20 border border-${color}-500/15 rounded-xl p-4`}>
+                            <p className={`text-${color}-400 text-xs font-bold mb-1`}>{label}</p>
+                            <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
+                            <div className="flex gap-2">
+                              <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
+                                onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                                placeholder="Ej: 400"
+                                className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
+                              <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
+                                className={`shrink-0 text-sm font-bold px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${nominaRateSaved === id ? 'bg-green-600 text-white' : `bg-${color}-600 hover:bg-${color}-500 text-white`}`}>
+                                {nominaRateSaved === id ? '✓' : (nominaSavingRate === id ? '...' : 'Publicar')}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="p-5 space-y-6">
                 {/* AI summary */}
                 {(aiLoading || aiSummary) && (
@@ -1198,11 +1265,33 @@ export default function Nomina() {
   const [deletingHistId, setDeletingHistId] = useState<string | null>(null)
   // Used to signal each section to reload from localStorage (e.g. after loading history)
   const [reloadKeys, setReloadKeys] = useState<Record<string, number>>({ Waha: 0, Layla: 0, Howdy: 0 })
+  const [nominaRates, setNominaRates] = useState<Record<string,number>>({})
+  const [nominaRateInputs, setNominaRateInputs] = useState<Record<string,string>>({})
+  const [nominaSavingRate, setNominaSavingRate] = useState<string|null>(null)
+  const [nominaRateSaved, setNominaRateSaved] = useState<string|null>(null)
+  const [showCambio, setShowCambio] = useState(false)
 
   if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
   if (loading) return <SplashLoader msg="Cargando..." />
   if (!profile?.is_admin) return <SplashLoader msg="Sin acceso" />
+
+  useEffect(() => {
+    supabase.from('exchange_rates').select('*').then(({ data }) => {
+      const r: Record<string,number> = {}; const inp: Record<string,string> = {}
+      for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate; inp[row.id] = String(row.rate === 0 ? '' : row.rate) }
+      setNominaRates(r); setNominaRateInputs(inp)
+    })
+  }, [])
+
+  async function publishNominaRate(id: string) {
+    const rate = parseFloat(nominaRateInputs[id] || '0')
+    if (isNaN(rate) || rate < 0) return
+    setNominaSavingRate(id)
+    await supabase.from('exchange_rates').upsert({ id, rate, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+    setNominaRates(prev => ({ ...prev, [id]: rate }))
+    setNominaSavingRate(null); setNominaRateSaved(id); setTimeout(() => setNominaRateSaved(null), 3000)
+  }
 
   async function fetchHistory() {
     setHistoryLoading(true)
