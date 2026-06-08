@@ -1475,7 +1475,7 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                   </div>
 
                 </div>
-              }
+              )}
 
                   {/* ─── NO COBRARON TAB ─────────────────────────────────────────────── */}
                   {tab === 'nocobro' && (
@@ -1495,12 +1495,16 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
     nombre_real text,
     email text,
     created_at timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now(),
-  justified boolean NOT NULL DEFAULT false,
+    justified boolean NOT NULL DEFAULT false,
+    UNIQUE(user_id, app_name, semana)
   );
-ALTER TABLE weekly_no_cobro ADD COLUMN IF NOT EXISTS justified boolean NOT NULL DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone text;
-                          <p className="text-white/30 text-xs mt-3">Después recarga esta página.</p>
+  ALTER TABLE weekly_no_cobro ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "admin_all_nocobro" ON weekly_no_cobro
+    FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true))
+    WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+  CREATE POLICY "workers_insert_own_nocobro" ON weekly_no_cobro
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+  ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone text;`}</pre>
                         </div>
                       ) : (
                         <>
