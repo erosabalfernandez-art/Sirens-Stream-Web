@@ -347,27 +347,62 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
   const [fTelefono, setFTelefono] = useState('')
   const [fSortDir, setFSortDir] = useState<'desc'|'asc'>('desc')
 
-  // Load from localStorage on mount and when reloadKey changes
+  // Load from localStorage on mount (fast path) with Supabase fallback for reliability
   useEffect(() => {
-    try {
-      const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-      const s = all[app]
-      if (s?.cobradas?.length > 0) {
-        setCobradas(s.cobradas)
-        setNoCobro(s.noCobro ?? [])
-        setSinPerfil(s.sinPerfil ?? [])
-        setSemana(s.semana ?? '')
-        setFileName(s.fileName ?? '')
-        if (s.aiSummary) setAiSummary(s.aiSummary)
-        setStep('results')
-        setSectionOpen(true)
-      } else {
-        setCobradas([]); setNoCobro([]); setSinPerfil([])
-        setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
-      }
-    } catch {}
+    async function loadSavedNomina() {
+      try {
+        const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+        const s = all[app]
+        if (s?.cobradas?.length > 0) {
+          setCobradas(s.cobradas)
+          setNoCobro(s.noCobro ?? [])
+          setSinPerfil(s.sinPerfil ?? [])
+          setSemana(s.semana ?? '')
+          setFileName(s.fileName ?? '')
+          if (s.aiSummary) setAiSummary(s.aiSummary)
+          setStep('results')
+          setSectionOpen(true)
+          return
+        }
+      } catch {}
+      // Fallback: load latest entry from Supabase nomina_history
+      try {
+        const { data } = await supabase
+          .from('nomina_history')
+          .select('*')
+          .eq('app_name', app)
+          .order('created_at', { ascending: false })
+          .limit(1)
+        const entry = (data ?? [])[0]
+        if (entry?.rows_data?.cobradas?.length > 0) {
+          setCobradas(entry.rows_data.cobradas)
+          setNoCobro(entry.rows_data.noCobro ?? [])
+          setSinPerfil(entry.rows_data.sinPerfil ?? [])
+          setSemana(entry.semana ?? '')
+          setFileName(entry.file_name ?? '')
+          setStep('results')
+          setSectionOpen(true)
+          try {
+            const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+            all[app] = {
+              cobradas: entry.rows_data.cobradas,
+              noCobro: entry.rows_data.noCobro ?? [],
+              sinPerfil: entry.rows_data.sinPerfil ?? [],
+              semana: entry.semana,
+              aiSummary: null,
+              fileName: entry.file_name ?? '',
+            }
+            localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
+          } catch {}
+        } else {
+          setCobradas([]); setNoCobro([]); setSinPerfil([])
+          setSemana(''); setFileName(''); setAiSummary(null); setStep('upload')
+        }
+      } catch {}
+    }
+    loadSavedNomina()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reloadKey])
+  }, [app, reloadKey])
 
   // Auto-save whenever results change
   useEffect(() => {
@@ -641,6 +676,22 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
 
       setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
       loadPaidMarks(app, sem)
+      // Save to Supabase immediately so data persists across navigation and sessions
+      try {
+        await supabase.from('nomina_history').delete().eq('app_name', app).eq('semana', sem)
+        await supabase.from('nomina_history').insert({
+          app_name: app,
+          semana: sem,
+          total_usd: cobradasList.reduce((s, m) => s + m.nomina.usd, 0),
+          total_diamantes: cobradasList.reduce((s, m) => s + m.nomina.diamantes, 0),
+          cobradas_count: cobradasList.length,
+          nocobro_count: noCobroList.length,
+          sinperfil_count: sinPerfilList.length,
+          rows_data: { cobradas: cobradasList, noCobro: noCobroList, sinPerfil: sinPerfilList },
+          published: false,
+          file_name: file.name,
+        })
+      } catch {}
       setStep('results')
       callGroq(cobradasList, noCobroList, sem)
     } catch (err: any) {
