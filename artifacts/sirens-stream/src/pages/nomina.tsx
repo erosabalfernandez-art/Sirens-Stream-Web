@@ -1199,7 +1199,7 @@ export default function Nomina() {
   // Used to signal each section to reload from localStorage (e.g. after loading history)
   const [reloadKeys, setReloadKeys] = useState<Record<string, number>>({ Waha: 0, Layla: 0, Howdy: 0 })
   const [nominaRates, setNominaRates] = useState<Record<string,number>>({})
-  const [nominaRateInputs, setNominaRateInputs] = useState<Record<string,string>>({})
+  const [nominaRateInputs, setNominaRateInputs] = useState<Record<string,string>>(() => { try { const s = localStorage.getItem('ea_cambio_drafts'); return s ? JSON.parse(s) : {} } catch { return {} } })
   const [nominaSavingRate, setNominaSavingRate] = useState<string|null>(null)
   const [nominaRateSaved, setNominaRateSaved] = useState<string|null>(null)
   const [showCambio, setShowCambio] = useState(false)
@@ -1210,11 +1210,11 @@ export default function Nomina() {
   if (!profile?.is_admin) return <SplashLoader msg="Sin acceso" />
 
   useEffect(() => {
+  useEffect(() => {
     supabase.from('exchange_rates').select('*').then(({ data }) => {
-      const r: Record<string,number> = {}; const inp: Record<string,string> = {}
-      for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate; inp[row.id] = String(row.rate === 0 ? '' : row.rate) }
-      setNominaRates(r); setNominaRateInputs(inp)
-    })
+      const r: Record<string,number> = {}
+      for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate }
+      setNominaRates(r)
   }, [])
 
   async function publishNominaRate(id: string) {
@@ -1319,7 +1319,7 @@ export default function Nomina() {
                         <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
                         <div className="flex gap-2">
                           <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
-                            onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                            onChange={e => setNominaRateInputs(prev => { const next = { ...prev, [id]: e.target.value }; try { localStorage.setItem('ea_cambio_drafts', JSON.stringify(next)) } catch {} return next })}
                             placeholder="Ej: 400"
                             className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
                           <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
@@ -1343,7 +1343,7 @@ export default function Nomina() {
                         <p className="text-white/25 text-xs mb-2">Actual: <span className="text-white/50 font-semibold">{(nominaRates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
                         <div className="flex gap-2">
                           <input type="number" min="0" step="any" value={nominaRateInputs[id] ?? ''}
-                            onChange={e => setNominaRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                            onChange={e => setNominaRateInputs(prev => { const next = { ...prev, [id]: e.target.value }; try { localStorage.setItem('ea_cambio_drafts', JSON.stringify(next)) } catch {} return next })}
                             placeholder="Ej: 400"
                             className="flex-1 bg-[#07070f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50" />
                           <button onClick={() => publishNominaRate(id)} disabled={nominaSavingRate === id}
