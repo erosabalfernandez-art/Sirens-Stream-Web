@@ -68,5 +68,36 @@ import { Router } from 'express';
       res.json({ sent });
     });
 
-    export default router;
+    // GET /api/push/status — diagnostic endpoint
+  router.get('/push/status', async (req, res) => {
+    const vapidOk = ensureVapid();
+    const hasSupabase = !!(SUPABASE_URL && SERVICE_KEY);
+    let tableOk = false;
+    let subCount = 0;
+    if (hasSupabase) {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=count`, {
+          headers: {
+            apikey: SERVICE_KEY,
+            Authorization: `Bearer ${SERVICE_KEY}`,
+            Prefer: 'count=exact',
+          },
+        });
+        tableOk = r.ok;
+        if (r.ok) {
+          const ct = r.headers.get('content-range');
+          subCount = ct ? parseInt(ct.split('/')[1] ?? '0', 10) : 0;
+        }
+      } catch { /* ignore */ }
+    }
+    res.json({
+      vapid: vapidOk,
+      supabase: hasSupabase,
+      table: tableOk,
+      subscriptions: subCount,
+      ok: vapidOk && hasSupabase && tableOk,
+    });
+  });
+
+  export default router;
   
