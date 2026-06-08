@@ -114,7 +114,7 @@ import { useState, useEffect, useRef } from 'react'
       const [filterIdApp, setFilterIdApp] = useState(() => { try { return localStorage.getItem('ea_af_id_app') ?? '' } catch { return '' } })
       const [filterTelefono, setFilterTelefono] = useState(() => { try { return localStorage.getItem('ea_af_telefono') ?? '' } catch { return '' } })
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos' | 'agentes' | 'cambio' | 'nocobro' | 'chicas'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'pagos' | 'agentes' | 'cambio' | 'nocobro' | 'chicas'>('list')
         const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
         const [chicasModal, setChicasModal] = useState<WorkerRow[] | null>(null)
 
@@ -443,7 +443,22 @@ import { useState, useEffect, useRef } from 'react'
           setTimeout(() => setTestPushOk(p => ({ ...p, [ag.id]: false })), 4000)
         }
 
-        useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
+        async function sendTestPushToColider(c: {id:string;colider_name:string|null}) {
+            setTestPushSending(p => ({ ...p, [c.id]: true }))
+            setTestPushOk(p => ({ ...p, [c.id]: false }))
+            const greeting = c.colider_name ? ` ${c.colider_name}` : ''
+            await sendPushViaApi(
+              [c.id],
+              '🔔 Notificación de prueba',
+              `Hola${greeting}! Esta es una notificación de prueba enviada desde el panel admin.`,
+              '/colider'
+            )
+            setTestPushSending(p => ({ ...p, [c.id]: false }))
+            setTestPushOk(p => ({ ...p, [c.id]: true }))
+            setTimeout(() => setTestPushOk(p => ({ ...p, [c.id]: false })), 4000)
+          }
+
+          useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
       useEffect(() => {
         if (!loading && user && profile !== undefined) {
@@ -943,11 +958,6 @@ import { useState, useEffect, useRef } from 'react'
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'canales' ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Radio className="w-3.5 h-3.5" />
                 Canales
-              </button>
-              <button onClick={() => setTab('notifs')}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'notifs' ? 'bg-green-700 text-white' : 'text-white/40 hover:text-white'}`}>
-                <Bell className="w-3.5 h-3.5" />
-                Notificaciones
               </button>
               <button onClick={() => { setTab('pagos'); fetchPagosData(pagosApp) }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'pagos' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:text-white'}`}>
@@ -1665,60 +1675,6 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                 </div>
               )}
 
-              {tab === 'notifs' && (
-                <div className="space-y-4">
-                  <p className="text-xs text-white/30 mb-4">Envía notificaciones push a las trabajadoras de cada app. Solo reciben la notificación las chicas de esa app específica.</p>
-                  {(['Waha', 'Layla', 'Howdy'] as const).map(app => (
-                    <div key={app} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
-                      <p className="text-sm font-bold text-white mb-4">{app}</p>
-                      <div className="flex gap-3 flex-wrap">
-                        <button onClick={() => notifyApp(app, 'salary')} disabled={notifying[`${app}_salary`]}
-                          className="flex items-center gap-2 bg-green-600/90 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all">
-                          {notifying[`${app}_salary`] ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>💰</span>}
-                          {notifOk[`${app}_salary`] ? '✓ Enviado' : 'Notificar salario'}
-                        </button>
-                        <button onClick={() => notifyApp(app, 'canal')} disabled={notifying[`${app}_canal`]}
-                          className="flex items-center gap-2 bg-blue-600/90 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all">
-                          {notifying[`${app}_canal`] ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>📢</span>}
-                          {notifOk[`${app}_canal`] ? '✓ Enviado' : 'Notificar actualización canal'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {notifLogs.length > 0 && (
-                    <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
-                      <div className="flex items-center justify-between px-5 py-3 border-b border-purple-500/10">
-                        <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">Registro de envíos</span>
-                        <button onClick={() => setNotifLogs([])} className="text-xs text-white/25 hover:text-white/50 transition-colors">Limpiar</button>
-                      </div>
-                      <div className="divide-y divide-white/4 max-h-72 overflow-y-auto">
-                        {notifLogs.map(log => (
-                          <div key={log.id} className="px-5 py-3 flex items-start gap-3">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 ${log.error ? 'bg-red-500/15' : log.sent > 0 ? 'bg-green-500/15' : 'bg-amber-500/15'}`}>
-                              {log.error ? '❌' : log.sent > 0 ? '✓' : '⚠️'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-white/80 truncate">{log.title}</p>
-                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                <span className="text-xs text-white/35">{log.app} · {log.type === 'salary' ? 'salario' : log.type === 'canal' ? 'canal' : 'mensaje'}</span>
-                                {log.error
-                                  ? <span className="text-xs text-red-400">Error: {log.error}</span>
-                                  : <span className={`text-xs font-semibold ${log.sent > 0 ? 'text-green-400' : 'text-amber-400'}`}>
-                                      {log.sent}/{log.total} dispositivos
-                                    </span>
-                                }
-                              </div>
-                            </div>
-                            <span className="text-xs text-white/20 shrink-0 tabular-nums">
-                              {log.ts.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {tab === 'dupes' && (
               <div>
@@ -1924,6 +1880,16 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    onClick={() => sendTestPushToColider(c)}
+                                    disabled={testPushSending[c.id]}
+                                    title="Enviar notificación de prueba"
+                                    className={`flex items-center gap-1.5 ${testPushOk[c.id] ? 'bg-green-600' : testPushNoSub[c.id] ? 'bg-orange-600/80' : 'bg-blue-600/80 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all`}>
+                                    {testPushSending[c.id]
+                                      ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      : testPushNoSub[c.id] ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
+                                    {testPushOk[c.id] ? '✓ Enviado' : testPushNoSub[c.id] ? 'Sin suscripción' : testPushSending[c.id] ? 'Enviando...' : 'Notificar'}
+                                  </button>
                                   <button
                                     onClick={() => grantColiderChannels(c.id)}
                                     disabled={grantingColiderChannels[c.id] || coliderChannelsGranted[c.id]}
