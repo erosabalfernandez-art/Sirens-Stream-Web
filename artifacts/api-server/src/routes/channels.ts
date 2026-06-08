@@ -123,5 +123,67 @@ import { Router } from 'express';
     }
   });
 
+  
+    // POST /api/grant-agent-channels
+    // Grants access to all channels (all distinct app_names in channel_messages) for a given user
+    router.post('/grant-agent-channels', async (req, res) => {
+      const { user_id } = req.body as { user_id?: string };
+      if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
+      try {
+        // Get all distinct channel apps from channel_messages
+        const appsRes = await fetch(sbUrl('channel_messages?select=app_name'), { headers: sbH() });
+        const allMsgs: { app_name: string }[] = appsRes.ok ? await appsRes.json() : [];
+        const appNames = [...new Set(allMsgs.map((m) => m.app_name).filter(Boolean))];
+        if (appNames.length === 0) return res.json({ ok: true, granted: 0, apps: [] });
+
+        // Get existing channel_requests for this user
+        const existingRes = await fetch(
+          sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&select=id,app_name,status`),
+          { headers: sbH() }
+        );
+        const existing: { id: string; app_name: string; status: string }[] = existingRes.ok ? await existingRes.json() : [];
+        const existingMap = new Map(existing.map((e) => [e.app_name, e]));
+
+        const toInsert: string[] = [];
+        const toUpdate: string[] = []; // app_names already in DB (update to approved)
+
+        for (const app_name of appNames) {
+          if (existingMap.has(app_name)) {
+            const entry = existingMap.get(app_name)!;
+            if (entry.status !== 'approved') toUpdate.push(app_name);
+          } else {
+            toInsert.push(app_name);
+          }
+        }
+
+        // Update pending/rejected entries to approved
+        if (toUpdate.length > 0) {
+          await fetch(
+            sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&app_name=in.(${toUpdate.map(encodeURIComponent).join(',')})`),
+            {
+              method: 'PATCH',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+              body: JSON.stringify({ status: 'approved', resolved_at: new Date().toISOString() }),
+            }
+          );
+        }
+
+        // Insert brand-new approved entries
+        if (toInsert.length > 0) {
+          await fetch(sbUrl('channel_requests'), {
+            method: 'POST',
+            headers: { ...sbH(), Prefer: 'return=minimal' },
+            body: JSON.stringify(
+              toInsert.map((app_name) => ({ user_id, app_name, status: 'approved' }))
+            ),
+          });
+        }
+
+        return res.json({ ok: true, granted: appNames.length, apps: appNames });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+      }
+    });
+
   export default router;
   
