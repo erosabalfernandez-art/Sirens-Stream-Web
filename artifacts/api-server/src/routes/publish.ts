@@ -131,10 +131,30 @@ import { Router } from 'express';
           const notifItems = valid.map(insert => ({
             userId: insert.user_id,
             title: `💰 Tu salario de ${insert.app_name} está disponible`,
-            body: `Semana ${insert.semana} — $${Number(insert.usd).toFixed(2)} · ${Number(insert.diamantes).toLocaleString('es-ES')} 💎`,
+            body: `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} · ${Number(insert.diamantes).toLocaleString('es-ES')} 💎`,
             url: '/salarios',
           }));
           dispatchPushIndividual(notifItems).catch(() => {});
+        });
+
+        // Notify agents and colider about new salary publication (fire-and-forget)
+        setImmediate(async () => {
+          try {
+            const [agentsRes, colidersRes] = await Promise.all([
+              fetch(sbUrl('profiles?is_agent=eq.true&select=id'), { headers: sbHeaders() as Record<string,string> }),
+              fetch(sbUrl('profiles?is_colider=eq.true&select=id'), { headers: sbHeaders() as Record<string,string> }),
+            ]);
+            const agents: {id:string}[] = agentsRes.ok ? await agentsRes.json() : [];
+            const coliders: {id:string}[] = colidersRes.ok ? await colidersRes.json() : [];
+            const ids = [...new Set([...agents.map(a => a.id), ...coliders.map(c => c.id)])];
+            if (ids.length > 0) {
+              await dispatchPush(ids,
+                `💰 Nómina de ${app_name} publicada`,
+                `Semana ${semana} · ${valid.length} trabajadora${valid.length !== 1 ? 's' : ''}. Entra a revisar.`,
+                '/nomina'
+              );
+            }
+          } catch { /* best-effort */ }
         });
 
         return res.json({ ok: true, saved: valid.length });
