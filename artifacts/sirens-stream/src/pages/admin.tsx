@@ -126,15 +126,17 @@ import { useState, useEffect, useRef } from 'react'
         const [channelPosting, setChannelPosting] = useState(false)
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
-          const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[]>([])
+          const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean;phone:string|null}[]>([])
             const [grantingChannels, setGrantingChannels] = useState<Record<string,boolean>>({})
             const [channelsGranted, setChannelsGranted] = useState<Record<string,boolean>>({})
             const [agentDetails, setAgentDetails] = useState<{commTotals:Record<string,number>;workerCounts:Record<string,number>;commApps:Record<string,string[]>}|null>(null)
           const [agentFormName, setAgentFormName] = useState('')
           const [agentFormEmail, setAgentFormEmail] = useState('')
           const [agentFormPassword, setAgentFormPassword] = useState('')
+          const [agentFormPhone, setAgentFormPhone] = useState('')
           const [creatingAgent, setCreatingAgent] = useState(false)
           const [agentCreateMsg, setAgentCreateMsg] = useState<{ok:boolean;msg:string}|null>(null)
+          const [agentPhoneMap, setAgentPhoneMap] = useState<Record<string,string>>({})
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
         const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes') ?? 'Waha' } catch { return 'Waha' } })
@@ -148,11 +150,11 @@ import { useState, useEffect, useRef } from 'react'
           const [laylaDirectLoading, setLaylaDirectLoading] = useState(false)
           const [laylaDirectNeedSetup, setLaylaDirectNeedSetup] = useState(false)
           const [noCobroEntries, setNoCobroEntries] = useState<any[]>([])
-          const [noCobPeriod, setNoCobPeriod] = useState<{ state: string; semana: string | null }>({ state: 'open', semana: null })
+          const [noCobFilter, setNoCobFilter] = useState<'all'|'justified'|'unjustified'>('all')
           const [noCobroLoading, setNoCobroLoading] = useState(false)
-          const [cierreSemana, setCierreSemana] = useState(() => { const d = new Date(); const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}${m}${day}` })
-          const [cierreLoading, setCierreLoading] = useState(false)
-          const [empezarLoading, setEmpezarLoading] = useState(false)
+          const [togglingJustified, setTogglingJustified] = useState<string|null>(null)
+
+
           const [noCobroSetupNeeded, setNoCobroSetupNeeded] = useState(false)
         const [testPushSending, setTestPushSending] = useState<Record<string, boolean>>({})
         const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
@@ -285,48 +287,31 @@ import { useState, useEffect, useRef } from 'react'
             setLaylaDirectLoading(false)
           }
 
-        async function fetchNoCobro() {
-            setNoCobroLoading(true)
-            setNoCobroSetupNeeded(false)
-            try {
-              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
-              const r = await fetch(`${apiBase}/no-cobro`, { credentials: 'include' })
-              if (!r.ok) { const e = await r.json().catch(() => ({})); if (e?.error?.includes('42P01') || e?.error?.includes('does not exist')) { setNoCobroSetupNeeded(true); setNoCobroLoading(false); return } }
-              const d = await r.json()
-              if (d.ok) { setNoCobroEntries(d.entries ?? []); setNoCobPeriod(d.period ?? { state: 'open', semana: null }) }
-            } catch {}
-            setNoCobroLoading(false)
-          }
+          async function fetchNoCobro() {
+              setNoCobroLoading(true)
+              setNoCobroSetupNeeded(false)
+              try {
+                const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
+                const r = await fetch(`${apiBase}/no-cobro`, { credentials: 'include' })
+                if (!r.ok) { const e = await r.json().catch(() => ({})); if ((e?.error ?? '').includes('42P01') || (e?.error ?? '').includes('does not exist')) { setNoCobroSetupNeeded(true); setNoCobroLoading(false); return } }
+                const d = await r.json()
+                if (d.ok) { setNoCobroEntries(d.entries ?? []) }
+              } catch {}
+              setNoCobroLoading(false)
+            }
 
-          async function handleCierreSemanal() {
-            if (!cierreSemana.trim()) return
-            setCierreLoading(true)
+          async function handleToggleJustified(id: string, justified: boolean) {
+            setTogglingJustified(id)
             try {
               const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
-              const r = await fetch(`${apiBase}/cierre-semanal`, {
-                method: 'POST', credentials: 'include',
+              await fetch(`${apiBase}/toggle-justified`, {
+                method: 'PATCH', credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ semana: cierreSemana.trim() }),
+                body: JSON.stringify({ id, justified }),
               })
-              const d = await r.json()
-              if (d.ok) { await fetchNoCobro() }
+              setNoCobroEntries(prev => prev.map(e => e.id === id ? { ...e, justified } : e))
             } catch {}
-            setCierreLoading(false)
-          }
-
-          async function handleEmpezarPagar() {
-            setEmpezarLoading(true)
-            try {
-              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
-              const r = await fetch(`${apiBase}/empezar-pagar`, {
-                method: 'POST', credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-              })
-              const d = await r.json()
-              if (d.ok) { setNoCobroEntries([]); setNoCobPeriod({ state: 'open', semana: null }) }
-            } catch {}
-            setEmpezarLoading(false)
+            setTogglingJustified(null)
           }
 
           async function notifyApp(app: string, type: 'salary' | 'canal') {
@@ -481,7 +466,7 @@ import { useState, useEffect, useRef } from 'react'
         const [{ data: entries }, { data: profiles }, { data: agentProfsAll }] = await Promise.all([
             supabase.from('worker_entries').select('*').order('created_at', { ascending: false }),
             supabase.from('profiles').select('id, email'),
-            supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
+            supabase.from('profiles').select('agent_name, agent_code, phone').eq('is_agent', true),
           ])
           const pm = Object.fromEntries(((profiles ?? []) as any[]).map(p => [p.id, p.email]))
           emailMapRef.current = pm
@@ -489,6 +474,10 @@ import { useState, useEffect, useRef } from 'react'
             ((agentProfsAll ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
           )
           setAgentNameMap(am)
+          const pm2: Record<string,string> = Object.fromEntries(
+            ((agentProfsAll ?? []) as any[]).filter((a: any) => a.agent_code && a.phone).map((a: any) => [a.agent_code, a.phone as string])
+          )
+          setAgentPhoneMap(pm2)
           if (entries) {
             setWorkers(entries.map((e: any) => ({ ...e, profile_email: pm[e.user_id] ?? 'desconocido' })))
           }
@@ -545,7 +534,7 @@ import { useState, useEffect, useRef } from 'react'
       }
 
       async function fetchAgents() {
-            const { data } = await supabase.from('profiles').select('id, email, agent_name, agent_code, is_agent').eq('is_agent', true).order('created_at', { ascending: false })
+            const { data } = await supabase.from('profiles').select('id, email, agent_name, agent_code, is_agent, phone').eq('is_agent', true).order('created_at', { ascending: false })
             setAgents((data ?? []) as {id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[])
             try {
               const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
@@ -564,7 +553,7 @@ import { useState, useEffect, useRef } from 'react'
               const res = await fetch(`${apiBase}/api/create-agent`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: agentFormEmail.trim(), password: agentFormPassword.trim(), agent_name: agentFormName.trim() }),
+                body: JSON.stringify({ email: agentFormEmail.trim(), password: agentFormPassword.trim(), agent_name: agentFormName.trim(), phone: agentFormPhone.trim() }),
               })
               const json = await res.json() as { ok?: boolean; agent_code?: string; error?: string }
               if (!res.ok || !json.ok) {
@@ -572,7 +561,7 @@ import { useState, useEffect, useRef } from 'react'
                 setCreatingAgent(false); return
               }
               setAgentCreateMsg({ ok: true, msg: `✓ Agente "${agentFormName.trim()}" creado. Código de agente: ${json.agent_code}` })
-              setAgentFormName(''); setAgentFormEmail(''); setAgentFormPassword('')
+              setAgentFormName(''); setAgentFormEmail(''); setAgentFormPassword(''); setAgentFormPhone('')
               await fetchAgents()
             } catch {
               setAgentCreateMsg({ ok: false, msg: 'Error de red al crear agente.' })
@@ -842,7 +831,7 @@ import { useState, useEffect, useRef } from 'react'
                                 {w.nombre_real && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.app_name}</span>}
                                 {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
                                 {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
-                                {w.agente && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{agentNameMap[w.agente] ?? w.agente}</span>}
+                    {w.agente && (() => { const aName = agentNameMap[w.agente] ?? w.agente; const aPhone = agentPhoneMap[w.agente]; return aPhone ? (<a href={`https://wa.me/${aPhone.replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer" className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/20 transition-colors">{aName} 📱</a>) : (<span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{aName}</span>); })()}
                                 {w.telefono && (
                                   <a
                                     href={`https://wa.me/${(`${w.codigo_pais ?? ''}${w.telefono}`).replace(/[\s\-\+\(\)]/g, '')}`}
@@ -1336,13 +1325,17 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                           {agentCreateMsg.msg}
                         </div>
                       )}
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <input value={agentFormName} onChange={e => setAgentFormName(e.target.value)}
                           placeholder="Nombre del agente" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                         <input value={agentFormEmail} onChange={e => setAgentFormEmail(e.target.value)}
                           placeholder="Correo electrónico" type="email" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                         <input value={agentFormPassword} onChange={e => setAgentFormPassword(e.target.value)}
                           placeholder="Contraseña" type="password" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                        <input value={agentFormPhone} onChange={e => setAgentFormPhone(e.target.value)}
+                          placeholder="Teléfono con código de país (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                        <input value={agentFormPhone} onChange={e => setAgentFormPhone(e.target.value)}
+                            placeholder="Teléfono (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                       </div>
                       <button onClick={createAgent} disabled={creatingAgent}
                         className="mt-3 flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
@@ -1369,6 +1362,12 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                     <span className="text-amber-400/60 text-xs">Código:</span>
                                     <span className="text-amber-300 font-mono font-bold text-xs tracking-wider">{ag.agent_code}</span>
                                   </div>
+                                )}
+                                {ag.phone && (
+                                  <a href={`https://wa.me/${ag.phone.replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer"
+                                    className="mt-1 flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors">
+                                    <span>📱</span><span>{ag.phone}</span>
+                                  </a>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
@@ -1496,106 +1495,99 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
     nombre_real text,
     email text,
     created_at timestamptz DEFAULT now(),
-    UNIQUE(user_id, app_name, semana)
+  created_at timestamptz DEFAULT now(),
+  justified boolean NOT NULL DEFAULT false,
   );
-  CREATE TABLE IF NOT EXISTS weekly_period_state (
-    id int DEFAULT 1 PRIMARY KEY,
-    state text NOT NULL DEFAULT 'open',
-    semana text,
-    closed_at timestamptz,
-    opened_at timestamptz DEFAULT now()
-  );
-  INSERT INTO weekly_period_state (id, state) VALUES (1, 'open') ON CONFLICT (id) DO NOTHING;`}</pre>
+ALTER TABLE weekly_no_cobro ADD COLUMN IF NOT EXISTS justified boolean NOT NULL DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone text;
                           <p className="text-white/30 text-xs mt-3">Después recarga esta página.</p>
                         </div>
                       ) : (
                         <>
-                          {/* Period status + controls */}
-                          <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-5 flex flex-col gap-4">
-                            <div className="flex items-center justify-between gap-4">
-                              <div>
-                                <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-1">Estado del período</p>
-                                {noCobPeriod.state === 'closed' ? (
-                                  <p className="text-sm text-red-400 font-bold">🔒 Cerrado — semana {noCobPeriod.semana}</p>
-                                ) : (
-                                  <p className="text-sm text-green-400 font-bold">🟢 Abierto — esperando cierre semanal</p>
-                                )}
-                              </div>
-                              <button onClick={fetchNoCobro} disabled={noCobroLoading}
-                                className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
-                                {noCobroLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
-                              </button>
+                          {/* Filter + refresh */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center bg-[#0d0d1e] border border-white/8 rounded-xl p-1 gap-1">
+                              {(['all','unjustified','justified'] as const).map(f => (
+                                <button key={f} onClick={() => setNoCobFilter(f)}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${noCobFilter === f ? 'bg-purple-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                                  {f === 'all' ? 'Todas' : f === 'justified' ? 'Justificadas' : 'No justificadas'}
+                                </button>
+                              ))}
                             </div>
-
-                            {/* Cierre semanal controls */}
-                            <div className="border-t border-white/6 pt-4 flex flex-wrap items-end gap-3">
-                              <div className="flex-1 min-w-[160px]">
-                                <p className="text-xs text-white/30 mb-1.5">Semana a cerrar (YYYYMMDD)</p>
-                                <input
-                                  type="text" maxLength={8} value={cierreSemana}
-                                  onChange={e => setCierreSemana(e.target.value.replace(/\D/g, ''))}
-                                  disabled={noCobPeriod.state === 'closed'}
-                                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-purple-500/40 disabled:opacity-40"
-                                />
-                              </div>
-                              <button onClick={handleCierreSemanal}
-                                disabled={cierreLoading || noCobPeriod.state === 'closed' || cierreSemana.length < 8}
-                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all">
-                                {cierreLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🔒'}
-                                Cierre Semanal
-                              </button>
-                              <button onClick={handleEmpezarPagar}
-                                disabled={empezarLoading || noCobPeriod.state === 'open'}
-                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all">
-                                {empezarLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🟢'}
-                                Empezar a Pagar
-                              </button>
-                            </div>
+                            <button onClick={fetchNoCobro} disabled={noCobroLoading}
+                              className="ml-auto px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
+                              {noCobroLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
+                            </button>
                           </div>
-
                           {/* No-cobro list */}
                           {noCobroLoading ? (
                             <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
                           ) : noCobroEntries.length === 0 ? (
                             <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-12 text-center">
                               <p className="text-white/40 text-sm">No hay trabajadoras en la lista de no cobraron.</p>
-                              <p className="text-white/25 text-xs mt-1">Aparecerán aquí al subir nóminas (Waha/Howdy) o al hacer el cierre semanal (Layla).</p>
+                              <p className="text-white/25 text-xs mt-1">Aparecerán aquí automáticamente al subir nóminas (Waha/Howdy/Layla).</p>
                             </div>
-                          ) : (
-                            <div className="space-y-4">
-                              {['Layla', 'Waha', 'Howdy'].map(appName => {
-                                const rows = noCobroEntries.filter((r: any) => r.app_name === appName)
-                                if (rows.length === 0) return null
-                                return (
-                                  <div key={appName}>
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-red-400/70 mb-2 px-1">
-                                      {appName} — {rows.length} sin cobrar
-                                    </h3>
-                                    <div className="space-y-2">
-                                      {rows.map((row: any) => (
-                                        <div key={row.id} className="bg-[#0d0d1e] border border-red-500/15 rounded-2xl px-5 py-3 flex items-center gap-4">
-                                          <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
-                                            <span className="text-red-400 text-base">✕</span>
+                          ) : (() => {
+                            // Group entries by user_id+app_name, count weeks, apply filter
+                            const grouped: Record<string, any[]> = {}
+                            for (const e of noCobroEntries) {
+                              const k = `${e.user_id}_${e.app_name}`
+                              if (!grouped[k]) grouped[k] = []
+                              grouped[k].push(e)
+                            }
+                            const workerGroups = Object.values(grouped).map(group => {
+                              const latest = group.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                              return { ...latest, weeks_count: group.length, is_justified: !!latest.justified }
+                            })
+                            const filtered = workerGroups.filter(w => {
+                              if (noCobFilter === 'justified') return w.is_justified
+                              if (noCobFilter === 'unjustified') return !w.is_justified
+                              return true
+                            })
+                            if (filtered.length === 0) return <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-8 text-center"><p className="text-white/40 text-sm">No hay resultados para este filtro.</p></div>
+                            return (
+                              <div className="space-y-4">
+                                {(['Layla', 'Waha', 'Howdy'] as const).map(appName => {
+                                  const rows = filtered.filter((r: any) => r.app_name === appName)
+                                  if (rows.length === 0) return null
+                                  return (
+                                    <div key={appName}>
+                                      <h3 className="text-xs font-bold uppercase tracking-widest text-red-400/70 mb-2 px-1">{appName} — {rows.length} sin cobrar</h3>
+                                      <div className="space-y-2">
+                                        {rows.map((row: any) => (
+                                          <div key={row.id} className={`bg-[#0d0d1e] border rounded-2xl px-5 py-3 flex items-center gap-4 ${row.is_justified ? 'border-amber-500/20' : 'border-red-500/15'}`}>
+                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{background: row.is_justified ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)'}}>
+                                              <span>{row.is_justified ? '⏸' : '✕'}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-bold text-white">{row.nombre_en_app || row.nombre_real || '—'}</p>
+                                              <p className="text-xs text-white/35 truncate">{row.email || '—'}</p>
+                                              <p className="text-xs mt-0.5" style={{color: row.weeks_count >= 3 ? '#f87171' : row.weeks_count === 2 ? '#fb923c' : '#9ca3af'}}>
+                                                {row.weeks_count} semana{row.weeks_count > 1 ? 's' : ''} sin cobrar
+                                              </p>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                              {appName !== 'Waha' && (
+                                                <label className="flex items-center gap-1.5 cursor-pointer" title="Marcar como justificada">
+                                                  <input type="checkbox" checked={row.is_justified} disabled={togglingJustified === row.id}
+                                                    onChange={e => handleToggleJustified(row.id, e.target.checked)}
+                                                    className="w-3.5 h-3.5 accent-amber-500" />
+                                                  <span className="text-xs text-white/40 whitespace-nowrap">Justificada</span>
+                                                </label>
+                                              )}
+                                              <div className="text-right">
+                                                <p className="text-xs text-white/25">Semana {row.semana}</p>
+                                              </div>
+                                            </div>
                                           </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-white">{row.nombre_en_app || row.nombre_real || '—'}</p>
-                                            <p className="text-xs text-white/35 truncate">{row.email || '—'}</p>
-                                          </div>
-                                          <div className="text-right shrink-0">
-                                            <p className="text-xs text-red-400/70 font-semibold">
-                                              {row.reason === 'layla_no_confirm' ? 'No confirmó pago' : 'Cobró $0'}
-                                            </p>
-                                            <p className="text-xs text-white/25">Semana {row.semana}</p>
-                                          </div>
-                                        </div>
-                                      ))}
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
                       )}
                     </div>
                   )})}
