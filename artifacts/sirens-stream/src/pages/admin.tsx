@@ -57,6 +57,10 @@ import { useState, useEffect, useRef } from 'react'
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'cambio' ? 'bg-green-600 text-white' : 'text-white/40 hover:text-white'}`}>
                   💱 Cambio
                 </button>
+                <button onClick={() => { setTab('nocobro'); fetchNoCobro() }}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'nocobro' ? 'bg-red-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                  🚨 No Cobraron
+                </button>
               {href && (
                 <a href={href} target="_blank" rel="noopener noreferrer"
                    className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/25 transition-colors font-semibold shrink-0">
@@ -110,7 +114,7 @@ import { useState, useEffect, useRef } from 'react'
       const [filterIdApp, setFilterIdApp] = useState(() => { try { return localStorage.getItem('ea_af_id_app') ?? '' } catch { return '' } })
       const [filterTelefono, setFilterTelefono] = useState(() => { try { return localStorage.getItem('ea_af_telefono') ?? '' } catch { return '' } })
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos' | 'agentes' | 'cambio'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'notifs' | 'pagos' | 'agentes' | 'cambio' | 'nocobro'>('list')
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
@@ -139,6 +143,13 @@ import { useState, useEffect, useRef } from 'react'
           const [laylaDirectNotifs, setLaylaDirectNotifs] = useState<any[]>([])
           const [laylaDirectLoading, setLaylaDirectLoading] = useState(false)
           const [laylaDirectNeedSetup, setLaylaDirectNeedSetup] = useState(false)
+          const [noCobroEntries, setNoCobroEntries] = useState<any[]>([])
+          const [noCobPeriod, setNoCobPeriod] = useState<{ state: string; semana: string | null }>({ state: 'open', semana: null })
+          const [noCobroLoading, setNoCobroLoading] = useState(false)
+          const [cierreSemana, setCierreSemana] = useState(() => { const d = new Date(); const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}${m}${day}` })
+          const [cierreLoading, setCierreLoading] = useState(false)
+          const [empezarLoading, setEmpezarLoading] = useState(false)
+          const [noCobroSetupNeeded, setNoCobroSetupNeeded] = useState(false)
         const [testPushSending, setTestPushSending] = useState<Record<string, boolean>>({})
         const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
           const [testPushNoSub, setTestPushNoSub] = useState<Record<string, boolean>>({})
@@ -243,7 +254,51 @@ import { useState, useEffect, useRef } from 'react'
             setLaylaDirectLoading(false)
           }
 
-        async function notifyApp(app: string, type: 'salary' | 'canal') {
+        async function fetchNoCobro() {
+            setNoCobroLoading(true)
+            setNoCobroSetupNeeded(false)
+            try {
+              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
+              const r = await fetch(`${apiBase}/no-cobro`, { credentials: 'include' })
+              if (!r.ok) { const e = await r.json().catch(() => ({})); if (e?.error?.includes('42P01') || e?.error?.includes('does not exist')) { setNoCobroSetupNeeded(true); setNoCobroLoading(false); return } }
+              const d = await r.json()
+              if (d.ok) { setNoCobroEntries(d.entries ?? []); setNoCobPeriod(d.period ?? { state: 'open', semana: null }) }
+            } catch {}
+            setNoCobroLoading(false)
+          }
+
+          async function handleCierreSemanal() {
+            if (!cierreSemana.trim()) return
+            setCierreLoading(true)
+            try {
+              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
+              const r = await fetch(`${apiBase}/cierre-semanal`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ semana: cierreSemana.trim() }),
+              })
+              const d = await r.json()
+              if (d.ok) { await fetchNoCobro() }
+            } catch {}
+            setCierreLoading(false)
+          }
+
+          async function handleEmpezarPagar() {
+            setEmpezarLoading(true)
+            try {
+              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
+              const r = await fetch(`${apiBase}/empezar-pagar`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+              })
+              const d = await r.json()
+              if (d.ok) { setNoCobroEntries([]); setNoCobPeriod({ state: 'open', semana: null }) }
+            } catch {}
+            setEmpezarLoading(false)
+          }
+
+          async function notifyApp(app: string, type: 'salary' | 'canal') {
           const key = `${app}_${type}`
           setNotifying(p => ({ ...p, [key]: true }))
           setNotifOk(p => ({ ...p, [key]: false }))
@@ -1361,7 +1416,129 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                   </div>
 
                 </div>
-              )}
+              }
+
+                  {/* ─── NO COBRARON TAB ─────────────────────────────────────────────── */}
+                  {tab === 'nocobro' && (
+                    <div className="space-y-6 max-w-3xl">
+
+                      {noCobroSetupNeeded ? (
+                        <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-6">
+                          <p className="text-amber-300 text-sm font-bold mb-2">⚠️ Falta crear las tablas en Supabase</p>
+                          <p className="text-white/50 text-xs mb-3">Ejecuta este SQL en el Editor SQL de Supabase:</p>
+                          <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all text-left">{`CREATE TABLE IF NOT EXISTS weekly_no_cobro (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+    app_name text NOT NULL,
+    semana text NOT NULL,
+    reason text NOT NULL DEFAULT 'not_earned',
+    nombre_en_app text,
+    nombre_real text,
+    email text,
+    created_at timestamptz DEFAULT now(),
+    UNIQUE(user_id, app_name, semana)
+  );
+  CREATE TABLE IF NOT EXISTS weekly_period_state (
+    id int DEFAULT 1 PRIMARY KEY,
+    state text NOT NULL DEFAULT 'open',
+    semana text,
+    closed_at timestamptz,
+    opened_at timestamptz DEFAULT now()
+  );
+  INSERT INTO weekly_period_state (id, state) VALUES (1, 'open') ON CONFLICT (id) DO NOTHING;`}</pre>
+                          <p className="text-white/30 text-xs mt-3">Después recarga esta página.</p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Period status + controls */}
+                          <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-5 flex flex-col gap-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-1">Estado del período</p>
+                                {noCobPeriod.state === 'closed' ? (
+                                  <p className="text-sm text-red-400 font-bold">🔒 Cerrado — semana {noCobPeriod.semana}</p>
+                                ) : (
+                                  <p className="text-sm text-green-400 font-bold">🟢 Abierto — esperando cierre semanal</p>
+                                )}
+                              </div>
+                              <button onClick={fetchNoCobro} disabled={noCobroLoading}
+                                className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
+                                {noCobroLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
+                              </button>
+                            </div>
+
+                            {/* Cierre semanal controls */}
+                            <div className="border-t border-white/6 pt-4 flex flex-wrap items-end gap-3">
+                              <div className="flex-1 min-w-[160px]">
+                                <p className="text-xs text-white/30 mb-1.5">Semana a cerrar (YYYYMMDD)</p>
+                                <input
+                                  type="text" maxLength={8} value={cierreSemana}
+                                  onChange={e => setCierreSemana(e.target.value.replace(/\D/g, ''))}
+                                  disabled={noCobPeriod.state === 'closed'}
+                                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-purple-500/40 disabled:opacity-40"
+                                />
+                              </div>
+                              <button onClick={handleCierreSemanal}
+                                disabled={cierreLoading || noCobPeriod.state === 'closed' || cierreSemana.length < 8}
+                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all">
+                                {cierreLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🔒'}
+                                Cierre Semanal
+                              </button>
+                              <button onClick={handleEmpezarPagar}
+                                disabled={empezarLoading || noCobPeriod.state === 'open'}
+                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all">
+                                {empezarLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '🟢'}
+                                Empezar a Pagar
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* No-cobro list */}
+                          {noCobroLoading ? (
+                            <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
+                          ) : noCobroEntries.length === 0 ? (
+                            <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-12 text-center">
+                              <p className="text-white/40 text-sm">No hay trabajadoras en la lista de no cobraron.</p>
+                              <p className="text-white/25 text-xs mt-1">Aparecerán aquí al subir nóminas (Waha/Howdy) o al hacer el cierre semanal (Layla).</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {['Layla', 'Waha', 'Howdy'].map(appName => {
+                                const rows = noCobroEntries.filter((r: any) => r.app_name === appName)
+                                if (rows.length === 0) return null
+                                return (
+                                  <div key={appName}>
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-red-400/70 mb-2 px-1">
+                                      {appName} — {rows.length} sin cobrar
+                                    </h3>
+                                    <div className="space-y-2">
+                                      {rows.map((row: any) => (
+                                        <div key={row.id} className="bg-[#0d0d1e] border border-red-500/15 rounded-2xl px-5 py-3 flex items-center gap-4">
+                                          <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                                            <span className="text-red-400 text-base">✕</span>
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-white">{row.nombre_en_app || row.nombre_real || '—'}</p>
+                                            <p className="text-xs text-white/35 truncate">{row.email || '—'}</p>
+                                          </div>
+                                          <div className="text-right shrink-0">
+                                            <p className="text-xs text-red-400/70 font-semibold">
+                                              {row.reason === 'layla_no_confirm' ? 'No confirmó pago' : 'Cobró $0'}
+                                            </p>
+                                            <p className="text-xs text-white/25">Semana {row.semana}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )})}
 
           </div>
         </div>
