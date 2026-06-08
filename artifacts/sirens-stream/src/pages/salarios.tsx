@@ -44,9 +44,11 @@ import { useState, useEffect } from 'react'
     const [deleting, setDeleting] = useState<string | null>(null)
     const [confirmed, setConfirmed] = useState<Set<string>>(new Set())
     const [confirming, setConfirming] = useState<string | null>(null)
+      const [workerPayMethods, setWorkerPayMethods] = useState<Record<string,string>>({})
+      const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
-    useEffect(() => { if (user) { fetchSalaries(); fetchConfirmed() } }, [user])
+    useEffect(() => { if (user) { fetchSalaries(); fetchConfirmed(); fetchWorkerInfo() } }, [user])
 
     async function fetchSalaries() {
       setFetching(true)
@@ -67,7 +69,22 @@ import { useState, useEffect } from 'react'
       setConfirmed(new Set(((data ?? []) as any[]).map((r: any) => r.salary_id)))
     }
 
-    async function confirmPayment(salaryId: string, appName: string, semana: string) {
+    async function fetchWorkerInfo() {
+        const [entriesRes, ratesRes] = await Promise.all([
+          supabase.from('worker_entries').select('app_name, metodo_pago').eq('user_id', user!.id),
+          supabase.from('exchange_rates').select('id, rate')
+        ])
+        const methods: Record<string,string> = {}
+        for (const e of (entriesRes.data ?? []) as {app_name:string;metodo_pago:string|null}[]) {
+          methods[e.app_name] = e.metodo_pago ?? ''
+        }
+        setWorkerPayMethods(methods)
+        const r: Record<string,number> = {}
+        for (const row of (ratesRes.data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
+        setExchangeRates(r)
+      }
+
+      async function confirmPayment(salaryId: string, appName: string, semana: string) {
       setConfirming(salaryId)
       await supabase.from('payment_confirmations').insert({
         salary_id: salaryId,
@@ -177,7 +194,16 @@ import { useState, useEffect } from 'react'
                                 )}
                               </div>
                             </div>
-                            {extraEntries.length > 0 && (
+                              {isCubanPay && cupRate > 0 && (
+                                <div className="px-5 py-3 border-t border-amber-500/10 bg-amber-500/5 flex items-center justify-between gap-4">
+                                  <div>
+                                    <p className="text-amber-400/70 text-xs font-semibold">{metodo.includes('Efectivo') ? 'Efectivo Cuba' : 'Transferencia Cuba'}</p>
+                                    <p className="text-amber-300/40 text-xs">1 USD = {cupRate.toLocaleString('es-ES')} CUP</p>
+                                  </div>
+                                  <p className="text-amber-300 font-extrabold text-lg">{(cupTotal).toLocaleString('es-ES')} <span className="text-amber-400/60 font-semibold text-sm">CUP</span></p>
+                                </div>
+                              )}
+                              {extraEntries.length > 0 && (
                               <>
                                 <button onClick={() => toggle(s.id)}
                                   className="w-full flex items-center justify-center gap-2 px-5 py-2.5 border-t border-purple-500/8 text-xs font-semibold text-white/30 hover:text-purple-300 hover:bg-purple-500/5 transition-all">
