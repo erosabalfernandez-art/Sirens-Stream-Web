@@ -81,18 +81,6 @@ import { Router } from 'express';
         }
 
         req.log.info({ userId, email, agentCode }, 'Agent created');
-          // Auto-grant approved channel access for all apps
-          const APPS = ['Layla', 'Waha', 'Howdy'];
-          const channelRows = APPS.map(app => ({
-            user_id: userId, app_name: app, status: 'approved',
-            created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-          }));
-          void fetch(sbUrl('channel_requests?on_conflict=user_id,app_name'), {
-            method: 'POST',
-            headers: sbHeaders('resolution=merge-duplicates,return=minimal') as Record<string, string>,
-            body: JSON.stringify(channelRows),
-          }).catch(() => {});
-
           return res.json({ ok: true, agent_code: agentCode, user_id: userId });
       } catch (err) {
         req.log.error(err, 'create-agent error');
