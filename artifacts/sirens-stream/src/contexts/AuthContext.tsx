@@ -25,7 +25,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
           // mobile connections don't hang the UI indefinitely.
           const queryPromise = supabase
             .from('profiles')
-            .select('*')
+            .select('id, email, is_admin, is_agent, is_colider, agent_name, agent_code, colider_name, phone, telefono, created_at')
             .eq('id', userId)
             .single()
 
