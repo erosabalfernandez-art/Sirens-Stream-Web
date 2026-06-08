@@ -82,9 +82,9 @@ import React, { useState, useEffect } from 'react'
     const [noCobro, setNoCobro] = useState<NoCobro[]>([])
     const [noCobroLoading, setNoCobroLoading] = useState(false)
 
-    useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent) navigate('/') }, [loading, profile])
+    useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent && !profile?.is_colider) navigate('/') }, [loading, profile])
     useEffect(() => {
-      if (profile?.is_agent) {
+      if (profile?.is_agent || profile?.is_colider) {
         fetchCommissions()
         fetchWorkers()
         fetchExchangeRates()
@@ -236,7 +236,7 @@ import React, { useState, useEffect } from 'react'
         <div className="text-white/40 animate-pulse text-sm">Cargando...</div>
       </div>
     )
-    if (!profile?.is_agent) return null
+    if (!profile?.is_agent && !profile?.is_colider) return null
 
     const agentCode = (profile as any).agent_code as string | undefined
     const commApps = [...new Set(commissions.map(c => c.app_name))]
@@ -271,6 +271,21 @@ import React, { useState, useEffect } from 'react'
               )}
             </div>
           </div>
+
+          {/* No-commission warning for own worker entries */}
+          {workerEntries.some(w => w.user_id === profile.id) && (
+            <div className="mb-4 bg-amber-500/8 border border-amber-500/25 rounded-2xl p-4 flex items-start gap-3">
+              <span className="text-amber-400 text-xl shrink-0 mt-0.5">⚠️</span>
+              <div>
+                <p className="text-amber-300 text-sm font-bold mb-1">Tus cuentas propias no generan comisión</p>
+                <p className="text-white/50 text-xs leading-relaxed">
+                  Tienes cuentas en las apps bajo tu propio perfil
+                  ({workerEntries.filter(w => w.user_id === profile.id).map(w => w.app_name).join(', ')}).
+                  Esas cuentas no cuentan para tu comisión de agente.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Push notification banner - always visible */}
             <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-4 mb-4 flex items-center justify-between gap-4">
