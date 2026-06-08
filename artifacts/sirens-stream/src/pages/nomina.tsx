@@ -323,6 +323,17 @@ const APP_COLORS = {
       })
     }, [open])
 
+    useEffect(() => {
+      function onCierre() {
+        setValues({})
+        setSemana('')
+        setPublishedOk(false)
+        try { localStorage.removeItem('ea_nomina_layla_published') } catch {}
+      }
+      window.addEventListener('ea_cierre_done', onCierre)
+      return () => window.removeEventListener('ea_cierre_done', onCierre)
+    }, [])
+
     function setField(id: string, field: 'retiradas' | 'comerciales', val: string) {
       setValues(prev => ({ ...prev, [id]: { ...(prev[id] ?? { retiradas: '', comerciales: '' }), [field]: val } }))
     }
