@@ -297,6 +297,21 @@ import { useState, useEffect, useRef } from 'react'
             setLaylaDirectLoading(false)
           }
 
+          async function fetchColiderMarks() {
+            setColiderMarksLoading(true)
+            const { data: marks } = await supabase
+              .from('colider_marks')
+              .select('*')
+              .order('created_at', { ascending: false })
+            if (marks) {
+              setColiderMarks({
+                paid: (marks as any[]).filter((m: any) => m.paid),
+                pending: (marks as any[]).filter((m: any) => !m.paid),
+              })
+            }
+            setColiderMarksLoading(false)
+          }
+
           async function fetchNoCobro() {
               setNoCobroLoading(true)
               setNoCobroSetupNeeded(false)
@@ -497,22 +512,7 @@ import { useState, useEffect, useRef } from 'react'
             setLaylaDirectLoading(true)
             setLaylaDirectNeedSetup(false)
             const { data: notifs, error } = await supabase
-              .from('direct_payment_notifications')          async function fetchColiderMarks() {
-            setColiderMarksLoading(true)
-            const { data: marks } = await supabase
-              .from('colider_marks')
-              .select('*')
-              .order('created_at', { ascending: false })
-            if (marks) {
-              setColiderMarks({
-                paid: (marks as any[]).filter((m: any) => m.paid),
-                pending: (marks as any[]).filter((m: any) => !m.paid),
-              })
-            }
-            setColiderMarksLoading(false)
-          }
-
-          
+              .from('direct_payment_notifications')
               .select('*')
               .eq('app_name', 'Layla')
               .order('notified_at', { ascending: false })
