@@ -305,7 +305,7 @@ const APP_COLORS = {
   // ── Layla Manual Entry Section ──────────────────────────────────────────────
   const LAYLA_RATE = 15500 // monedas por dólar
 
-  function LaylaManualSection() {
+  function LaylaManualSection({ exchangeRates = {} }: { exchangeRates?: Record<string,number> }) {
     const [open, setOpen] = useState<boolean>(false)
     const [workers, setWorkers] = useState<WorkerEntry[]>([])
     const [loadingWorkers, setLoadingWorkers] = useState(false)
@@ -580,7 +580,7 @@ const APP_COLORS = {
   }
 
   
-function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy'; reloadKey: number }) {
+function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' | 'Layla' | 'Howdy'; reloadKey: number; exchangeRates?: Record<string,number> }) {
   const color = APP_COLORS[app]
 
   // Accordion open state (auto-open if has saved data)
@@ -1314,6 +1314,12 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
                                 <Gem className="w-3.5 h-3.5 text-purple-400" />
                                 <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
                               </div>
+                                {(w.metodo_pago === 'Efectivo (Cuba)' || w.metodo_pago === 'Transferencia Bancaria (Cuba)') && (() => {
+                                  const rk = w.metodo_pago === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
+                                  const rate = exchangeRates[rk] ?? 0
+                                  if (!rate || !n.usd) return null
+                                  return <p className="text-amber-400 text-xs font-bold mt-1.5 bg-amber-500/10 px-2 py-0.5 rounded-lg">{(n.usd * rate).toLocaleString('es-ES', {maximumFractionDigits: 0})} {w.metodo_pago === 'Efectivo (Cuba)' ? '💵 Ef.' : '🏦 Transf.'}</p>
+                                })()}
                             </div>
                           </div>
                           <div className="px-5 pb-4 border-t border-purple-500/8">
@@ -1449,7 +1455,53 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
                       )
                     })}
                   </div>
-                )}
+                {/* ===== Admin: Agent Commissions Panel ===== */}
+                  {cobradas.length > 0 && (() => {
+                    const agMap: Record<string, { usd: number; cnt: number }> = {}
+                    for (const { worker: w2, nomina: nm } of cobradas) {
+                      const ag = (w2 as any).agente as string | null
+                      if (!ag || !nm.comision) continue
+                      if (!agMap[ag]) agMap[ag] = { usd: 0, cnt: 0 }
+                      agMap[ag].usd += nm.comision
+                      agMap[ag].cnt++
+                    }
+                    const ags = Object.entries(agMap)
+                    if (ags.length === 0) return null
+                    const rEf = exchangeRates['efectivo_agent'] ?? 0
+                    const rTr = exchangeRates['transferencia_agent'] ?? 0
+                    const totUSD = ags.reduce((s, [, d]) => s + d.usd, 0)
+                    return (
+                      <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl overflow-hidden mt-2">
+                        <div className="px-5 py-3 border-b border-amber-500/10 flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <p className="text-amber-300 font-extrabold text-sm uppercase tracking-wider">🧡 Comisiones de Agentes</p>
+                            <p className="text-white/30 text-xs mt-0.5">Solo visible para admin · calculado de esta nómina</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-green-400 font-extrabold text-base">{totUSD.toFixed(2){'}'} USD total</p>
+                            {rEf > 0 && <p className="text-amber-400 text-xs font-bold">{'{'}(totUSD*rEf).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'} 💵 ef.</p>}
+                            {rTr > 0 && <p className="text-blue-400 text-xs font-bold">{'{'}(totUSD*rTr).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'} 🏦 transf.</p>}
+                          </div>
+                        </div>
+                        <div className="divide-y divide-amber-500/8">
+                          {'{'}ags.map(([name, d]) => (
+                            <div key={'{'}name{'}'} className="px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+                              <div>
+                                <p className="font-bold text-sm text-amber-200">{'{'}name{'}'}</p>
+                                <p className="text-white/30 text-xs">{'{'}d.cnt{'}'} chica{'{'}d.cnt!==1?'s':''{'}'}</p>
+                              </div>
+                              <div className="flex items-center gap-4 flex-wrap text-right">
+                                <div><p className="text-white/30 text-xs">USD</p><p className="text-green-400 font-extrabold text-base">{d.usd.toFixed(2){'}'}</p></div>
+                                {rEf > 0 && <div><p className="text-white/30 text-xs">💵 Efectivo</p><p className="text-amber-400 font-bold text-base">{'{'}(d.usd*rEf).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'}</p></div>}
+                                {rTr > 0 && <div><p className="text-white/30 text-xs">🏦 Transf.</p><p className="text-blue-400 font-bold text-base">{'{'}(d.usd*rTr).toLocaleString('es-ES',{'{'}maximumFractionDigits:0{'}'}){'}'}</p></div>}
+                              </div>
+                            </div>
+                          )){ '}'}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                  )}
               </div>
             </>
           )}
@@ -1663,9 +1715,9 @@ export default function Nomina() {
           />
         ) : (
           <div className="space-y-3">
-            <AppNominaSection app="Waha"  reloadKey={reloadKeys.Waha}  />
-            <LaylaManualSection />
-            <AppNominaSection app="Howdy" reloadKey={reloadKeys.Howdy} />
+            <AppNominaSection app="Waha"  reloadKey={reloadKeys.Waha}  exchangeRates={nominaRates} />
+            <LaylaManualSection exchangeRates={nominaRates} />
+            <AppNominaSection app="Howdy" reloadKey={reloadKeys.Howdy} exchangeRates={nominaRates} />
           </div>
         )}
 
