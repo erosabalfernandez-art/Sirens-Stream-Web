@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar } from 'lucide-react'
+  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2 } from 'lucide-react'
   import { subscribeToPush } from '@/lib/push'
 
   interface AgentCommission {
@@ -64,6 +64,8 @@ import React, { useState, useEffect } from 'react'
     const [workerAppFilter, setWorkerAppFilter] = useState('')
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
+      const [agentConfirmed, setAgentConfirmed] = useState<Set<string>>(new Set())
+      const [agentConfirming, setAgentConfirming] = useState<string | null>(null)
 
     useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent) navigate('/') }, [loading, profile])
     useEffect(() => {
@@ -109,7 +111,28 @@ import React, { useState, useEffect } from 'react'
       setExchangeRates(r)
     }
 
-    function selectPayMethod(method: 'efectivo' | 'transferencia') {
+    async function fetchAgentConfirmed() {
+        const { data } = await supabase
+          .from('agent_payment_confirmations')
+          .select('commission_id')
+          .eq('user_id', profile!.id)
+        setAgentConfirmed(new Set(((data ?? []) as any[]).map((r: any) => r.commission_id)))
+      }
+
+      async function confirmAgentPayment(commId: string, semana: string, appName: string) {
+        setAgentConfirming(commId)
+        await supabase.from('agent_payment_confirmations').insert({
+          commission_id: commId,
+          user_id: profile!.id,
+          agent_name: profile!.nombre_real ?? profile!.nombre_en_app ?? '',
+          semana,
+          app_name: appName,
+        })
+        setAgentConfirmed(prev => new Set([...prev, commId]))
+        setAgentConfirming(null)
+      }
+
+      function selectPayMethod(method: 'efectivo' | 'transferencia') {
         setAgentPayMethod(method)
         if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
       }
@@ -430,6 +453,26 @@ import React, { useState, useEffect } from 'react'
                           ))}
                         </div>
                       )}
+                        {/* Pago Recibido footer */}
+                        <div className="border-t border-purple-500/10 px-5 py-3 flex items-center justify-between">
+                          {agentConfirmed.has(c.id) ? (
+                            <div className="flex items-center gap-2 text-green-400 text-sm font-semibold">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>&#x2713; Pago confirmado</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => confirmAgentPayment(c.id, c.semana, c.app_name)}
+                              disabled={agentConfirming === c.id}
+                              className="flex items-center gap-2 text-sm font-semibold text-white/40 hover:text-green-400 transition-colors disabled:opacity-40">
+                              {agentConfirming === c.id
+                                ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" />
+                                : <CheckCircle2 className="w-4 h-4" />}
+                              <span>Confirmar pago recibido</span>
+                            </button>
+                          )}
+                          <span className="text-white/20 text-xs">{c.semana}</span>
+                        </div>
                     </div>
                   ))}
                 </div>
