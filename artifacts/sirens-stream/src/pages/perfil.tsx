@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
     import { subscribeToPush } from '@/lib/push'
-    import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check, Bell, BellOff } from 'lucide-react'
+    import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check, Copy, Bell, BellOff } from 'lucide-react'
 
     const APPS = ['Waha', 'Layla', 'Howdy']
 
