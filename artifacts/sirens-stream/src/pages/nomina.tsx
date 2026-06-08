@@ -1210,11 +1210,11 @@ export default function Nomina() {
   if (!profile?.is_admin) return <SplashLoader msg="Sin acceso" />
 
   useEffect(() => {
-  useEffect(() => {
     supabase.from('exchange_rates').select('*').then(({ data }) => {
       const r: Record<string,number> = {}
       for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate }
       setNominaRates(r)
+    })
   }, [])
 
   async function publishNominaRate(id: string) {
