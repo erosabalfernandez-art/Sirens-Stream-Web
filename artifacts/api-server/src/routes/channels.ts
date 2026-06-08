@@ -1,4 +1,5 @@
 import { Router } from 'express';
+  import { dispatchPush } from '../lib/push-dispatch';
 
   const router = Router();
 
@@ -74,29 +75,20 @@ import { Router } from 'express';
       const usersRows: { user_id: string }[] = usersR.ok ? await usersR.json() : [];
       const ids = usersRows.map((u) => u.user_id).filter(Boolean);
 
-      // Send push notifications in background
-      if (ids.length > 0) {
-        const preview = content?.trim().slice(0, 80) ?? '📷 Imagen';
-        const vapidPublic = process.env.VAPID_PUBLIC ?? '';
-        const vapidPrivate = process.env.VAPID_PRIVATE ?? '';
-        setImmediate(async () => {
-          try {
-            const subsR = await fetch(
-              sbUrl(`push_subscriptions?user_id=in.(${ids.map(id => encodeURIComponent(id)).join(',')})&select=endpoint,p256dh,auth`),
-              { headers: sbH() }
-            );
-            if (!subsR.ok) return;
-            const subs: { endpoint: string; p256dh: string; auth: string }[] = await subsR.json();
-            if (!subs.length || !vapidPublic || !vapidPrivate) return;
-            const { default: webpush } = await import('web-push');
-            webpush.setVapidDetails('mailto:admin@eclipse-angels.com', vapidPublic, vapidPrivate);
-            const payload = JSON.stringify({ title: `📢 Nuevo comunicado — ${app_name}`, body: preview, url: '/canales' });
-            await Promise.allSettled(
-              subs.map(s => webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload))
-            );
-          } catch {}
-        });
-      }
+      // Send push notifications to workers + agents (fire-and-forget)
+      setImmediate(async () => {
+        try {
+          const preview = content?.trim().slice(0, 80) ?? '📷 Imagen';
+          // Get agent IDs to include in channel notifications
+          const agentsRes = await fetch(sbUrl('profiles?is_agent=eq.true&select=id'), { headers: sbH() });
+          const agentRows: {id:string}[] = agentsRes.ok ? await agentsRes.json() : [];
+          const agentIds = agentRows.map(a => a.id);
+          const allIds = [...new Set([...ids, ...agentIds])];
+          if (allIds.length > 0) {
+            await dispatchPush(allIds, `📢 Nuevo comunicado — ${app_name}`, preview, '/canales');
+          }
+        } catch {}
+      });
 
       return res.json({ ok: true, message: msg, notified: ids.length });
     } catch (e: unknown) {
