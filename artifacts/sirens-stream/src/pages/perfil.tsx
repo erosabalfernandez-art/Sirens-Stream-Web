@@ -211,8 +211,14 @@ import { useState, useEffect } from 'react'
                   <p className="text-white/40 text-xs">{T.notifSub}</p>
                 </div>
                 {notifStatus === 'granted' ? (
-                  <div className="flex items-center gap-2 text-green-400 text-sm font-semibold">
-                    <Bell className="w-4 h-4" /> {T.notifOn}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-2 text-green-400 text-sm font-semibold">
+                      <Bell className="w-4 h-4" /> {T.notifOn}
+                    </div>
+                    <button onClick={enableNotifications}
+                      className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/70 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all border border-white/10">
+                      <Bell className="w-3 h-3" /> Reactivar
+                    </button>
                   </div>
                 ) : notifStatus === 'denied' ? (
                   <div className="max-w-[210px] text-right">
