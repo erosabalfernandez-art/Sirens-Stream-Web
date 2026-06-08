@@ -59,7 +59,7 @@ import React, { useState, useEffect } from 'react'
     const [workersLoading, setWorkersLoading] = useState(true)
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [filterApp, setFilterApp] = useState('')
-    const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'>('idle')
+    const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
     const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'>('comisiones')
     const [workerAppFilter, setWorkerAppFilter] = useState('')
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
@@ -254,7 +254,7 @@ import React, { useState, useEffect } from 'react'
                 <div>
                   <p className="text-sm font-semibold text-white">Notificaciones push</p>
                   <p className="text-white/35 text-xs mt-0.5">
-                    {notifStatus === 'granted' ? 'Notificaciones activadas' : notifStatus === 'denied' ? 'Notificaciones bloqueadas en el navegador' : 'Recibe alertas cuando publican tus comisiones'}
+                    {notifStatus === 'granted' ? 'Notificaciones activadas' : notifStatus === 'denied' ? 'Notificaciones bloqueadas en el navegador' : notifStatus === 'error' ? 'Error técnico al activar notificaciones' : 'Recibe alertas cuando publican tus comisiones'}
                   </p>
                 </div>
               </div>
