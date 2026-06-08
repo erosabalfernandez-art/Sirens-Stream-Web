@@ -233,6 +233,21 @@ import { useState, useEffect, useRef } from 'react'
           setTimeout(() => setTestPushAgentsOk(false), 4000)
         }
 
+        async function sendTestPushToAgent(ag: {id:string;agent_name:string|null}) {
+          setTestPushSending(p => ({ ...p, [ag.id]: true }))
+          setTestPushOk(p => ({ ...p, [ag.id]: false }))
+          const greeting = ag.agent_name ? ` ${ag.agent_name}` : ''
+          await sendPushViaApi(
+            [ag.id],
+            '🔔 Notificación de prueba',
+            `Hola${greeting}! Esta es una notificación de prueba enviada desde el panel admin.`,
+            '/agente'
+          )
+          setTestPushSending(p => ({ ...p, [ag.id]: false }))
+          setTestPushOk(p => ({ ...p, [ag.id]: true }))
+          setTimeout(() => setTestPushOk(p => ({ ...p, [ag.id]: false })), 4000)
+        }
+
         useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
       useEffect(() => {
@@ -1059,18 +1074,6 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
   
                 {tab === 'agentes' && (
                   <div className="space-y-6">
-                    {/* Botón de prueba de notificación para agentes */}
-                    <div className="bg-[#0d0d1e] border border-blue-500/15 rounded-2xl p-5 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-white mb-0.5 flex items-center gap-2"><Bell className="w-4 h-4 text-blue-400" /> Notificación de prueba para agentes</p>
-                        <p className="text-white/35 text-xs">Envía una push de prueba a todas las cuentas de agente para verificar que les llegan las notificaciones.</p>
-                      </div>
-                      <button onClick={sendTestPushToAllAgents} disabled={testPushAgents}
-                        className={`shrink-0 flex items-center gap-2 ${testPushAgentsOk ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all`}>
-                        {testPushAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
-                        {testPushAgentsOk ? '✓ Enviado' : (testPushAgents ? 'Enviando...' : 'Enviar prueba')}
-                      </button>
-                    </div>
                     <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-6">
                       <div className="flex items-center gap-2 mb-5">
                         <Users className="w-4 h-4 text-amber-400" />
@@ -1116,7 +1119,19 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                   </div>
                                 )}
                               </div>
-                              <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Agente</span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  onClick={() => sendTestPushToAgent(ag)}
+                                  disabled={testPushSending[ag.id]}
+                                  title="Enviar notificación de prueba"
+                                  className={`flex items-center gap-1.5 ${testPushOk[ag.id] ? 'bg-green-600' : 'bg-blue-600/80 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all`}>
+                                  {testPushSending[ag.id]
+                                    ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    : <Bell className="w-3 h-3" />}
+                                  {testPushOk[ag.id] ? '✓ Enviado' : testPushSending[ag.id] ? 'Enviando...' : 'Notificar'}
+                                </button>
+                                <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Agente</span>
+                              </div>
                             </div>
                           ))}
                         </div>
