@@ -78,7 +78,7 @@ import { Router } from 'express'
     const { semana, person_uid, person_type, paid, person_name, person_real_name, person_phone, person_app, salary_usd, salary_cuba, metodo_pago } = req.body
     if (!semana || !person_uid || !person_type) { res.status(400).json({ error: 'semana, person_uid, person_type required' }); return }
     try {
-      await sbPost('colider_marks', { semana, person_uid, person_type, paid: paid ?? false, person_name: person_name ?? null, person_real_name: person_real_name ?? null, person_phone: person_phone ?? null, person_app: person_app ?? null, salary_usd: salary_usd ?? 0, salary_cuba: salary_cuba ?? 0, metodo_pago: metodo_pago ?? null, updated_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
+      await sbPost('colider_marks?on_conflict=semana,person_uid,person_type', { semana, person_uid, person_type, paid: paid ?? false, person_name: person_name ?? null, person_real_name: person_real_name ?? null, person_phone: person_phone ?? null, person_app: person_app ?? null, salary_usd: salary_usd ?? 0, salary_cuba: salary_cuba ?? 0, metodo_pago: metodo_pago ?? null, updated_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
       res.json({ ok: true })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
@@ -98,7 +98,7 @@ import { Router } from 'express'
     try {
       const ex = await sbGet(`colider_week_status?semana=eq.${encodeURIComponent(semana)}&limit=1`)
       if (ex[0]?.notified && !ex[0]?.admin_closed) { res.status(409).json({ error: 'Ya notificado esta semana. Espera al admin.' }); return }
-      await sbPost('colider_week_status', { semana, notified: true, notified_at: new Date().toISOString(), admin_closed: false }, 'resolution=merge-duplicates,return=minimal')
+      await sbPost('colider_week_status?on_conflict=semana', { semana, notified: true, notified_at: new Date().toISOString(), admin_closed: false }, 'resolution=merge-duplicates,return=minimal')
       const admins = await sbGet('profiles?is_admin=eq.true&select=id')
       const adminIds: string[] = admins.map((a: any) => a.id as string)
       if (adminIds.length > 0 && ensureVapid()) setImmediate(() => dispatchPush(adminIds, '💸 Pago semanal terminado', `Colider terminó de pagar la semana ${semana}.`, '/nomina').catch(() => {}))
@@ -120,7 +120,7 @@ import { Router } from 'express'
     if (!semana) { res.status(400).json({ error: 'semana required' }); return }
     try {
       await sbDel('colider_marks', `semana=eq.${encodeURIComponent(semana)}`)
-      await sbPost('colider_week_status', { semana, notified: false, admin_closed: true, admin_closed_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
+      await sbPost('colider_week_status?on_conflict=semana', { semana, notified: false, admin_closed: true, admin_closed_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
       res.json({ ok: true })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
