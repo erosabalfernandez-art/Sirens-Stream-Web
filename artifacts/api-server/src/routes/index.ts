@@ -12,6 +12,7 @@ import { Router, type IRouter } from 'express';
       import cierreSemanalRouter from './cierre-semanal';
       import coliderRouter from './colider';
       import siteSettingsRouter from './site-settings';
+    import channelsRouter from './channels';
 
       const router: IRouter = Router();
 
@@ -28,6 +29,7 @@ import { Router, type IRouter } from 'express';
       router.use(cierreSemanalRouter);
       router.use(coliderRouter);
       router.use(siteSettingsRouter);
+    router.use(channelsRouter);
 
       export default router;
       
