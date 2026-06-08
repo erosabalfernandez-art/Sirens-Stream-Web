@@ -455,78 +455,95 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
   }
 
   async function publicarSalarios(notifyWorkers = true) {
-    if (cobradas.length === 0) return
-    setPublishing(true); setPublishedOk(false)
-    const inserts = cobradas.map(({ worker: w, nomina: n }) => ({
-      user_id: w.user_id,
-      app_name: app,
-      semana: n.semana,
-      usd: n.usd,
-      diamantes: n.diamantes,
-      extras: n.extras,
-    }))
-    const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
-    if (!error) {
-      setPublishedOk(true)
-      if (notifyWorkers) {
-        sendPushViaApi(
-          cobradas.map(c => c.worker.user_id),
-          `💰 Tu salario de ${app} está disponible`,
-          `Semana ${semana} — Entra a ver tus ganancias.`,
-          '/salarios',
-          true
-        )
-      }
-      setTimeout(() => setPublishedOk(false), 4000)
-      await saveNominaToHistory()
-      await Promise.all(cobradas.map(async ({ worker: w }) => {
-        const { data: recs } = await supabase
-          .from('published_salaries').select('id')
-          .eq('user_id', w.user_id).order('created_at', { ascending: false })
-        if (recs && recs.length > 10) {
-          const toDelete = (recs as {id:string}[]).slice(10).map(r => r.id)
-          await supabase.from('published_salaries').delete().in('id', toDelete)
-        }
+      if (cobradas.length === 0) return
+      setPublishing(true); setPublishedOk(false)
+      const inserts = cobradas.map(({ worker: w, nomina: n }) => ({
+        user_id: w.user_id,
+        app_name: app,
+        semana: n.semana,
+        usd: n.usd,
+        diamantes: n.diamantes,
+        extras: n.extras,
       }))
-    }
-    setPublishing(false)
-  }
-
-  async function publishAgentCommissions() {
-    const agentMap: Record<string, { uid: string; nombre: string; salary_usd: number; commission_usd: number }[]> = {}
-    for (const { worker: w, nomina: nm } of cobradas) {
-      const agente = (w as any).agente as string | null
-      if (!agente) continue
-      if (!agentMap[agente]) agentMap[agente] = []
-      agentMap[agente].push({ uid: nm.uid, nombre: nm.apodo, salary_usd: nm.usd, commission_usd: nm.comision })
-    }
-    const agentNames = Object.keys(agentMap)
-    if (agentNames.length === 0) return
-    const sem = cobradas[0]?.nomina?.semana ?? ''
-    const { data: agentProfiles } = await supabase.from('profiles').select('id, agent_name').in('agent_name', agentNames)
-    const agentIdMap: Record<string, string> = {}
-    for (const p of (agentProfiles ?? [])) { if (p.agent_name) agentIdMap[p.agent_name] = p.id }
-    const inserts = agentNames.map(name => ({
-      agent_user_id: agentIdMap[name] ?? null,
-      agent_name: name,
-      app_name: app,
-      semana: sem,
-      total_commission_usd: agentMap[name].reduce((s, wk) => s + wk.commission_usd, 0),
-      workers_data: agentMap[name],
-    }))
-    setPublishingAgents(true); setAgentPublishOk(false)
-    const { error } = await supabase.from('agent_commissions').upsert(inserts, { onConflict: 'agent_name,app_name,semana' })
-    if (!error) {
-      setAgentPublishOk(true)
-      const agentUserIds = Object.values(agentIdMap).filter(Boolean) as string[]
-      if (agentUserIds.length > 0) {
-        sendPushViaApi(agentUserIds, `💰 Comisiones de ${app} disponibles`, `Semana ${sem} — Entra a ver tus comisiones.`, '/agente', true)
+      try {
+        const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+        const r = await fetch(`${apiBase}/api/publish-salaries`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inserts, app_name: app, semana, cobradas, noCobro, sinPerfil,
+            total_usd: cobradas.reduce((s, m) => s + m.nomina.usd, 0),
+            total_diamantes: cobradas.reduce((s, m) => s + m.nomina.diamantes, 0),
+            file_name: fileName,
+          }),
+        })
+        const result = await r.json() as { ok?: boolean; error?: string; saved?: number }
+        if (!r.ok) { alert(`❌ Error al publicar salarios:\n${result.error ?? r.status}`); setPublishing(false); return }
+        setPublishedOk(true)
+        if (notifyWorkers) {
+          sendPushViaApi(
+            cobradas.map(c => c.worker.user_id),
+            `💰 Tu salario de ${app} está disponible`,
+            `Semana ${semana} — Entra a ver tus ganancias.`,
+            '/salarios', true
+          )
+        }
+        setTimeout(() => setPublishedOk(false), 4000)
+        await Promise.all(cobradas.map(async ({ worker: w }) => {
+          const { data: recs } = await supabase.from('published_salaries').select('id').eq('user_id', w.user_id).order('created_at', { ascending: false })
+          if (recs && recs.length > 10) {
+            const toDelete = (recs as {id:string}[]).slice(10).map(r => r.id)
+            await supabase.from('published_salaries').delete().in('id', toDelete)
+          }
+        }))
+      } catch (e: unknown) {
+        alert(`❌ Error al publicar salarios: ${e instanceof Error ? e.message : 'Error de red'}`)
       }
-      setTimeout(() => setAgentPublishOk(false), 4000)
+      setPublishing(false)
     }
-    setPublishingAgents(false)
-  }
-
+  
+  async function publishAgentCommissions() {
+      const agentMap: Record<string, { uid: string; nombre: string; salary_usd: number; commission_usd: number }[]> = {}
+      for (const { worker: w, nomina: nm } of cobradas) {
+        const agente = (w as any).agente as string | null
+        if (!agente) continue
+        if (!agentMap[agente]) agentMap[agente] = []
+        agentMap[agente].push({ uid: nm.uid, nombre: nm.apodo, salary_usd: nm.usd, commission_usd: nm.comision })
+      }
+      const agentNames = Object.keys(agentMap)
+      if (agentNames.length === 0) {
+        alert('⚠️ No se encontraron agentes en esta nómina. Verifica que el archivo tenga una columna de agente con nombres.')
+        return
+      }
+      const sem = cobradas[0]?.nomina?.semana ?? ''
+      const inserts = agentNames.map(name => ({
+        agent_user_id: null as string | null,
+        agent_name: name, app_name: app, semana: sem,
+        total_commission_usd: agentMap[name].reduce((s, wk) => s + wk.commission_usd, 0),
+        workers_data: agentMap[name],
+      }))
+      setPublishingAgents(true); setAgentPublishOk(false)
+      try {
+        const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+        const r = await fetch(`${apiBase}/api/publish-agents`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inserts }),
+        })
+        const result = await r.json() as { ok?: boolean; error?: string; saved?: number; agentUserIds?: string[] }
+        if (!r.ok) { alert(`❌ Error al publicar comisiones:\n${result.error ?? r.status}`); setPublishingAgents(false); return }
+        setAgentPublishOk(true)
+        const agentUserIds = result.agentUserIds ?? []
+        if (agentUserIds.length > 0) {
+          sendPushViaApi(agentUserIds, `💰 Comisiones de ${app} disponibles`, `Semana ${sem} — Entra a ver tus comisiones.`, '/agente', true)
+        }
+        setTimeout(() => setAgentPublishOk(false), 4000)
+      } catch (e: unknown) {
+        alert(`❌ Error al publicar comisiones: ${e instanceof Error ? e.message : 'Error de red'}`)
+      }
+      setPublishingAgents(false)
+    }
+  
   async function detectColumnsWithAI(headers: string[]): Promise<Record<string, number>> {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined
     if (!apiKey) return {}
@@ -735,23 +752,8 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
     setExpanded(new Set()); setAiSummary(null); setPublishedOk(false); setPaidMarks(new Set()); setFileName('')
   }
 
-  async function saveNominaToHistory() {
-    if (cobradas.length === 0) return
-    try {
-      await supabase.from('nomina_history').insert({
-        app_name: app,
-        semana,
-        total_usd: cobradas.reduce((s, m) => s + m.nomina.usd, 0),
-        total_diamantes: cobradas.reduce((s, m) => s + m.nomina.diamantes, 0),
-        cobradas_count: cobradas.length,
-        nocobro_count: noCobro.length,
-        sinperfil_count: sinPerfil.length,
-        rows_data: { cobradas, noCobro, sinPerfil },
-        published: true,
-        file_name: fileName,
-      })
-    } catch { /* ignore */ }
-  }
+  // saveNominaToHistory: now handled by /api/publish-salaries (service role, bypasses RLS)
+  async function saveNominaToHistory() { /* handled by API server */ }
 
   // Derived values
   const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
