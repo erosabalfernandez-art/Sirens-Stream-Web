@@ -137,7 +137,9 @@ import { useState, useEffect, useRef } from 'react'
           const [agentCreateMsg, setAgentCreateMsg] = useState<{ok:boolean;msg:string}|null>(null)
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
-        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy') ?? 'Waha' } catch { return 'Waha' } })
+        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes') ?? 'Waha' } catch { return 'Waha' } })
+          const [agentPayData, setAgentPayData] = useState<{confirmed: any[], pending: any[]}>({confirmed: [], pending: []})
+          const [agentPayLoading, setAgentPayLoading] = useState(false)
         const [pagosData, setPagosData] = useState<any[]>([])
         const [pagosLoading, setPagosLoading] = useState(false)
         const [pagosSemana, setPagosSemana] = useState('')
@@ -219,7 +221,34 @@ import { useState, useEffect, useRef } from 'react'
           setPagosData(merged); setPagosLoading(false)
         }
 
-        async function fetchLaylaDirectNotifs() {
+        async function fetchAgentPayData() {
+            setAgentPayLoading(true)
+            const { data: latestComm } = await supabase
+              .from('agent_commissions').select('semana')
+              .order('semana', { ascending: false }).limit(1).maybeSingle()
+            if (!latestComm) { setAgentPayData({confirmed: [], pending: []}); setAgentPayLoading(false); return }
+            const semana = latestComm.semana
+            const { data: comms } = await supabase
+              .from('agent_commissions')
+              .select('id, agent_name, app_name, semana, total_commission_usd, agent_user_id')
+              .eq('semana', semana)
+            const { data: confs } = await supabase
+              .from('agent_payment_confirmations')
+              .select('commission_id, confirmed_at')
+              .in('commission_id', (comms ?? []).map((c: any) => c.id))
+            const confSet = new Set(((confs ?? []) as any[]).map((c: any) => c.commission_id))
+            const confMap: Record<string, string> = {}
+            ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
+            const all = (comms ?? []) as any[]
+            setAgentPayData({
+              confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({...c, confirmed_at: confMap[c.id]})),
+              pending: all.filter((c: any) => !confSet.has(c.id)),
+            })
+            setPagosSemana(semana)
+            setAgentPayLoading(false)
+          }
+
+          async function fetchLaylaDirectNotifs() {
             setLaylaDirectLoading(true)
             setLaylaDirectNeedSetup(false)
             const { data: notifs, error } = await supabase
@@ -1006,7 +1035,11 @@ import { useState, useEffect, useRef } from 'react'
                           {a}
                         </button>
                       ))}
-                      <button onClick={() => fetchPagosData(pagosApp)} disabled={pagosLoading}
+                      <button onClick={() => { setPagosApp('Agentes'); try { localStorage.setItem('ea_pagos_app', 'Agentes') } catch {} fetchAgentPayData() }}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === 'Agentes' ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
+                            Agentes
+                          </button>
+                        <button onClick={() => fetchPagosData(pagosApp)} disabled={pagosLoading}
                         className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
                         {pagosLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
                       </button>
@@ -1566,6 +1599,81 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                       )}
                     </div>
                   )})}
+
+                    {/* ====== AGENTES ====== */}
+                    {pagosApp === 'Agentes' && (
+                      agentPayLoading ? (
+                        <div className="space-y-3">
+                          {[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
+                        </div>
+                      ) : (
+                        <div className="space-y-5">
+                          {/* Stats */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl p-4 text-center">
+                              <p className="text-2xl font-extrabold text-green-400">{agentPayData.confirmed.length}</p>
+                              <p className="text-xs text-white/40 mt-1">Confirmaron pago</p>
+                            </div>
+                            <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-4 text-center">
+                              <p className="text-2xl font-extrabold text-amber-400">{agentPayData.pending.length}</p>
+                              <p className="text-xs text-white/40 mt-1">Sin confirmar</p>
+                            </div>
+                          </div>
+
+                          {/* Confirmed agents */}
+                          {agentPayData.confirmed.length > 0 && (
+                            <div>
+                              <p className="text-xs font-bold text-green-400 uppercase tracking-widest mb-3">✓ Confirmaron pago recibido</p>
+                              <div className="space-y-2">
+                                {agentPayData.confirmed.map((row: any) => (
+                                  <div key={row.id} className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl px-4 py-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400 font-bold text-xs">{(row.agent_name ?? '?')[0]?.toUpperCase()}</div>
+                                      <div>
+                                        <p className="text-white text-sm font-semibold">{row.agent_name}</p>
+                                        <p className="text-white/35 text-xs">{row.app_name} · {row.semana}</p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-green-400 font-extrabold text-sm">${Number(row.total_commission_usd || 0).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                      <p className="text-white/25 text-xs">{row.confirmed_at ? new Date(row.confirmed_at).toLocaleDateString('es-ES', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : ''}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Pending agents */}
+                          {agentPayData.pending.length > 0 && (
+                            <div>
+                              <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">⏳ Sin confirmar</p>
+                              <div className="space-y-2">
+                                {agentPayData.pending.map((row: any) => (
+                                  <div key={row.id} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400/60 font-bold text-xs">{(row.agent_name ?? '?')[0]?.toUpperCase()}</div>
+                                      <div>
+                                        <p className="text-white/70 text-sm font-semibold">{row.agent_name}</p>
+                                        <p className="text-white/35 text-xs">{row.app_name} · {row.semana}</p>
+                                      </div>
+                                    </div>
+                                    <p className="text-amber-400/70 font-bold text-sm">${Number(row.total_commission_usd || 0).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {agentPayData.confirmed.length === 0 && agentPayData.pending.length === 0 && (
+                            <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                              <p className="text-white/40 text-sm">No hay comisiones de agentes para la semana activa.</p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
+
 
           </div>
         </div>
