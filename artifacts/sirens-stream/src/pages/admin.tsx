@@ -149,6 +149,8 @@ import { useState, useEffect, useRef } from 'react'
           const [coliderSetupNeeded, setColiderSetupNeeded] = useState(false)
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
+          const [pushTestLoading, setPushTestLoading] = useState(false)
+          const [pushTestResult, setPushTestResult] = useState<{sent:number;ok:boolean;subs:number}|null>(null)
         const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'|'Colider'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes'|'Colider') ?? 'Waha' } catch { return 'Waha' } })
           const [agentPayData, setAgentPayData] = useState<{confirmed: any[], pending: any[]}>({confirmed: [], pending: []})
           const [agentPayLoading, setAgentPayLoading] = useState(false)
@@ -339,6 +341,22 @@ import { useState, useEffect, useRef } from 'react'
               setNoCobroEntries(prev => prev.map(e => e.id === id ? { ...e, justified } : e))
             } catch {}
             setTogglingJustified(null)
+          }
+
+          async function sendTestPushAll() {
+            setPushTestLoading(true)
+            setPushTestResult(null)
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const [statusRes, testRes] = await Promise.all([
+                fetch(`${apiBase}/api/push/status`),
+                fetch(`${apiBase}/api/push/test`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '🔔 Prueba desde admin', body: 'El sistema de notificaciones está funcionando.' , url: '/' }) }),
+              ])
+              const statusData = await statusRes.json() as { subscriptions: number }
+              const testData = await testRes.json() as { sent: number; ok: boolean }
+              setPushTestResult({ sent: testData.sent, ok: testData.ok, subs: statusData.subscriptions })
+            } catch { setPushTestResult({ sent: 0, ok: false, subs: 0 }) }
+            setPushTestLoading(false)
           }
 
           async function notifyApp(app: string, type: 'salary' | 'canal') {
