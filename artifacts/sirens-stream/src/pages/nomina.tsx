@@ -622,6 +622,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [fBilletera, setFBilletera] = useState('')
   const [fAgente, setFAgente] = useState('')
   const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
+    const [agentPhoneMap, setAgentPhoneMap] = useState<Record<string,string>>({})
   const [fNombreReal, setFNombreReal] = useState('')
   const [fNombreApp, setFNombreApp] = useState('')
   const [fIdApp, setFIdApp] = useState('')
@@ -963,7 +964,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
       const [{ data: profs }, { data: agentProfsNom }] = await Promise.all([
         supabase.from('profiles').select('id, email'),
-        supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
+        supabase.from('profiles').select('agent_name, agent_code, phone, telefono').eq('is_agent', true),
       ])
       const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
       const am2: Record<string,string> = Object.fromEntries(
