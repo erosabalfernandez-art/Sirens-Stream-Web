@@ -1759,23 +1759,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     }
     setNominaSavingRate(null); setNominaRateSaved(id); setTimeout(() => setNominaRateSaved(null), 3000)
   }
-    // Notify affected users based on payment method / role
-    if (id === 'efectivo_worker') {
-      const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Efectivo (Cuba)')
-      const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id).filter(Boolean))]
-      if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Efectivo actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', true)
-    } else if (id === 'transferencia_worker') {
-      const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Transferencia Bancaria (Cuba)')
-      const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id).filter(Boolean))]
-      if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Transferencia actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', true)
-    } else {
-      const { data } = await supabase.from('profiles').select('id').eq('is_agent', true)
-      const ids = ((data ?? []) as {id:string}[]).map(p => p.id)
-      const label = id === 'efectivo_agent' ? 'Efectivo' : 'Transferencia'
-      if (ids.length > 0) sendPushViaApi(ids, `💱 Cambio ${label} para agentes actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/agente', true)
-    }
-    setNominaSavingRate(null); setNominaRateSaved(id); setTimeout(() => setNominaRateSaved(null), 3000)
-  }
 
   async function fetchHistory() {
     setHistoryLoading(true)
