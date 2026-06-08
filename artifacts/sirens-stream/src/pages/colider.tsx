@@ -35,7 +35,7 @@ import { subscribeToPush } from '@/lib/push'
     const [toggling, setToggling] = useState<string | null>(null)
     const [tab, setTab] = useState<'workers' | 'agents'>('workers')
     const [notifyMsg, setNotifyMsg] = useState('')
-  const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'>('idle')
+  const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -47,8 +47,8 @@ import { subscribeToPush } from '@/lib/push'
   async function subscribeNotif() {
     if (!user) return
     setNotifStatus('requesting')
-    const ok = await subscribeToPush(user.id)
-    setNotifStatus(ok ? 'granted' : 'denied')
+    const result = await subscribeToPush(user.id)
+    setNotifStatus(result)
   }
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
@@ -211,7 +211,7 @@ import { subscribeToPush } from '@/lib/push'
               <div>
                 <p className="text-sm font-semibold text-white">Notificaciones push</p>
                 <p className="text-white/35 text-xs mt-0.5">
-                  {notifStatus === 'granted' ? 'Notificaciones activadas' : notifStatus === 'denied' ? 'Bloqueadas en el navegador' : 'Recibe alertas de la agencia'}
+                  {notifStatus === 'granted' ? 'Notificaciones activadas' : notifStatus === 'denied' ? 'Bloqueadas en el navegador' : notifStatus === 'error' ? 'Error técnico al activar' : 'Recibe alertas de la agencia'}
                 </p>
               </div>
             </div>
