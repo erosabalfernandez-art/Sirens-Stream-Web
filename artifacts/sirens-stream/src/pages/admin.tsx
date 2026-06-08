@@ -137,6 +137,13 @@ import { useState, useEffect, useRef } from 'react'
           const [creatingAgent, setCreatingAgent] = useState(false)
           const [agentCreateMsg, setAgentCreateMsg] = useState<{ok:boolean;msg:string}|null>(null)
           const [agentPhoneMap, setAgentPhoneMap] = useState<Record<string,string>>({})
+          const [coliderFormName, setColiderFormName] = useState('')
+          const [coliderFormEmail, setColiderFormEmail] = useState('')
+          const [coliderFormPassword, setColiderFormPassword] = useState('')
+          const [coliderFormTelefono, setColiderFormTelefono] = useState('')
+          const [creatingColider, setCreatingColider] = useState(false)
+          const [coliderCreateMsg, setColiderCreateMsg] = useState<{ok:boolean;msg:string}|null>(null)
+          const [coliders, setColiders] = useState<{id:string;email:string;colider_name:string|null;telefono:string|null}[]>([])
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
         const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes') ?? 'Waha' } catch { return 'Waha' } })
@@ -569,6 +576,40 @@ import { useState, useEffect, useRef } from 'react'
             setCreatingAgent(false)
           }
 
+          async function fetchColiders() {
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const r = await fetch(`${apiBase}/api/admin/coliders`)
+              if (r.ok) { const d = await r.json() as { coliders: {id:string;email:string;colider_name:string|null;telefono:string|null}[] }; setColiders(d.coliders ?? []) }
+            } catch {}
+          }
+
+          async function createColider() {
+            if (!coliderFormEmail.trim() || !coliderFormPassword.trim()) {
+              setColiderCreateMsg({ ok: false, msg: 'Email y contraseña son requeridos.' }); return
+            }
+            setCreatingColider(true); setColiderCreateMsg(null)
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const res = await fetch(`${apiBase}/api/admin/create-colider`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: coliderFormEmail.trim(), password: coliderFormPassword.trim(), colider_name: coliderFormName.trim() || undefined, telefono: coliderFormTelefono.trim() || undefined }),
+              })
+              const json = await res.json() as { ok?: boolean; userId?: string; error?: string }
+              if (!res.ok || !json.ok) {
+                setColiderCreateMsg({ ok: false, msg: json.error ?? 'Error al crear cuenta de cobrador.' })
+                setCreatingColider(false); return
+              }
+              setColiderCreateMsg({ ok: true, msg: `✓ Cobrador "${coliderFormName.trim() || coliderFormEmail.trim()}" creado correctamente.` })
+              setColiderFormName(''); setColiderFormEmail(''); setColiderFormPassword(''); setColiderFormTelefono('')
+              await fetchColiders()
+            } catch {
+              setColiderCreateMsg({ ok: false, msg: 'Error de red al crear cobrador.' })
+            }
+            setCreatingColider(false)
+          }
+
             async function grantAgentChannels(agentId: string) {
               setGrantingChannels(p => ({ ...p, [agentId]: true }))
               try {
@@ -671,7 +712,7 @@ import { useState, useEffect, useRef } from 'react'
                 <DollarSign className="w-3.5 h-3.5" />
                 Control Pagos
               </button>
-              <button onClick={() => { setTab('agentes'); fetchAgents() }}
+              <button onClick={() => { setTab('agentes'); fetchAgents(); fetchColiders() }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'agentes' ? 'bg-amber-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Users className="w-3.5 h-3.5" />
                 Agentes
@@ -1334,8 +1375,6 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                           placeholder="Contraseña" type="password" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                         <input value={agentFormPhone} onChange={e => setAgentFormPhone(e.target.value)}
                           placeholder="Teléfono con código de país (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
-                        <input value={agentFormPhone} onChange={e => setAgentFormPhone(e.target.value)}
-                            placeholder="Teléfono (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                       </div>
                       <button onClick={createAgent} disabled={creatingAgent}
                         className="mt-3 flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
@@ -1398,6 +1437,58 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                         </div>
                       )}
                     </div>
+                    <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-6">
+                      <div className="flex items-center gap-2 mb-5">
+                        <Shield className="w-4 h-4 text-teal-400" />
+                        <span className="text-sm font-semibold text-white/70">Crear cuenta de cobrador (Colider)</span>
+                      </div>
+                      {coliderCreateMsg && (
+                        <div className={`mb-4 p-3 rounded-xl text-sm font-semibold ${coliderCreateMsg.ok ? 'bg-green-500/10 border border-green-500/20 text-green-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
+                          {coliderCreateMsg.msg}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <input value={coliderFormName} onChange={e => setColiderFormName(e.target.value)}
+                          placeholder="Nombre del cobrador" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                        <input value={coliderFormEmail} onChange={e => setColiderFormEmail(e.target.value)}
+                          placeholder="Correo electrónico" type="email" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                        <input value={coliderFormPassword} onChange={e => setColiderFormPassword(e.target.value)}
+                          placeholder="Contraseña" type="password" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                        <input value={coliderFormTelefono} onChange={e => setColiderFormTelefono(e.target.value)}
+                          placeholder="Teléfono (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                      </div>
+                      <button onClick={createColider} disabled={creatingColider}
+                        className="mt-3 flex items-center gap-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
+                        {creatingColider ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Shield className="w-4 h-4" />}
+                        {creatingColider ? 'Creando...' : 'Crear cobrador'}
+                      </button>
+                      <p className="mt-3 text-xs text-white/25">El cobrador podrá marcar pagos entregados desde su panel en <code className="text-teal-400/60">/colider</code></p>
+                    </div>
+                    {coliders.length > 0 && (
+                      <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-5 py-3 border-b border-teal-500/10">
+                          <span className="text-xs font-bold uppercase tracking-wider text-white/40">Cobradores registrados</span>
+                          <span className="text-xs text-white/30">{coliders.length} cobrador{coliders.length !== 1 ? 'es' : ''}</span>
+                        </div>
+                        <div className="divide-y divide-white/4">
+                          {coliders.map(c => (
+                            <div key={c.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-white/80 text-sm font-semibold">{c.colider_name || '—'}</p>
+                                <p className="text-white/35 text-xs">{c.email}</p>
+                                {c.telefono && (
+                                  <a href={`https://wa.me/${c.telefono.replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer"
+                                    className="mt-1 flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors">
+                                    <span>📱</span><span>{c.telefono}</span>
+                                  </a>
+                                )}
+                              </div>
+                              <span className="text-xs bg-teal-500/10 border border-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">Cobrador</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
               )}
 
