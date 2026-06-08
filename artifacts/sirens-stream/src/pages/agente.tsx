@@ -245,33 +245,39 @@ import React, { useState, useEffect } from 'react'
             </div>
           </div>
 
-          {/* Push notification banner - always visible when not activated */}
-            {notifStatus !== 'granted' && (
-              <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-4 mb-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
-                    <Bell className="w-4 h-4 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">Notificaciones push</p>
-                    <p className="text-white/35 text-xs mt-0.5">
-                      {notifStatus === 'denied' ? 'Notificaciones bloqueadas en el navegador' : 'Recibe alertas cuando publican tus comisiones'}
-                    </p>
-                  </div>
+          {/* Push notification banner - always visible */}
+            <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-4 mb-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
+                  <Bell className="w-4 h-4 text-purple-400" />
                 </div>
-                <div className="shrink-0">
-                  {notifStatus === 'denied' ? (
-                    <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20"><BellOff className="w-3.5 h-3.5" /> Bloqueadas</span>
-                  ) : (
-                    <button onClick={subscribeNotif} disabled={notifStatus === 'requesting'}
-                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
-                      {notifStatus === 'requesting' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
-                      {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
-                    </button>
-                  )}
+                <div>
+                  <p className="text-sm font-semibold text-white">Notificaciones push</p>
+                  <p className="text-white/35 text-xs mt-0.5">
+                    {notifStatus === 'granted' ? 'Notificaciones activadas' : notifStatus === 'denied' ? 'Notificaciones bloqueadas en el navegador' : 'Recibe alertas cuando publican tus comisiones'}
+                  </p>
                 </div>
               </div>
-            )}
+              <div className="shrink-0">
+                {notifStatus === 'denied' ? (
+                  <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20"><BellOff className="w-3.5 h-3.5" /> Bloqueadas</span>
+                ) : notifStatus === 'granted' ? (
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="flex items-center gap-1.5 text-green-400 text-xs font-bold"><Bell className="w-3.5 h-3.5" /> Activadas</span>
+                    <button onClick={subscribeNotif}
+                      className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/70 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all border border-white/10">
+                      <Bell className="w-3 h-3" /> Reactivar
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={subscribeNotif} disabled={notifStatus === 'requesting'}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
+                    {notifStatus === 'requesting' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+                    {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
+                  </button>
+                )}
+              </div>
+            </div>
 
               {/* Canales card */}
               <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5 mb-2">
