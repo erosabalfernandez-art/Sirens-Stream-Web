@@ -1123,7 +1123,8 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                       )}
                     </div>
                   </div>
-    
+              )}
+
               {tab === 'cambio' && (
                 <div className="space-y-8 max-w-2xl">
 
@@ -1198,8 +1199,6 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                   </div>
 
                 </div>
-              )}
-
               )}
 
           </div>
