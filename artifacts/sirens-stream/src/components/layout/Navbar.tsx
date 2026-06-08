@@ -45,7 +45,7 @@ import { Link, useLocation } from "wouter";
     useEffect(() => {
       const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '');
       fetch(`${apiBase}/api/cierre-semanal`, {
-        method: 'POST', credentials: 'include',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       }).then(r => r.json()).then(d => { setResult(d); setLoading(false); }).catch(() => { setResult({ ok: false, error: 'Error de red' }); setLoading(false); });
     }, []);
