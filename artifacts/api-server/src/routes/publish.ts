@@ -47,7 +47,39 @@ import { Router } from 'express';
           return res.status(r.status).json({ error: errText });
         }
 
-        // Save to nomina_history (fire-and-forget)
+        // Auto-detect zero earners for Waha/Howdy → weekly_no_cobro (fire-and-forget)
+          if (app_name !== 'Layla') {
+            const zeroEarners = valid.filter(r => Number(r.usd) === 0);
+            if (zeroEarners.length > 0) {
+              setImmediate(async () => {
+                try {
+                  const ids = zeroEarners.map(w => `"${w.user_id}"`).join(',');
+                  const [profRes, workerRes] = await Promise.all([
+                    fetch(sbUrl(`profiles?id=in.(${ids})&select=id,email`), { headers: sbHeaders() as Record<string, string> }),
+                    fetch(sbUrl(`worker_entries?app_name=eq.${encodeURIComponent(app_name)}&user_id=in.(${ids})&select=user_id,nombre_en_app,nombre_real`), { headers: sbHeaders() as Record<string, string> }),
+                  ]);
+                  const profs: any[] = profRes.ok ? await profRes.json() : [];
+                  const wData: any[] = workerRes.ok ? await workerRes.json() : [];
+                  const emailMap: Record<string,string> = Object.fromEntries(profs.map((p:any)=>[p.id, p.email??'']));
+                  const workerMap: Record<string,any> = Object.fromEntries(wData.map((w:any)=>[w.user_id, w]));
+                  const rows = zeroEarners.map(w => ({
+                    user_id: w.user_id, app_name: w.app_name, semana: w.semana,
+                    reason: 'zero_salary',
+                    nombre_en_app: workerMap[w.user_id]?.nombre_en_app ?? (w.extras?.Apodo ?? w.extras?.apodo ?? null),
+                    nombre_real: workerMap[w.user_id]?.nombre_real ?? null,
+                    email: emailMap[w.user_id] ?? null,
+                  }));
+                  await fetch(sbUrl('weekly_no_cobro?on_conflict=user_id,app_name,semana'), {
+                    method: 'POST',
+                    headers: { ...(sbHeaders() as Record<string,string>), Prefer: 'resolution=merge-duplicates,return=minimal' },
+                    body: JSON.stringify(rows),
+                  });
+                } catch { /* best-effort */ }
+              });
+            }
+          }
+
+                  // Save to nomina_history (fire-and-forget)
         void fetch(sbUrl('nomina_history'), {
           method: 'POST',
           headers: sbHeaders() as Record<string, string>,
