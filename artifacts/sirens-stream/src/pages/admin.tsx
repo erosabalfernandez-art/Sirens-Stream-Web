@@ -2061,6 +2061,13 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                   {/* ─── NO COBRARON TAB ─────────────────────────────────────────────── */}
 
                 {tab === 'chicas' && (() => {
+                  // Build code→name lookup from agents state
+                  const agentCodeToName: Record<string, string> = {}
+                  for (const a of agents) {
+                    if (a.agent_code) agentCodeToName[a.agent_code.trim()] = a.agent_name || a.email || a.agent_code
+                  }
+                  const resolveAgentName = (code: string) => agentCodeToName[code] ?? code
+
                   // Group workers by agent, store full WorkerRow objects
                   const agentMap: Record<string, WorkerRow[]> = {}
                   for (const w of workers) {
@@ -2071,7 +2078,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                   const agentNames = Object.keys(agentMap).sort((a, b) => {
                     if (a === '(Sin agente)') return 1
                     if (b === '(Sin agente)') return -1
-                    return a.localeCompare(b)
+                    return resolveAgentName(a).localeCompare(resolveAgentName(b))
                   })
                   const APPS_ORDER = ['Waha', 'Layla', 'Howdy']
 
@@ -2100,7 +2107,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                 onClick={() => setSelectedAgent(isActive ? null : agente)}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${isActive ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20'}`}>
                                 <Users className="w-3 h-3" />
-                                {agente}
+                                {resolveAgentName(agente)}
                                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-white/20' : 'bg-indigo-500/20'}`}>{cnt}</span>
                               </button>
                             )
@@ -2134,7 +2141,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                   <Users className="w-4 h-4 text-indigo-400" />
                                 </div>
                                 <div>
-                                  <p className="font-bold text-white text-sm">{agente}</p>
+                                  <p className="font-bold text-white text-sm">{resolveAgentName(agente)}</p>
                                   <p className="text-white/35 text-xs mt-0.5">
                                     {uniqueGirls.length} chica{uniqueGirls.length !== 1 ? 's' : ''} · {agentWorkers.length} entrada{agentWorkers.length !== 1 ? 's' : ''}
                                   </p>
