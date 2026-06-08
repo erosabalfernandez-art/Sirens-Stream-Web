@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, Users } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users } from 'lucide-react'
   import { sendPushViaApi } from '@/lib/push'
 
     interface WorkerRow extends WorkerEntry {
@@ -138,6 +138,7 @@ import { useState, useEffect, useRef } from 'react'
         const [pagosNeedSetup, setPagosNeedSetup] = useState(false)
         const [testPushSending, setTestPushSending] = useState<Record<string, boolean>>({})
         const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
+          const [testPushNoSub, setTestPushNoSub] = useState<Record<string, boolean>>({})
         const [testPushAgents, setTestPushAgents] = useState(false)
         const [testPushAgentsOk, setTestPushAgentsOk] = useState(false)
         const [rates, setRates] = useState<Record<string,number>>({})
@@ -1125,15 +1126,15 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 <button
-                                  onClick={() => sendTestPushToAgent(ag)}
-                                  disabled={testPushSending[ag.id]}
-                                  title="Enviar notificación de prueba"
-                                  className={`flex items-center gap-1.5 ${testPushOk[ag.id] ? 'bg-green-600' : 'bg-blue-600/80 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all`}>
-                                  {testPushSending[ag.id]
-                                    ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    : <Bell className="w-3 h-3" />}
-                                  {testPushOk[ag.id] ? '✓ Enviado' : testPushSending[ag.id] ? 'Enviando...' : 'Notificar'}
-                                </button>
+                                    onClick={() => sendTestPushToAgent(ag)}
+                                    disabled={testPushSending[ag.id]}
+                                    title="Enviar notificación de prueba"
+                                    className={`flex items-center gap-1.5 ${testPushOk[ag.id] ? 'bg-green-600' : testPushNoSub[ag.id] ? 'bg-orange-600/80' : 'bg-blue-600/80 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all`}>
+                                    {testPushSending[ag.id]
+                                      ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      : testPushNoSub[ag.id] ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
+                                    {testPushOk[ag.id] ? '✓ Enviado' : testPushNoSub[ag.id] ? 'Sin suscripción' : testPushSending[ag.id] ? 'Enviando...' : 'Notificar'}
+                                  </button>
                                 <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Agente</span>
                               </div>
                             </div>
