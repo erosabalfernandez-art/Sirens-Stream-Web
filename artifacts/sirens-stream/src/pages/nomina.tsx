@@ -353,7 +353,7 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
       try {
         const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
         const s = all[app]
-        if (s?.cobradas?.length > 0) {
+        if (s && (s.cobradas?.length > 0 || s.noCobro?.length > 0 || s.sinPerfil?.length > 0)) {
           setCobradas(s.cobradas)
           setNoCobro(s.noCobro ?? [])
           setSinPerfil(s.sinPerfil ?? [])
@@ -371,7 +371,7 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
         const r = await fetch(`${apiBase}/api/nomina-state?app=${encodeURIComponent(app)}`)
         if (r.ok) {
           const { entry } = await r.json() as { entry: { app_name: string; semana: string; rows_data: { cobradas: Matched[]; noCobro: NoCobro[]; sinPerfil: NominaRow[] }; file_name?: string } | null }
-          if (entry?.rows_data?.cobradas?.length > 0) {
+          if (entry?.rows_data && (entry.rows_data.cobradas?.length > 0 || entry.rows_data.noCobro?.length > 0 || entry.rows_data.sinPerfil?.length > 0)) {
             setCobradas(entry.rows_data.cobradas)
             setNoCobro(entry.rows_data.noCobro ?? [])
             setSinPerfil(entry.rows_data.sinPerfil ?? [])
