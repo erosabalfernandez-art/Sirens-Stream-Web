@@ -123,6 +123,7 @@ import { useState, useEffect, useRef } from 'react'
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
           const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[]>([])
+            const [agentDetails, setAgentDetails] = useState<{commTotals:Record<string,number>;workerCounts:Record<string,number>;commApps:Record<string,string[]>}|null>(null)
           const [agentFormName, setAgentFormName] = useState('')
           const [agentFormEmail, setAgentFormEmail] = useState('')
           const [agentFormPassword, setAgentFormPassword] = useState('')
@@ -373,9 +374,14 @@ import { useState, useEffect, useRef } from 'react'
       }
 
       async function fetchAgents() {
-          const { data } = await supabase.from('profiles').select('id, email, agent_name, agent_code, is_agent').eq('is_agent', true).order('created_at', { ascending: false })
-          setAgents((data ?? []) as {id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[])
-        }
+            const { data } = await supabase.from('profiles').select('id, email, agent_name, agent_code, is_agent').eq('is_agent', true).order('created_at', { ascending: false })
+            setAgents((data ?? []) as {id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[])
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const r = await fetch(`${apiBase}/api/agent-details`)
+              if (r.ok) setAgentDetails(await r.json() as {commTotals:Record<string,number>;workerCounts:Record<string,number>;commApps:Record<string,string[]>})
+            } catch {}
+          }
 
         async function createAgent() {
           if (!agentFormName.trim() || !agentFormEmail.trim() || !agentFormPassword.trim()) {
