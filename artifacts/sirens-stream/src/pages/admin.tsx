@@ -127,6 +127,8 @@ import { useState, useEffect, useRef } from 'react'
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
           const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[]>([])
+            const [grantingChannels, setGrantingChannels] = useState<Record<string,boolean>>({})
+            const [channelsGranted, setChannelsGranted] = useState<Record<string,boolean>>({})
             const [agentDetails, setAgentDetails] = useState<{commTotals:Record<string,number>;workerCounts:Record<string,number>;commApps:Record<string,string[]>}|null>(null)
           const [agentFormName, setAgentFormName] = useState('')
           const [agentFormEmail, setAgentFormEmail] = useState('')
@@ -549,7 +551,22 @@ import { useState, useEffect, useRef } from 'react'
             setCreatingAgent(false)
           }
 
-          async function fetchRates() {
+            async function grantAgentChannels(agentId: string) {
+              setGrantingChannels(p => ({ ...p, [agentId]: true }))
+              try {
+                const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+                const res = await fetch(`${apiBase}/api/grant-agent-channels`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: agentId }),
+                })
+                const json = await res.json() as { ok?: boolean; error?: string }
+                if (json.ok) setChannelsGranted(p => ({ ...p, [agentId]: true }))
+              } catch {}
+              setGrantingChannels(p => ({ ...p, [agentId]: false }))
+            }
+
+            async function fetchRates() {
             const { data } = await supabase.from('exchange_rates').select('*')
             const r: Record<string,number> = {}; const inp: Record<string,string> = {}
             for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate; inp[row.id] = String(row.rate === 0 ? '' : row.rate) }
@@ -1331,6 +1348,16 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                       ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                       : testPushNoSub[ag.id] ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
                                     {testPushOk[ag.id] ? '✓ Enviado' : testPushNoSub[ag.id] ? 'Sin suscripción' : testPushSending[ag.id] ? 'Enviando...' : 'Notificar'}
+                                  </button>
+                                <button
+                                    onClick={() => grantAgentChannels(ag.id)}
+                                    disabled={!!grantingChannels[ag.id] || !!channelsGranted[ag.id]}
+                                    title="Dar acceso a todos los canales"
+                                    className={`flex items-center gap-1.5 ${channelsGranted[ag.id] ? 'bg-green-600' : 'bg-purple-600/80 hover:bg-purple-500'} disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all`}>
+                                    {grantingChannels[ag.id]
+                                      ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      : <MessageSquare className="w-3 h-3" />}
+                                    {channelsGranted[ag.id] ? '✓ Canales' : grantingChannels[ag.id] ? '...' : 'Dar canales'}
                                   </button>
                                 <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Agente</span>
                               </div>
