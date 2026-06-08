@@ -92,17 +92,24 @@ import { useState, useEffect, useRef } from 'react'
   const [agenciaError, setAgenciaError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.from('site_settings').select('value').eq('key', 'show_agencia').maybeSingle()
-      .then(({ data }) => { if (data) setShowAgencia(data.value !== 'false'); });
+    fetch(((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '') + '/api/site-settings/show_agencia')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.value !== null) setShowAgencia(d.value !== 'false'); })
+      .catch(() => {});
   }, []);
 
   async function toggleAgencia() {
     setLoadingAgencia(true);
     setAgenciaError(null);
     const newVal = !showAgencia;
-    const { error } = await supabase.from('site_settings').upsert({ key: 'show_agencia', value: String(newVal) }, { onConflict: 'key' });
-    if (error) {
-      setAgenciaError(error.message);
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '');
+    const resp = await fetch(`${apiBase}/api/site-settings`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'show_agencia', value: String(newVal) }),
+    });
+    const json = await resp.json();
+    if (!resp.ok) {
+      setAgenciaError(json.error ?? 'Error al guardar');
     } else {
       setShowAgencia(newVal);
     }
