@@ -206,6 +206,43 @@ import { useState, useEffect, useRef } from 'react'
           setPagosData(merged); setPagosLoading(false)
         }
 
+        async function fetchLaylaDirectNotifs() {
+            setLaylaDirectLoading(true)
+            setLaylaDirectNeedSetup(false)
+            const { data: notifs, error } = await supabase
+              .from('direct_payment_notifications')
+              .select('*')
+              .eq('app_name', 'Layla')
+              .order('notified_at', { ascending: false })
+            if (error?.code === '42P01') {
+              setLaylaDirectNeedSetup(true)
+              setLaylaDirectLoading(false)
+              return
+            }
+            if (!notifs || notifs.length === 0) {
+              setLaylaDirectNotifs([])
+              setLaylaDirectLoading(false)
+              return
+            }
+            const userIds = (notifs as any[]).map((n: any) => n.user_id)
+            const [{ data: workers }, { data: profs }] = await Promise.all([
+              supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera').eq('app_name', 'Layla').in('user_id', userIds),
+              supabase.from('profiles').select('id, email').in('id', userIds),
+            ])
+            const wMap: Record<string, any> = Object.fromEntries(((workers ?? []) as any[]).map((w: any) => [w.user_id, w]))
+            const eMap: Record<string, string> = Object.fromEntries(((profs ?? []) as any[]).map((p: any) => [p.id, p.email]))
+            const merged = (notifs as any[]).map((n: any) => ({
+              ...n,
+              nombre_en_app: wMap[n.user_id]?.nombre_en_app ?? null,
+              nombre_real: wMap[n.user_id]?.nombre_real ?? null,
+              email: eMap[n.user_id] ?? '—',
+              metodo_pago: wMap[n.user_id]?.metodo_pago ?? null,
+              billetera: wMap[n.user_id]?.billetera ?? null,
+            }))
+            setLaylaDirectNotifs(merged)
+            setLaylaDirectLoading(false)
+          }
+
         async function notifyApp(app: string, type: 'salary' | 'canal') {
           const key = `${app}_${type}`
           setNotifying(p => ({ ...p, [key]: true }))
