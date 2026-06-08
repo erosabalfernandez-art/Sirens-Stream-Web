@@ -108,9 +108,8 @@ import { subscribeToPush } from '@/lib/push'
 
         for (const s of (listR.workers ?? [])) {
           const met = s.metodo_pago ?? ''
-          const isCuba = met === 'Efectivo (Cuba)' || met === 'Transferencia Bancaria (Cuba)'
-          const rk = met === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-          const rate = isCuba ? (rm[rk] ?? 0) : 0
+          if (met !== 'Efectivo (Cuba)') continue // colider solo ve efectivo cuba
+          const rate = rm['efectivo_worker'] ?? 0
           entries.push({
             key: `${s.user_id}__${s.app_name}`,
             person_uid: s.user_id,
@@ -125,13 +124,14 @@ import { subscribeToPush } from '@/lib/push'
           })
         }
 
-        const agentMap: Record<string, { usd: number; app: string }> = {}
+        const agentMap: Record<string, { usd: number; app: string; metodo_pago: string | null }> = {}
         for (const a of (listR.agents ?? [])) {
-          if (!agentMap[a.agent_name]) agentMap[a.agent_name] = { usd: 0, app: a.app_name }
+          if (!agentMap[a.agent_name]) agentMap[a.agent_name] = { usd: 0, app: a.app_name, metodo_pago: a.metodo_pago ?? null }
           agentMap[a.agent_name].usd += Number(a.total_commission_usd) || 0
         }
         const efRate = rm['efectivo_agent'] ?? 0
         for (const [name, info] of Object.entries(agentMap)) {
+          if (info.metodo_pago !== 'Efectivo (Cuba)') continue // colider solo ve efectivo cuba
           entries.push({
             key: `agent__${name}`,
             person_uid: name,
@@ -142,7 +142,7 @@ import { subscribeToPush } from '@/lib/push'
             app: info.app,
             salary_usd: info.usd,
             salary_cuba: efRate > 0 ? info.usd * efRate : 0,
-            metodo_pago: null,
+            metodo_pago: 'Efectivo (Cuba)',
           })
         }
 
