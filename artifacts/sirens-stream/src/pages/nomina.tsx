@@ -1516,12 +1516,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   // ── Colider Admin Section ──────────────────────────────────────────────────
   function ColiderAdminSection() {
     const [open, setOpen] = useState(false)
-    const [tab, setTab] = useState<'progreso' | 'crear'>('progreso')
-    const [email, setEmail] = useState('')
-    const [pass, setPass] = useState('')
-    const [nombre, setNombre] = useState('')
-    const [creating, setCreating] = useState(false)
-    const [createMsg, setCreateMsg] = useState('')
     const [weeks, setWeeks] = useState<string[]>([])
     const [semana, setSemana] = useState('')
     const [marks, setMarks] = useState<any[]>([])
@@ -1556,21 +1550,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       setLoadingProg(false)
     }
 
-    async function createColider() {
-      if (!email || !pass) return
-      setCreating(true); setCreateMsg('')
-      try {
-        const r = await fetch(`${API}/api/admin/create-colider`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: pass, colider_name: nombre }),
-        })
-        const d = await r.json()
-        if (r.ok) { setCreateMsg('✅ Cuenta creada. Comparte las credenciales con el colider.'); setEmail(''); setPass(''); setNombre('') }
-        else setCreateMsg('❌ ' + (d.error ?? 'Error al crear'))
-      } catch { setCreateMsg('❌ Error de conexión') }
-      setCreating(false)
-    }
-
     async function closeWeek() {
       if (!semana) return
       setClosingWeek(true); setCloseMsg('')
@@ -1602,31 +1581,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         </button>
         {open && (
           <div className="px-5 pb-5 border-t border-orange-500/10 pt-4">
-            <div className="flex gap-2 mb-4">
-              {(['progreso', 'crear'] as const).map(t => (
-                <button key={t} onClick={() => setTab(t)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === t ? 'bg-orange-500/20 text-orange-300' : 'text-white/30 hover:text-white/60'}`}>
-                  {t === 'progreso' ? '📊 Progreso' : '➕ Crear cuenta'}
-                </button>
-              ))}
-            </div>
-            {tab === 'crear' && (
-              <div className="space-y-2.5">
-                <p className="text-white/40 text-xs">Crea una cuenta de colider para gestionar pagos semanales.</p>
-                <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del colider"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50" />
-                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50" />
-                <input value={pass} onChange={e => setPass(e.target.value)} placeholder="Contraseña" type="password"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50" />
-                <button onClick={createColider} disabled={creating || !email || !pass}
-                  className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
-                  {creating ? 'Creando...' : '➕ Crear cuenta de colider'}
-                </button>
-                {createMsg && <p className="text-xs text-white/60 mt-1">{createMsg}</p>}
-              </div>
-            )}
-            {tab === 'progreso' && (
+            
               <div className="space-y-3">
                 {weeks.length > 0 && (
                   <select value={semana} onChange={e => setSemana(e.target.value)}
@@ -1664,7 +1619,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                 )}
                 {closeMsg && <p className="text-xs text-white/60">{closeMsg}</p>}
               </div>
-            )}
           </div>
         )}
       </div>
