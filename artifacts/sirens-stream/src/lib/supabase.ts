@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js'
     is_agent?: boolean
     agent_name?: string | null
     agent_code?: string | null
+    phone?: string | null
     created_at: string
   }
 
