@@ -45,19 +45,20 @@ import { useState, useEffect } from 'react'
     useEffect(() => { if (user) fetchData() }, [user])
 
     async function fetchData() {
-      setFetching(true)
-      const [reqRes, msgRes] = await Promise.all([
-        supabase.from('channel_requests').select('app_name, status').eq('user_id', user!.id),
-        supabase.from('channel_messages').select('*').order('created_at', { ascending: false }),
-      ])
-      const reqs = (reqRes.data as ChannelRequest[]) ?? []
-      setRequests(reqs)
-      const approved = reqs.filter(r => r.status === 'approved').map(r => r.app_name)
-      const msgs = ((msgRes.data as ChannelMessage[]) ?? []).filter(m => approved.includes(m.app_name))
-      setMessages(msgs)
-      if (approved.length > 0) setActiveApp(prev => prev ?? approved[0])
-      setFetching(false)
-    }
+        setFetching(true)
+        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+        const [accessRes, msgRes] = await Promise.all([
+          fetch(`${apiBase}/api/channel-access?user_id=${user!.id}`).then(r => r.ok ? r.json() : { requests: [] }),
+          supabase.from('channel_messages').select('*').order('created_at', { ascending: false }),
+        ])
+        const reqs: ChannelRequest[] = accessRes.requests ?? []
+        setRequests(reqs)
+        const approved = reqs.filter(r => r.status === 'approved').map(r => r.app_name)
+        const msgs = ((msgRes.data as ChannelMessage[]) ?? []).filter(m => approved.includes(m.app_name))
+        setMessages(msgs)
+        if (approved.length > 0) setActiveApp(prev => prev ?? approved[0])
+        setFetching(false)
+      }
 
     const approvedApps = requests.filter(r => r.status === 'approved').map(r => r.app_name)
     const pendingApps = requests.filter(r => r.status === 'pending').map(r => r.app_name)
