@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
-  import { Phone, CheckCircle, Circle, Bell, Lock, Clock, Users, DollarSign } from 'lucide-react'
+  import { Phone, CheckCircle, Circle, Bell, BellOff, Lock, Clock, Users, DollarSign } from 'lucide-react'
+import { subscribeToPush } from '@/lib/push'
 
   const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
 
@@ -34,6 +35,21 @@ import { useState, useEffect } from 'react'
     const [toggling, setToggling] = useState<string | null>(null)
     const [tab, setTab] = useState<'workers' | 'agents'>('workers')
     const [notifyMsg, setNotifyMsg] = useState('')
+  const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'>('idle')
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') setNotifStatus('granted')
+      else if (Notification.permission === 'denied') setNotifStatus('denied')
+    }
+  }, [])
+
+  async function subscribeNotif() {
+    if (!user) return
+    setNotifStatus('requesting')
+    const ok = await subscribeToPush(user.id)
+    setNotifStatus(ok ? 'granted' : 'denied')
+  }
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => {
@@ -184,6 +200,40 @@ import { useState, useEffect } from 'react'
             </div>
             <h1 className="text-2xl font-extrabold">Gestión de Pagos</h1>
             <p className="text-white/40 text-sm mt-1">Marca cada pago completado · Eclipse Angels Agency</p>
+          </div>
+
+          {/* Push notification banner */}
+          <div className="bg-[#0d0d1e] border border-orange-500/15 rounded-2xl p-4 mb-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Notificaciones push</p>
+                <p className="text-white/35 text-xs mt-0.5">
+                  {notifStatus === 'granted' ? 'Notificaciones activadas' : notifStatus === 'denied' ? 'Bloqueadas en el navegador' : 'Recibe alertas de la agencia'}
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              {notifStatus === 'denied' ? (
+                <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20"><BellOff className="w-3.5 h-3.5" /> Bloqueadas</span>
+              ) : notifStatus === 'granted' ? (
+                <div className="flex flex-col items-end gap-2">
+                  <span className="flex items-center gap-1.5 text-green-400 text-xs font-bold"><Bell className="w-3.5 h-3.5" /> Activadas</span>
+                  <button onClick={subscribeNotif}
+                    className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/70 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all border border-white/10">
+                    <Bell className="w-3 h-3" /> Reactivar
+                  </button>
+                </div>
+              ) : (
+                <button onClick={subscribeNotif} disabled={notifStatus === 'requesting'}
+                  className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
+                  {notifStatus === 'requesting' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+                  {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
+                </button>
+              )}
+            </div>
           </div>
 
           {weeks.length > 0 && (
