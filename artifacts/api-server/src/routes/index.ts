@@ -5,6 +5,7 @@ import statsRouter from './stats';
 import tutorialsRouter from './tutorials';
 import pushRouter from './push';
 import nominaStateRouter from './nomina-state';
+import agentCommissionsRouter from './agent-commissions';
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(statsRouter);
 router.use(tutorialsRouter);
 router.use(pushRouter);
 router.use(nominaStateRouter);
+router.use(agentCommissionsRouter);
 
 export default router;
