@@ -308,7 +308,10 @@ import React, { useState, useEffect } from 'react'
             <>
               <div className="grid grid-cols-3 gap-3 mb-6">
                 <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
-                  <p className="text-2xl font-extrabold text-green-400">${fmt(totalUSD)}</p>
+                  {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
+                      ? <p className="text-2xl font-extrabold text-amber-300">{(totalUSD * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-base">CUP</span></p>
+                      : <p className="text-lg font-semibold text-white/25">⏳ Pendiente</p>
+                    }
                   <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Total ganado</p>
                 </div>
                 <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
@@ -431,7 +434,12 @@ import React, { useState, useEffect } from 'react'
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-green-400 font-extrabold text-lg">${fmt(c.total_commission_usd)}</span>
+                          {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
+                              ? <span className={agentPayMethod === 'efectivo' ? 'text-amber-400 font-extrabold text-lg' : 'text-blue-400 font-extrabold text-lg'}>
+                                  {(c.total_commission_usd * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
+                                </span>
+                              : <span className="text-white/25 text-sm font-semibold">⏳ Pendiente</span>
+                            }
                           {expanded.has(c.id) ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                         </div>
                       </button>
@@ -449,7 +457,12 @@ import React, { useState, useEffect } from 'react'
                                 <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-300 text-xs font-bold">{(w.nombre[0] ?? '?').toUpperCase()}</div>
                                 <span className="text-white/70 text-sm">{w.nombre}</span>
                               </div>
-                              <span className="text-amber-400 font-bold text-sm">${fmt(w.commission_usd)}</span>
+                              {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
+                                  ? <span className={agentPayMethod === 'efectivo' ? 'text-amber-400 font-bold text-sm' : 'text-blue-400 font-bold text-sm'}>
+                                      {(w.commission_usd * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
+                                    </span>
+                                  : <span className="text-white/20 text-xs">⏳</span>
+                                }
                             </div>
                           ))}
                         </div>
