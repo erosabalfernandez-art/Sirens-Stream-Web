@@ -1502,7 +1502,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                       </div>
                     )
                   })()}
-                  )}
               </div>
             </>
           )}
