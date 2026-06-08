@@ -399,6 +399,25 @@ import React, { useState, useEffect } from 'react'
                   </div>
               )}
 
+                {agentPayMethod === 'efectivo' && totalUSD > 0 && (
+                  <div className="bg-amber-500/6 border border-amber-500/15 rounded-2xl p-4 mb-3 space-y-2">
+                    <p className="text-amber-400/80 text-xs font-bold">📲 Contactar pagador</p>
+                    <p className="text-white/30 text-xs leading-relaxed">Solo escríbele cuando hayas visto tu monto semanal en CUP. No contactes al pagador sin haber visto el monto.</p>
+                    {(exchangeRates['efectivo_agent'] ?? 0) > 0 ? (
+                      <a
+                        href={`https://wa.me/5356380709?text=${encodeURIComponent('Hola. soy miembro de eclipse angels en la app ' + (commApps[0] ?? '') + '. E logrado hacer la meta de la app por primera vez por favor guarda mi contacto para temas del pago.')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
+                        💬 Escribir al pagador
+                      </a>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2 w-full bg-white/5 text-white/20 font-bold py-2.5 rounded-xl text-sm cursor-not-allowed border border-white/5">
+                        🔒 Disponible cuando veas tu monto en CUP
+                      </div>
+                    )}
+                  </div>
+                )}
+
               {commApps.length > 1 && (
                 <div className="flex gap-2 mb-4 flex-wrap">
                   <button onClick={() => setFilterApp('')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!filterApp ? 'bg-amber-600 text-white' : 'bg-[#0d0d1e] border border-purple-500/15 text-white/40 hover:text-white'}`}>Todas</button>
