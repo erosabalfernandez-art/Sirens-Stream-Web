@@ -44,11 +44,22 @@ import React, { useState, useEffect } from 'react'
     }, [])
 
     async function fetchCommissions() {
-      setCommLoading(true)
-      const { data } = await supabase.from('agent_commissions').select('*').order('created_at', { ascending: false })
-      setCommissions((data ?? []) as AgentCommission[])
-      setCommLoading(false)
-    }
+        setCommLoading(true)
+        try {
+          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+          const agentRes = await fetch(`${apiBase}/api/agent-commissions?agent_id=${profile?.id ?? ''}`)
+          if (agentRes.ok) {
+            const d = await agentRes.json() as AgentCommission[]
+            setCommissions(d)
+            setCommLoading(false)
+            return
+          }
+        } catch {}
+        // Fallback: direct Supabase (requires agent_user_id set correctly in DB)
+        const { data } = await supabase.from('agent_commissions').select('*').order('created_at', { ascending: false })
+        setCommissions((data ?? []) as AgentCommission[])
+        setCommLoading(false)
+      }
 
     function toggleExpand(id: string) { setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s }) }
 
