@@ -71,12 +71,47 @@ import { Router } from 'express';
       }
 
       req.log.info({ userId, email, agentCode }, 'Agent created');
-      return res.json({ ok: true, agent_code: agentCode, user_id: userId });
+        // Auto-grant approved channel access for all apps
+        const APPS = ['Layla', 'Waha', 'Howdy'];
+        const channelRows = APPS.map(app => ({
+          user_id: userId, app_name: app, status: 'approved',
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        }));
+        void fetch(sbUrl('channel_requests?on_conflict=user_id,app_name'), {
+          method: 'POST',
+          headers: sbHeaders('resolution=merge-duplicates,return=minimal') as Record<string, string>,
+          body: JSON.stringify(channelRows),
+        }).catch(() => {});
+
+        return res.json({ ok: true, agent_code: agentCode, user_id: userId });
     } catch (err) {
       req.log.error(err, 'create-agent error');
       return res.status(500).json({ error: 'Error interno del servidor.' });
     }
   });
 
-  export default router;
+
+    // POST /api/grant-agent-channels — grant all-app channel access to an existing agent
+    router.post('/grant-agent-channels', async (req, res) => {
+      const { user_id } = req.body as { user_id: string };
+      if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
+      const APPS = ['Layla', 'Waha', 'Howdy'];
+      const rows = APPS.map(app => ({
+        user_id, app_name: app, status: 'approved',
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      }));
+      try {
+        const r = await fetch(sbUrl('channel_requests?on_conflict=user_id,app_name'), {
+          method: 'POST',
+          headers: sbHeaders('resolution=merge-duplicates,return=minimal') as Record<string, string>,
+          body: JSON.stringify(rows),
+        });
+        if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
+        return res.json({ ok: true, granted: APPS });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' });
+      }
+    });
+
+    export default router;
   
