@@ -63,6 +63,7 @@ import React, { useState, useEffect } from 'react'
     const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'>('comisiones')
     const [workerAppFilter, setWorkerAppFilter] = useState('')
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
+    const [validRateSemana, setValidRateSemana] = useState<string>('')
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
       const [agentConfirmed, setAgentConfirmed] = useState<Set<string>>(new Set())
       const [agentConfirming, setAgentConfirming] = useState<string | null>(null)
@@ -105,10 +106,15 @@ import React, { useState, useEffect } from 'react'
     }
 
     async function fetchExchangeRates() {
-      const { data } = await supabase.from('exchange_rates').select('id, rate')
+      const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+      const [ratesRes, semanaRes] = await Promise.all([
+        supabase.from('exchange_rates').select('id, rate'),
+        fetch(`${apiBase}/api/site-settings/exchange_rates_valid_semana`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      ])
       const r: Record<string,number> = {}
-      for (const row of (data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
+      for (const row of (ratesRes.data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
       setExchangeRates(r)
+      setValidRateSemana((semanaRes as any)?.value ?? '')
     }
 
     async function fetchAgentConfirmed() {
@@ -309,10 +315,14 @@ import React, { useState, useEffect } from 'react'
               <div className="grid grid-cols-3 gap-3 mb-6">
                 <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
                     <p className="text-2xl font-extrabold text-green-400">${fmt(totalUSD)} <span className="text-sm font-bold">USD</span></p>
-                    {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
-                      ? <p className="text-sm font-bold text-amber-300 mt-0.5">{(totalUSD * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP</p>
-                      : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
-                    }
+                    {(() => {
+                      const _rate = agentPayMethod ? (exchangeRates[`${agentPayMethod}_agent`] ?? 0) : 0
+                      const _hasWeek = validRateSemana ? commissions.some(c => c.semana === validRateSemana) : false
+                      const _vtotal = commissions.filter(c => c.semana === validRateSemana).reduce((s, c) => s + (c.total_commission_usd || 0), 0)
+                      return agentPayMethod && _rate > 0 && _hasWeek
+                        ? <p className="text-sm font-bold text-amber-300 mt-0.5">{(_vtotal * _rate).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP</p>
+                        : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
+                    })()}
                     <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Total ganado</p>
                   </div>
                 <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
@@ -337,13 +347,13 @@ import React, { useState, useEffect } from 'react'
                             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-amber-500/30 hover:border-amber-400 hover:bg-amber-500/10 transition-all">
                             <span className="text-2xl">💵</span>
                             <span className="text-white font-bold text-sm">Efectivo Cuba</span>
-                            {(exchangeRates['efectivo_agent'] ?? 0) > 0 && <span className="text-amber-400/60 text-xs">1 USD = {(exchangeRates['efectivo_agent']).toLocaleString('es-ES')} CUP</span>}
+                            {(exchangeRates['efectivo_agent'] ?? 0) > 0 && validRateSemana && commissions.some(c => c.semana === validRateSemana) && <span className="text-amber-400/60 text-xs">1 USD = {(exchangeRates['efectivo_agent']).toLocaleString('es-ES')} CUP</span>}
                           </button>
                           <button onClick={() => selectPayMethod('transferencia')}
                             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-blue-500/30 hover:border-blue-400 hover:bg-blue-500/10 transition-all">
                             <span className="text-2xl">🏦</span>
                             <span className="text-white font-bold text-sm">Transferencia Cuba</span>
-                            {(exchangeRates['transferencia_agent'] ?? 0) > 0 && <span className="text-blue-400/60 text-xs">1 USD = {(exchangeRates['transferencia_agent']).toLocaleString('es-ES')} CUP</span>}
+                            {(exchangeRates['transferencia_agent'] ?? 0) > 0 && validRateSemana && commissions.some(c => c.semana === validRateSemana) && <span className="text-blue-400/60 text-xs">1 USD = {(exchangeRates['transferencia_agent']).toLocaleString('es-ES')} CUP</span>}
                           </button>
                         </div>
                       </div>
@@ -358,7 +368,7 @@ import React, { useState, useEffect } from 'react'
                               <p className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-400 text-xs font-bold uppercase tracking-wider`}>
                                 {agentPayMethod === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'}
                               </p>
-                              {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && (
+                              {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && validRateSemana && commissions.some(c => c.semana === validRateSemana) && (
                                 <p className="text-white/30 text-xs">1 USD = {(exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES')} CUP</p>
                               )}
                             </div>
@@ -372,8 +382,9 @@ import React, { useState, useEffect } from 'react'
                         <div className="space-y-2">
                           {commApps.map(app => {
                             const appUsd = commissions.filter(c => c.app_name === app).reduce((s, c) => s + (c.total_commission_usd || 0), 0)
-                            const rate = exchangeRates[`${agentPayMethod}_agent`] ?? 0
-                            const cup = appUsd * rate
+                            const validAppUsd = validRateSemana ? commissions.filter(c => c.app_name === app && c.semana === validRateSemana).reduce((s, c) => s + (c.total_commission_usd || 0), 0) : 0
+                            const rate = validRateSemana ? (exchangeRates[`${agentPayMethod}_agent`] ?? 0) : 0
+                            const cup = validAppUsd * rate
                             return (
                               <div key={app} className="flex items-center justify-between">
                                 <span className="text-white/50 text-sm">{app} · <span className="text-green-400 font-bold">${fmt(appUsd)}</span></span>
@@ -387,8 +398,8 @@ import React, { useState, useEffect } from 'react'
                             <div className="flex items-center justify-between border-t border-white/8 pt-2 mt-1">
                               <span className="text-white/40 text-sm font-bold">Total · <span className="text-green-400">${fmt(totalUSD)}</span></span>
                               <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-300 font-extrabold text-xl`}>
-                                {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
-                                  ? (totalUSD * (exchangeRates[`${agentPayMethod}_agent`])).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP'
+                                {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && validRateSemana
+                                  ? (commissions.filter(c => c.semana === validRateSemana).reduce((s,c) => s + (c.total_commission_usd||0), 0) * (exchangeRates[`${agentPayMethod}_agent`])).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP'
                                   : <span className="text-white/25 text-sm">— sin tasa</span>}
                               </span>
                             </div>
@@ -403,7 +414,7 @@ import React, { useState, useEffect } from 'react'
                   <div className="bg-amber-500/6 border border-amber-500/15 rounded-2xl p-4 mb-3 space-y-2">
                     <p className="text-amber-400/80 text-xs font-bold">📲 Contactar pagador</p>
                     <p className="text-white/30 text-xs leading-relaxed">Solo escríbele cuando hayas visto tu monto semanal en CUP. No contactes al pagador sin haber visto el monto.</p>
-                    {(exchangeRates['efectivo_agent'] ?? 0) > 0 ? (
+                    {(exchangeRates['efectivo_agent'] ?? 0) > 0 && validRateSemana && commissions.some(c => c.semana === validRateSemana) ? (
                       <a
                         href={`https://wa.me/5356380709?text=${encodeURIComponent('Hola. soy miembro de eclipse angels en la app ' + (commApps[0] ?? '') + '. E logrado hacer la meta de la app por primera vez por favor guarda mi contacto para temas del pago.')}`}
                         target="_blank" rel="noopener noreferrer"
