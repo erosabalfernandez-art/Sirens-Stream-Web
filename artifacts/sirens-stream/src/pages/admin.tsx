@@ -136,6 +136,9 @@ import { useState, useEffect, useRef } from 'react'
         const [pagosLoading, setPagosLoading] = useState(false)
         const [pagosSemana, setPagosSemana] = useState('')
         const [pagosNeedSetup, setPagosNeedSetup] = useState(false)
+          const [laylaDirectNotifs, setLaylaDirectNotifs] = useState<any[]>([])
+          const [laylaDirectLoading, setLaylaDirectLoading] = useState(false)
+          const [laylaDirectNeedSetup, setLaylaDirectNeedSetup] = useState(false)
         const [testPushSending, setTestPushSending] = useState<Record<string, boolean>>({})
         const [testPushOk, setTestPushOk] = useState<Record<string, boolean>>({})
           const [testPushNoSub, setTestPushNoSub] = useState<Record<string, boolean>>({})
@@ -145,7 +148,26 @@ import { useState, useEffect, useRef } from 'react'
         const [rateInputs, setRateInputs] = useState<Record<string,string>>({})
         const [savingRate, setSavingRate] = useState<string|null>(null)
         const [rateSaved, setRateSaved] = useState<string|null>(null)
-        async function fetchPagosData(app: string) {
+        const sqlDirectPayments = [
+            "CREATE TABLE IF NOT EXISTS direct_payment_notifications (",
+            "  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,",
+            "  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,",
+            "  app_name text NOT NULL,",
+            "  semana text NOT NULL DEFAULT to_char(now(), 'YYYYMMDD'),",
+            "  nota text DEFAULT NULL,",
+            "  notified_at timestamptz DEFAULT now(),",
+            "  UNIQUE(user_id, app_name, semana)",
+            ");",
+            "ALTER TABLE direct_payment_notifications ENABLE ROW LEVEL SECURITY;",
+            "CREATE POLICY \"users_insert_own_dpn\" ON direct_payment_notifications FOR INSERT WITH CHECK (auth.uid() = user_id);",
+            "CREATE POLICY \"users_read_own_dpn\" ON direct_payment_notifications FOR SELECT USING (auth.uid() = user_id);",
+            "CREATE POLICY \"users_delete_own_dpn\" ON direct_payment_notifications FOR DELETE USING (auth.uid() = user_id);",
+            "CREATE POLICY \"admin_read_all_dpn\" ON direct_payment_notifications FOR SELECT USING (",
+            "  auth.uid() IN (SELECT id FROM profiles WHERE is_admin = true)",
+            ");"
+          ].join("\n")
+
+          async function fetchPagosData(app: string) {
           try { localStorage.setItem('ea_pagos_app', app) } catch {}
           setPagosLoading(true); setPagosNeedSetup(false)
           const { data: semanaData, error: semErr } = await supabase
@@ -845,7 +867,7 @@ import { useState, useEffect, useRef } from 'react'
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       {(['Waha', 'Layla', 'Howdy'] as const).map(a => (
-                        <button key={a} onClick={() => { setPagosApp(a); fetchPagosData(a) }}
+                        <button key={a} onClick={() => { setPagosApp(a); if (a === 'Layla') { fetchLaylaDirectNotifs() } else { fetchPagosData(a) } }}
                           className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === a ? 'bg-emerald-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
                           {a}
                         </button>
@@ -882,17 +904,75 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                     </div>
                   )}
 
-                  {/* Layla / Howdy not yet */}
-                  {(pagosApp === 'Layla' || pagosApp === 'Howdy') && !pagosNeedSetup && (
-                    <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-10 text-center">
-                      <Clock className="w-10 h-10 text-amber-400/40 mx-auto mb-3" />
-                      <p className="text-amber-300/70 text-sm font-semibold">Nómina de {pagosApp} no implementada aún</p>
-                      <p className="text-white/30 text-xs mt-1">Disponible en cuanto subas la primera nómina de {pagosApp}.</p>
+                  {/* Layla: direct payment notifications */}
+                  {pagosApp === 'Layla' && !pagosNeedSetup && (
+                    <div className="space-y-4">
+                      {laylaDirectNeedSetup ? (
+                        <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-5">
+                          <p className="text-amber-300 text-sm font-bold mb-2">&#9888;&#65039; Falta crear la tabla en Supabase</p>
+                          <p className="text-white/50 text-xs mb-3">Ejecuta este SQL en el Editor SQL de Supabase para activar notificaciones de pago de Layla:</p>
+                          <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all text-left">{sqlDirectPayments}</pre>
+                          <p className="text-white/30 text-xs mt-3">Después de crearlo, recarga esta página.</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-white/40">Trabajadoras de Layla que notificaron haber recibido su pago.</p>
+                            <button onClick={fetchLaylaDirectNotifs} disabled={laylaDirectLoading}
+                              className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
+                              {laylaDirectLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
+                            </button>
+                          </div>
+                          {laylaDirectLoading ? (
+                            <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
+                          ) : laylaDirectNotifs.length === 0 ? (
+                            <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                              <CheckCircle2 className="w-10 h-10 text-white/10 mx-auto mb-3" />
+                              <p className="text-white/40 text-sm">Ninguna trabajadora de Layla ha notificado pago recibido aún.</p>
+                              <p className="text-white/25 text-xs mt-1">Cuando lo hagan, aparecerán aquí automáticamente.</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <h3 className="text-xs font-bold uppercase tracking-widest text-green-400/70 mb-3 px-1">
+                                ✓ Notificaron pago recibido ({laylaDirectNotifs.length})
+                              </h3>
+                              <div className="space-y-2">
+                                {laylaDirectNotifs.map((row: any) => (
+                                  <div key={row.id} className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl px-5 py-3 flex items-center gap-4">
+                                    <div className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center shrink-0">
+                                      <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-bold text-white">{row.nombre_en_app || row.nombre_real || '—'}</p>
+                                      <p className="text-xs text-white/35 truncate">{row.email}</p>
+                                      {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ' · ' + row.billetera : ''}</p>}
+                                      {row.nota && <p className="text-xs text-purple-300/60 mt-0.5 italic">"{row.nota}"</p>}
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <p className="text-xs text-green-400 font-bold">Recibido ✓</p>
+                                      <p className="text-xs text-white/25">{new Date(row.notified_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
 
-                  {/* Waha (or any app with data) */}
-                  {!pagosNeedSetup && (
+                  {/* Howdy: not implemented yet */}
+                  {pagosApp === 'Howdy' && !pagosNeedSetup && (
+                    <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl p-10 text-center">
+                      <Clock className="w-10 h-10 text-amber-400/40 mx-auto mb-3" />
+                      <p className="text-amber-300/70 text-sm font-semibold">Nómina de Howdy no implementada aún</p>
+                      <p className="text-white/30 text-xs mt-1">Disponible en cuanto subas la primera nómina de Howdy.</p>
+                    </div>
+                  )}
+
+                  {/* Waha: published salaries control */}
+                  {pagosApp === 'Waha' && !pagosNeedSetup && (
                     pagosLoading ? (
                       <div className="space-y-3">
                         {[1,2,3,4].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
