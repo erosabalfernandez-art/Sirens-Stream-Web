@@ -67,7 +67,20 @@ import { Router } from 'express'
         const rm: Record<string,number> = {}
         for (const r of rates) rm[r.id] = r.rate
         const validSemana: string = (settingData[0] as any)?.value ?? ''
-        res.json({ workers: enriched, agents, exchange_rates: validSemana === semana ? rm : {} })
+        // Fetch agent payment methods from worker_entries via agent_user_id
+          const agentUserIds = (agents as any[]).filter((a: any) => a.agent_user_id).map((a: any) => a.agent_user_id as string)
+          let agentPayMethods: Record<string, string> = {}
+          if (agentUserIds.length > 0) {
+            try {
+              const agentWorkerData = await sbGet(`worker_entries?user_id=in.(${agentUserIds.map((id: string) => '"' + id + '"').join(',')})&select=user_id,metodo_pago&limit=200`)
+              for (const w of agentWorkerData) { if (w.user_id && w.metodo_pago) agentPayMethods[w.user_id] = w.metodo_pago }
+            } catch {}
+          }
+          const enrichedAgents = (agents as any[]).map((a: any) => ({
+            ...a,
+            metodo_pago: a.agent_user_id ? (agentPayMethods[a.agent_user_id] ?? null) : null,
+          }))
+          res.json({ workers: enriched, agents: enrichedAgents, exchange_rates: validSemana === semana ? rm : {} })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
 
