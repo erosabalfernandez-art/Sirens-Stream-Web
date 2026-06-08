@@ -606,14 +606,14 @@ import { useState, useEffect, useRef } from 'react'
               })
               const json = await res.json() as { ok?: boolean; userId?: string; error?: string }
               if (!res.ok || !json.ok) {
-                setColiderCreateMsg({ ok: false, msg: json.error ?? 'Error al crear cuenta de cobrador.' })
+                setColiderCreateMsg({ ok: false, msg: json.error ?? 'Error al crear cuenta de colider.' })
                 setCreatingColider(false); return
               }
-              setColiderCreateMsg({ ok: true, msg: `✓ Cobrador "${coliderFormName.trim() || coliderFormEmail.trim()}" creado correctamente.` })
+              setColiderCreateMsg({ ok: true, msg: `✓ Colider "${coliderFormName.trim() || coliderFormEmail.trim()}" creado correctamente.` })
               setColiderFormName(''); setColiderFormEmail(''); setColiderFormPassword(''); setColiderFormTelefono('')
               await fetchColiders()
             } catch {
-              setColiderCreateMsg({ ok: false, msg: 'Error de red al crear cobrador.' })
+              setColiderCreateMsg({ ok: false, msg: 'Error de red al crear colider.' })
             }
             setCreatingColider(false)
           }
@@ -1448,7 +1448,7 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                     <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-6">
                       <div className="flex items-center gap-2 mb-5">
                         <Shield className="w-4 h-4 text-teal-400" />
-                        <span className="text-sm font-semibold text-white/70">Crear cuenta de cobrador (Colider)</span>
+                        <span className="text-sm font-semibold text-white/70">Crear cuenta de colider</span>
                       </div>
                       {coliderSetupNeeded && (
                         <div className="mb-4 bg-amber-500/8 border border-amber-500/20 rounded-xl p-4">
@@ -1492,7 +1492,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                       )}
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <input value={coliderFormName} onChange={e => setColiderFormName(e.target.value)}
-                          placeholder="Nombre del cobrador" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                          placeholder="Nombre del colider" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
                         <input value={coliderFormEmail} onChange={e => setColiderFormEmail(e.target.value)}
                           placeholder="Correo electrónico" type="email" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
                         <input value={coliderFormPassword} onChange={e => setColiderFormPassword(e.target.value)}
@@ -1503,15 +1503,15 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                       <button onClick={createColider} disabled={creatingColider}
                         className="mt-3 flex items-center gap-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
                         {creatingColider ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Shield className="w-4 h-4" />}
-                        {creatingColider ? 'Creando...' : 'Crear cobrador'}
+                        {creatingColider ? 'Creando...' : 'Crear colider'}
                       </button>
-                      <p className="mt-3 text-xs text-white/25">El cobrador podrá marcar pagos entregados desde su panel en <code className="text-teal-400/60">/colider</code></p>
+                      <p className="mt-3 text-xs text-white/25">El colider podrá marcar pagos entregados desde su panel en <code className="text-teal-400/60">/colider</code></p>
                     </div>
                     {coliders.length > 0 && (
                       <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl overflow-hidden">
                         <div className="flex items-center justify-between px-5 py-3 border-b border-teal-500/10">
-                          <span className="text-xs font-bold uppercase tracking-wider text-white/40">Cobradores registrados</span>
-                          <span className="text-xs text-white/30">{coliders.length} cobrador{coliders.length !== 1 ? 'es' : ''}</span>
+                          <span className="text-xs font-bold uppercase tracking-wider text-white/40">Colideres registrados</span>
+                          <span className="text-xs text-white/30">{coliders.length} colider{coliders.length !== 1 ? 'es' : ''}</span>
                         </div>
                         <div className="divide-y divide-white/4">
                           {coliders.map(c => (
@@ -1526,7 +1526,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                   </a>
                                 )}
                               </div>
-                              <span className="text-xs bg-teal-500/10 border border-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">Cobrador</span>
+                              <span className="text-xs bg-teal-500/10 border border-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">Colider</span>
                             </div>
                           ))}
                         </div>
