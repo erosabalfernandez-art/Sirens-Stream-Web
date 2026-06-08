@@ -489,22 +489,6 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
           setPublishingAgents(false)
         }
 
-        async function publicarLaylaParaAgentes() {
-          if (cobradas.length === 0) return
-          setPublishing(true); setPublishedOk(false)
-          const inserts = cobradas.map(({ worker: w, nomina: n }) => ({ user_id: w.user_id, app_name: nominaApp, semana: n.semana, usd: n.usd, diamantes: n.diamantes, extras: n.extras }))
-          const { error } = await supabase.from('published_salaries').upsert(inserts, { onConflict: 'user_id,app_name,semana' })
-          if (!error) {
-            setPublishedOk(true)
-            const { data: agentProfs } = await supabase.from('profiles').select('id').eq('is_agent', true)
-            const agentIds = ((agentProfs ?? []) as {id:string}[]).map(p => p.id)
-            if (agentIds.length > 0) sendPushViaApi(agentIds, `💰 Nómina de ${nominaApp} disponible`, `Semana ${semana} — Revisa las comisiones.`, '/agente', true)
-            setTimeout(() => setPublishedOk(false), 4000)
-            await saveNominaToHistory()
-          }
-          setPublishing(false)
-        }
-
         // Uses Groq AI to map unknown column headers to the required fields.
       // Returns indices for each field, or -1 if not found.
       async function detectColumnsWithAI(headers: string[]): Promise<Record<string, number>> {
@@ -813,30 +797,18 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
                         ✓ Publicado
                       </span>
                     )}
-                    {/* Layla: solo un botón para agentes */}
-                    {nominaApp === 'Layla' && (
-                      <button onClick={publicarLaylaParaAgentes} disabled={publishing || cobradas.length === 0}
-                        className={`flex items-center gap-2 ${publishedOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
-                        {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                        {publishedOk ? '✓ Publicado para agentes' : (publishing ? 'Publicando...' : '💰 Publicar para Agentes')}
-                      </button>
-                    )}
-                    {/* Waha / Howdy: dos botones */}
-                    {nominaApp !== 'Layla' && (
-                      <button onClick={() => publicarSalarios(true)} disabled={publishing || cobradas.length === 0}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
-                        {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                        {publishing ? 'Publicando...' : '⬆ Publicar para Trabajadoras'}
-                      </button>
-                    )}
-                    {nominaApp !== 'Layla' && (
-                      <button onClick={publishAgentCommissions} disabled={publishingAgents || cobradas.length === 0}
-                        className={`flex items-center gap-2 ${agentPublishOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
-                        {publishingAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                        {agentPublishOk ? '✓ Publicado para agentes' : (publishingAgents ? 'Publicando...' : '💰 Publicar para Agentes')}
-                      </button>
-                    )}
-                    <button onClick={exportarPDF}
+                    {/* Todas las apps: Publicar Trabajadoras y Publicar Agentes separados */}
+                    <button onClick={() => publicarSalarios(true)} disabled={publishing || cobradas.length === 0}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
+                      {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                      {publishing ? 'Publicando...' : '⬆ Publicar para Trabajadoras'}
+                    </button>
+                    <button onClick={publishAgentCommissions} disabled={publishingAgents || cobradas.length === 0}
+                      className={`flex items-center gap-2 ${agentPublishOk ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg`}>
+                      {publishingAgents ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                      {agentPublishOk ? '✓ Publicado para agentes' : (publishingAgents ? 'Publicando...' : '💰 Publicar para Agentes')}
+                    </button>
+                                        <button onClick={exportarPDF}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
                     <Download className="w-4 h-4" /> Exportar PDF
                   </button>
