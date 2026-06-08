@@ -200,7 +200,8 @@ import { useState, useEffect } from 'react'
                         const metodo = workerPayMethods[s.app_name] ?? ''
                         const isCubanPay = metodo === 'Efectivo (Cuba)' || metodo === 'Transferencia Bancaria (Cuba)'
                         const rateKey = metodo === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                        const cupRate = isCubanPay && s.semana === validRateSemana ? (exchangeRates[rateKey] ?? 0) : 0
+                        const storedRate = metodo === 'Efectivo (Cuba)' ? (s.extras?.cup_efectivo_rate as number | undefined) : (s.extras?.cup_transferencia_rate as number | undefined)
+                          const cupRate = isCubanPay ? ((storedRate && storedRate > 0) ? storedRate : (s.semana === validRateSemana ? (exchangeRates[rateKey] ?? 0) : 0)) : 0
                         const cupTotal = Number(s.usd) * cupRate
                         return (
                           <div key={s.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
