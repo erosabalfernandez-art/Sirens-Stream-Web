@@ -393,6 +393,7 @@ import React, { useState, useEffect } from 'react'
                       </div>
                     )}
                   </div>
+              )}
 
               {commApps.length > 1 && (
                 <div className="flex gap-2 mb-4 flex-wrap">
