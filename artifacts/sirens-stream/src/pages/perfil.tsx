@@ -36,7 +36,7 @@ import { useState, useEffect } from 'react'
       function clearDraft() { try { localStorage.removeItem(DRAFT_KEY) } catch {} }
 
     export default function Perfil() {
-      const { user, loading, signOut } = useAuth()
+      const { user, profile, loading, signOut } = useAuth()
         const { lang } = useLanguage()
         const T = {
           title:          lang === 'pt' ? 'Meu Perfil'                    : 'Mi Perfil',
@@ -151,10 +151,12 @@ import { useState, useEffect } from 'react'
           const { error: e } = await supabase.from('worker_entries').insert(payload)
             error = e?.message ?? null
             if (!e) {
-              await supabase.from('channel_requests').upsert(
-                { user_id: user!.id, app_name: form.app_name, status: 'pending' },
-                { onConflict: 'user_id,app_name', ignoreDuplicates: true }
-              )
+              if (!profile?.is_agent && !profile?.is_colider) {
+                await supabase.from('channel_requests').upsert(
+                  { user_id: user!.id, app_name: form.app_name, status: 'pending' },
+                  { onConflict: 'user_id,app_name', ignoreDuplicates: true }
+                )
+              }
             }
           }
         setSaving(false)
