@@ -45,5 +45,43 @@ import { Router } from 'express';
     }
   });
 
-  export default router;
+
+
+  // GET /api/agent/no-cobro?agent_id=UUID
+  // Returns weekly_no_cobro entries for workers belonging to this agent
+  router.get('/agent/no-cobro', async (req, res) => {
+    const agentId = (req.query.agent_id as string);
+    if (!agentId) return res.status(400).json({ error: 'Missing agent_id' });
+    try {
+      const profileRes = await fetch(
+        sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=id,agent_code,is_agent&limit=1`),
+        { headers: sbHeaders() as Record<string, string> }
+      );
+      if (!profileRes.ok) return res.status(profileRes.status).json({ error: await profileRes.text() });
+      const profiles = await profileRes.json() as { id: string; agent_code: string | null; is_agent: boolean }[];
+      const profile = profiles[0];
+      if (!profile?.is_agent || !profile.agent_code) return res.json({ entries: [] });
+
+      const workersRes = await fetch(
+        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(profile.agent_code)}&select=user_id&order=created_at.desc`),
+        { headers: sbHeaders() as Record<string, string> }
+      );
+      const workers = await workersRes.json() as { user_id: string }[];
+      const userIds = [...new Set(workers.map((w: any) => w.user_id as string))];
+      if (userIds.length === 0) return res.json({ entries: [] });
+
+      const noCobroRes = await fetch(
+        sbUrl(`weekly_no_cobro?user_id=in.(${userIds.map(id => '"' + id + '"').join(',')})&select=*&order=semana.desc`),
+        { headers: sbHeaders() as Record<string, string> }
+      );
+      if (!noCobroRes.ok) return res.status(noCobroRes.status).json({ error: await noCobroRes.text() });
+      const entries = await noCobroRes.json();
+      return res.json({ entries });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'unknown';
+      return res.status(500).json({ error: msg });
+    }
+  });
+  
+    export default router;
   
