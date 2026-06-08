@@ -221,6 +221,30 @@ import { Router } from 'express';
         setImmediate(() => { dispatchPushIndividual(notifItems).catch(() => {}); });
 
         const agentUserIds = Object.values(agentIdMap).filter(Boolean);
+
+          // Auto-detect agents with zero commission → weekly_no_cobro (fire-and-forget)
+          setImmediate(async () => {
+            try {
+              const zeroAgents = inserts.filter(ins => Number(ins.total_commission_usd) === 0 && agentIdMap[ins.agent_name]);
+              if (zeroAgents.length > 0) {
+                const rows = zeroAgents.map(ins => ({
+                  user_id: agentIdMap[ins.agent_name],
+                  app_name: ins.app_name,
+                  semana: ins.semana,
+                  reason: 'zero_commission',
+                  nombre_en_app: ins.agent_name,
+                  nombre_real: ins.agent_name,
+                  email: null,
+                }));
+                await fetch(sbUrl('weekly_no_cobro?on_conflict=user_id,app_name,semana'), {
+                  method: 'POST',
+                  headers: { ...(sbHeaders() as Record<string,string>), Prefer: 'resolution=merge-duplicates,return=minimal' },
+                  body: JSON.stringify(rows),
+                });
+              }
+            } catch { /* best-effort */ }
+          });
+  
         return res.json({ ok: true, saved: resolved.length, agentUserIds });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'unknown error';
@@ -253,5 +277,57 @@ import { Router } from 'express';
     }
   })
 
+
+    // GET /api/no-cobro — admin: all no-cobro entries
+    router.get('/no-cobro', async (req, res) => {
+      try {
+        const r = await fetch(
+          sbUrl('weekly_no_cobro?select=*&order=semana.desc,created_at.desc'),
+          { headers: sbHeaders() as Record<string, string> }
+        );
+        if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
+        const entries = await r.json();
+        return res.json({ ok: true, entries });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+      }
+    });
+
+    // GET /api/agent/no-cobro — agents & coliders: all no-cobro entries
+    router.get('/agent/no-cobro', async (req, res) => {
+      try {
+        const r = await fetch(
+          sbUrl('weekly_no_cobro?select=*&order=semana.desc,created_at.desc'),
+          { headers: sbHeaders() as Record<string, string> }
+        );
+        if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
+        const entries = await r.json();
+        return res.json({ ok: true, entries });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+      }
+    });
+
+    // PATCH /api/toggle-justified — toggle justified flag
+    router.patch('/toggle-justified', async (req, res) => {
+      const { id, justified } = req.body as { id: string; justified: boolean };
+      if (!id) return res.status(400).json({ error: 'id requerido' });
+      try {
+        const r = await fetch(
+          sbUrl(`weekly_no_cobro?id=eq.${encodeURIComponent(id)}`),
+          {
+            method: 'PATCH',
+            headers: sbHeaders('return=minimal') as Record<string, string>,
+            body: JSON.stringify({ justified: !!justified }),
+          }
+        );
+        if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
+        return res.json({ ok: true });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+      }
+    });
+
+  
       export default router;
   
