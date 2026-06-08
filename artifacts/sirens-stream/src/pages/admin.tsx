@@ -345,11 +345,25 @@ import { useState, useEffect, useRef } from 'react'
           setNotifOk(p => ({ ...p, [key]: false }))
           let ids: string[] = []
           if (type === 'salary') {
-            const { data } = await supabase.from('worker_entries').select('user_id').eq('app_name', app)
-            ids = [...new Set((data ?? []).map((r: any) => r.user_id))]
+            const [{ data: workers }, { data: agentProfs }, { data: coliderProfs }] = await Promise.all([
+              supabase.from('worker_entries').select('user_id').eq('app_name', app),
+              supabase.from('profiles').select('id').eq('is_agent', true),
+              supabase.from('profiles').select('id').eq('is_colider', true),
+            ])
+            ids = [...new Set([
+              ...(workers ?? []).map((r: any) => r.user_id),
+              ...(agentProfs ?? []).map((r: any) => r.id),
+              ...(coliderProfs ?? []).map((r: any) => r.id),
+            ])]
           } else {
-            const { data } = await supabase.from('channel_requests').select('user_id').eq('app_name', app).eq('status', 'approved')
-            ids = (data ?? []).map((r: any) => r.user_id)
+            const [{ data: channelUsers }, { data: agentProfs }] = await Promise.all([
+              supabase.from('channel_requests').select('user_id').eq('app_name', app).eq('status', 'approved'),
+              supabase.from('profiles').select('id').eq('is_agent', true),
+            ])
+            ids = [...new Set([
+              ...(channelUsers ?? []).map((r: any) => r.user_id),
+              ...(agentProfs ?? []).map((r: any) => r.id),
+            ])]
           }
           const msg = type === 'salary'
             ? { title: `💰 Tu salario de ${app} está disponible`, body: 'Entra a ver tus ganancias en tu perfil.', url: '/salarios' }
