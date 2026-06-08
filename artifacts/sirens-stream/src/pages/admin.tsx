@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users, Shield } from 'lucide-react'
   import { sendPushViaApi } from '@/lib/push'
 
     interface WorkerRow extends WorkerEntry {
