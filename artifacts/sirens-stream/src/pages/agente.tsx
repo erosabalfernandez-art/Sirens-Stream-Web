@@ -32,9 +32,10 @@ import React, { useState, useEffect } from 'react'
     const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'>('comisiones')
     const [workerAppFilter, setWorkerAppFilter] = useState('')
     const [selectedWorker, setSelectedWorker] = useState<{uid: string; nombre: string; app: string} | null>(null)
+      const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
 
     useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent) navigate('/') }, [loading, profile])
-    useEffect(() => { if (profile?.is_agent) fetchCommissions() }, [profile])
+    useEffect(() => { if (profile?.is_agent) { fetchCommissions(); fetchExchangeRates() } }, [profile])
     useEffect(() => {
       if ('Notification' in window) {
         if (Notification.permission === 'granted') setNotifStatus('granted')
@@ -51,7 +52,14 @@ import React, { useState, useEffect } from 'react'
 
     function toggleExpand(id: string) { setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s }) }
 
-    async function subscribeNotif() {
+      async function fetchExchangeRates() {
+        const { data } = await supabase.from('exchange_rates').select('id, rate')
+        const r: Record<string,number> = {}
+        for (const row of (data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
+        setExchangeRates(r)
+      }
+
+      async function subscribeNotif() {
       if (!profile?.id) return
       setNotifStatus('requesting')
       const ok = await subscribeToPush(profile.id)
@@ -221,6 +229,24 @@ import React, { useState, useEffect } from 'react'
                           {expanded.has(c.id) ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                         </div>
                       </button>
+                      {(exchangeRates['efectivo_agent'] > 0 || exchangeRates['transferencia_agent'] > 0) && (
+                        <div className="border-t border-amber-500/10 bg-amber-500/5 px-5 py-2 flex gap-4 text-xs">
+                          {exchangeRates['efectivo_agent'] > 0 && (
+                            <div className="flex-1">
+                              <p className="text-amber-400/60 font-semibold">Efectivo Cuba</p>
+                              <p className="text-amber-300 font-extrabold">{(c.total_commission_usd * exchangeRates['efectivo_agent']).toLocaleString('es-ES')} <span className="text-amber-400/50 font-normal">CUP</span></p>
+                              <p className="text-amber-400/30">1 USD = {exchangeRates['efectivo_agent'].toLocaleString('es-ES')}</p>
+                            </div>
+                          )}
+                          {exchangeRates['transferencia_agent'] > 0 && (
+                            <div className="flex-1">
+                              <p className="text-amber-400/60 font-semibold">Transferencia Cuba</p>
+                              <p className="text-amber-300 font-extrabold">{(c.total_commission_usd * exchangeRates['transferencia_agent']).toLocaleString('es-ES')} <span className="text-amber-400/50 font-normal">CUP</span></p>
+                              <p className="text-amber-400/30">1 USD = {exchangeRates['transferencia_agent'].toLocaleString('es-ES')}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {expanded.has(c.id) && (
                         <div className="border-t border-purple-500/10">
                           <div className="px-5 py-2 bg-purple-500/5">
