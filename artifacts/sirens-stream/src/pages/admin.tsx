@@ -293,10 +293,29 @@ import { useState, useEffect, useRef } from 'react'
           setLoadingSol(false)
         }
 
-        async function resolveRequest(id: string, status: 'approved' | 'rejected') {
-          await supabase.from('channel_requests').update({ status, resolved_at: new Date().toISOString(), resolved_by: user!.id }).eq('id', id)
-          fetchSolicitudes()
-        }
+        async function resolveRequest(id: string, status: 'approved' | 'rejected', sol?: { user_id: string; app_name: string }) {
+            await supabase.from('channel_requests').update({ status, resolved_at: new Date().toISOString(), resolved_by: user!.id }).eq('id', id)
+            if (sol?.user_id) {
+              if (status === 'approved') {
+                sendPushViaApi(
+                  [sol.user_id],
+                  `✅ Acceso aprobado — Canal ${sol.app_name}`,
+                  `Ya tienes acceso al canal ${sol.app_name}. ¡Revisa los comunicados!`,
+                  '/canales',
+                  true
+                )
+              } else {
+                sendPushViaApi(
+                  [sol.user_id],
+                  `❌ Solicitud de canal ${sol.app_name}`,
+                  `Tu solicitud al canal ${sol.app_name} no fue aprobada. Contáctanos si tienes dudas.`,
+                  '/canales',
+                  true
+                )
+              }
+            }
+            fetchSolicitudes()
+          }
 
         async function fetchChannelMessages(app: string) {
           setLoadingMsgs(true)
@@ -771,11 +790,11 @@ import { useState, useEffect, useRef } from 'react'
                                   </div>
                                   {status === 'pending' && (
                                     <div className="flex gap-2">
-                                      <button onClick={() => resolveRequest(s.id, 'approved')}
+                                      <button onClick={() => resolveRequest(s.id, 'approved', s)}
                                         className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg transition-all">
                                         Aprobar
                                       </button>
-                                      <button onClick={() => resolveRequest(s.id, 'rejected')}
+                                      <button onClick={() => resolveRequest(s.id, 'rejected', s)}
                                         className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg transition-all">
                                         Rechazar
                                       </button>
