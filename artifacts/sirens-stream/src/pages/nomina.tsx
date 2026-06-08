@@ -512,7 +512,7 @@ const APP_COLORS = {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-bold text-sm truncate">{nombre}</p>
-                          {w.agente && <p className="text-white/30 text-xs">Agente: {w.agente}</p>}
+                          {w.agente && <p className="text-white/30 text-xs">Agente: {agentNameMap[w.agente] ?? w.agente}</p>}
                         </div>
                         {usd > 0 && (
                           <div className="text-right shrink-0">
