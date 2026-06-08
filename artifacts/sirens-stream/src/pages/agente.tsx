@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2 } from 'lucide-react'
+  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2, MessageSquare } from 'lucide-react'
   import { subscribeToPush } from '@/lib/push'
 
   interface AgentCommission {
