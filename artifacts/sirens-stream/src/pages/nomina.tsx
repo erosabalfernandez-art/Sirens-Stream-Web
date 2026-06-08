@@ -1667,6 +1667,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [nominaSavingRate, setNominaSavingRate] = useState<string|null>(null)
   const [nominaRateSaved, setNominaRateSaved] = useState<string|null>(null)
   const [showCambio, setShowCambio] = useState(false)
+  const [nominaRateSemana, setNominaRateSemana] = useState(() => { try { return localStorage.getItem('ea_cambio_semana') ?? '' } catch { return '' } })
 
   if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
@@ -1687,6 +1688,14 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     setNominaSavingRate(id)
     await supabase.from('exchange_rates').upsert({ id, rate, updated_at: new Date().toISOString() }, { onConflict: 'id' })
     setNominaRates(prev => ({ ...prev, [id]: rate }))
+    // Save the semana this rate applies to (so workers only see CUP after this)
+    if (nominaRateSemana.trim()) {
+      const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+      await fetch(`${apiBase}/api/site-settings`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'exchange_rates_valid_semana', value: nominaRateSemana.trim() }),
+      }).catch(() => {})
+    }
     // Notify affected users based on payment method / role
     if (id === 'efectivo_worker') {
       const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Efectivo (Cuba)')
@@ -1787,7 +1796,22 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
             {showCambio && (
               <div className="border-t border-green-500/10 p-5 space-y-5">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3">💜 Para Trabajadoras</p>
+                  <div className="mb-5 bg-black/20 border border-green-500/20 rounded-xl p-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-2">📅 Semana de aplicación</p>
+                      <input
+                        type="text"
+                        value={nominaRateSemana}
+                        onChange={e => { setNominaRateSemana(e.target.value); try { localStorage.setItem('ea_cambio_semana', e.target.value) } catch {} }}
+                        placeholder="Ej: 9-15 Jun 2025"
+                        className="w-full sm:w-80 bg-[#07070f] border border-green-500/25 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-400 mb-1.5"
+                      />
+                      {nominaRateSemana.trim() ? (
+                        <p className="text-green-400/70 text-xs">✓ El cambio solo será visible para nóminas de la semana <strong>{nominaRateSemana.trim()}</strong></p>
+                      ) : (
+                        <p className="text-amber-400/60 text-xs">⚠️ Escribe la semana antes de publicar — sin semana el cambio no se aplicará a nadie</p>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3">💜 Para Trabajadoras</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {([
                       { id: 'efectivo_worker' as const, label: 'Efectivo Cuba', color: 'amber' },
