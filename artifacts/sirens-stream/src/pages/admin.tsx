@@ -148,6 +148,7 @@ import { useState, useEffect, useRef } from 'react'
         const [rateInputs, setRateInputs] = useState<Record<string,string>>({})
         const [savingRate, setSavingRate] = useState<string|null>(null)
         const [rateSaved, setRateSaved] = useState<string|null>(null)
+        const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
         const sqlDirectPayments = [
             "CREATE TABLE IF NOT EXISTS direct_payment_notifications (",
             "  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,",
@@ -354,15 +355,20 @@ import { useState, useEffect, useRef } from 'react'
         async function fetchAll() {
         setLoadingData(true)
         fetchRates()
-        const [{ data: entries }, { data: profiles }] = await Promise.all([
-          supabase.from('worker_entries').select('*').order('created_at', { ascending: false }),
-          supabase.from('profiles').select('id, email'),
-        ])
-        const pm = Object.fromEntries(((profiles ?? []) as any[]).map(p => [p.id, p.email]))
-        emailMapRef.current = pm
-        if (entries) {
-          setWorkers(entries.map((e: any) => ({ ...e, profile_email: pm[e.user_id] ?? 'desconocido' })))
-        }
+        const [{ data: entries }, { data: profiles }, { data: agentProfsAll }] = await Promise.all([
+            supabase.from('worker_entries').select('*').order('created_at', { ascending: false }),
+            supabase.from('profiles').select('id, email'),
+            supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
+          ])
+          const pm = Object.fromEntries(((profiles ?? []) as any[]).map(p => [p.id, p.email]))
+          emailMapRef.current = pm
+          const am: Record<string,string> = Object.fromEntries(
+            ((agentProfsAll ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
+          )
+          setAgentNameMap(am)
+          if (entries) {
+            setWorkers(entries.map((e: any) => ({ ...e, profile_email: pm[e.user_id] ?? 'desconocido' })))
+          }
         setLoadingData(false)
       }
 
@@ -383,7 +389,7 @@ import { useState, useEffect, useRef } from 'react'
         if (filterPago && w.metodo_pago !== filterPago) return false
         if (filterEmail && !w.profile_email.toLowerCase().includes(filterEmail.toLowerCase())) return false
         if (filterBilletera && !(w.billetera ?? '').toLowerCase().includes(filterBilletera.toLowerCase())) return false
-        if (filterAgente && !(w.agente ?? '').toLowerCase().includes(filterAgente.toLowerCase())) return false
+        if (filterAgente && !(w.agente ?? '').toLowerCase().includes(filterAgente.toLowerCase()) && !(agentNameMap[w.agente ?? ''] ?? '').toLowerCase().includes(filterAgente.toLowerCase())) return false
         if (filterNombreReal && !(w.nombre_real ?? '').toLowerCase().includes(filterNombreReal.toLowerCase())) return false
         if (filterNombreApp && !(w.nombre_en_app ?? '').toLowerCase().includes(filterNombreApp.toLowerCase())) return false
         if (filterIdApp && !(w.id_aplicacion ?? '').toLowerCase().includes(filterIdApp.toLowerCase())) return false
@@ -698,7 +704,7 @@ import { useState, useEffect, useRef } from 'react'
                                 {w.nombre_real && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.app_name}</span>}
                                 {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
                                 {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
-                                {w.agente && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{w.agente}</span>}
+                                {w.agente && <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{agentNameMap[w.agente] ?? w.agente}</span>}
                                 {w.telefono && (
                                   <a
                                     href={`https://wa.me/${(`${w.codigo_pais ?? ''}${w.telefono}`).replace(/[\s\-\+\(\)]/g, '')}`}
@@ -727,7 +733,7 @@ import { useState, useEffect, useRef } from 'react'
                                 ['País', w.pais],
                                 ['Método de pago', w.metodo_pago],
                                 ['Billetera', w.billetera],
-                                ['Agente', w.agente],
+                                ['Agente', agentNameMap[w.agente ?? ''] ?? w.agente],
                               ] as [string, string | null, string?][]).map(([label, value, href]) => (
                                 <CopyCell key={label} label={label} value={value} uid={w.id + label} href={href} />
                               ))}
