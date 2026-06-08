@@ -47,7 +47,7 @@ import { Link, useLocation } from "wouter";
       fetch(`${apiBase}/api/cierre-semanal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-      }).then(r => r.json()).then(d => { setResult(d); setLoading(false); }).catch(() => { setResult({ ok: false, error: 'Error de red' }); setLoading(false); });
+      }).then(r => r.json()).then(d => { if (d.allConfirmed) window.dispatchEvent(new CustomEvent('ea_cierre_done')); setResult(d); setLoading(false); }).catch(() => { setResult({ ok: false, error: 'Error de red' }); setLoading(false); });
     }, []);
 
     return (
