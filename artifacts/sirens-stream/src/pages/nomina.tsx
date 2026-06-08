@@ -1512,7 +1512,166 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 }
 
 // ── Parent component ──────────────────────────────────────────────────────────
-export default function Nomina() {
+
+  // ── Colider Admin Section ──────────────────────────────────────────────────
+  function ColiderAdminSection() {
+    const [open, setOpen] = useState(false)
+    const [tab, setTab] = useState<'progreso' | 'crear'>('progreso')
+    const [email, setEmail] = useState('')
+    const [pass, setPass] = useState('')
+    const [nombre, setNombre] = useState('')
+    const [creating, setCreating] = useState(false)
+    const [createMsg, setCreateMsg] = useState('')
+    const [weeks, setWeeks] = useState<string[]>([])
+    const [semana, setSemana] = useState('')
+    const [marks, setMarks] = useState<any[]>([])
+    const [weekStatus, setWeekStatus] = useState<any>(null)
+    const [loadingProg, setLoadingProg] = useState(false)
+    const [closingWeek, setClosingWeek] = useState(false)
+    const [closeMsg, setCloseMsg] = useState('')
+
+    const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+
+    useEffect(() => { if (open && weeks.length === 0) fetchWeeks() }, [open])
+    useEffect(() => { if (semana) fetchProgress() }, [semana])
+
+    async function fetchWeeks() {
+      try {
+        const r = await fetch(`${API}/api/colider/available-weeks`)
+        const d = await r.json()
+        const w: string[] = d.weeks ?? []
+        setWeeks(w)
+        if (w.length > 0) setSemana(w[0])
+      } catch {}
+    }
+
+    async function fetchProgress() {
+      setLoadingProg(true)
+      try {
+        const r = await fetch(`${API}/api/admin/colider-progress?semana=${encodeURIComponent(semana)}`)
+        const d = await r.json()
+        setMarks(d.marks ?? [])
+        setWeekStatus(d.status ?? null)
+      } catch {}
+      setLoadingProg(false)
+    }
+
+    async function createColider() {
+      if (!email || !pass) return
+      setCreating(true); setCreateMsg('')
+      try {
+        const r = await fetch(`${API}/api/admin/create-colider`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass, colider_name: nombre }),
+        })
+        const d = await r.json()
+        if (r.ok) { setCreateMsg('✅ Cuenta creada. Comparte las credenciales con el colider.'); setEmail(''); setPass(''); setNombre('') }
+        else setCreateMsg('❌ ' + (d.error ?? 'Error al crear'))
+      } catch { setCreateMsg('❌ Error de conexión') }
+      setCreating(false)
+    }
+
+    async function closeWeek() {
+      if (!semana) return
+      setClosingWeek(true); setCloseMsg('')
+      try {
+        const r = await fetch(`${API}/api/admin/close-week`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ semana }),
+        })
+        const d = await r.json()
+        if (r.ok) { setCloseMsg('✅ Semana cerrada. Colider puede volver a notificar.'); await fetchProgress() }
+        else setCloseMsg('❌ ' + (d.error ?? 'Error'))
+      } catch { setCloseMsg('❌ Error de conexión') }
+      setClosingWeek(false)
+    }
+
+    const paid = marks.filter(m => m.paid)
+    const pending = marks.filter(m => !m.paid)
+
+    return (
+      <div className="bg-[#0d0d1e] border border-orange-500/20 rounded-2xl overflow-hidden">
+        <button onClick={() => setOpen(o => !o)} className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/2 transition-colors">
+          <div className="flex items-center gap-2">
+            <span className="text-orange-400 font-bold text-sm">👥 Gestión de Colider</span>
+            {weekStatus?.notified && !weekStatus?.admin_closed && (
+              <span className="bg-orange-500/20 text-orange-300 text-xs px-2 py-0.5 rounded-full border border-orange-500/30 animate-pulse">⚡ Pago listo</span>
+            )}
+          </div>
+          <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+        {open && (
+          <div className="px-5 pb-5 border-t border-orange-500/10 pt-4">
+            <div className="flex gap-2 mb-4">
+              {(['progreso', 'crear'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === t ? 'bg-orange-500/20 text-orange-300' : 'text-white/30 hover:text-white/60'}`}>
+                  {t === 'progreso' ? '📊 Progreso' : '➕ Crear cuenta'}
+                </button>
+              ))}
+            </div>
+            {tab === 'crear' && (
+              <div className="space-y-2.5">
+                <p className="text-white/40 text-xs">Crea una cuenta de colider para gestionar pagos semanales.</p>
+                <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del colider"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50" />
+                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50" />
+                <input value={pass} onChange={e => setPass(e.target.value)} placeholder="Contraseña" type="password"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50" />
+                <button onClick={createColider} disabled={creating || !email || !pass}
+                  className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
+                  {creating ? 'Creando...' : '➕ Crear cuenta de colider'}
+                </button>
+                {createMsg && <p className="text-xs text-white/60 mt-1">{createMsg}</p>}
+              </div>
+            )}
+            {tab === 'progreso' && (
+              <div className="space-y-3">
+                {weeks.length > 0 && (
+                  <select value={semana} onChange={e => setSemana(e.target.value)}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50">
+                    {weeks.map(w => <option key={w} value={w}>Semana {w}</option>)}
+                  </select>
+                )}
+                {weekStatus && (
+                  <div className={`px-3 py-2 rounded-xl text-xs font-bold border ${weekStatus.notified && !weekStatus.admin_closed ? 'bg-green-500/10 text-green-400 border-green-500/20' : weekStatus.admin_closed ? 'bg-white/5 text-white/25 border-white/5' : 'bg-white/5 text-white/40 border-white/5'}`}>
+                    {weekStatus.notified && !weekStatus.admin_closed ? '⚡ Colider notificó que terminó de pagar' : weekStatus.admin_closed ? '✅ Semana cerrada' : '⏳ Esperando notificación del colider'}
+                  </div>
+                )}
+                {loadingProg ? (
+                  <div className="h-14 flex items-center justify-center text-white/30 text-xs animate-pulse">Cargando...</div>
+                ) : marks.length === 0 ? (
+                  <div className="text-center py-4 text-white/25 text-xs">Sin registros para esta semana</div>
+                ) : (
+                  <>
+                    <div className="flex gap-3 text-xs"><span className="text-green-400 font-bold">✓ Pagados: {paid.length}</span><span className="text-white/30">Pendientes: {pending.length}</span></div>
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                      {marks.map(m => (
+                        <div key={m.id} className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs ${m.paid ? 'bg-green-500/8 border border-green-500/15' : 'bg-white/3 border border-white/8'}`}>
+                          <div><span className={`font-bold ${m.paid ? 'text-green-300' : 'text-white/60'}`}>{m.person_real_name ?? m.person_name}</span><span className="text-white/25 ml-1">· {m.person_app}</span></div>
+                          <span className={m.paid ? 'text-green-400' : 'text-white/20'}>{m.paid ? '✓' : '○'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {weekStatus?.notified && !weekStatus?.admin_closed && (
+                  <button onClick={closeWeek} disabled={closingWeek}
+                    className="w-full bg-purple-700 hover:bg-purple-600 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
+                    {closingWeek ? 'Cerrando...' : '🔒 Semana cerrada — resetear colider'}
+                  </button>
+                )}
+                {closeMsg && <p className="text-xs text-white/60">{closeMsg}</p>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  export default function Nomina() {
   const { user, profile, loading } = useAuth()
   const [, navigate] = useLocation()
   const [historyView, setHistoryView] = useState(false)
@@ -1715,6 +1874,7 @@ export default function Nomina() {
           />
         ) : (
           <div className="space-y-3">
+            <ColiderAdminSection />
             <AppNominaSection app="Waha"  reloadKey={reloadKeys.Waha}  exchangeRates={nominaRates} />
             <LaylaManualSection exchangeRates={nominaRates} />
             <AppNominaSection app="Howdy" reloadKey={reloadKeys.Howdy} exchangeRates={nominaRates} />
