@@ -82,7 +82,7 @@ const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia
       const profileRows = [
         ['Email', w.profile_email], ['Nombre real', w.nombre_real], ['Nombre en app', w.nombre_en_app],
         ['UID en la app', w.id_aplicacion], ['País', w.pais], ['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono],
-        ['Método de pago', w.metodo_pago], ['Billetera', w.billetera], ['Agente', w.agente],
+        ['Método de pago', w.metodo_pago], ['Billetera', w.billetera], ['Agente', agentNameMap[w.agente ?? ''] ?? w.agente],
       ].filter(([, v]) => v).map(([l, v]) => `<tr><td class="lbl">${l}</td><td>${v}</td></tr>`).join('')
 
       const nominaRows = n ? Object.entries(n.extras).filter(([, v]) => v !== '' && v !== null).map(([k, v]) => `<tr><td class="lbl">${k}</td><td>${v}</td></tr>`).join('') : ''
@@ -341,6 +341,7 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
   const [fEmail, setFEmail] = useState('')
   const [fBilletera, setFBilletera] = useState('')
   const [fAgente, setFAgente] = useState('')
+  const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
   const [fNombreReal, setFNombreReal] = useState('')
   const [fNombreApp, setFNombreApp] = useState('')
   const [fIdApp, setFIdApp] = useState('')
@@ -660,8 +661,15 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
       const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', app)
       if (entriesErr) throw new Error('Error de base de datos: ' + entriesErr.message)
 
-      const { data: profs } = await supabase.from('profiles').select('id, email')
+      const [{ data: profs }, { data: agentProfsNom }] = await Promise.all([
+        supabase.from('profiles').select('id, email'),
+        supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
+      ])
       const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
+      const am2: Record<string,string> = Object.fromEntries(
+        ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
+      )
+      setAgentNameMap(am2)
       const workers: WorkerRow[] = (entries ?? []).map((e: any) => ({ ...e, profile_email: emailMap[e.user_id] ?? '' }))
 
       const cobradasList: Matched[] = []
@@ -1035,7 +1043,7 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
                           <div className="px-5 pb-4 border-t border-purple-500/8">
                             <p className="text-white/25 text-xs font-semibold uppercase tracking-wider mb-2.5 pt-3">Datos del perfil</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-                              {([['UID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Billetera', w.billetera],['Agente', w.agente]] as [string,string|null][]).map(([label, val]) => (
+                              {([['UID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Billetera', w.billetera],['Agente', agentNameMap[w.agente ?? ''] ?? w.agente]] as [string,string|null][]).map(([label, val]) => (
                                 <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><CopyBtn value={val} /></div>
                               ))}
                             </div>
@@ -1092,7 +1100,7 @@ function AppNominaSection({ app, reloadKey }: { app: 'Waha' | 'Layla' | 'Howdy';
                                 <span className="text-orange-400/70 text-xs font-semibold shrink-0 pt-0.5">No cobró</span>
                               </div>
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                                {([['ID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Agente', w.agente]] as [string,string|null][]).map(([label, val]) => (
+                                {([['ID en app', w.id_aplicacion],['País', w.pais],['Método de pago', w.metodo_pago],['Agente', agentNameMap[w.agente ?? ''] ?? w.agente]] as [string,string|null][]).map(([label, val]) => (
                                   <div key={label}><p className="text-white/25 text-xs mb-0.5">{label}</p><CopyBtn value={val} /></div>
                                 ))}
                               </div>
