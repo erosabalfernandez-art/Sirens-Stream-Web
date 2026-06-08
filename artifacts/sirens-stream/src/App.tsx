@@ -13,7 +13,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { AuthProvider, useAuth } from "@/contexts/AuthContext";
   import { LanguageProvider } from "@/contexts/LanguageContext";
   import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
-    import { PushPromptBanner } from "@/components/layout/PushPromptBanner";
+  import { PushPromptBanner } from "@/components/layout/PushPromptBanner";
   import { SEOHead } from "@/components/layout/SEOHead";
   import Home from "@/pages/home";
   import SerStreamer from "@/pages/ser-streamer";
@@ -49,6 +49,32 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
     defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
   });
 
+  /** Visible loading screen — replaces the old invisible text-white/40 approach */
+  function LoadingScreen({ message = "Cargando..." }: { message?: string }) {
+    return (
+      <div
+        style={{ minHeight: "100dvh", background: "#07070f" }}
+        className="flex flex-col items-center justify-center gap-4"
+      >
+        {/* Spinner */}
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            border: "3px solid rgba(59,130,246,0.2)",
+            borderTopColor: "#3b82f6",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite",
+          }}
+        />
+        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontFamily: "sans-serif" }}>
+          {message}
+        </p>
+        <style>{"`@keyframes spin { to { transform: rotate(360deg); } }`"}</style>
+      </div>
+    );
+  }
+
   function Router() {
     const { user, profile, loading } = useAuth();
 
@@ -57,24 +83,16 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
     }, [user]);
 
     if (loading) {
-      return (
-        <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
-          <div className="text-white/40 animate-pulse text-sm">Cargando...</div>
-        </div>
-      );
+      return <LoadingScreen message="Cargando..." />;
     }
 
     if (user) {
       if (profile === undefined) {
-        return (
-          <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
-            <div className="text-white/40 animate-pulse text-sm">Cargando perfil...</div>
-          </div>
-        );
+        return <LoadingScreen message="Cargando perfil..." />;
       }
 
       return (
-        <div className="min-h-screen bg-[#07070f] flex flex-col">
+        <div className="min-h-screen bg-[`#07070f`] flex flex-col">
           <ScrollToTop />
           <Navbar />
           <main className="flex-grow flex flex-col pt-14">
