@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2, MessageSquare } from 'lucide-react'
+  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2, MessageSquare, AlertTriangle } from 'lucide-react'
   import { subscribeToPush } from '@/lib/push'
 
   interface AgentCommission {
@@ -32,7 +32,19 @@ import React, { useState, useEffect } from 'react'
     isActive: boolean
   }
 
-  function fmt(n: number) { return Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+  interface NoCobro {
+      id: string
+      user_id: string
+      app_name: string
+      semana: string
+      nombre_en_app: string | null
+      nombre_real: string | null
+      email: string | null
+      justified: boolean
+      created_at: string
+    }
+
+    function fmt(n: number) { return Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 
   function CopyCode({ code }: { code: string }) {
     const [copied, setCopied] = useState(false)
@@ -60,13 +72,15 @@ import React, { useState, useEffect } from 'react'
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [filterApp, setFilterApp] = useState('')
     const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
-    const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'>('comisiones')
+    const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'|'nocobro'>('comisiones')
     const [workerAppFilter, setWorkerAppFilter] = useState('')
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
     const [validRateSemana, setValidRateSemana] = useState<string>('')
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
       const [agentConfirmed, setAgentConfirmed] = useState<Set<string>>(new Set())
       const [agentConfirming, setAgentConfirming] = useState<string | null>(null)
+    const [noCobro, setNoCobro] = useState<NoCobro[]>([])
+    const [noCobroLoading, setNoCobroLoading] = useState(false)
 
     useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent) navigate('/') }, [loading, profile])
     useEffect(() => {
@@ -117,7 +131,20 @@ import React, { useState, useEffect } from 'react'
       setValidRateSemana((semanaRes as any)?.value ?? '')
     }
 
-    async function fetchAgentConfirmed() {
+    async function fetchNoCobro() {
+        setNoCobroLoading(true)
+        try {
+          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+          const res = await fetch(`${apiBase}/api/agent/no-cobro?agent_id=${profile?.id ?? ''}`)
+          if (res.ok) {
+            const d = await res.json() as { entries: NoCobro[] }
+            setNoCobro(d.entries ?? [])
+          }
+        } catch {}
+        setNoCobroLoading(false)
+      }
+
+      async function fetchAgentConfirmed() {
         const { data } = await supabase
           .from('agent_payment_confirmations')
           .select('commission_id')
@@ -313,6 +340,11 @@ import React, { useState, useEffect } from 'react'
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === 'rendimiento' ? 'bg-green-700 text-white' : 'text-white/40 hover:text-white'}`}>
               <BarChart3 className="w-3.5 h-3.5" /> Rendimiento
             </button>
+            <button onClick={() => setMainTab('nocobro')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === 'nocobro' ? 'bg-rose-700 text-white' : 'text-white/40 hover:text-white'}`}>
+                <AlertTriangle className="w-3.5 h-3.5" /> Sin Cobrar
+                {noCobro.length > 0 && <span className="text-[11px] bg-rose-500/30 rounded-full px-1.5 py-0.5 leading-none">{[...new Set(noCobro.map(e => e.user_id + e.app_name))].length}</span>}
+              </button>
           </div>
 
           {/* ====== COMISIONES TAB ====== */}
@@ -684,6 +716,104 @@ import React, { useState, useEffect } from 'react'
               )}
             </>
           )}
+
+
+            {/* ====== SIN COBRAR TAB ====== */}
+            {mainTab === 'nocobro' && (
+              <>
+                {noCobroLoading ? (
+                  <div className="text-white/30 text-sm text-center py-12">Cargando...</div>
+                ) : noCobro.length === 0 ? (
+                  <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                    <AlertTriangle className="w-8 h-8 text-white/15 mx-auto mb-3" />
+                    <p className="text-white/35 text-sm">Ninguna trabajadora de tu equipo aparece en el registro sin cobrar.</p>
+                  </div>
+                ) : (() => {
+                  // Group by user_id + app_name
+                  const grouped = new Map<string, NoCobro[]>()
+                  for (const e of noCobro) {
+                    const k = e.user_id + '__' + e.app_name
+                    if (!grouped.has(k)) grouped.set(k, [])
+                    grouped.get(k)!.push(e)
+                  }
+                  const entries1: NoCobro[][] = []
+                  const entries2plus: NoCobro[][] = []
+                  for (const group of grouped.values()) {
+                    if (group.length === 1) entries1.push(group)
+                    else entries2plus.push(group.sort((a, b) => b.semana.localeCompare(a.semana)))
+                  }
+                  entries2plus.sort((a, b) => b.length - a.length)
+                  return (
+                    <div className="space-y-6">
+                      {entries2plus.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xs font-extrabold uppercase tracking-widest text-red-400">🔴 2 o más semanas sin cobrar</span>
+                            <span className="text-xs bg-red-500/20 text-red-300 rounded-full px-2 py-0.5">{entries2plus.length}</span>
+                          </div>
+                          <div className="space-y-2">
+                            {entries2plus.map(group => {
+                              const latest = group[0]
+                              const nombre = latest.nombre_en_app || latest.nombre_real || latest.user_id.slice(0, 8)
+                              return (
+                                <div key={latest.user_id + latest.app_name} className="bg-[#0d0d1e] border border-red-500/20 rounded-2xl p-4">
+                                  <div className="flex items-start justify-between gap-3 mb-2">
+                                    <div>
+                                      <p className="text-white font-bold text-sm">{nombre}</p>
+                                      <p className="text-white/35 text-xs">{latest.app_name} · {group.length} semanas</p>
+                                    </div>
+                                    <span className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full border bg-red-500/15 text-red-300 border-red-500/25">
+                                      {group.length} sem.
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {group.map(entry => (
+                                      <div key={entry.id} className="flex items-center justify-between bg-white/3 rounded-xl px-3 py-2">
+                                        <span className="text-white/40 text-xs">Semana {entry.semana}</span>
+                                        {entry.justified
+                                          ? <span className="text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5">✓ Justificada</span>
+                                          : <span className="text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 rounded-full px-2 py-0.5">✗ No justificada</span>
+                                        }
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {entries1.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400">⚠️ 1 semana sin cobrar</span>
+                            <span className="text-xs bg-amber-500/20 text-amber-300 rounded-full px-2 py-0.5">{entries1.length}</span>
+                          </div>
+                          <div className="space-y-2">
+                            {entries1.map(group => {
+                              const entry = group[0]
+                              const nombre = entry.nombre_en_app || entry.nombre_real || entry.user_id.slice(0, 8)
+                              return (
+                                <div key={entry.id} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-white font-semibold text-sm">{nombre}</p>
+                                    <p className="text-white/35 text-xs">{entry.app_name} · Semana {entry.semana}</p>
+                                  </div>
+                                  {entry.justified
+                                    ? <span className="shrink-0 text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-1">✓ Justificada</span>
+                                    : <span className="shrink-0 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-1">⚠ No justificada</span>
+                                  }
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </>
+            )}
         </div>
       </div>
     )
