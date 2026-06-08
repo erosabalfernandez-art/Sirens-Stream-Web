@@ -13,6 +13,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { AuthProvider, useAuth } from "@/contexts/AuthContext";
   import { LanguageProvider } from "@/contexts/LanguageContext";
   import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
+    import { PushPromptBanner } from "@/components/layout/PushPromptBanner";
   import { SEOHead } from "@/components/layout/SEOHead";
   import Home from "@/pages/home";
   import SerStreamer from "@/pages/ser-streamer";
@@ -130,6 +131,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
                 <Toaster />
                 <InstallPWA />
                 <LangRefreshBanner />
+                <PushPromptBanner />
               </AuthProvider>
             </LanguageProvider>
           </TooltipProvider>
