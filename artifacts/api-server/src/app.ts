@@ -1,8 +1,8 @@
-import express, { type Express } from "express";
-import cors from "cors";
-import pinoHttp from "pino-http";
-import router from "./routes";
-import { logger } from "./lib/logger";
+import express, { type Express } from 'express';
+import cors from 'cors';
+import pinoHttp from 'pino-http';
+import router from './routes';
+import { logger } from './lib/logger';
 
 const app: Express = express();
 
@@ -14,7 +14,7 @@ app.use(
         return {
           id: req.id,
           method: req.method,
-          url: req.url?.split("?")[0],
+          url: req.url?.split('?')[0],
         };
       },
       res(res) {
@@ -26,11 +26,11 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.use("/api", router);
-app.get("/", (_req, res) => {
-  res.status(200).send("API activa para Sirens Stream");
+app.use('/api', router);
+app.get('/', (_req, res) => {
+  res.status(200).send('API activa para Sirens Stream');
 });
 export default app;
