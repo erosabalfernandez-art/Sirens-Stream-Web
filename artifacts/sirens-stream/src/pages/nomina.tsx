@@ -1579,15 +1579,21 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     async function closeWeek() {
       if (!semana) return
       setClosingWeek(true); setCloseMsg('')
-      try {
-        const r = await fetch(`${API}/api/admin/close-week`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ semana }),
-        })
-        const d = await r.json()
-        if (r.ok) { setCloseMsg('✅ Semana cerrada. Colider puede volver a notificar.'); await fetchProgress() }
-        else setCloseMsg('❌ ' + (d.error ?? 'Error'))
-      } catch { setCloseMsg('❌ Error de conexión') }
+      for (let attempt = 0; attempt <= 1; attempt++) {
+        try {
+          if (attempt > 0) {
+            setCloseMsg('⏳ Servidor iniciando, espera...')
+            await new Promise(res => setTimeout(res, 8000))
+          }
+          const r = await fetch(`${API}/api/admin/close-week`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ semana }),
+          })
+          const d = await r.json()
+          if (r.ok) { setCloseMsg('✅ Semana cerrada. Colider puede volver a notificar.'); await fetchProgress(); setClosingWeek(false); return }
+          setCloseMsg('❌ ' + (d.error ?? 'Error')); break
+        } catch { if (attempt === 0) continue; setCloseMsg('❌ Error de red — intenta de nuevo') }
+      }
       setClosingWeek(false)
     }
 
