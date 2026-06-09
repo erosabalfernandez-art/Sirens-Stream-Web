@@ -81,11 +81,14 @@ import React, { useState, useEffect } from 'react'
       const [agentConfirming, setAgentConfirming] = useState<string | null>(null)
     const [noCobro, setNoCobro] = useState<NoCobro[]>([])
     const [noCobroLoading, setNoCobroLoading] = useState(false)
+    const [publishedComms, setPublishedComms] = useState<any[]>([])
+    const [pubCommsLoading, setPubCommsLoading] = useState(true)
 
     useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent && !profile?.is_colider) navigate('/') }, [loading, profile])
     useEffect(() => {
       if (profile?.is_agent || profile?.is_colider) {
         fetchCommissions()
+        fetchPublishedCommissions()
         fetchWorkers()
         fetchExchangeRates()
       }
@@ -107,6 +110,21 @@ import React, { useState, useEffect } from 'react'
       const { data } = await supabase.from('agent_commissions').select('*').order('created_at', { ascending: false })
       setCommissions((data ?? []) as AgentCommission[])
       setCommLoading(false)
+    }
+
+    async function fetchPublishedCommissions() {
+      setPubCommsLoading(true)
+      try {
+        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+        const res = await fetch(`${apiBase}/api/agent/published-commissions?agent_id=${profile?.id ?? ''}`)
+        if (res.ok) {
+          const data = await res.json()
+          setPublishedComms(data.commissions ?? [])
+          if (data.exchange_rates) setExchangeRates(data.exchange_rates)
+          if (data.valid_rate_semana) setValidRateSemana(data.valid_rate_semana)
+        }
+      } catch {}
+      setPubCommsLoading(false)
     }
 
     async function fetchWorkers() {
@@ -489,96 +507,70 @@ import React, { useState, useEffect } from 'react'
                 </div>
               )}
 
-              {commLoading ? (
-                <div className="text-white/30 text-sm text-center py-12">Cargando comisiones...</div>
-              ) : filtered.length === 0 ? (
+              {pubCommsLoading ? (
+                <div className="text-white/30 text-sm text-center py-12 animate-pulse">Cargando comisiones...</div>
+              ) : publishedComms.length === 0 ? (
                 <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
                   <DollarSign className="w-8 h-8 text-white/15 mx-auto mb-3" />
-                  <p className="text-white/35 text-sm">Aún no tienes comisiones registradas.</p>
+                  <p className="text-white/35 text-sm font-semibold">Comisión pendiente</p>
+                  <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {filtered.map(c => (
-                    <div key={c.id} className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl overflow-hidden">
-                      <button onClick={() => toggleExpand(c.id)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-purple-500/5 transition-colors text-left">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0">{c.app_name[0]}</div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold text-sm">{c.app_name}</span>
-                                <span className="text-white/30 text-xs">·</span>
-                                <span className="text-white/50 text-xs">{c.semana}</span>
-                                {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && (
-                                  <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-400 text-xs font-bold`}>
-                                    · {(c.total_commission_usd * (exchangeRates[`${agentPayMethod}_agent`])).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
-                                  </span>
-                                )}
+              ) : (() => {
+                const bySemana: Record<string, any[]> = {}
+                for (const c of publishedComms) { if (!bySemana[c.semana]) bySemana[c.semana] = []; bySemana[c.semana].push(c) }
+                return (
+                  <div className="space-y-3">
+                    {Object.entries(bySemana).sort(([a], [b]) => b.localeCompare(a)).map(([sem, rows]) => {
+                      const totalUsd = rows.reduce((s, row) => s + (Number(row.commission_usd) || 0), 0)
+                      const rate = agentPayMethod ? (exchangeRates[`${agentPayMethod}_agent`] ?? 0) : 0
+                      return (
+                        <div key={sem} className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl overflow-hidden">
+                          <button onClick={() => toggleExpand(sem)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-purple-500/5 transition-colors text-left">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0">💰</div>
+                              <div>
+                                <p className="text-white font-semibold text-sm">Semana {sem}</p>
+                                <p className="text-white/35 text-xs">{rows.length} trabajadoras</p>
                               </div>
-                            <div className="text-white/35 text-xs mt-0.5">{(c.workers_data ?? []).length} trabajadoras</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right shrink-0">
-                                <p className="text-green-400 font-extrabold text-base">${c.total_commission_usd.toFixed(2)} <span className="text-sm">USD</span></p>
-                                {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
-                                  ? <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-400' : 'text-blue-400'}`}>
-                                      {(c.total_commission_usd * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
-                                    </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right shrink-0">
+                                <p className="text-green-400 font-extrabold text-base">${totalUsd.toFixed(2)} <span className="text-sm">USD</span></p>
+                                {rate > 0
+                                  ? <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-400' : 'text-blue-400'}`}>{(totalUsd * rate).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP</p>
                                   : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
                                 }
                               </div>
-                          {expanded.has(c.id) ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
-                        </div>
-                      </button>
-                      {(exchangeRates['efectivo_agent'] > 0 || exchangeRates['transferencia_agent'] > 0) && (
-                        <div className="border-t border-amber-500/10 bg-amber-500/5 px-5 py-2 flex gap-4 text-xs">
-                          {exchangeRates['efectivo_agent'] > 0 && <span className="text-amber-300/60">Efectivo: <span className="font-bold text-amber-300">{(c.total_commission_usd * exchangeRates['efectivo_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})}</span></span>}
-                          {exchangeRates['transferencia_agent'] > 0 && <span className="text-amber-300/60">Transferencia: <span className="font-bold text-amber-300">{(c.total_commission_usd * exchangeRates['transferencia_agent']).toLocaleString('es-ES', {maximumFractionDigits: 0})}</span></span>}
-                        </div>
-                      )}
-                      {expanded.has(c.id) && (
-                        <div className="border-t border-purple-500/10 px-5 py-4 space-y-2">
-                          {(c.workers_data ?? []).map((w, i) => (
-                            <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-300 text-xs font-bold">{(w.nombre[0] ?? '?').toUpperCase()}</div>
-                                <span className="text-white/70 text-sm">{w.nombre}</span>
-                              </div>
-                              {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
-                                  ? <span className={agentPayMethod === 'efectivo' ? 'text-amber-400 font-bold text-sm' : 'text-blue-400 font-bold text-sm'}>
-                                      {(w.commission_usd * exchangeRates[`${agentPayMethod}_agent`]).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP
-                                    </span>
-                                  : <span className="text-white/20 text-xs">⏳</span>
-                                }
+                              {expanded.has(sem) ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                        {/* Pago Recibido footer */}
-                        <div className="border-t border-purple-500/10 px-5 py-3 flex items-center justify-between">
-                          {agentConfirmed.has(c.id) ? (
-                            <div className="flex items-center gap-2 text-green-400 text-sm font-semibold">
-                              <CheckCircle2 className="w-4 h-4" />
-                              <span>&#x2713; Pago confirmado</span>
+                          </button>
+                          {(exchangeRates['efectivo_agent'] > 0 || exchangeRates['transferencia_agent'] > 0) && (
+                            <div className="border-t border-amber-500/10 bg-amber-500/5 px-5 py-2 flex gap-4 text-xs">
+                              {exchangeRates['efectivo_agent'] > 0 && <span className="text-amber-300/60">Efectivo: <span className="font-bold text-amber-300">{(totalUsd * exchangeRates['efectivo_agent']).toLocaleString('es-ES', { maximumFractionDigits: 0 })}</span></span>}
+                              {exchangeRates['transferencia_agent'] > 0 && <span className="text-amber-300/60">Transferencia: <span className="font-bold text-amber-300">{(totalUsd * exchangeRates['transferencia_agent']).toLocaleString('es-ES', { maximumFractionDigits: 0 })}</span></span>}
                             </div>
-                          ) : (
-                            <button
-                              onClick={() => confirmAgentPayment(c.id, c.semana, c.app_name)}
-                              disabled={agentConfirming === c.id}
-                              className="flex items-center gap-2 text-sm font-semibold text-white/40 hover:text-green-400 transition-colors disabled:opacity-40">
-                              {agentConfirming === c.id
-                                ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" />
-                                : <CheckCircle2 className="w-4 h-4" />}
-                              <span>Confirmar pago recibido</span>
-                            </button>
                           )}
-                          <span className="text-white/20 text-xs">{c.semana}</span>
+                          {expanded.has(sem) && (
+                            <div className="border-t border-purple-500/10 px-5 py-4 space-y-2">
+                              {rows.map((row, i) => (
+                                <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                                  <div className="min-w-0">
+                                    <span className="text-white/70 text-sm block truncate">{row.worker_name}</span>
+                                    <span className="text-white/30 text-xs">{row.app_name}</span>
+                                  </div>
+                                  <span className="text-green-400 font-bold text-sm shrink-0">${Number(row.commission_usd).toFixed(2)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                      )
+                    })}
+                  </div>
+                )
+              })()}
             </>
+          )
           )}
 
           {/* ====== TRABAJADORAS TAB ====== */}
