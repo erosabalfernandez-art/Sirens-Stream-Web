@@ -127,12 +127,6 @@ import React, { useState, useEffect } from 'react'
     window.addEventListener('ea_cierre_done', onCierre)
     return () => window.removeEventListener('ea_cierre_done', onCierre)
   }, [])
-    useEffect(() => {
-      if ('Notification' in window) {
-        if (Notification.permission === 'granted') setNotifStatus('granted')
-        else if (Notification.permission === 'denied') setNotifStatus('denied')
-      }
-    }, [])
 
     async function fetchCommissions() {
       setCommLoading(true)
