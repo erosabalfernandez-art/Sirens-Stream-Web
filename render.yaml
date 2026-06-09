@@ -2,7 +2,7 @@ services:
     - type: web
       name: eclipse-angels-web
       runtime: static
-      buildCommand: npm install -g pnpm@9 && pnpm install && BASE_PATH=/ pnpm --filter @workspace/sirens-stream run build
+      buildCommand: corepack enable pnpm && pnpm install && BASE_PATH=/ pnpm --filter @workspace/sirens-stream run build
       staticPublishPath: artifacts/sirens-stream/dist
       pullRequestPreviewsEnabled: false
       envVars:
@@ -22,7 +22,7 @@ services:
     - type: web
       name: eclipse-angels-api
       runtime: node
-      buildCommand: npm install -g pnpm@9 && pnpm install && pnpm --filter @workspace/api-server run build
+      buildCommand: corepack enable pnpm && pnpm install && pnpm --filter @workspace/api-server run build
       startCommand: pnpm --filter @workspace/api-server run start
       pullRequestPreviewsEnabled: false
       envVars:
@@ -40,4 +40,3 @@ services:
           sync: false
         - key: SUPABASE_SERVICE_ROLE_KEY
           sync: false
-  
