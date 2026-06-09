@@ -343,7 +343,6 @@ import { subscribeToPush } from '@/lib/push'
                             className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
                             <Phone className="w-3 h-3" /> {p.phone}
                           </a>
-            </>
                         )}
                       </div>
                     </div>
@@ -352,6 +351,7 @@ import { subscribeToPush } from '@/lib/push'
               })}
             </div>
           )}
+          </>
 
           )}
 
