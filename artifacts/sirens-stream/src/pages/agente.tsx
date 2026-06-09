@@ -114,6 +114,19 @@ import React, { useState, useEffect } from 'react'
     }).catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile])
+
+  // Reset panel when admin does weekly cierre (same as colider.tsx)
+  useEffect(() => {
+    function onCierre() {
+      setCommissions([])
+      setPublishedComms([])
+      setWorkerEntries([])
+      setWorkersByApp(new Map())
+      setAllWorkerCards([])
+    }
+    window.addEventListener('ea_cierre_done', onCierre)
+    return () => window.removeEventListener('ea_cierre_done', onCierre)
+  }, [])
     useEffect(() => {
       if ('Notification' in window) {
         if (Notification.permission === 'granted') setNotifStatus('granted')
