@@ -356,6 +356,17 @@ import { useState, useEffect } from 'react'
                   </div>
                 )}
               </div>
+
+              {/* Multi-device warning */}
+                {(notifStatus === 'active' || notifStatus === 'stale' || notifStatus === 'requesting') && (
+                  <div className="mt-3 pt-3 border-t border-white/5 col-span-2">
+                    <p className="text-white/30 text-xs leading-relaxed">
+                      {lang === 'pt'
+                        ? '📱 Se você ativar em outro dispositivo, o anterior deixará de receber notificações. Apenas o último dispositivo inscrito recebe alertas.'
+                        : '📱 Si activas en otro dispositivo, el anterior dejará de recibir notificaciones. Solo el último dispositivo suscrito recibe alertas.'}
+                    </p>
+                  </div>
+                )}
             </div>
 
             <div className="mb-6">
