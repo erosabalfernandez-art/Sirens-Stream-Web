@@ -158,9 +158,14 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
           const [pushTestLoading, setPushTestLoading] = useState(false)
           const [pushTestResult, setPushTestResult] = useState<{sent:number;ok:boolean;subs:number}|null>(null)
-        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'|'Colider'>(() => { try { return (localStorage.getItem('ea_pagos_app') as 'Waha'|'Layla'|'Howdy'|'Agentes'|'Colider') ?? 'Waha' } catch { return 'Waha' } })
+        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { const _sv = localStorage.getItem('ea_pagos_app'); return (['Waha','Layla','Howdy','Agentes'].includes(_sv ?? '') ? _sv : 'Waha') as 'Waha'|'Layla'|'Howdy'|'Agentes' } catch { return 'Waha' } })
           const [agentPayData, setAgentPayData] = useState<{confirmed: any[], pending: any[]}>({confirmed: [], pending: []})
           const [agentPayLoading, setAgentPayLoading] = useState(false)
+          const [cierreLoading, setCierreLoading] = useState(false)
+          const [forzarLoading, setForzarLoading] = useState(false)
+          const [showForzarModal, setShowForzarModal] = useState(false)
+          const [cierrePending, setCierrePending] = useState<any[]>([])
+          const [cierreMsg, setCierreMsg] = useState('')
           const [coliderMarks, setColiderMarks] = useState<{paid: any[], pending: any[]}>({paid: [], pending: []})
           const [coliderMarksLoading, setColiderMarksLoading] = useState(false)
         const [pagosData, setPagosData] = useState<any[]>([])
@@ -242,7 +247,26 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
               confirmed: !!confAt, confirmed_at: confAt ?? null,
             }
           })
-          setPagosData(merged); setPagosLoading(false)
+          // Enrich with colider_marks and exchange_rates
+          const [{ data: colMarks }, { data: exRates }] = await Promise.all([
+            supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'worker').eq('person_app', app).in('person_uid', userIds),
+            supabase.from('exchange_rates').select('id, rate'),
+          ])
+          const _coliderMarkMap: Record<string, boolean> = {}
+          for (const m of (colMarks ?? []) as any[]) _coliderMarkMap[(m as any).person_uid] = (m as any).paid
+          const _rateMap: Record<string, number> = {}
+          for (const r of (exRates ?? []) as any[]) _rateMap[(r as any).id] = (r as any).rate
+          const mergedFull = merged.map((row: any) => {
+            const colider_paid = (row.user_id in _coliderMarkMap) ? _coliderMarkMap[row.user_id] : null
+            const mp = (row.metodo_pago ?? '').toLowerCase()
+            let cup_amount: number | null = null
+            if (mp.includes('cuba')) {
+              const rate = mp.includes('efectivo') ? (_rateMap['efectivo_worker'] ?? 0) : (_rateMap['transferencia_worker'] ?? 0)
+              if (rate > 0) cup_amount = row.usd * rate
+            }
+            return { ...row, colider_paid, cup_amount }
+          })
+          setPagosData(mergedFull); setPagosLoading(false)
         }
 
         async function fetchAgentPayData() {
@@ -264,9 +288,16 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
             const confMap: Record<string, string> = {}
             ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
             const all = (comms ?? []) as any[]
+            // Enrich with colider_marks for agents
+            const _agentUids = all.filter((c: any) => c.agent_user_id).map((c: any) => c.agent_user_id as string)
+            let _agentColiderMap: Record<string, boolean> = {}
+            if (_agentUids.length > 0) {
+              const { data: _agColMarks } = await supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'agent').in('person_uid', _agentUids)
+              for (const m of (_agColMarks ?? []) as any[]) _agentColiderMap[(m as any).person_uid] = (m as any).paid
+            }
             setAgentPayData({
-              confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({...c, confirmed_at: confMap[c.id]})),
-              pending: all.filter((c: any) => !confSet.has(c.id)),
+              confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({ ...c, confirmed_at: confMap[c.id], colider_paid: c.agent_user_id ? ((c.agent_user_id in _agentColiderMap) ? _agentColiderMap[c.agent_user_id] : null) : null })),
+              pending: all.filter((c: any) => !confSet.has(c.id)).map((c: any) => ({ ...c, colider_paid: c.agent_user_id ? ((c.agent_user_id in _agentColiderMap) ? _agentColiderMap[c.agent_user_id] : null) : null })),
             })
             setPagosSemana(semana)
             setAgentPayLoading(false)
@@ -323,6 +354,43 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
               })
             }
             setColiderMarksLoading(false)
+          }
+
+          async function handleCierre() {
+            setCierreLoading(true); setCierrePending([]); setCierreMsg('')
+            try {
+              const resp = await fetch('/api/cierre-semanal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ force: false }),
+              })
+              const data = await resp.json()
+              if (data.ok) {
+                setCierreMsg('✅ Semana cerrada correctamente')
+                window.dispatchEvent(new Event('ea_cierre_done'))
+              } else {
+                setCierrePending(data.pending ?? [])
+              }
+            } catch { setCierreMsg('Error al conectar con el servidor') }
+            setCierreLoading(false)
+          }
+
+          async function handleForzar() {
+            setForzarLoading(true)
+            try {
+              const resp = await fetch('/api/cierre-semanal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ force: true }),
+              })
+              const data = await resp.json()
+              if (data.ok) {
+                setShowForzarModal(false)
+                setCierreMsg('✅ Semana cerrada (forzado)')
+                window.dispatchEvent(new Event('ea_cierre_done'))
+              } else { setCierreMsg('Error al forzar cierre') }
+            } catch { setCierreMsg('Error al conectar con el servidor') }
+            setForzarLoading(false)
           }
 
           async function fetchNoCobro() {
@@ -666,6 +734,8 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
           setColiderMarks({ paid: [], pending: [] })
           setAgentPayData({ confirmed: [], pending: [] })
           setLaylaDirectNotifs([])
+          setCierrePending([]); setCierreMsg('')
+          setShowForzarModal(false)
         }
         window.addEventListener('ea_cierre_done', onCierre)
         return () => window.removeEventListener('ea_cierre_done', onCierre)
@@ -1301,7 +1371,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                             {a}
                           </button>
                         ))}
-                        <button onClick={() => fetchPagosData(pagosApp)} disabled={pagosLoading || pagosApp === 'Agentes' || pagosApp === 'Colider'}
+                        <button onClick={() => fetchPagosData(pagosApp)} disabled={pagosLoading || pagosApp === 'Agentes'}
                           className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
                           {pagosLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
                         </button>
@@ -1313,14 +1383,6 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                       <button onClick={() => { setPagosApp('Agentes'); try { localStorage.setItem('ea_pagos_app', 'Agentes') } catch {} fetchAgentPayData() }}
                         className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === 'Agentes' ? 'bg-amber-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
                         Agentes
-                      </button>
-                    </div>
-                    {/* Colider */}
-                    <div className="bg-[#07070f] border border-teal-500/10 rounded-2xl p-3">
-                      <p className="text-xs font-bold uppercase tracking-widest text-teal-400/60 mb-2">Colider</p>
-                      <button onClick={() => { setPagosApp('Colider'); try { localStorage.setItem('ea_pagos_app', 'Colider') } catch {} fetchColiderMarks() }}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${pagosApp === 'Colider' ? 'bg-teal-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/50 hover:text-white'}`}>
-                        Colider
                       </button>
                     </div>
                   </div>
@@ -1386,6 +1448,11 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                   <div className="text-right">
                                     <p className="text-green-400 font-extrabold text-sm">${Number(row.total_commission_usd || 0).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                                     <p className="text-white/25 text-xs">{row.confirmed_at ? new Date(row.confirmed_at).toLocaleDateString('es-ES', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : ''}</p>
+                                    <div className="mt-1">
+                                      {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                      {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full font-bold">Sin pagar</span>}
+                                      {row.colider_paid === null && <span className="text-xs text-white/25">Sin marcar</span>}
+                                    </div>
                                   </div>
                                 </div>
                               ))}
@@ -1405,7 +1472,14 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                       <p className="text-white/35 text-xs">{row.app_name} · {row.semana}</p>
                                     </div>
                                   </div>
-                                  <p className="text-amber-400/70 font-bold text-sm">${Number(row.total_commission_usd || 0).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                  <div className="text-right">
+                                    <p className="text-amber-400/70 font-bold text-sm">${Number(row.total_commission_usd || 0).toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                    <div className="mt-1">
+                                      {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                      {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full font-bold">Sin pagar</span>}
+                                      {row.colider_paid === null && <span className="text-xs text-white/25">Sin marcar</span>}
+                                    </div>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -1420,75 +1494,8 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                     )
                   )}
 
-                  {/* Colider: payment marks */}
-                  {pagosApp === 'Colider' && (
-                    coliderMarksLoading ? (
-                      <div className="space-y-3">
-                        {[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
-                      </div>
-                    ) : (
-                      <div className="space-y-5">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl p-4 text-center">
-                            <p className="text-2xl font-extrabold text-green-400">{coliderMarks.paid.length}</p>
-                            <p className="text-xs text-white/40 mt-1">Marcados como pagados</p>
-                          </div>
-                          <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-4 text-center">
-                            <p className="text-2xl font-extrabold text-amber-400">{coliderMarks.pending.length}</p>
-                            <p className="text-xs text-white/40 mt-1">Pendientes</p>
-                          </div>
-                        </div>
-                        {coliderMarks.paid.length > 0 && (
-                          <div>
-                            <p className="text-xs font-bold text-green-400 uppercase tracking-widest mb-3">✓ Pagos entregados</p>
-                            <div className="space-y-2">
-                              {coliderMarks.paid.map((row: any) => (
-                                <div key={row.id} className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl px-4 py-3 flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400 font-bold text-xs">{(row.person_name ?? '?')[0]?.toUpperCase()}</div>
-                                    <div>
-                                      <p className="text-white text-sm font-semibold">{row.person_name || '—'}</p>
-                                      <p className="text-white/35 text-xs">{row.person_app || row.person_type} · {row.semana}</p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    {row.salary_usd > 0 && <p className="text-green-400 font-extrabold text-sm">${Number(row.salary_usd).toFixed(2)}</p>}
-                                    <p className="text-xs text-green-400">Pagado ✓</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {coliderMarks.pending.length > 0 && (
-                          <div>
-                            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">⏳ Pendientes de pago</p>
-                            <div className="space-y-2">
-                              {coliderMarks.pending.map((row: any) => (
-                                <div key={row.id} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400/60 font-bold text-xs">{(row.person_name ?? '?')[0]?.toUpperCase()}</div>
-                                    <div>
-                                      <p className="text-white/70 text-sm font-semibold">{row.person_name || '—'}</p>
-                                      <p className="text-white/35 text-xs">{row.person_app || row.person_type} · {row.semana}</p>
-                                    </div>
-                                  </div>
-                                  {row.salary_usd > 0 && <p className="text-amber-400/70 font-bold text-sm">${Number(row.salary_usd).toFixed(2)}</p>}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {coliderMarks.paid.length === 0 && coliderMarks.pending.length === 0 && (
-                          <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl p-12 text-center">
-                            <p className="text-white/40 text-sm">No hay marcas de colider para mostrar.</p>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  )}
-
-                                    {/* Waha: published salaries control */}
+                  
+                  {/* Waha: published salaries control */}
                   {(['Waha', 'Layla', 'Howdy'] as const).includes(pagosApp as 'Waha' | 'Layla' | 'Howdy') && !pagosNeedSetup && (
                     pagosLoading ? (
                       <div className="space-y-3">
@@ -1545,6 +1552,12 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                     {row.confirmed_at && (
                                       <p className="text-xs text-white/25">{new Date(row.confirmed_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                     )}
+                                    <div className="mt-1">
+                                      {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                      {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full font-bold">Sin pagar</span>}
+                                      {row.colider_paid === null && <span className="text-xs text-white/25">Sin marcar</span>}
+                                      {row.cup_amount && <p className="text-xs text-amber-300/60 mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
+                                    </div>
                                   </div>
                                 </div>
                               ))}
@@ -1570,7 +1583,15 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                     {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
                                     {row.agente && <p className="text-xs text-indigo-300/60 mt-0.5">Agente: {agentNameMap[row.agente] ?? row.agente}</p>}
                                   </div>
-                                  <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-3 py-1 rounded-full font-semibold shrink-0">Sin confirmar</span>
+                                  <div className="text-right shrink-0 space-y-1">
+                                    <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-3 py-1 rounded-full font-semibold">Sin confirmar</span>
+                                    <div>
+                                      {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                      {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full font-bold">Sin pagar</span>}
+                                      {row.colider_paid === null && <span className="text-xs text-white/25">Sin marcar</span>}
+                                      {row.cup_amount && <p className="text-xs text-amber-300/60 mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
+                                    </div>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -1579,6 +1600,59 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                       </div>
                     )
                   )}
+                  {/* ── Cierre de Semana ─────────────────────────── */}
+                  <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-5 mt-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-purple-400/60 mb-4">🔒 Cierre de Semana</p>
+                    {cierrePending.length > 0 && (
+                      <div className="mb-4 bg-red-500/8 border border-red-500/20 rounded-xl p-4 space-y-1.5">
+                        <p className="text-xs font-bold text-red-300 mb-2">⚠️ Faltan:</p>
+                        {cierrePending.map((p: any, i: number) => (
+                          <div key={i} className="text-xs text-white/55 flex items-center gap-2">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
+                              p.type === 'colider' || p.type === 'colider_pendiente' ? 'bg-teal-500/20 text-teal-300' :
+                              p.type === 'agente' ? 'bg-amber-500/20 text-amber-300' : 'bg-purple-500/20 text-purple-300'
+                            }`}>{p.type === 'colider' || p.type === 'colider_pendiente' ? 'Colider' : p.type === 'agente' ? 'Agente' : 'Chica'}</span>
+                            <span>{p.name}</span>
+                            {p.app && p.app !== '—' && <span className="text-white/30">· {p.app}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {cierreMsg && (
+                      <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-bold border ${
+                        cierreMsg.includes('✅') ? 'bg-green-500/10 text-green-300 border-green-500/20' : 'bg-red-500/10 text-red-300 border-red-500/20'
+                      }`}>{cierreMsg}</div>
+                    )}
+                    <div className="flex gap-3">
+                      <button onClick={handleCierre} disabled={cierreLoading}
+                        className="flex-1 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
+                        {cierreLoading ? 'Verificando...' : '🔒 Cerrar semana'}
+                      </button>
+                      <button onClick={() => setShowForzarModal(true)}
+                        className="px-4 py-2.5 bg-red-600/20 hover:bg-red-600/35 border border-red-500/30 text-red-300 font-bold rounded-xl text-sm transition-all">
+                        ⚡ Forzar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showForzarModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div className="bg-[#0d0d1e] border border-red-500/30 rounded-2xl p-6 max-w-sm w-full">
+                    <p className="text-red-300 font-bold text-base mb-2">⚡ Cierre forzado</p>
+                    <p className="text-white/60 text-sm mb-5">¿Seguro? Esto cerrará la semana aunque haya pagos pendientes.</p>
+                    <div className="flex gap-3">
+                      <button onClick={() => setShowForzarModal(false)}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all">
+                        Cancelar
+                      </button>
+                      <button onClick={handleForzar} disabled={forzarLoading}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white transition-all">
+                        {forzarLoading ? 'Cerrando...' : 'Confirmar'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
