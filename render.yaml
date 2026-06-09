@@ -2,7 +2,7 @@ services:
   - type: web
     name: eclipse-angels-web
     runtime: static
-    buildCommand: cd artifacts/sirens-stream && npm install --legacy-peer-deps && BASE_PATH=/ npm run build
+    buildCommand: cd artifacts/sirens-stream && npm install --legacy-peer-deps --force && BASE_PATH=/ npm run build
     staticPublishPath: artifacts/sirens-stream/dist
     pullRequestPreviewsEnabled: false
     envVars:
