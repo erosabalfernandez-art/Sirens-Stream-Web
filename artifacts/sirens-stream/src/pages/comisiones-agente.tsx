@@ -49,7 +49,7 @@ import { useState, useEffect } from 'react'
       setDataLoading(true)
       try {
         const r = await fetch(`${API}/api/admin/agent-commission-ref?semana=${encodeURIComponent(semana)}`)
-        if (!r.ok) { setDataLoading(false); return }
+        if (!r.ok) { setMessages(m => ({ ...m, _load: `❌ Error ${r.status} cargando datos. Revisa que el API esté funcionando.` })); setDataLoading(false); return }
         const d = await r.json()
         const ags: AgentRef[] = d.agents ?? []
         setAgents(ags)
@@ -144,6 +144,7 @@ import { useState, useEffect } from 'react'
             <p className="text-white/40 text-sm mt-1">Define y publica manualmente la comisión de cada agente</p>
           </div>
 
+          {messages['_load'] && <p className="text-xs font-semibold text-red-400 mb-3">{messages['_load']}</p>}
           {weeks.length > 0 && (
             <div className="mb-4">
               <select value={semana} onChange={e => setSemana(e.target.value)}
@@ -188,7 +189,7 @@ import { useState, useEffect } from 'react'
             <div className="text-center py-16 text-white/30">
               <p className="text-4xl mb-3">📋</p>
               <p className="text-sm">No hay comisiones de agentes para esta semana.</p>
-              <p className="text-xs mt-1 text-white/20">Sube primero la nómina de Waha o Layla.</p>
+              <p className="text-xs mt-1 text-white/20">Publica la nómina primero (botón &quot;Publicar Nómina&quot; en la sección Nómina).</p>
             </div>
           ) : (
             <div className="space-y-4">
