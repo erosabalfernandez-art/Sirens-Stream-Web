@@ -148,6 +148,10 @@ import { useState, useEffect, useRef } from 'react'
           const [creatingColider, setCreatingColider] = useState(false)
           const [coliderCreateMsg, setColiderCreateMsg] = useState<{ok:boolean;msg:string}|null>(null)
           const [coliders, setColiders] = useState<{id:string;email:string;colider_name:string|null;telefono:string|null}[]>([])
+            const [showResetModal, setShowResetModal] = useState(false)
+            const [resetConfirmText, setResetConfirmText] = useState('')
+            const [resetLoading, setResetLoading] = useState(false)
+            const [resetResult, setResetResult] = useState<{ok: boolean; message: string} | null>(null)
           const [coliderSetupNeeded, setColiderSetupNeeded] = useState(false)
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
@@ -345,7 +349,32 @@ import { useState, useEffect, useRef } from 'react'
             setTogglingJustified(null)
           }
 
-          async function sendTestPushAll() {
+          async function doResetAllHistory() {
+              setResetLoading(true)
+              setResetResult(null)
+              try {
+                const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+                const r = await fetch(`${apiBase}/api/admin/reset-all-history`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ confirm: 'BORRAR TODO' }),
+                })
+                const d = await r.json() as { ok?: boolean; error?: string; results?: Record<string,string> }
+                if (!r.ok || !d.ok) {
+                  setResetResult({ ok: false, message: d.error ?? 'Error desconocido' })
+                } else {
+                  const cleared = Object.entries(d.results ?? {}).filter(([,v]) => v === 'cleared').map(([k]) => k)
+                  setResetResult({ ok: true, message: `✅ Borrado completo. Tablas limpiadas: ${cleared.join(', ')}` })
+                  setResetConfirmText('')
+                }
+              } catch (e: unknown) {
+                setResetResult({ ok: false, message: e instanceof Error ? e.message : 'Error de red' })
+              }
+              setResetLoading(false)
+            }
+
+            async function sendTestPushAll() {
             setPushTestLoading(true)
             setPushTestResult(null)
             try {
@@ -1018,6 +1047,23 @@ import { useState, useEffect, useRef } from 'react'
                       </pre>
                     </div>
                   )}
+
+                  {/* ── Zona de Peligro ─────────────────────────────────── */}
+                  <div className="mt-5 bg-red-950/30 border border-red-500/25 rounded-2xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                      <span className="text-sm font-bold text-red-300">Zona de Peligro</span>
+                    </div>
+                    <p className="text-xs text-white/45 mb-4 leading-relaxed">
+                      Borra <strong className="text-white/70">todo el historial de nóminas</strong>: salarios publicados, comisiones de agentes, confirmaciones de pago (trabajadoras y agentes), marcas del colider, lista de no-cobraron, e historial de subidas. El sistema quedará como si nunca se hubiera subido ninguna nómina.
+                    </p>
+                    <button
+                      onClick={() => { setShowResetModal(true); setResetResult(null); setResetConfirmText('') }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-500/15 border border-red-500/35 text-red-300 hover:bg-red-500/25 hover:border-red-500/60 transition-all">
+                      <Trash2 className="w-4 h-4" />
+                      Borrar todo el historial
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -2298,6 +2344,76 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                       </div>
                     )}
 
+
+
+          {/* Reset History Modal */}
+          {showResetModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+              <div className="w-full max-w-md bg-[#0d0d1e] border border-red-500/30 rounded-2xl p-6 shadow-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-red-300">Borrar todo el historial</p>
+                    <p className="text-xs text-white/35 mt-0.5">Esta acción no se puede deshacer</p>
+                  </div>
+                </div>
+                <div className="bg-red-950/40 border border-red-500/15 rounded-xl p-4 mb-5 space-y-1">
+                  <p className="text-xs font-bold text-red-300 mb-2">Se borrará permanentemente:</p>
+                  {['Salarios publicados de todas las trabajadoras','Comisiones de todos los agentes','Confirmaciones de pago (trabajadoras y agentes)','Marcas del colider','Lista de no-cobraron','Historial de nóminas subidas al admin','Registro de comisiones publicadas del colider'].map(item => (
+                    <div key={item} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                      <p className="text-xs text-white/55">{item}</p>
+                    </div>
+                  ))}
+                </div>
+                {resetResult && (
+                  <div className={`p-3 rounded-xl mb-4 text-xs font-semibold ${resetResult.ok ? "bg-green-500/10 border border-green-500/25 text-green-300" : "bg-red-500/10 border border-red-500/25 text-red-300"}`}>
+                    {resetResult.message}
+                  </div>
+                )}
+                {!resetResult?.ok && (
+                  <>
+                    <p className="text-xs text-white/50 mb-2">
+                      Escribe <span className="font-bold text-red-300">BORRAR TODO</span> para confirmar:
+                    </p>
+                    <input
+                      type="text"
+                      value={resetConfirmText}
+                      onChange={e => setResetConfirmText(e.target.value)}
+                      placeholder="BORRAR TODO"
+                      className="w-full bg-[#07070f] border border-red-500/30 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-red-500/60 mb-4 font-mono"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setShowResetModal(false); setResetConfirmText(""); setResetResult(null) }}
+                        disabled={resetLoading}
+                        className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all disabled:opacity-40">
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={doResetAllHistory}
+                        disabled={resetConfirmText !== "BORRAR TODO" || resetLoading}
+                        className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white hover:bg-red-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        {resetLoading
+                          ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Borrando...</>
+                          : <><Trash2 className="w-4 h-4" /> Borrar todo</>
+                        }
+                      </button>
+                    </div>
+                  </>
+                )}
+                {resetResult?.ok && (
+                  <button
+                    onClick={() => { setShowResetModal(false); setResetResult(null) }}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm font-bold bg-green-600/20 border border-green-500/30 text-green-300 hover:bg-green-600/30 transition-all">
+                    Cerrar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           </div>
         </div>
