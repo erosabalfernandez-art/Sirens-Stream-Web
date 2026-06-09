@@ -1,44 +1,43 @@
 services:
-  - type: web
-    name: eclipse-angels-web
-    runtime: static
-    buildCommand: cd artifacts/sirens-stream && npm install --legacy-peer-deps --force && BASE_PATH=/ npm run build
-    staticPublishPath: artifacts/sirens-stream/dist
-    pullRequestPreviewsEnabled: false
-    envVars:
-      - key: VITE_API_URL
-        value: https://eclipse-angels-api.onrender.com
-      - key: VITE_SUPABASE_URL
-        sync: false
-      - key: VITE_SUPABASE_ANON_KEY
-        sync: false
-      - key: VITE_GROQ_API_KEY
-        sync: false
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    - type: web
+      name: eclipse-angels-web
+      runtime: static
+      buildCommand: npm install -g pnpm@9 && pnpm install && BASE_PATH=/ pnpm --filter @workspace/sirens-stream run build
+      staticPublishPath: artifacts/sirens-stream/dist
+      pullRequestPreviewsEnabled: false
+      envVars:
+        - key: VITE_API_URL
+          value: https://eclipse-angels-api.onrender.com
+        - key: VITE_SUPABASE_URL
+          sync: false
+        - key: VITE_SUPABASE_ANON_KEY
+          sync: false
+        - key: VITE_GROQ_API_KEY
+          sync: false
+      routes:
+        - type: rewrite
+          source: /*
+          destination: /index.html
 
-  - type: web
-    name: eclipse-angels-api
-    runtime: node
-    buildCommand: cd artifacts/api-server && npm install && npm run build
-    startCommand: cd artifacts/api-server && npm run start
-    pullRequestPreviewsEnabled: false
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-      - key: VAPID_PUBLIC_KEY
-        value: BBdr3GZcSw_p6_54VakfGxtgou8XSB1mJBV0btx_aHxpXHI3FZsRaGPd6Fex1fvW7aplnZbCpFow0gdxskYk-S8
-      - key: VAPID_PRIVATE_KEY
-        value: G2M_CxsbU1KPAvffuoPq8Sd9rDxvdbcYFk8GPOjdfts
-      - key: VAPID_SUBJECT
-        value: mailto:eclipseangelsagency@gmail.com
-      - key: GROQ_API_KEY
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
+    - type: web
+      name: eclipse-angels-api
+      runtime: node
+      buildCommand: npm install -g pnpm@9 && pnpm install && pnpm --filter @workspace/api-server run build
+      startCommand: pnpm --filter @workspace/api-server run start
+      pullRequestPreviewsEnabled: false
+      envVars:
+        - key: NODE_ENV
+          value: production
+        - key: VAPID_PUBLIC_KEY
+          value: BBdr3GZcSw_p6_54VakfGxtgou8XSB1mJBV0btx_aHxpXHI3FZsRaGPd6Fex1fvW7aplnZbCpFow0gdxskYk-S8
+        - key: VAPID_PRIVATE_KEY
+          value: G2M_CxsbU1KPAvffuoPq8Sd9rDxvdbcYFk8GPOjdfts
+        - key: VAPID_SUBJECT
+          value: mailto:eclipseangelsagency@gmail.com
+        - key: GROQ_API_KEY
+          sync: false
+        - key: SUPABASE_URL
+          sync: false
+        - key: SUPABASE_SERVICE_ROLE_KEY
+          sync: false
+  
