@@ -83,6 +83,7 @@ import React, { useState, useEffect } from 'react'
     const [noCobroLoading, setNoCobroLoading] = useState(false)
     const [publishedComms, setPublishedComms] = useState<any[]>([])
     const [pubCommsLoading, setPubCommsLoading] = useState(true)
+  const [localAgentCode, setLocalAgentCode] = useState<string | null>(null)
 
   // Persist tab and filter selections
   useEffect(() => { try { localStorage.setItem('ea_agent_tab', mainTab) } catch {} }, [mainTab])
@@ -98,6 +99,21 @@ import React, { useState, useEffect } from 'react'
         fetchExchangeRates()
       }
     }, [profile])
+
+  // Auto-generate agent_code if not set yet (handles coliders and new agents)
+  useEffect(() => {
+    if (!profile || (profile as any).agent_code || localAgentCode) return
+    if (!profile.is_agent && !(profile as any).is_colider) return
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    fetch(`${apiBase}/api/agent/ensure-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: (profile as any).id }),
+    }).then(r => r.json()).then((d: { agent_code?: string }) => {
+      if (d.agent_code) setLocalAgentCode(d.agent_code)
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile])
     useEffect(() => {
       if ('Notification' in window) {
         if (Notification.permission === 'granted') setNotifStatus('granted')
@@ -391,7 +407,7 @@ import React, { useState, useEffect } from 'react'
     )
     if (!profile?.is_agent && !profile?.is_colider) return null
 
-    const agentCode = (profile as any).agent_code as string | undefined
+    const agentCode = localAgentCode || ((profile as any).agent_code as string | undefined)
     const commApps = [...new Set(commissions.map(c => c.app_name))]
     const allApps = [...new Set([...workerEntries.map(w => w.app_name), ...commApps])]
     const filtered = commissions.filter(c => !filterApp || c.app_name === filterApp)
