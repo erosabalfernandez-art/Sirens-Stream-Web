@@ -96,7 +96,6 @@ import { Router } from 'express';
         const APPS = ['Layla', 'Waha', 'Howdy'];
         const rows = APPS.map(app => ({
           user_id, app_name: app, status: 'approved',
-          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }));
         try {
           const r = await fetch(sbUrl('channel_requests?on_conflict=user_id,app_name'), {
