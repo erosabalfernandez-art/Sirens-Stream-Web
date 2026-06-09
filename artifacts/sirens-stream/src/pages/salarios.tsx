@@ -46,7 +46,7 @@ import { useState, useEffect } from 'react'
     const [confirming, setConfirming] = useState<string | null>(null)
       const [workerPayMethods, setWorkerPayMethods] = useState<Record<string,string>>({})
       const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
-      const [validRateSemana, setValidRateSemana] = useState<string>('')
+      const [validRateSemana] = useState<string>('')
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => { if (user) { fetchSalaries(); fetchConfirmed(); fetchWorkerInfo() } }, [user])
@@ -71,11 +71,9 @@ import { useState, useEffect } from 'react'
     }
 
     async function fetchWorkerInfo() {
-        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-        const [entriesRes, ratesRes, semanaRes] = await Promise.all([
+        const [entriesRes, ratesRes] = await Promise.all([
           supabase.from('worker_entries').select('app_name, metodo_pago').eq('user_id', user!.id),
           supabase.from('exchange_rates').select('id, rate'),
-          fetch(`${apiBase}/api/site-settings/exchange_rates_valid_semana`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
         ])
         const methods: Record<string,string> = {}
         for (const e of (entriesRes.data ?? []) as {app_name:string;metodo_pago:string|null}[]) {
@@ -85,7 +83,6 @@ import { useState, useEffect } from 'react'
         const r: Record<string,number> = {}
         for (const row of (ratesRes.data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
         setExchangeRates(r)
-        setValidRateSemana((semanaRes as any)?.value ?? '')
       }
 
       async function confirmPayment(salaryId: string, appName: string, semana: string) {
@@ -273,8 +270,7 @@ import { useState, useEffect } from 'react'
                   const m = workerPayMethods[app] ?? ''
                   const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
                   const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                  const hasSemana = validRateSemana ? salaries.filter(s => s.app_name === app).some(s => s.semana === validRateSemana) : false
-                  return isCuban && (exchangeRates[rk] ?? 0) > 0 && hasSemana
+                  return isCuban && (exchangeRates[rk] ?? 0) > 0
                 })
                 if (cupApps.length === 0) return null
                 let grandTotal = 0
@@ -324,7 +320,7 @@ import { useState, useEffect } from 'react'
                         const isCubanPay = metodo === 'Efectivo (Cuba)' || metodo === 'Transferencia Bancaria (Cuba)'
                         const rateKey = metodo === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
                         const storedRate = metodo === 'Efectivo (Cuba)' ? (s.extras?.cup_efectivo_rate as number | undefined) : (s.extras?.cup_transferencia_rate as number | undefined)
-                          const cupRate = isCubanPay ? ((storedRate && storedRate > 0) ? storedRate : (s.semana === validRateSemana ? (exchangeRates[rateKey] ?? 0) : 0)) : 0
+                          const cupRate = isCubanPay ? ((storedRate && storedRate > 0) ? storedRate : (exchangeRates[rateKey] ?? 0)) : 0
                         const cupTotal = Number(s.usd) * cupRate
                         return (
                           <div key={s.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
