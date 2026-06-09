@@ -322,12 +322,20 @@ const APP_COLORS = {
     const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string }>>({})
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
+    const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
 
     useEffect(() => {
       if (!open || workers.length > 0) return
       setLoadingWorkers(true)
-      supabase.from('worker_entries').select('*').eq('app_name', 'Layla').then(({ data }) => {
-        setWorkers((data ?? []) as WorkerEntry[])
+      Promise.all([
+        supabase.from('worker_entries').select('*').eq('app_name', 'Layla'),
+        supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
+      ]).then(([{ data: workerData }, { data: agentData }]) => {
+        setWorkers((workerData ?? []) as WorkerEntry[])
+        const am: Record<string,string> = Object.fromEntries(
+          ((agentData ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
+        )
+        setAgentNameMap(am)
         setLoadingWorkers(false)
       })
     }, [open])
