@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { Phone, CheckCircle, Circle, Bell, BellOff, Lock, Clock, Users, DollarSign, AlertTriangle } from 'lucide-react'
-import { subscribeToPush } from '@/lib/push'
+import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
   const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
 
@@ -51,7 +51,7 @@ import { subscribeToPush } from '@/lib/push'
     const [noCobroData, setNoCobroData] = useState<NoCobro[]>([])
     const [noCobroLoading, setNoCobroLoading] = useState(false)
     const [notifyMsg, setNotifyMsg] = useState('')
-  const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
+
   const [localAgentCode, setLocalAgentCode] = useState<string | null>(null)
 
   useEffect(() => {
@@ -60,13 +60,7 @@ import { subscribeToPush } from '@/lib/push'
       else if (Notification.permission === 'denied') setNotifStatus('denied')
     }
   }, [])
-
-  async function subscribeNotif() {
-    if (!user) return
-    setNotifStatus('requesting')
-    const result = await subscribeToPush(user.id)
-    setNotifStatus(result)
-  }
+}
 
   // Persist tab selection
   useEffect(() => { try { localStorage.setItem('ea_colider_tab', tab) } catch {} }, [tab])
@@ -257,39 +251,8 @@ import { subscribeToPush } from '@/lib/push'
             <p className="text-white/40 text-sm mt-1">Marca cada pago completado · Eclipse Angels Agency</p>
           </div>
 
-          {/* Push notification banner */}
-          <div className="bg-[#0d0d1e] border border-orange-500/15 rounded-2xl p-4 mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                <Bell className="w-4 h-4 text-orange-400" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">Notificaciones push</p>
-                <p className="text-white/35 text-xs mt-0.5">
-                  {notifStatus === 'granted' ? 'Notificaciones activadas' : notifStatus === 'denied' ? 'Bloqueadas en el navegador' : notifStatus === 'error' ? 'Error técnico al activar' : 'Recibe alertas de la agencia'}
-                </p>
-              </div>
-            </div>
-            <div className="shrink-0">
-              {notifStatus === 'denied' ? (
-                <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20"><BellOff className="w-3.5 h-3.5" /> Bloqueadas</span>
-              ) : notifStatus === 'granted' ? (
-                <div className="flex flex-col items-end gap-2">
-                  <span className="flex items-center gap-1.5 text-green-400 text-xs font-bold"><Bell className="w-3.5 h-3.5" /> Activadas</span>
-                  <button onClick={subscribeNotif}
-                    className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/70 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all border border-white/10">
-                    <Bell className="w-3 h-3" /> Reactivar
-                  </button>
-                </div>
-              ) : (
-                <button onClick={subscribeNotif} disabled={notifStatus === 'requesting'}
-                  className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
-                  {notifStatus === 'requesting' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
-                  {notifStatus === 'requesting' ? 'Activando...' : 'Activar'}
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Push notification card */}
+          <PushNotificationCard userId={user?.id ?? ''} />
 
 
             {/* Agent code card — colider shares this with their workers */}
