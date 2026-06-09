@@ -59,6 +59,8 @@ import { Router } from 'express';
       //   - BORRA agent_payment_confirmations (para las comisiones de esa semana)
       //   - BORRA colider_week_status    → resetea estado del colider
       //   - BORRA weekly_no_cobro        → resetea lista de no-cobro
+      //   - BORRA colider_marks          → resetea marcas de pago del colider
+      //   - BORRA direct_payment_notifications → resetea notificaciones de pago directo (Layla)
       //   - MARCA nomina_history como published=false → desbloquea la página de nómina para nueva semana
       router.post('/cierre-semanal', async (req, res) => {
         const force = !!(req.body as Record<string, unknown>)?.force;
@@ -153,6 +155,8 @@ import { Router } from 'express';
           //      - agent_payment_confirmations for this week's commissions
           //      - colider_week_status for this week
           //      - weekly_no_cobro for this week
+          //      - colider_marks for this week
+          //      - direct_payment_notifications (all — weekly operational data, semana format differs)
 
           const latestSalaryIds = allSalaries
             .filter((s: any) => s.semana === latestSemana)
@@ -170,6 +174,17 @@ import { Router } from 'express';
             }),
             // Clear no-cobro records for this week
             fetch(sbUrl(`weekly_no_cobro?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            // Clear colider marks for this week (payment tracking by colider)
+            fetch(sbUrl(`colider_marks?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            // Clear direct payment notifications (Layla weekly resets)
+            // Note: direct_payment_notifications uses YYYYMMDD semana format so we delete all
+            fetch(sbUrl(`direct_payment_notifications?id=gte.00000000-0000-0000-0000-000000000000`), {
               method: 'DELETE',
               headers: { ...sbH(), Prefer: 'return=minimal' },
             }),
