@@ -78,6 +78,19 @@ import { subscribeToPush } from '@/lib/push'
     useEffect(() => { if (user) fetchNoCobro() }, [user])
     useEffect(() => { if (semana) loadData() }, [semana])
 
+    // Refresh colider view when admin does weekly cierre
+    useEffect(() => {
+      function onCierre() {
+        setPersons([])
+        setMarks({})
+        setWeekStatus(null)
+        if (user) fetchWeeks()
+      }
+      window.addEventListener('ea_cierre_done', onCierre)
+      return () => window.removeEventListener('ea_cierre_done', onCierre)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user])
+
     async function fetchWeeks() {
       try {
         const r = await fetch(`${API}/api/colider/available-weeks?colider_user_id=${user?.id ?? ''}`)
