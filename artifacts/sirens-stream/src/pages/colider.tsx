@@ -47,7 +47,7 @@ import { subscribeToPush } from '@/lib/push'
     const [loadingData, setLoadingData] = useState(false)
     const [notifying, setNotifying] = useState(false)
     const [toggling, setToggling] = useState<string | null>(null)
-    const [tab, setTab] = useState<'workers' | 'agents' | 'nocobro'>('workers')
+  const [tab, setTab] = useState<'workers' | 'agents' | 'nocobro'>(() => { try { return (localStorage.getItem('ea_colider_tab') as any) || 'workers' } catch { return 'workers' } })
     const [noCobroData, setNoCobroData] = useState<NoCobro[]>([])
     const [noCobroLoading, setNoCobroLoading] = useState(false)
     const [notifyMsg, setNotifyMsg] = useState('')
@@ -66,6 +66,9 @@ import { subscribeToPush } from '@/lib/push'
     const result = await subscribeToPush(user.id)
     setNotifStatus(result)
   }
+
+  // Persist tab selection
+  useEffect(() => { try { localStorage.setItem('ea_colider_tab', tab) } catch {} }, [tab])
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => {
