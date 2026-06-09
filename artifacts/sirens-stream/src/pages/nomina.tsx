@@ -83,8 +83,8 @@ function isoWeekLabel(date = new Date()): string {
     aiSummary: string | null
   ): string {
     const now = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
-    const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
-    const totalDia = cobradas.reduce((s, m) => s + m.nomina.diamantes, 0)
+    const totalUSD = cobradas.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0)
+    const totalDia = cobradas.reduce((s, m) => s + (m.nomina?.diamantes ?? 0), 0)
 
     function workerBlock(w: WorkerRow, n: NominaRow | null, paid: boolean, sinp?: boolean): string {
       const profileRows = [
@@ -794,10 +794,10 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     if (!apiKey) return
     setAiLoading(true)
     try {
-      const totalUSD = matchedList.reduce((s, m) => s + m.nomina.usd, 0)
-      const totalDia = matchedList.reduce((s, m) => s + m.nomina.diamantes, 0)
+      const totalUSD = matchedList.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0)
+      const totalDia = matchedList.reduce((s, m) => s + (m.nomina?.diamantes ?? 0), 0)
       const paises = [...new Set(matchedList.map(m => m.worker.pais).filter(Boolean))]
-      const top3 = matchedList.slice(0, 3).map(m => `${m.nomina.apodo} ($${m.nomina.usd.toFixed(2)})`).join(', ')
+      const top3 = matchedList.slice(0, 3).map(m => `${m.nomina?.apodo ?? ''} ($${(m.nomina?.usd ?? 0).toFixed(2)})`).join(', ')
       const prompt = `Eres asistente de Eclipse Angels Agency. Genera un resumen ejecutivo breve (máx 4 oraciones) de la nómina de la semana ${sem}. Datos: ${matchedList.length} chicas cobraron, total pagado $${totalUSD.toFixed(2)} USD, ${fmt(totalDia)} diamantes totales. Top 3: ${top3}. ${noCobroList.length} chicas no cobraron. Países activos: ${paises.join(', ')}. Sé directo y profesional.`
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -828,8 +828,8 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             inserts, app_name: app, semana, cobradas, noCobro, sinPerfil,
-            total_usd: cobradas.reduce((s, m) => s + m.nomina.usd, 0),
-            total_diamantes: cobradas.reduce((s, m) => s + m.nomina.diamantes, 0),
+            total_usd: cobradas.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0),
+            total_diamantes: cobradas.reduce((s, m) => s + (m.nomina?.diamantes ?? 0), 0),
             file_name: fileName,
           }),
         })
@@ -1064,8 +1064,8 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           body: JSON.stringify({
             app_name: app,
             semana: sem,
-            total_usd: cobradasList.reduce((s, m) => s + m.nomina.usd, 0),
-            total_diamantes: cobradasList.reduce((s, m) => s + m.nomina.diamantes, 0),
+            total_usd: cobradasList.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0),
+            total_diamantes: cobradasList.reduce((s, m) => s + (m.nomina?.diamantes ?? 0), 0),
             cobradas: cobradasList,
             noCobro: noCobroList,
             sinPerfil: sinPerfilList,
@@ -1112,8 +1112,8 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   async function saveNominaToHistory() { /* handled by API server */ }
 
   // Derived values
-  const totalUSD = cobradas.reduce((s, m) => s + m.nomina.usd, 0)
-  const totalDiamonds = cobradas.reduce((s, m) => s + m.nomina.diamantes, 0)
+  const totalUSD = cobradas.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0)
+  const totalDiamonds = cobradas.reduce((s, m) => s + (m.nomina?.diamantes ?? 0), 0)
   const cobradasFiltered = cobradas.filter(({ worker: w }) => {
     if (fPais && w.pais !== fPais) return false
     if (fPago && w.metodo_pago !== fPago) return false
@@ -1125,7 +1125,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     if (fIdApp && !(w.id_aplicacion ?? '').toLowerCase().includes(fIdApp.toLowerCase())) return false
     if (fTelefono && !(w.telefono ?? '').toLowerCase().includes(fTelefono.toLowerCase())) return false
     return true
-  }).sort((a, b) => fSortDir === 'desc' ? b.nomina.usd - a.nomina.usd : a.nomina.usd - b.nomina.usd)
+  }).sort((a, b) => fSortDir === 'desc' ? (b.nomina?.usd ?? 0) - (a.nomina?.usd ?? 0) : (a.nomina?.usd ?? 0) - (b.nomina?.usd ?? 0))
   const nfHasFilters = !!(fPais || fPago || fEmail || fBilletera || fAgente || fNombreReal || fNombreApp || fIdApp || fTelefono)
   function clearNominaFilters() { setFPais(''); setFPago(''); setFEmail(''); setFBilletera(''); setFAgente(''); setFNombreReal(''); setFNombreApp(''); setFIdApp(''); setFTelefono('') }
 
@@ -1412,16 +1412,16 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-2xl font-extrabold text-green-400">{`$${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}</p>
+                              <p className="text-2xl font-extrabold text-green-400">{`$${(n?.usd ?? 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}</p>
                               <div className="flex items-center justify-end gap-1 mt-0.5">
                                 <Gem className="w-3.5 h-3.5 text-purple-400" />
-                                <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
+                                <span className="text-purple-300 text-sm font-semibold">{fmt(n?.diamantes ?? 0)}</span>
                               </div>
                                 {(w.metodo_pago === 'Efectivo (Cuba)' || w.metodo_pago === 'Transferencia Bancaria (Cuba)') && (() => {
                                   const rk = w.metodo_pago === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
                                   const rate = exchangeRates[rk] ?? 0
-                                  if (!rate || !n.usd) return null
-                                  return <p className="text-amber-400 text-xs font-bold mt-1.5 bg-amber-500/10 px-2 py-0.5 rounded-lg">{(n.usd * rate).toLocaleString('es-ES', {maximumFractionDigits: 0})} {w.metodo_pago === 'Efectivo (Cuba)' ? '💵 Ef.' : '🏦 Transf.'}</p>
+                                  if (!rate || !n?.usd) return null
+                                  return <p className="text-amber-400 text-xs font-bold mt-1.5 bg-amber-500/10 px-2 py-0.5 rounded-lg">{((n.usd ?? 0) * rate).toLocaleString('es-ES', {maximumFractionDigits: 0})} {w.metodo_pago === 'Efectivo (Cuba)' ? '💵 Ef.' : '🏦 Transf.'}</p>
                                 })()}
                             </div>
                           </div>
@@ -1534,10 +1534,10 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-xl font-extrabold text-green-400">${n.usd.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-xl font-extrabold text-green-400">${(n?.usd ?? 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
                               <div className="flex items-center justify-end gap-1 mt-0.5">
                                 <Gem className="w-3.5 h-3.5 text-purple-400" />
-                                <span className="text-purple-300 text-sm font-semibold">{fmt(n.diamantes)}</span>
+                                <span className="text-purple-300 text-sm font-semibold">{fmt(n?.diamantes ?? 0)}</span>
                               </div>
                             </div>
                           </div>
