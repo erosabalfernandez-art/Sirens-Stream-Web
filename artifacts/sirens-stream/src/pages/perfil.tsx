@@ -65,6 +65,9 @@ import { useState, useEffect } from 'react'
       const [laylaPayNotified, setLaylaPayNotified] = useState<Record<string, boolean>>({})
       const [laylaPayNotifying, setLaylaPayNotifying] = useState<Record<string, boolean>>({})
       const [laylaPayNeedSetup, setLaylaPayNeedSetup] = useState(false)
+        const [agenteInfo, setAgenteInfo] = useState<{ name: string; is_colider: boolean } | null>(null)
+        const [agenteChecking, setAgenteChecking] = useState(false)
+        const [agenteError, setAgenteError] = useState<string | null>(null)
 
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
       useEffect(() => { if (user) { fetchEntries(); fetchLaylaPayStatus() } }, [user])
@@ -113,7 +116,13 @@ import { useState, useEffect } from 'react'
         setLaylaPayNotifying(p => ({ ...p, [entryId]: false }))
       }
 
-      function openAdd() { setEditingId(null); setForm(loadDraft()); setFormError(null); setShowForm(true) }
+      function openAdd() {
+          setEditingId(null); setForm(loadDraft()); setFormError(null)
+          setAgenteInfo(null); setAgenteError(null)
+          const draft = loadDraft()
+          if (draft.agente) setTimeout(() => checkAgentCode(draft.agente), 100)
+          setShowForm(true)
+        }
 
       function openEdit(entry: WorkerEntry) {
         setEditingId(entry.id)
@@ -175,7 +184,25 @@ import { useState, useEffect } from 'react'
         setNotifStatus(result)
       }
 
-      const paymentMethods = getPaymentMethods(form.pais)
+      const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+
+        async function checkAgentCode(code: string) {
+          const trimmed = code.trim().toUpperCase()
+          if (!trimmed) { setAgenteInfo(null); setAgenteError(null); return }
+          setAgenteChecking(true); setAgenteInfo(null); setAgenteError(null)
+          try {
+            const r = await fetch(`${API}/api/agent-code-info?code=${encodeURIComponent(trimmed)}`)
+            if (r.ok) {
+              const d = await r.json() as { name: string; is_colider: boolean }
+              setAgenteInfo(d)
+            } else {
+              setAgenteError('Código no encontrado. Pide el código a tu agente.')
+            }
+          } catch { setAgenteError('Error al verificar. Intenta de nuevo.') }
+          setAgenteChecking(false)
+        }
+
+        const paymentMethods = getPaymentMethods(form.pais)
       const walletLabel = getWalletLabel(form.metodo_pago)
       const usedApps = entries.map(e => e.app_name)
       const availableApps = APPS.filter(a => !usedApps.includes(a) || (editingId && entries.find(e => e.id === editingId)?.app_name === a))
