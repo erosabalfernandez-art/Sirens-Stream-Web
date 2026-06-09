@@ -329,8 +329,8 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
               setNoCobroLoading(true)
               setNoCobroSetupNeeded(false)
               try {
-                const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
-                const r = await fetch(`${apiBase}/no-cobro`, { credentials: 'include' })
+                const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+                const r = await fetch(`${apiBase}/api/no-cobro`, { credentials: 'include' })
                 if (!r.ok) { const e = await r.json().catch(() => ({})); if ((e?.error ?? '').includes('42P01') || (e?.error ?? '').includes('does not exist')) { setNoCobroSetupNeeded(true); setNoCobroLoading(false); return } }
                 const d = await r.json()
                 if (d.ok) { setNoCobroEntries(d.entries ?? []) }
@@ -341,8 +341,8 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
           async function handleToggleJustified(id: string, justified: boolean) {
             setTogglingJustified(id)
             try {
-              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
-              await fetch(`${apiBase}/toggle-justified`, {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              await fetch(`${apiBase}/api/toggle-justified`, {
                 method: 'PATCH', credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, justified }),
@@ -634,32 +634,6 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
             setLaylaDirectLoading(false)
           }
 
-          async function fetchNoCobro() {
-              setNoCobroLoading(true)
-              setNoCobroSetupNeeded(false)
-              try {
-                const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
-                const r = await fetch(`${apiBase}/no-cobro`, { credentials: 'include' })
-                if (!r.ok) { const e = await r.json().catch(() => ({})); if ((e?.error ?? '').includes('42P01') || (e?.error ?? '').includes('does not exist')) { setNoCobroSetupNeeded(true); setNoCobroLoading(false); return } }
-                const d = await r.json()
-                if (d.ok) { setNoCobroEntries(d.entries ?? []) }
-              } catch {}
-              setNoCobroLoading(false)
-            }
-
-          async function handleToggleJustified(id: string, justified: boolean) {
-            setTogglingJustified(id)
-            try {
-              const apiBase = (window as any).__API_BASE__ ?? (import.meta.env.BASE_URL.replace(/\/$/, '') + '/api')
-              await fetch(`${apiBase}/toggle-justified`, {
-                method: 'PATCH', credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, justified }),
-              })
-              setNoCobroEntries(prev => prev.map(e => e.id === id ? { ...e, justified } : e))
-            } catch {}
-            setTogglingJustified(null)
-          }
         async function fetchAll() {
         setLoadingData(true)
         fetchRates()
