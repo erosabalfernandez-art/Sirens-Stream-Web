@@ -564,6 +564,11 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
             setChannelPosting(false)
           }
 
+        async function deleteMessage(id: string) {
+          await supabase.from('channel_messages').delete().eq('id', id)
+          setChannelMessages(prev => prev.filter(m => m.id !== id))
+        }
+
         async function fetchAgentPayData() {
             setAgentPayLoading(true)
             const { data: latestComm } = await supabase
@@ -655,85 +660,6 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
             } catch {}
             setTogglingJustified(null)
           }
-        useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
-
-      useEffect(() => {
-        if (!loading && user && profile !== undefined) {
-          if (profile && !profile.is_admin) navigate('/perfil')
-          if (profile?.is_admin) fetchAll()
-        }
-      }, [loading, user, profile])
-
-      async function fetchSolicitudes() {
-          setLoadingSol(true)
-          const { data: reqs } = await supabase.from('channel_requests').select('*').order('created_at', { ascending: false })
-          if (Object.keys(emailMapRef.current).length === 0) {
-            const { data: profs } = await supabase.from('profiles').select('id, email')
-            emailMapRef.current = Object.fromEntries(((profs ?? []) as any[]).map((p: any) => [p.id, p.email]))
-          }
-          const pm = emailMapRef.current
-          setSolicitudes(((reqs ?? []) as any[]).map((r: any) => ({ ...r, profile_email: pm[r.user_id] ?? 'desconocido' })))
-          setLoadingSol(false)
-        }
-
-        async function resolveRequest(id: string, status: 'approved' | 'rejected', sol?: { user_id: string; app_name: string }) {
-            await supabase.from('channel_requests').update({ status, resolved_at: new Date().toISOString(), resolved_by: user!.id }).eq('id', id)
-            if (sol?.user_id) {
-              if (status === 'approved') {
-                sendPushViaApi(
-                  [sol.user_id],
-                  `✅ Acceso aprobado — Canal ${sol.app_name}`,
-                  `Ya tienes acceso al canal ${sol.app_name}. ¡Revisa los comunicados!`,
-                  '/canales',
-                  true
-                )
-              } else {
-                sendPushViaApi(
-                  [sol.user_id],
-                  `❌ Solicitud de canal ${sol.app_name}`,
-                  `Tu solicitud al canal ${sol.app_name} no fue aprobada. Contáctanos si tienes dudas.`,
-                  '/canales',
-                  true
-                )
-              }
-            }
-            fetchSolicitudes()
-          }
-
-        async function fetchChannelMessages(app: string) {
-          setLoadingMsgs(true)
-          const { data } = await supabase.from('channel_messages').select('*').eq('app_name', app).order('created_at', { ascending: false })
-          setChannelMessages((data ?? []) as any[])
-          setLoadingMsgs(false)
-        }
-
-        async function postMessage() {
-          if (!channelContent.trim() && !channelImage.trim()) return
-          setChannelPosting(true)
-          const { error } = await supabase.from('channel_messages').insert({
-            app_name: channelApp,
-            content: channelContent.trim() || null,
-            image_url: channelImage.trim() || null,
-            created_by: user!.id,
-          })
-          if (!error) {
-            // Notify approved workers in this channel
-            const { data: approved } = await supabase.from('channel_requests').select('user_id').eq('app_name', channelApp).eq('status', 'approved')
-            const ids = (approved ?? []).map((r: any) => r.user_id)
-            if (ids.length > 0) {
-              sendPushViaApi(ids, `📢 Nuevo comunicado — ${channelApp}`, channelContent.trim().slice(0, 80) || '📷 Imagen', '/canales', true)
-            }
-            setChannelContent(''); setChannelImage('')
-            fetchChannelMessages(channelApp)
-          }
-          setChannelPosting(false)
-        }
-
-        async function deleteMessage(id: string) {
-          await supabase.from('channel_messages').delete().eq('id', id)
-          setChannelMessages(prev => prev.filter(m => m.id !== id))
-        }
-
         async function fetchAll() {
         setLoadingData(true)
         fetchRates()
