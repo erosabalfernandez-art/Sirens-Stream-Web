@@ -85,7 +85,7 @@ import { Link, useLocation } from "wouter";
       }
 
       return (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-20 px-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-20 px-4" onClick={phase === 'loading' ? undefined : onClose}>
           <div className="absolute inset-0 bg-black/70" />
           <div className="relative bg-[#0d0d1e] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">
@@ -111,8 +111,9 @@ import { Link, useLocation } from "wouter";
 
             {phase === 'loading' && (
               <div className="flex flex-col items-center gap-3 py-8">
-                <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-white/50 text-sm">Verificando pagos...</p>
+                <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-white font-semibold text-sm">{force ? 'Ejecutando cierre forzoso...' : 'Verificando pagos...'}</p>
+                <p className="text-white/35 text-xs">Por favor espera, no cierres esta ventana</p>
               </div>
             )}
 
@@ -152,7 +153,7 @@ import { Link, useLocation } from "wouter";
               </div>
             )}
 
-            {phase !== 'confirm' && (
+            {phase === 'done' && (
               <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-white/5 text-white/50 text-sm font-semibold hover:text-white hover:bg-white/10 transition-all">
                 Cerrar
               </button>
