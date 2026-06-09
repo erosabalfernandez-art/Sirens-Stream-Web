@@ -109,6 +109,32 @@ import { Router } from 'express'
       const log = await sbGet(`colider_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&limit=1`)
       if (log.length === 0) { res.json({ published: false, agents: [], exchange_rates: {} }); return }
       const comms = await sbGet(`published_agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`)
+      // Resolve null agent_user_id via agent_code (Layla stores agent_code as agent_name)
+      const nullAgentComms = (comms as any[]).filter((c: any) => !c.agent_user_id && c.agent_name)
+      const codeToResolve = [...new Set(nullAgentComms.map((c: any) => c.agent_name as string))]
+      const codeToUserId: Record<string, string> = {}
+      const codeToDisplayName: Record<string, string> = {}
+      if (codeToResolve.length > 0) {
+        try {
+          const resolveRes = await fetch(`${SB}/rest/v1/profiles?agent_code=in.(${codeToResolve.map(c => '"' + c + '"').join(',')})&select=id,agent_code,colider_name`, { headers: h() })
+          if (resolveRes.ok) {
+            const resolved = await resolveRes.json() as { id: string; agent_code: string | null; colider_name: string | null }[]
+            for (const p of resolved) {
+              if (p.agent_code && p.id) {
+                codeToUserId[p.agent_code] = p.id
+                if (p.colider_name) codeToDisplayName[p.agent_code] = p.colider_name
+              }
+            }
+          }
+        } catch {}
+        for (const c of (comms as any[])) {
+          if (!c.agent_user_id && c.agent_name && codeToUserId[c.agent_name]) {
+            c.agent_user_id = codeToUserId[c.agent_name]
+            if (codeToDisplayName[c.agent_name]) c.agent_name = codeToDisplayName[c.agent_name]
+          }
+        }
+      }
+
       const agentIds = [...new Set((comms as any[]).map((c: any) => c.agent_user_id as string).filter(Boolean))]
       const agentPayMethods: Record<string, string> = {}
       if (agentIds.length > 0) {
@@ -119,18 +145,19 @@ import { Router } from 'express'
       }
       const agentMap: Record<string, { agent_user_id: string; agent_name: string; total_usd: number; workers: any[] }> = {}
       for (const c of (comms as any[])) {
-        if ((agentPayMethods[c.agent_user_id] ?? null) !== 'Efectivo (Cuba)') continue
-        if (!agentMap[c.agent_user_id]) agentMap[c.agent_user_id] = { agent_user_id: c.agent_user_id, agent_name: c.agent_name, total_usd: 0, workers: [] }
-        agentMap[c.agent_user_id].total_usd += Number(c.commission_usd) || 0
-        agentMap[c.agent_user_id].workers.push({ worker_name: c.worker_name, app_name: c.app_name, commission_usd: c.commission_usd })
+        const payMethod = c.agent_user_id ? (agentPayMethods[c.agent_user_id] ?? null) : null
+        if (payMethod !== 'Efectivo (Cuba)') continue
+        const key = c.agent_user_id ?? c.agent_name
+        if (!agentMap[key]) agentMap[key] = { agent_user_id: c.agent_user_id, agent_name: c.agent_name, total_usd: 0, workers: [] }
+        agentMap[key].total_usd += Number(c.commission_usd) || 0
+        agentMap[key].workers.push({ worker_name: c.worker_name, app_name: c.app_name, commission_usd: c.commission_usd })
       }
-      const [rates, settingData] = await Promise.all([
+      const [rates] = await Promise.all([
         sbGet('exchange_rates?select=id,rate'),
-        sbGet('site_settings?key=eq.exchange_rates_valid_semana&select=value&limit=1').catch(() => [] as any[]),
       ])
       const rm: Record<string, number> = {}
       for (const r of rates) rm[r.id] = r.rate
-      res.json({ published: true, published_at: (log[0] as any).published_at, agents: Object.values(agentMap), exchange_rates: (settingData[0] as any)?.value === semana ? rm : {} })
+      res.json({ published: true, published_at: (log[0] as any).published_at, agents: Object.values(agentMap), exchange_rates: rm })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
   export default router

@@ -140,10 +140,13 @@ import { Router } from 'express'
             ).catch(() => [])
             salaryWeeks = salaryData.map((r: any) => r.semana as string)
           }
-          // Agent commissions for this colider's code
-          const agentData = await sbGet(
-            `agent_commissions?agent_code=eq.${encodeURIComponent(agentCode)}&select=semana&order=semana.desc&limit=50`
-          ).catch(() => [])
+          // Agent commissions for this colider — query by agent_name (Layla stores agent_code as agent_name)
+          // AND by agent_user_id (Waha/Howdy stores the resolved user ID)
+          const [agentByName, agentByUserId] = await Promise.all([
+            sbGet(`agent_commissions?agent_name=eq.${encodeURIComponent(agentCode)}&select=semana&order=semana.desc&limit=50`).catch(() => []),
+            coliderUserId ? sbGet(`agent_commissions?agent_user_id=eq.${encodeURIComponent(coliderUserId)}&select=semana&order=semana.desc&limit=50`).catch(() => []) : Promise.resolve([]),
+          ])
+          const agentData = [...agentByName, ...agentByUserId]
 
           const allWeeks = [...new Set<string>([
             ...salaryWeeks,
@@ -193,8 +196,7 @@ import { Router } from 'express'
       // Fetch salaries filtered by this colider's workers
       let salaries: any[]
       if (agentCode && workerUids.length === 0) {
-        res.json({ workers: [], agents: [], exchange_rates: {}, agent_code: agentCode })
-        return
+        salaries = [] // no workers linked, but agents may still exist — continue
       } else if (agentCode && workerUids.length > 0) {
         salaries = await sbGet(
           `published_salaries?semana=eq.${encodeURIComponent(semana)}&user_id=in.(${workerUids.map(id => '"' + id + '"').join(',')})&select=*`
@@ -215,21 +217,26 @@ import { Router } from 'express'
       const enriched = salaries.map((s: any) => ({ ...s, ...wm[`${s.user_id}__${s.app_name}`] ?? {} }))
 
       // Agent commissions for this colider
+      // Layla publishes with agent_name = agent_code; Waha/Howdy resolves agent_user_id
       let agents: any[] = []
-      const agentFilter = agentCode
-        ? `agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_code=eq.${encodeURIComponent(agentCode)}&select=*`
-        : `agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`
-      try { agents = await sbGet(agentFilter) } catch {}
+      if (agentCode) {
+        const [byName, byUserId] = await Promise.all([
+          sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_name=eq.${encodeURIComponent(agentCode)}&select=*`).catch(() => []),
+          colider_user_id ? sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_user_id=eq.${encodeURIComponent(colider_user_id)}&select=*`).catch(() => []) : Promise.resolve([]),
+        ])
+        const seen = new Set<string>()
+        agents = [...byName, ...byUserId].filter((a: any) => {
+          const key = `${a.agent_name}__${a.app_name}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+      } else {
+        try { agents = await sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`) } catch {}
+      }
 
-      // Published agent commissions for colider view
-      let publishedAgents: { published: boolean; agents: any[]; exchange_rates: Record<string,number> } = { published: false, agents: [], exchange_rates: {} }
-      try {
-        const pubFilter = agentCode
-          ? `published_agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_code=eq.${encodeURIComponent(agentCode)}&select=*`
-          : `published_agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`
-        const pubRows = await sbGet(pubFilter)
-        publishedAgents = { published: pubRows.length > 0, agents: pubRows, exchange_rates: {} }
-      } catch {}
+      // Published agent commissions for colider view (queried by separate dedicated endpoint — kept minimal here)
+      const publishedAgents: { published: boolean; agents: any[]; exchange_rates: Record<string,number> } = { published: false, agents: [], exchange_rates: {} }
 
       const [rates, settingData] = await Promise.all([
         sbGet('exchange_rates?select=id,rate'),
@@ -259,7 +266,8 @@ import { Router } from 'express'
         workers: enriched,
         agents: enrichedAgents,
         published_agent_commissions: publishedAgents,
-        exchange_rates: validSemana === semana ? rm : {},
+        exchange_rates: rm,
+        rates_valid_semana: validSemana,
         agent_code: agentCode,
       })
     } catch (e) { res.status(500).json({ error: String(e) }) }

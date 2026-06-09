@@ -192,9 +192,29 @@ import { Router } from 'express';
           }
         }
 
+        // Also try resolving by agent_code (Layla publishes with agent_name = agent_code like "EA-XXXXXXXX")
+        const unresolvedNames = agentNames.filter(n => !agentIdMap[n])
+        const agentDisplayNameMap: Record<string, string> = {}
+        if (unresolvedNames.length > 0) {
+          const codeRes = await fetch(
+            sbUrl(`profiles?agent_code=in.(${unresolvedNames.map(n => '"' + n + '"').join(',')})&select=id,agent_code,colider_name`),
+            { headers: sbHeaders() as Record<string, string> }
+          )
+          if (codeRes.ok) {
+            const codeProfiles = await codeRes.json() as { id: string; agent_code: string | null; colider_name: string | null }[]
+            for (const p of codeProfiles) {
+              if (p.agent_code && p.id) {
+                agentIdMap[p.agent_code] = p.id
+                if (p.colider_name) agentDisplayNameMap[p.agent_code] = p.colider_name
+              }
+            }
+          }
+        }
+
         const resolved = inserts.map(row => ({
           ...row,
           agent_user_id: agentIdMap[row.agent_name] ?? null,
+          agent_name: agentDisplayNameMap[row.agent_name] ?? row.agent_name,
         }));
 
         const r = await fetch(
