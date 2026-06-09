@@ -14,6 +14,7 @@ import { Router, type IRouter } from 'express';
       import siteSettingsRouter from './site-settings';
     import channelsRouter from './channels';
 import profileRouter from './profile';
+import agentCommissionsAdminRouter from './agent-commissions-admin';
 
       const router: IRouter = Router();
 
@@ -32,6 +33,7 @@ import profileRouter from './profile';
       router.use(siteSettingsRouter);
     router.use(channelsRouter);
   router.use(profileRouter);
+  router.use(agentCommissionsAdminRouter);
 
       export default router;
       
