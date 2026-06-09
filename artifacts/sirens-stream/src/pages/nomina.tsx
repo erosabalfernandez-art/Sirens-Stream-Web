@@ -80,7 +80,8 @@ function isoWeekLabel(date = new Date()): string {
     cobradas: Matched[],
     noCobro: NoCobro[],
     sinPerfil: NominaRow[],
-    aiSummary: string | null
+    aiSummary: string | null,
+    agentNameMap: Record<string, string> = {}
   ): string {
     const now = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
     const totalUSD = cobradas.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0)
@@ -782,7 +783,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   }
 
   function exportarPDF() {
-    const html = buildPDF(semana, cobradas, noCobro, sinPerfil, aiSummary)
+    const html = buildPDF(semana, cobradas, noCobro, sinPerfil, aiSummary, agentNameMap)
     const win = window.open('', '_blank')
     if (!win) return
     win.document.write(html)
