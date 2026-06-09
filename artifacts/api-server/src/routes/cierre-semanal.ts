@@ -70,8 +70,8 @@ import { Router } from 'express';
             fetch(sbUrl('published_salaries?select=id,user_id,app_name,semana&order=semana.desc'), { headers: sbH() }),
             fetch(sbUrl('agent_commissions?select=id,agent_name,agent_user_id,app_name,semana&order=semana.desc'), { headers: sbH() }),
           ]);
-          const allSalaries: any[] = salariesRes.ok ? await salariesRes.json() : [];
-          const allCommissions: any[] = commissionsRes.ok ? await commissionsRes.json() : [];
+          const allSalaries: any[] = salariesRes.ok ? (await salariesRes.json()) as any[] : [];
+          const allCommissions: any[] = commissionsRes.ok ? (await commissionsRes.json()) as any[] : [];
 
           if (allSalaries.length === 0 && allCommissions.length === 0) {
             return res.json({ ok: true, allConfirmed: true, message: 'No hay nóminas activas esta semana.' });
@@ -101,12 +101,12 @@ import { Router } from 'express';
                 : Promise.resolve(null),
             ]);
 
-            const coliderMarks: any[] = coliderMarksRes.ok ? await coliderMarksRes.json() : [];
+            const coliderMarks: any[] = coliderMarksRes.ok ? (await coliderMarksRes.json()) as any[] : [];
             const unpaidMarks = coliderMarks.filter((m: any) => !m.paid);
             const allColiderPaid = coliderMarks.length > 0 && unpaidMarks.length === 0;
 
-            const wConfs: any[] = wConfRes && wConfRes.ok ? await wConfRes.json() : [];
-            const aConfs: any[] = aConfRes && aConfRes.ok ? await aConfRes.json() : [];
+            const wConfs: any[] = wConfRes && wConfRes.ok ? (await wConfRes.json()) as any[] : [];
+            const aConfs: any[] = aConfRes && aConfRes.ok ? (await aConfRes.json()) as any[] : [];
 
             const confirmedWorkers = new Set(wConfs.map((c: any) => c.salary_id));
             const confirmedAgents  = new Set(aConfs.map((c: any) => c.commission_id));
@@ -134,8 +134,8 @@ import { Router } from 'express';
                   fetch(sbUrl(`profiles?id=in.(${uidStr})&select=id,email`), { headers: sbH() }),
                   fetch(sbUrl(`worker_entries?user_id=in.(${uidStr})&select=user_id,nombre_en_app,nombre_real,app_name`), { headers: sbH() }),
                 ]);
-                const profiles: any[] = profRes.ok ? await profRes.json() : [];
-                const workerData: any[] = workerRes.ok ? await workerRes.json() : [];
+                const profiles: any[] = profRes.ok ? (await profRes.json()) as any[] : [];
+                const workerData: any[] = workerRes.ok ? (await workerRes.json()) as any[] : [];
                 const emailMap: Record<string,string> = Object.fromEntries(profiles.map((p: any) => [p.id, p.email ?? '']));
                 const workerMap: Record<string,any> = {};
                 for (const w of workerData) workerMap[`${w.user_id}_${w.app_name}`] = w;
