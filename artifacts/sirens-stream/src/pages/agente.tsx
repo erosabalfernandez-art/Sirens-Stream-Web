@@ -366,7 +366,7 @@ import React, { useState, useEffect } from 'react'
           if (!found) {
             for (const v of map.values()) { if (v.nombre === w.nombre) { found = v; break } }
           }
-          if (!found) { map.set(w.uid, { key: w.uid, nombre: w.nombre, apps: [], totalComm: 0, isActive: true }); found = map.get(w.uid)! }
+          if (!found) continue // Trabajadora borrada de worker_entries → no se muestra en ningún lado
           found.isActive = true
           found.totalComm += w.commission_usd || 0
           if (!found.apps.includes(c.app_name)) found.apps.push(c.app_name)
