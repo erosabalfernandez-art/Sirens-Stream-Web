@@ -59,6 +59,37 @@ import { Router } from 'express'
           agentMap[key].apps[ac.app_name].push({ worker_uid: w.uid ?? null, worker_name: w.nombre ?? '', agc_usd: Number(w.commission_usd) || 0, monedas: ac.app_name === 'Layla' && w.uid ? (laylaMonedas[w.uid] ?? null) : null, published_usd: pubMap[pubKey] ?? null })
         }
       }
+
+      // Resolve agent_user_id for agents whose name is actually an agent_code (Layla flow)
+      const unresolvedNames = Object.values(agentMap).filter(a => !a.agent_user_id).map(a => a.agent_name)
+      if (unresolvedNames.length > 0) {
+        try {
+          const resolveRes = await fetch(
+            `${SB}/rest/v1/profiles?agent_code=in.(${unresolvedNames.map(n => '"' + n + '"').join(',')})&select=id,agent_code,colider_name`,
+            { headers: h() }
+          )
+          if (resolveRes.ok) {
+            const resolved = await resolveRes.json() as { id: string; agent_code: string | null; colider_name: string | null }[]
+            for (const p of resolved) {
+              if (p.agent_code && p.id && agentMap[p.agent_code]) {
+                agentMap[p.agent_code].agent_user_id = p.id
+                if (p.colider_name) agentMap[p.agent_code].agent_name = p.colider_name
+                // Also update the agent_commissions record in DB for future use (fire-and-forget)
+                setImmediate(async () => {
+                  try {
+                    await fetch(`${SB}/rest/v1/agent_commissions?agent_name=eq.${encodeURIComponent(p.agent_code!)}&semana=eq.${encodeURIComponent(semana)}&agent_user_id=is.null`, {
+                      method: 'PATCH',
+                      headers: { ...h(), Prefer: 'return=minimal' },
+                      body: JSON.stringify({ agent_user_id: p.id, agent_name: p.colider_name ?? p.agent_code }),
+                    })
+                  } catch {}
+                })
+              }
+            }
+          }
+        } catch {}
+      }
+
       const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : false, apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
       res.json({ semana, agents, colider_published: coliderLog.length > 0, colider_published_at: (coliderLog[0] as any)?.published_at ?? null })
     } catch (e) { res.status(500).json({ error: String(e) }) }
