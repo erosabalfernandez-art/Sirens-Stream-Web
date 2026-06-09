@@ -54,13 +54,6 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
   const [localAgentCode, setLocalAgentCode] = useState<string | null>(null)
 
-  useEffect(() => {
-    if ('Notification' in window) {
-      if (Notification.permission === 'granted') setNotifStatus('granted')
-      else if (Notification.permission === 'denied') setNotifStatus('denied')
-    }
-  }, [])
-}
 
   // Persist tab selection
   useEffect(() => { try { localStorage.setItem('ea_colider_tab', tab) } catch {} }, [tab])
