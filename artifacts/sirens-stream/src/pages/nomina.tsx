@@ -670,8 +670,12 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
               const _ab = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
               const _rb = await fetch(`${_ab}/api/nomina-state?app=${encodeURIComponent(app)}`)
               if (_rb.ok) {
-                const { entry: _eb } = await _rb.json() as { entry: { rows_data?: { cobradas?: unknown[]; noCobro?: unknown[]; sinPerfil?: unknown[] }; published?: boolean } | null }
-                if (!_eb || (!_eb.rows_data?.cobradas?.length && !_eb.rows_data?.noCobro?.length && !_eb.rows_data?.sinPerfil?.length)) {
+                const { entry: _eb } = await _rb.json() as { entry: { rows_data?: { cobradas?: unknown[]; noCobro?: unknown[]; sinPerfil?: unknown[] }; published?: boolean; created_at?: string } | null }
+                // Check if a cierre was done after this nomina entry was saved
+                const _cierreTs = (() => { try { return parseInt(localStorage.getItem('ea_cierre_done_ts') ?? '0') || 0 } catch { return 0 } })()
+                const _entryTs = _eb?.created_at ? new Date(_eb.created_at).getTime() : 0
+                const _cierreWasDone = _cierreTs > 0 && _entryTs <= _cierreTs
+                if (!_eb || _cierreWasDone || (!_eb.rows_data?.cobradas?.length && !_eb.rows_data?.noCobro?.length && !_eb.rows_data?.sinPerfil?.length)) {
                   try { const _a = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); delete _a[app]; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_a)) } catch {}
                   setCobradas([]); setNoCobro([]); setSinPerfil([])
                   setSemana(''); setFileName(''); setAiSummary(null)
@@ -723,6 +727,22 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
     } catch {}
   }, [step, cobradas, noCobro, sinPerfil, semana, aiSummary, fileName, app])
+
+  // Reset when cierre semanal is done
+  useEffect(() => {
+    function onCierre() {
+      setCobradas([]); setNoCobro([]); setSinPerfil([])
+      setSemana(''); setFileName(''); setAiSummary(null)
+      setPublishedOk(false); setStep('upload'); setSectionOpen(false)
+      try {
+        const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+        delete all[app]
+        localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
+      } catch {}
+    }
+    window.addEventListener('ea_cierre_done', onCierre)
+    return () => window.removeEventListener('ea_cierre_done', onCierre)
+  }, [app])
 
   // Persist filter prefs
   useEffect(() => {
