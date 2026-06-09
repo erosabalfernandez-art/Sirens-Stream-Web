@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase, type Profile } from '@/lib/supabase'
-import { subscribeToPush } from '@/lib/push'
+import { subscribeToPush, wasManuallyUnsubscribed } from '@/lib/push'
 
 interface AuthContextType {
   user: User | null
@@ -15,11 +15,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 /** Silently re-register push subscription if permission already granted.
- *  Called after login — heals lost/expired subscriptions without user action. */
+ *  Called after login — heals lost/expired subscriptions without user action.
+ *  Skipped if the user manually unsubscribed (respects their choice). */
 function silentPushRefresh(userId: string) {
   if (!('Notification' in window)) return
   if (Notification.permission !== 'granted') return
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+  if (wasManuallyUnsubscribed()) return  // user chose to unsubscribe — don't re-register
   // Fire and forget — never block the UI
   subscribeToPush(userId).catch(() => {})
 }
