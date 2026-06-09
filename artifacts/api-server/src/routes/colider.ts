@@ -43,8 +43,15 @@ import { Router } from 'express'
 
   router.get('/colider/available-weeks', async (_req, res) => {
     try {
-      const data = await sbGet('published_salaries?select=semana&order=semana.desc&limit=50')
-      res.json({ weeks: [...new Set<string>(data.map((r: any) => r.semana as string))] })
+      const [salaryData, agentData] = await Promise.all([
+        sbGet('published_salaries?select=semana&order=semana.desc&limit=50').catch(() => []),
+        sbGet('agent_commissions?select=semana&order=semana.desc&limit=50').catch(() => []),
+      ])
+      const allWeeks = [...new Set<string>([
+        ...salaryData.map((r: any) => r.semana as string),
+        ...agentData.map((r: any) => r.semana as string),
+      ])].sort((a, b) => b.localeCompare(a))
+      res.json({ weeks: allWeeks })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
 
