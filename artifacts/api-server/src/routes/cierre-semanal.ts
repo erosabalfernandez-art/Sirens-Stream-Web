@@ -48,11 +48,14 @@ import { Router } from 'express';
         }
       });
 
-      // POST /api/cierre-semanal — check all confirmations + colider, if all ok clear nomina state
-      // Body: { force?: boolean } — if force=true, skip checks and clear directly
+      // POST /api/cierre-semanal
+      // Body: { force?: boolean }
+      // Normal: verifica que todos hayan confirmado, luego limpia datos activos (NO toca nomina_history)
+      // Force:  salta verificaciones y limpia datos activos directamente
       router.post('/cierre-semanal', async (req, res) => {
         const force = !!(req.body as Record<string, unknown>)?.force;
         try {
+          // 1. Fetch current active salaries and commissions
           const [salariesRes, commissionsRes] = await Promise.all([
             fetch(sbUrl('published_salaries?select=id,user_id,app_name,semana&order=semana.desc'), { headers: sbH() }),
             fetch(sbUrl('agent_commissions?select=id,agent_name,agent_user_id,app_name,semana&order=semana.desc'), { headers: sbH() }),
@@ -61,7 +64,7 @@ import { Router } from 'express';
           const allCommissions: any[] = commissionsRes.ok ? await commissionsRes.json() : [];
 
           if (allSalaries.length === 0 && allCommissions.length === 0) {
-            return res.json({ ok: true, allConfirmed: true, message: 'No hay nóminas publicadas.' });
+            return res.json({ ok: true, allConfirmed: true, message: 'No hay nóminas activas esta semana.' });
           }
 
           // Most recent semana across both tables
@@ -71,6 +74,7 @@ import { Router } from 'express';
           ])].sort().reverse();
           const latestSemana = semanas[0];
 
+          // 2. If normal cierre, verify all confirmations before proceeding
           if (!force) {
             const latestSalaries = allSalaries.filter((s: any) => s.semana === latestSemana);
             const latestCommissions = allCommissions.filter((c: any) => c.semana === latestSemana);
@@ -130,13 +134,59 @@ import { Router } from 'express';
             }
           }
 
-          // All confirmed (or force) — clear nomina_history for all apps this week
-          await Promise.all(['Waha', 'Howdy', 'Layla'].map(app =>
-            fetch(sbUrl(`nomina_history?app_name=eq.${app}&semana=eq.${encodeURIComponent(latestSemana)}`), {
+          // 3. All confirmed (or force) — clean active data for this week
+          //    nomina_history is KEPT as the permanent archive (never deleted here)
+
+          const latestSalaryIds = allSalaries
+            .filter((s: any) => s.semana === latestSemana)
+            .map((s: any) => s.id);
+
+          const latestCommissionIds = allCommissions
+            .filter((c: any) => c.semana === latestSemana)
+            .map((c: any) => c.id);
+
+          // Delete payment confirmations first (FK dependency)
+          const deleteConfirmations: Promise<any>[] = [];
+
+          if (latestSalaryIds.length > 0) {
+            deleteConfirmations.push(
+              fetch(sbUrl(`payment_confirmations?salary_id=in.(${latestSalaryIds.map((id: string) => `"${id}"`).join(',')})`), {
+                method: 'DELETE',
+                headers: { ...sbH(), Prefer: 'return=minimal' },
+              })
+            );
+          }
+
+          if (latestCommissionIds.length > 0) {
+            deleteConfirmations.push(
+              fetch(sbUrl(`agent_payment_confirmations?commission_id=in.(${latestCommissionIds.map((id: string) => `"${id}"`).join(',')})`), {
+                method: 'DELETE',
+                headers: { ...sbH(), Prefer: 'return=minimal' },
+              })
+            );
+          }
+
+          await Promise.all(deleteConfirmations);
+
+          // Now delete the active salary and commission records
+          await Promise.all([
+            fetch(sbUrl(`published_salaries?semana=eq.${encodeURIComponent(latestSemana)}`), {
               method: 'DELETE',
               headers: { ...sbH(), Prefer: 'return=minimal' },
-            })
-          ));
+            }),
+            fetch(sbUrl(`agent_commissions?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            fetch(sbUrl(`colider_week_status?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            fetch(sbUrl(`weekly_no_cobro?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+          ]);
 
           return res.json({ ok: true, allConfirmed: true, semana: latestSemana, forced: force });
         } catch (e: unknown) {
@@ -145,4 +195,3 @@ import { Router } from 'express';
       });
 
       export default router;
-  
