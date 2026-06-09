@@ -425,8 +425,31 @@ import { useState, useEffect } from 'react'
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
                   <Field label="ID de agente (opcional)">
-                    <FInput value={form.agente} onChange={v => setForm(f => ({ ...f, agente: v }))} placeholder="Código de tu agente (ej: MARIA-001)" />
-                  </Field>
+                      <FInput
+                        value={form.agente}
+                        onChange={v => { setForm(f => ({ ...f, agente: v })); setAgenteInfo(null); setAgenteError(null) }}
+                        onBlur={() => checkAgentCode(form.agente)}
+                        placeholder="Código EA-XXXXXXXX de tu agente o co-líder"
+                      />
+                      {agenteChecking && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                          <span className="text-white/40 text-xs">Verificando código...</span>
+                        </div>
+                      )}
+                      {agenteInfo && !agenteChecking && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-green-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                          <span className="text-xs font-semibold">Vinculado con <span className="text-green-300">{agenteInfo.name}</span>{agenteInfo.is_colider ? ' (co-líder)' : ' (agente)'}</span>
+                        </div>
+                      )}
+                      {agenteError && !agenteChecking && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-red-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                          <span className="text-xs">{agenteError}</span>
+                        </div>
+                      )}
+                    </Field>
 
                   {formError && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{formError}</p>}
                   <button onClick={handleSave} disabled={saving}
@@ -445,7 +468,7 @@ import { useState, useEffect } from 'react'
       return <div><label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">{label}</label>{children}</div>
     }
 
-    function FInput({ value, onChange, placeholder, className = '' }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
-      return <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+    function FInput({ value, onChange, onBlur, placeholder, className = '' }: { value: string; onChange: (v: string) => void; onBlur?: () => void; placeholder?: string; className?: string }) {
+      return <input type="text" value={value} onChange={e => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder}
         className={`bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50 transition-colors ${className}`} />
     }
