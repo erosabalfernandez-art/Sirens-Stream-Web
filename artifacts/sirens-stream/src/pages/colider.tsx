@@ -394,7 +394,7 @@ import { subscribeToPush } from '@/lib/push'
                             {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-green-400 font-bold text-sm">${p.salary_usd.toFixed(2)}</p>
+                            <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
                             {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
                           </div>
                         </div>
