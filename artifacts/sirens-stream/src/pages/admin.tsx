@@ -356,7 +356,6 @@ import { useState, useEffect, useRef } from 'react'
                 const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
                 const r = await fetch(`${apiBase}/api/admin/reset-all-history`, {
                   method: 'POST',
-                  credentials: 'include',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ confirm: 'BORRAR TODO' }),
                 })
