@@ -65,7 +65,7 @@ import { useState, useEffect } from 'react'
             for (const w of app.workers) {
               const k = inputKey(agId, app.app_name, w.worker_name)
               if (w.published_usd !== null) init[k] = String(w.published_usd)
-              else if (app.app_name !== 'Layla' && w.agc_usd > 0) init[k] = w.agc_usd.toFixed(2)
+              else if (app.app_name !== 'Layla' && w.agc_usd > 0) init[k] = (w.agc_usd ?? 0).toFixed(2)
             }
           }
         }
@@ -263,7 +263,7 @@ import { useState, useEffect } from 'react'
                                     <div className="flex-1 min-w-0">
                                       <p className="text-white/85 text-xs font-semibold truncate">{w.worker_name}</p>
                                       <p className="text-white/30 text-xs">
-                                        {app.app_name === 'Layla' ? (w.monedas !== null ? `${w.monedas.toLocaleString('es-ES')} monedas comerciales` : 'Sin datos Layla') : `AGC: $${w.agc_usd.toFixed(2)}`}
+                                        {app.app_name === 'Layla' ? (w.monedas !== null ? `${w.monedas.toLocaleString('es-ES')} monedas comerciales` : 'Sin datos Layla') : `AGC: $${(w.agc_usd ?? 0).toFixed(2)}`}
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-1 shrink-0">
