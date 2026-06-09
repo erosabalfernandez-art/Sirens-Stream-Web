@@ -629,16 +629,16 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   // Filter states
   const [fPais, setFPais] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_pais`) ?? '' } catch { return '' } })
   const [fPago, setFPago] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_pago`) ?? '' } catch { return '' } })
-  const [fEmail, setFEmail] = useState('')
-  const [fBilletera, setFBilletera] = useState('')
-  const [fAgente, setFAgente] = useState('')
+  const [fEmail, setFEmail] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_email`) ?? '' } catch { return '' } })
+  const [fBilletera, setFBilletera] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_billetera`) ?? '' } catch { return '' } })
+  const [fAgente, setFAgente] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_agente`) ?? '' } catch { return '' } })
   const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
-    const [agentPhoneMap, setAgentPhoneMap] = useState<Record<string,string>>({})
-  const [fNombreReal, setFNombreReal] = useState('')
-  const [fNombreApp, setFNombreApp] = useState('')
-  const [fIdApp, setFIdApp] = useState('')
-  const [fTelefono, setFTelefono] = useState('')
-  const [fSortDir, setFSortDir] = useState<'desc'|'asc'>('desc')
+  const [agentPhoneMap, setAgentPhoneMap] = useState<Record<string,string>>({})
+  const [fNombreReal, setFNombreReal] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_nombrereal`) ?? '' } catch { return '' } })
+  const [fNombreApp, setFNombreApp] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_nombreapp`) ?? '' } catch { return '' } })
+  const [fIdApp, setFIdApp] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_idapp`) ?? '' } catch { return '' } })
+  const [fTelefono, setFTelefono] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_telefono`) ?? '' } catch { return '' } })
+  const [fSortDir, setFSortDir] = useState<'desc'|'asc'>(() => { try { return (localStorage.getItem(`ea_nf_${app}_sortdir`) as 'desc'|'asc') || 'desc' } catch { return 'desc' } })
 
   // Load from localStorage on mount (fast path) with Supabase fallback for reliability
   useEffect(() => {
@@ -721,8 +721,23 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     try {
       localStorage.setItem(`ea_nf_${app}_pais`, fPais)
       localStorage.setItem(`ea_nf_${app}_pago`, fPago)
+      localStorage.setItem(`ea_nf_${app}_email`, fEmail)
+      localStorage.setItem(`ea_nf_${app}_billetera`, fBilletera)
+      localStorage.setItem(`ea_nf_${app}_agente`, fAgente)
+      localStorage.setItem(`ea_nf_${app}_nombrereal`, fNombreReal)
+      localStorage.setItem(`ea_nf_${app}_nombreapp`, fNombreApp)
+      localStorage.setItem(`ea_nf_${app}_idapp`, fIdApp)
+      localStorage.setItem(`ea_nf_${app}_telefono`, fTelefono)
+      localStorage.setItem(`ea_nf_${app}_sortdir`, fSortDir)
     } catch {}
-  }, [fPais, fPago, app])
+  }, [fPais, fPago, fEmail, fBilletera, fAgente, fNombreReal, fNombreApp, fIdApp, fTelefono, fSortDir, app])
+
+  // Load paidMarks from Supabase when semana/app loads
+  useEffect(() => {
+    if (!semana || !app) { setPaidMarks(new Set()); return }
+    supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', semana)
+      .then(({ data }) => { if (data) setPaidMarks(new Set(data.map((r: { uid: string }) => r.uid))) })
+  }, [semana, app])
 
   // ▶ FIX: Persist aiSummary to localStorage once Groq async response arrives
   useEffect(() => {
