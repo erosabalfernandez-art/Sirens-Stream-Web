@@ -91,8 +91,8 @@ import { Router } from 'express';
             const salaryIds = latestSalaries.map((s: any) => s.id);
             const commissionIds = latestCommissions.filter((c: any) => c.agent_user_id).map((c: any) => c.id);
 
-            const [coliderRes, wConfRes, aConfRes] = await Promise.all([
-              fetch(sbUrl(`colider_week_status?semana=eq.${encodeURIComponent(latestSemana)}&limit=1&select=notified,admin_closed`), { headers: sbH() }),
+            const [coliderMarksRes, wConfRes, aConfRes] = await Promise.all([
+              fetch(sbUrl(`colider_marks?semana=eq.${encodeURIComponent(latestSemana)}&select=person_uid,person_name,person_real_name,person_app,person_type,paid`), { headers: sbH() }),
               salaryIds.length > 0
                 ? fetch(sbUrl(`payment_confirmations?salary_id=in.(${salaryIds.map((id: string) => `"${id}"`).join(',')})&select=salary_id`), { headers: sbH() })
                 : Promise.resolve(null),
@@ -114,7 +114,7 @@ import { Router } from 'express';
             const unconfirmedWorkers = latestSalaries.filter((s: any) => !confirmedWorkers.has(s.id));
             const unconfirmedAgents  = latestCommissions.filter((c: any) => c.agent_user_id && !confirmedAgents.has(c.id));
 
-            if (!coliderNotified || unconfirmedWorkers.length > 0 || unconfirmedAgents.length > 0) {
+            if (!allColiderPaid || unconfirmedWorkers.length > 0 || unconfirmedAgents.length > 0) {
               const pending: any[] = [];
 
               if (!coliderNotified) {
