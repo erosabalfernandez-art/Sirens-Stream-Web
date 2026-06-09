@@ -6,15 +6,18 @@ import { createClient } from '@supabase/supabase-js'
   export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
   export interface Profile {
-    id: string
-    email: string
-    is_admin: boolean
-    is_agent?: boolean
-    agent_name?: string | null
-    agent_code?: string | null
-    phone?: string | null
-    created_at: string
-  }
+      id: string
+      email: string
+      is_admin: boolean
+      is_agent?: boolean
+      is_colider?: boolean
+      agent_name?: string | null
+      agent_code?: string | null
+      colider_name?: string | null
+      phone?: string | null
+      telefono?: string | null
+      created_at: string
+    }
 
   export interface WorkerEntry {
     id: string
