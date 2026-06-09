@@ -161,11 +161,6 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
         const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { const _sv = localStorage.getItem('ea_pagos_app'); return (['Waha','Layla','Howdy','Agentes'].includes(_sv ?? '') ? _sv : 'Waha') as 'Waha'|'Layla'|'Howdy'|'Agentes' } catch { return 'Waha' } })
           const [agentPayData, setAgentPayData] = useState<{confirmed: any[], pending: any[]}>({confirmed: [], pending: []})
           const [agentPayLoading, setAgentPayLoading] = useState(false)
-          const [cierreLoading, setCierreLoading] = useState(false)
-          const [forzarLoading, setForzarLoading] = useState(false)
-          const [showForzarModal, setShowForzarModal] = useState(false)
-          const [cierrePending, setCierrePending] = useState<any[]>([])
-          const [cierreMsg, setCierreMsg] = useState('')
           const [coliderMarks, setColiderMarks] = useState<{paid: any[], pending: any[]}>({paid: [], pending: []})
           const [coliderMarksLoading, setColiderMarksLoading] = useState(false)
         const [pagosData, setPagosData] = useState<any[]>([])
@@ -356,42 +351,6 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
             setColiderMarksLoading(false)
           }
 
-          async function handleCierre() {
-            setCierreLoading(true); setCierrePending([]); setCierreMsg('')
-            try {
-              const resp = await fetch('/api/cierre-semanal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ force: false }),
-              })
-              const data = await resp.json()
-              if (data.ok) {
-                setCierreMsg('✅ Semana cerrada correctamente')
-                window.dispatchEvent(new Event('ea_cierre_done'))
-              } else {
-                setCierrePending(data.pending ?? [])
-              }
-            } catch { setCierreMsg('Error al conectar con el servidor') }
-            setCierreLoading(false)
-          }
-
-          async function handleForzar() {
-            setForzarLoading(true)
-            try {
-              const resp = await fetch('/api/cierre-semanal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ force: true }),
-              })
-              const data = await resp.json()
-              if (data.ok) {
-                setShowForzarModal(false)
-                setCierreMsg('✅ Semana cerrada (forzado)')
-                window.dispatchEvent(new Event('ea_cierre_done'))
-              } else { setCierreMsg('Error al forzar cierre') }
-            } catch { setCierreMsg('Error al conectar con el servidor') }
-            setForzarLoading(false)
-          }
 
           async function fetchNoCobro() {
               setNoCobroLoading(true)
@@ -1600,59 +1559,6 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                       </div>
                     )
                   )}
-                  {/* ── Cierre de Semana ─────────────────────────── */}
-                  <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-5 mt-2">
-                    <p className="text-xs font-bold uppercase tracking-widest text-purple-400/60 mb-4">🔒 Cierre de Semana</p>
-                    {cierrePending.length > 0 && (
-                      <div className="mb-4 bg-red-500/8 border border-red-500/20 rounded-xl p-4 space-y-1.5">
-                        <p className="text-xs font-bold text-red-300 mb-2">⚠️ Faltan:</p>
-                        {cierrePending.map((p: any, i: number) => (
-                          <div key={i} className="text-xs text-white/55 flex items-center gap-2">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
-                              p.type === 'colider' || p.type === 'colider_pendiente' ? 'bg-teal-500/20 text-teal-300' :
-                              p.type === 'agente' ? 'bg-amber-500/20 text-amber-300' : 'bg-purple-500/20 text-purple-300'
-                            }`}>{p.type === 'colider' || p.type === 'colider_pendiente' ? 'Colider' : p.type === 'agente' ? 'Agente' : 'Chica'}</span>
-                            <span>{p.name}</span>
-                            {p.app && p.app !== '—' && <span className="text-white/30">· {p.app}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {cierreMsg && (
-                      <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-bold border ${
-                        cierreMsg.includes('✅') ? 'bg-green-500/10 text-green-300 border-green-500/20' : 'bg-red-500/10 text-red-300 border-red-500/20'
-                      }`}>{cierreMsg}</div>
-                    )}
-                    <div className="flex gap-3">
-                      <button onClick={handleCierre} disabled={cierreLoading}
-                        className="flex-1 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
-                        {cierreLoading ? 'Verificando...' : '🔒 Cerrar semana'}
-                      </button>
-                      <button onClick={() => setShowForzarModal(true)}
-                        className="px-4 py-2.5 bg-red-600/20 hover:bg-red-600/35 border border-red-500/30 text-red-300 font-bold rounded-xl text-sm transition-all">
-                        ⚡ Forzar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {showForzarModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                  <div className="bg-[#0d0d1e] border border-red-500/30 rounded-2xl p-6 max-w-sm w-full">
-                    <p className="text-red-300 font-bold text-base mb-2">⚡ Cierre forzado</p>
-                    <p className="text-white/60 text-sm mb-5">¿Seguro? Esto cerrará la semana aunque haya pagos pendientes.</p>
-                    <div className="flex gap-3">
-                      <button onClick={() => setShowForzarModal(false)}
-                        className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white/50 hover:text-white transition-all">
-                        Cancelar
-                      </button>
-                      <button onClick={handleForzar} disabled={forzarLoading}
-                        className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white transition-all">
-                        {forzarLoading ? 'Cerrando...' : 'Confirmar'}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
 
