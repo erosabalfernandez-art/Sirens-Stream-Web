@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp, Trash2, CheckCircle2 } from 'lucide-react'
+  import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp, Trash2, CheckCircle2, FileDown } from 'lucide-react'
 
   interface PublishedSalary {
     id: string
@@ -112,6 +112,116 @@ import { useState, useEffect } from 'react'
       setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
     }
 
+    function exportSalaryPDF() {
+      if (salaries.length === 0) return
+      const apps = [...new Set(salaries.map(s => s.app_name))]
+      const totalUSD = salaries.reduce((sum, s) => sum + Number(s.usd), 0)
+      const now = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+
+      const rows = apps.map(app => {
+        const appSals = salaries.filter(s => s.app_name === app)
+        const appTotal = appSals.reduce((sum, s) => sum + Number(s.usd), 0)
+        const weekRows = appSals.map(s => {
+          const extras = s.extras ? Object.entries(s.extras).filter(([k, v]) => v !== '' && v !== null && !k.toLowerCase().includes('cup') && !k.toLowerCase().includes('rate')) : []
+          return `
+            <tr class="week-row">
+              <td class="week-cell">
+                <span class="week-label">Semana ${s.semana}</span>
+                <span class="date-small">${new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+              </td>
+              <td class="usd-cell">$${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</td>
+              ${s.diamantes > 0 ? `<td class="dia-cell">${Number(s.diamantes).toLocaleString('es-ES')} 💎</td>` : '<td class="dia-cell">—</td>'}
+              <td class="extras-cell">${extras.map(([k, v]) => `<span class="extra-item"><b>${k}:</b> ${v}</span>`).join('')}</td>
+            </tr>`
+        }).join('')
+        return `
+          <div class="app-section">
+            <div class="app-header">
+              <span class="app-name">${app}</span>
+              <span class="app-total">Total: $${appTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</span>
+            </div>
+            <table class="week-table">
+              <thead><tr><th>Semana</th><th>USD</th><th>Diamantes</th><th>Detalles</th></tr></thead>
+              <tbody>${weekRows}</tbody>
+            </table>
+          </div>`
+      }).join('')
+
+      const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mis Salarios - Eclipse Angels</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 36px; font-size: 13px; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 3px solid #7c3aed; padding-bottom: 18px; margin-bottom: 24px; }
+  .brand { font-size: 22px; font-weight: 900; color: #7c3aed; letter-spacing: -0.5px; }
+  .brand span { color: #a855f7; }
+  .doc-title { font-size: 13px; color: #6b7280; margin-top: 4px; }
+  .meta { text-align: right; font-size: 11px; color: #9ca3af; line-height: 1.6; }
+  .summary { display: flex; gap: 16px; margin-bottom: 24px; }
+  .summary-card { flex: 1; background: #f3f0ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 14px 18px; }
+  .summary-card .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #7c3aed; margin-bottom: 4px; }
+  .summary-card .value { font-size: 20px; font-weight: 900; color: #1a1a2e; }
+  .summary-card .sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .app-section { margin-bottom: 28px; }
+  .app-header { display: flex; align-items: center; justify-content: space-between; background: #7c3aed; color: #fff; border-radius: 8px 8px 0 0; padding: 10px 16px; }
+  .app-name { font-weight: 900; font-size: 14px; letter-spacing: 0.03em; }
+  .app-total { font-weight: 700; font-size: 13px; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; }
+  .week-table { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-top: none; }
+  .week-table th { background: #f5f3ff; color: #7c3aed; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 12px; text-align: left; border-bottom: 1px solid #ddd6fe; }
+  .week-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+  .week-row:last-child td { border-bottom: none; }
+  .week-row:nth-child(even) td { background: #fafafa; }
+  .week-cell { min-width: 140px; }
+  .week-label { display: block; font-weight: 700; color: #1a1a2e; font-size: 13px; }
+  .date-small { display: block; font-size: 10px; color: #9ca3af; margin-top: 2px; }
+  .usd-cell { font-weight: 900; color: #059669; font-size: 15px; white-space: nowrap; }
+  .dia-cell { color: #7c3aed; font-weight: 700; white-space: nowrap; }
+  .extras-cell { }
+  .extra-item { display: inline-block; background: #f3f4f6; border-radius: 6px; padding: 2px 8px; margin: 2px 3px 2px 0; font-size: 11px; color: #374151; }
+  .footer { margin-top: 36px; border-top: 1px solid #e5e7eb; padding-top: 14px; font-size: 10px; color: #9ca3af; text-align: center; }
+  @media print { body { padding: 20px; } .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">Eclipse <span>Angels</span> Agency</div>
+      <div class="doc-title">Historial de Salarios — Solo en USD</div>
+    </div>
+    <div class="meta">
+      Generado: ${now}<br>
+      Total de semanas: ${salaries.length}<br>
+      Total de apps: ${apps.length}
+    </div>
+  </div>
+  <div class="summary">
+    <div class="summary-card">
+      <div class="label">Total acumulado (USD)</div>
+      <div class="value">$${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</div>
+      <div class="sub">Suma de todos los períodos</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Semanas registradas</div>
+      <div class="value">${salaries.length}</div>
+      <div class="sub">En ${apps.length} aplicación${apps.length !== 1 ? 'es' : ''}</div>
+    </div>
+  </div>
+  ${rows}
+  <div class="footer">Eclipse Angels Agency · Documento generado automáticamente · Todos los montos en USD</div>
+</body>
+</html>`
+
+      const win = window.open('', '_blank')
+      if (!win) { alert('Permite las ventanas emergentes para exportar el PDF'); return }
+      win.document.write(html)
+      win.document.close()
+      win.focus()
+      setTimeout(() => win.print(), 400)
+    }
+
     const apps = [...new Set(salaries.map(s => s.app_name))]
 
     if (loading) return (
@@ -128,8 +238,21 @@ import { useState, useEffect } from 'react'
               <DollarSign className="w-3 h-3 text-green-400" />
               <span className="text-green-300 text-xs font-semibold uppercase tracking-wider">{T.badge}</span>
             </div>
-            <h1 className="text-2xl font-extrabold">{T.title}</h1>
-            <p className="text-white/40 text-sm mt-1">{T.subtitle}</p>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-extrabold">{T.title}</h1>
+                <p className="text-white/40 text-sm mt-1">{T.subtitle}</p>
+              </div>
+              {salaries.length > 0 && (
+                <button
+                  onClick={exportSalaryPDF}
+                  className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all shrink-0"
+                >
+                  <FileDown className="w-4 h-4" />
+                  Exportar PDF
+                </button>
+              )}
+            </div>
           </div>
 
           {fetching ? (
