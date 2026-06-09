@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
     import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users, Shield } from 'lucide-react'
   import { sendPushViaApi } from '@/lib/push'
+import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
     interface WorkerRow extends WorkerEntry {
       profile_email: string
@@ -1030,6 +1031,9 @@ import { useState, useEffect, useRef } from 'react'
             </div>
 
             {tab === 'config' && (
+
+                  {/* Push notification subscription for admin */}
+                  <PushNotificationCard userId={user?.id ?? ''} />
                 <div className="bg-[#0d0d1e] border border-amber-500/10 rounded-2xl p-6 mb-6">
                   <div className="flex items-center gap-2 mb-5">
                     <Settings className="w-4 h-4 text-amber-400" />
