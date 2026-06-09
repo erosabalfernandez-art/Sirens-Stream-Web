@@ -121,9 +121,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password })
-    return { error: error?.message ?? null }
-  }
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (!error && data.user) {
+        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+        try { await fetch(`${apiBase}/api/profile?user_id=${encodeURIComponent(data.user.id)}`) } catch {}
+      }
+      return { error: error?.message ?? null }
+    }
 
   // Don't manually setUser/setProfile here — onAuthStateChange handles it
   // to avoid double state updates that cause the carousel and UI to flash
