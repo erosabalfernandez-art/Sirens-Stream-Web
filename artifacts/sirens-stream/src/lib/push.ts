@@ -43,7 +43,7 @@ export const VAPID_PUBLIC_KEY = 'BBdr3GZcSw_p6_54VakfGxtgou8XSB1mJBV0btx_aHxpXHI
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId, subscription: subJson }),
           }),
-          8000
+          20000
         );
         if (!saveRes.ok) {
           console.error("Failed to save push subscription:", await saveRes.text());
