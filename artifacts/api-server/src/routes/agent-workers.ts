@@ -48,17 +48,17 @@ import { Router } from 'express';
 
     try {
       const profileRes = await fetch(
-        sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=id,agent_code,is_agent,is_colider&limit=1`),
+        sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=id,agent_name,colider_name,agent_code,is_agent,is_colider&limit=1`),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!profileRes.ok) return res.status(profileRes.status).json({ error: await profileRes.text() });
 
-      const profiles = await profileRes.json() as { id: string; agent_code: string | null; is_agent: boolean; is_colider: boolean }[];
+      const profiles = await profileRes.json() as { id: string; agent_name: string | null; colider_name: string | null; agent_code: string | null; is_agent: boolean; is_colider: boolean }[];
       const profile = profiles[0];
-      if ((!profile?.is_agent && !profile?.is_colider) || !profile.agent_code) return res.json([]);
+      if (!profile?.is_agent && !profile?.is_colider) return res.json([]);
 
       const workersRes = await fetch(
-        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(profile.agent_code)}&select=id,user_id,app_name,nombre_real,nombre_en_app,pais,metodo_pago,agente,created_at&order=created_at.desc`),
+        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(profile.agent_name ?? profile.colider_name ?? '')}&select=id,user_id,app_name,nombre_real,nombre_en_app,pais,metodo_pago,agente,created_at&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!workersRes.ok) return res.status(workersRes.status).json({ error: await workersRes.text() });
@@ -83,10 +83,10 @@ import { Router } from 'express';
       if (!profileRes.ok) return res.status(profileRes.status).json({ error: await profileRes.text() });
       const profiles = await profileRes.json() as { id: string; agent_code: string | null; is_agent: boolean; is_colider: boolean }[];
       const profile = profiles[0];
-      if ((!profile?.is_agent && !profile?.is_colider) || !profile.agent_code) return res.json({ entries: [] });
+      if (!profile?.is_agent && !profile?.is_colider) return res.json({ entries: [] });
 
       const workersRes = await fetch(
-        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(profile.agent_code)}&select=user_id&order=created_at.desc`),
+        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(profile.agent_name ?? profile.colider_name ?? '')}&select=user_id&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       const workers = await workersRes.json() as { user_id: string }[];
