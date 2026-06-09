@@ -12,6 +12,14 @@ import React, { useState, useRef, useEffect } from 'react'
 
 const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
 
+function isoWeekLabel(date = new Date()): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7))
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const wk = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return `${d.getUTCFullYear()}-S${String(wk).padStart(2, '0')}`
+}
+
   interface NominaRow {
     uid: string
     apodo: string
@@ -977,12 +985,12 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           usd,
           diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
           comision: app === 'Waha' ? usd * 0.10 : (parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0),
-          semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : ''),
+          semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : isoWeekLabel()),
           extras,
         }
       }).filter(r => r.uid !== '')
 
-      const sem = nominaRows[0]?.semana ?? ''
+      const sem = nominaRows[0]?.semana || isoWeekLabel()
       setSemana(sem)
 
       const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', app)
