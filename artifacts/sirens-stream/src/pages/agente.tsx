@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2, MessageSquare, AlertTriangle } from 'lucide-react'
+  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2, MessageSquare, AlertTriangle, FileDown } from 'lucide-react'
   import { subscribeToPush } from '@/lib/push'
 
   interface AgentCommission {
@@ -204,6 +204,136 @@ import React, { useState, useEffect } from 'react'
       setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
     }
 
+    function exportCommissionPDF() {
+      if (commissions.length === 0) return
+      const agentName = profile?.agent_name ?? profile?.email ?? 'Agente'
+      const apps = [...new Set(commissions.map(c => c.app_name))]
+      const totalUSD = commissions.reduce((sum, c) => sum + Number(c.total_commission_usd || 0), 0)
+      const now = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+
+      const appSections = apps.map(app => {
+        const appComms = commissions.filter(c => c.app_name === app).sort((a, b) => b.semana.localeCompare(a.semana))
+        const appTotal = appComms.reduce((sum, c) => sum + Number(c.total_commission_usd || 0), 0)
+        const weekRows = appComms.map(c => {
+          const workers = (c.workers_data ?? [])
+          const workerRows = workers.map((w: any) =>
+            `<tr class="worker-row">
+              <td class="worker-name-cell">${w.nombre || w.uid || '—'}</td>
+              <td class="worker-usd-cell">$${Number(w.salary_usd || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</td>
+              <td class="worker-comm-cell">$${Number(w.commission_usd || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</td>
+            </tr>`).join('')
+          return `
+            <tr class="week-row">
+              <td colspan="2" style="padding:0">
+                <table class="inner-table" style="width:100%">
+                  <tr class="week-header-row">
+                    <td class="week-header-cell">Semana ${c.semana}</td>
+                    <td class="week-total-cell">Comisión total: <strong>$${Number(c.total_commission_usd || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</strong></td>
+                  </tr>
+                  ${workers.length > 0 ? `
+                  <tr><td colspan="3" style="padding:0">
+                    <table style="width:100%; border-collapse:collapse; font-size:11px">
+                      <thead><tr>
+                        <th style="padding:5px 12px 5px 24px; text-align:left; color:#9ca3af; font-weight:700; background:#fafafa; border-bottom:1px solid #f3f4f6">Trabajadora</th>
+                        <th style="padding:5px 12px; text-align:left; color:#9ca3af; font-weight:700; background:#fafafa; border-bottom:1px solid #f3f4f6">Salario USD</th>
+                        <th style="padding:5px 12px; text-align:left; color:#d97706; font-weight:700; background:#fafafa; border-bottom:1px solid #f3f4f6">Comisión USD</th>
+                      </tr></thead>
+                      <tbody>${workerRows}</tbody>
+                    </table>
+                  </td></tr>` : ''}
+                </table>
+              </td>
+            </tr>`
+        }).join('')
+        return `
+          <div class="app-section">
+            <div class="app-header">
+              <span class="app-name">${app}</span>
+              <span class="app-total">Total acumulado: $${appTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</span>
+            </div>
+            <table class="week-table" style="width:100%; border-collapse:collapse; border:1px solid #e5e7eb; border-top:none">
+              <tbody>${weekRows}</tbody>
+            </table>
+          </div>`
+      }).join('')
+
+      const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mis Comisiones - Eclipse Angels</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 36px; font-size: 13px; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 3px solid #d97706; padding-bottom: 18px; margin-bottom: 24px; }
+  .brand { font-size: 22px; font-weight: 900; color: #d97706; letter-spacing: -0.5px; }
+  .brand span { color: #f59e0b; }
+  .doc-title { font-size: 13px; color: #6b7280; margin-top: 4px; }
+  .meta { text-align: right; font-size: 11px; color: #9ca3af; line-height: 1.6; }
+  .summary { display: flex; gap: 16px; margin-bottom: 24px; }
+  .summary-card { flex: 1; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 18px; }
+  .summary-card .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #d97706; margin-bottom: 4px; }
+  .summary-card .value { font-size: 20px; font-weight: 900; color: #1a1a2e; }
+  .summary-card .sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .app-section { margin-bottom: 28px; }
+  .app-header { display: flex; align-items: center; justify-content: space-between; background: #d97706; color: #fff; border-radius: 8px 8px 0 0; padding: 10px 16px; }
+  .app-name { font-weight: 900; font-size: 14px; letter-spacing: 0.03em; }
+  .app-total { font-weight: 700; font-size: 13px; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; }
+  .week-header-row { background: #fef9ee; }
+  .week-header-cell { padding: 10px 16px; font-weight: 700; color: #1a1a2e; font-size: 13px; border-bottom: 1px solid #fde68a; }
+  .week-total-cell { padding: 10px 16px; color: #059669; font-size: 13px; text-align: right; border-bottom: 1px solid #fde68a; }
+  .inner-table { border-bottom: 2px solid #fde68a; }
+  .worker-row td { padding: 5px 12px; border-bottom: 1px solid #f3f4f6; }
+  .worker-row:last-child td { border-bottom: none; }
+  .worker-name-cell { padding-left: 24px !important; color: #374151; }
+  .worker-usd-cell { color: #059669; font-weight: 700; }
+  .worker-comm-cell { color: #d97706; font-weight: 700; }
+  .footer { margin-top: 36px; border-top: 1px solid #e5e7eb; padding-top: 14px; font-size: 10px; color: #9ca3af; text-align: center; }
+  @media print { body { padding: 20px; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">Eclipse <span>Angels</span> Agency</div>
+      <div class="doc-title">Historial de Comisiones — ${agentName} — Solo en USD</div>
+    </div>
+    <div class="meta">
+      Generado: ${now}<br>
+      Total de semanas: ${commissions.length}<br>
+      Total de apps: ${apps.length}
+    </div>
+  </div>
+  <div class="summary">
+    <div class="summary-card">
+      <div class="label">Total comisiones (USD)</div>
+      <div class="value">$${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</div>
+      <div class="sub">Suma de todos los períodos</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Semanas registradas</div>
+      <div class="value">${commissions.length}</div>
+      <div class="sub">En ${apps.length} aplicación${apps.length !== 1 ? 'es' : ''}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Trabajadoras activas</div>
+      <div class="value">${allWorkerCards.length}</div>
+      <div class="sub">Con al menos una semana cobrada</div>
+    </div>
+  </div>
+  ${appSections}
+  <div class="footer">Eclipse Angels Agency · Documento generado automáticamente · Todos los montos en USD</div>
+</body>
+</html>`
+
+      const win = window.open('', '_blank')
+      if (!win) { alert('Permite las ventanas emergentes para exportar el PDF'); return }
+      win.document.write(html)
+      win.document.close()
+      win.focus()
+      setTimeout(() => win.print(), 400)
+    }
+
     // Merge worker_entries + commission data into unified worker cards
     const allWorkerCards = React.useMemo(() => {
       const map = new Map<string, WorkerCard>()
@@ -392,6 +522,18 @@ import React, { useState, useEffect } from 'react'
             {mainTab === 'comisiones' && (
               <>
                 {/* Stats grid */}
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-white/40 text-xs font-bold uppercase tracking-wider">Resumen</p>
+                  {commissions.length > 0 && (
+                    <button
+                      onClick={exportCommissionPDF}
+                      className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all"
+                    >
+                      <FileDown className="w-3.5 h-3.5" />
+                      Exportar PDF
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-3 gap-3 mb-5">
                   <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
                     <p className="text-2xl font-extrabold text-green-400">${pubTotalUSD.toFixed(2)} <span className="text-sm font-bold">USD</span></p>
