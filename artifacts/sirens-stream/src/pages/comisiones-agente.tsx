@@ -19,7 +19,7 @@ import { useState, useEffect } from 'react'
     const { profile, loading } = useAuth()
     const [, navigate] = useLocation()
     const [weeks, setWeeks] = useState<string[]>([])
-    const [semana, setSemana] = useState('')
+  const [semana, setSemana] = useState(() => { try { return localStorage.getItem('ea_com_semana') ?? '' } catch { return '' } })
     const [agents, setAgents] = useState<AgentRef[]>([])
     const [dataLoading, setDataLoading] = useState(false)
     const [coliderPublished, setColiderPublished] = useState(false)
@@ -30,6 +30,9 @@ import { useState, useEffect } from 'react'
     const [publishingColider, setPublishingColider] = useState(false)
     const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set())
     const [messages, setMessages] = useState<Record<string, string>>({})
+
+  // Persist semana selection
+  useEffect(() => { try { if (semana) localStorage.setItem('ea_com_semana', semana) } catch {} }, [semana])
 
     useEffect(() => { if (!loading && !profile?.is_admin) navigate('/') }, [loading, profile])
     useEffect(() => { if (profile?.is_admin) fetchWeeks() }, [profile])
