@@ -1030,7 +1030,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
               </button>
             </div>
 
-            {tab === 'config' && (
+            {tab === 'config' && (<>
 
                   {/* Push notification subscription for admin */}
                   <PushNotificationCard userId={user?.id ?? ''} />
@@ -1084,7 +1084,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                     </button>
                   </div>
                 </div>
-              )}
+              </>)}
 
               {tab === 'list' && (
               <>
