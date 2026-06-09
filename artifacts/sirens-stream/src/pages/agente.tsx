@@ -70,10 +70,10 @@ import React, { useState, useEffect } from 'react'
     const [commLoading, setCommLoading] = useState(true)
     const [workersLoading, setWorkersLoading] = useState(true)
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
-    const [filterApp, setFilterApp] = useState('')
+  const [filterApp, setFilterApp] = useState(() => { try { return localStorage.getItem('ea_agent_filterapp') ?? '' } catch { return '' } })
     const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
-    const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'|'nocobro'>('comisiones')
-    const [workerAppFilter, setWorkerAppFilter] = useState('')
+  const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'|'nocobro'>(() => { try { return (localStorage.getItem('ea_agent_tab') as any) || 'comisiones' } catch { return 'comisiones' } })
+  const [workerAppFilter, setWorkerAppFilter] = useState(() => { try { return localStorage.getItem('ea_agent_workerapp') ?? '' } catch { return '' } })
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
     const [validRateSemana, setValidRateSemana] = useState<string>('')
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
@@ -83,6 +83,11 @@ import React, { useState, useEffect } from 'react'
     const [noCobroLoading, setNoCobroLoading] = useState(false)
     const [publishedComms, setPublishedComms] = useState<any[]>([])
     const [pubCommsLoading, setPubCommsLoading] = useState(true)
+
+  // Persist tab and filter selections
+  useEffect(() => { try { localStorage.setItem('ea_agent_tab', mainTab) } catch {} }, [mainTab])
+  useEffect(() => { try { localStorage.setItem('ea_agent_filterapp', filterApp) } catch {} }, [filterApp])
+  useEffect(() => { try { localStorage.setItem('ea_agent_workerapp', workerAppFilter) } catch {} }, [workerAppFilter])
 
     useEffect(() => { if (!loading && profile !== undefined && !profile?.is_agent && !profile?.is_colider) navigate('/') }, [loading, profile])
     useEffect(() => {
