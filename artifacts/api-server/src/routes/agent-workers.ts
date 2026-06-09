@@ -1,4 +1,30 @@
-import { Router } from 'express';
+
+
+  // GET /api/agent-code-info?code=EA-XXXXXX
+  // Validate an agent/colider code and return the name — used by workers when linking
+  router.get('/agent-code-info', async (req, res) => {
+    const code = ((req.query.code as string) ?? '').trim().toUpperCase()
+    if (!code) return res.status(400).json({ error: 'code requerido' })
+    try {
+      const r = await fetch(
+        sbUrl(`profiles?agent_code=eq.${encodeURIComponent(code)}&select=id,agent_name,colider_name,is_agent,is_colider&limit=1`),
+        { headers: sbHeaders() as Record<string, string> }
+      )
+      if (!r.ok) return res.status(r.status).json({ error: await r.text() })
+      const rows = await r.json() as {
+        id: string; agent_name: string | null; colider_name: string | null;
+        is_agent: boolean; is_colider: boolean
+      }[]
+      if (!rows[0]) return res.status(404).json({ error: 'Código de agente no encontrado' })
+      const row = rows[0]
+      const name = row.colider_name ?? row.agent_name ?? 'Agente'
+      return res.json({ ok: true, name, is_agent: row.is_agent ?? false, is_colider: row.is_colider ?? false })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'unknown'
+      return res.status(500).json({ error: msg })
+    }
+  })
+  import { Router } from 'express';
 
   const router = Router();
 
