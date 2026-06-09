@@ -277,6 +277,7 @@ import { Router } from 'express'
   router.post('/colider/mark', async (req, res) => {
     const { semana, person_uid, person_type, paid, person_name, person_real_name, person_phone, person_app, salary_usd, salary_cuba, metodo_pago } = req.body
     if (!semana || !person_uid || !person_type) { res.status(400).json({ error: 'semana, person_uid, person_type required' }); return }
+    if (person_type !== 'worker' && person_type !== 'agent') { res.status(400).json({ error: "person_type debe ser 'worker' o 'agent'" }); return }
     try {
       await sbPost('colider_marks?on_conflict=semana,person_uid,person_app', {
         semana, person_uid, person_type, paid: paid ?? false,
