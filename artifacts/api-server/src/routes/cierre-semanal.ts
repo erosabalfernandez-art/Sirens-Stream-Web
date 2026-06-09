@@ -101,9 +101,9 @@ import { Router } from 'express';
                 : Promise.resolve(null),
             ]);
 
-            const coliderData: any[] = coliderRes.ok ? await coliderRes.json() : [];
-            const coliderStatus = coliderData[0] ?? null;
-            const coliderNotified = !!(coliderStatus?.notified && !coliderStatus?.admin_closed);
+            const coliderMarks: any[] = coliderMarksRes.ok ? await coliderMarksRes.json() : [];
+            const unpaidMarks = coliderMarks.filter((m: any) => !m.paid);
+            const allColiderPaid = coliderMarks.length > 0 && unpaidMarks.length === 0;
 
             const wConfs: any[] = wConfRes && wConfRes.ok ? await wConfRes.json() : [];
             const aConfs: any[] = aConfRes && aConfRes.ok ? await aConfRes.json() : [];
@@ -117,8 +117,14 @@ import { Router } from 'express';
             if (!allColiderPaid || unconfirmedWorkers.length > 0 || unconfirmedAgents.length > 0) {
               const pending: any[] = [];
 
-              if (!coliderNotified) {
-                pending.push({ type: 'colider', name: 'El colider aún no notificó que terminó los pagos', app: '—' });
+              if (!allColiderPaid) {
+                if (coliderMarks.length === 0) {
+                  pending.push({ type: 'colider', name: 'El colider aún no ha marcado ningún pago', app: '—' });
+                } else {
+                  for (const m of unpaidMarks) {
+                    pending.push({ type: 'colider_pendiente', app: m.person_app ?? m.person_type ?? '—', name: m.person_real_name ?? m.person_name ?? m.person_uid });
+                  }
+                }
               }
 
               if (unconfirmedWorkers.length > 0) {
