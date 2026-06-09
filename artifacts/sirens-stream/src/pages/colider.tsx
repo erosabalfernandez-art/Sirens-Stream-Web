@@ -52,6 +52,7 @@ import { subscribeToPush } from '@/lib/push'
     const [noCobroLoading, setNoCobroLoading] = useState(false)
     const [notifyMsg, setNotifyMsg] = useState('')
   const [notifStatus, setNotifStatus] = useState<'idle'|'requesting'|'granted'|'denied'|'error'>('idle')
+  const [localAgentCode, setLocalAgentCode] = useState<string | null>(null)
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -76,6 +77,21 @@ import { subscribeToPush } from '@/lib/push'
     }, [loading, profile])
     useEffect(() => { if (user) fetchWeeks() }, [user])
     useEffect(() => { if (user) fetchNoCobro() }, [user])
+
+  // Auto-generate agent_code for colider if not set yet
+  useEffect(() => {
+    if (!user || !profile || (profile as any).agent_code || localAgentCode) return
+    if (!(profile as any).is_colider && !(profile as any).is_agent) return
+    const AB = API
+    fetch(`${AB}/api/agent/ensure-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id }),
+    }).then(r => r.json()).then((d: { agent_code?: string }) => {
+      if (d.agent_code) setLocalAgentCode(d.agent_code)
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profile])
     useEffect(() => { if (semana) loadData() }, [semana])
 
     // Refresh colider view when admin does weekly cierre
@@ -277,16 +293,18 @@ import { subscribeToPush } from '@/lib/push'
 
 
             {/* Agent code card — colider shares this with their workers */}
-            {profile?.agent_code ? (
+            {(() => {
+              const displayCode = (profile as any)?.agent_code || localAgentCode
+              return displayCode ? (
               <div className="mb-4 bg-amber-500/8 border border-amber-500/20 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs text-amber-300/60 uppercase font-bold tracking-wider mb-0.5">Tu código de agente</p>
                   <p className="text-white/50 text-xs">Las trabajadoras ponen este código en su perfil para vincularse contigo</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-mono font-extrabold text-amber-300 text-sm tracking-widest select-all">{profile.agent_code}</span>
+                  <span className="font-mono font-extrabold text-amber-300 text-sm tracking-widest select-all">{displayCode}</span>
                   <button
-                    onClick={() => navigator.clipboard.writeText(profile.agent_code ?? '')}
+                    onClick={() => navigator.clipboard.writeText(displayCode)}
                     className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors"
                     title="Copiar código">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -294,11 +312,12 @@ import { subscribeToPush } from '@/lib/push'
                 </div>
               </div>
             ) : (
-              <div className="mb-4 bg-red-500/8 border border-red-500/20 rounded-2xl px-4 py-3">
-                <p className="text-red-300 text-sm font-bold">⚠️ Sin código de agente</p>
-                <p className="text-white/40 text-xs mt-0.5">Contacta al administrador para que te asigne un código de agente.</p>
+              <div className="mb-4 bg-amber-500/5 border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-amber-400/40 border-t-amber-400 rounded-full animate-spin shrink-0" />
+                <p className="text-amber-300/60 text-sm">Generando tu código de agente...</p>
               </div>
-            )}
+            )
+            })()}
 
             {weeks.length > 0 && (
             <div className="mb-4">
