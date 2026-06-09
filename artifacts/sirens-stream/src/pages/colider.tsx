@@ -97,10 +97,11 @@ import { subscribeToPush } from '@/lib/push'
     async function loadData() {
       setLoadingData(true)
       try {
-        const [listR, marksR, statusR] = await Promise.all([
+        const [listR, marksR, statusR, agentPub] = await Promise.all([
           fetch(`${API}/api/colider/salary-list?semana=${encodeURIComponent(semana)}`).then(r => r.json()),
           fetch(`${API}/api/colider/marks?semana=${encodeURIComponent(semana)}`).then(r => r.json()),
           fetch(`${API}/api/colider/week-status?semana=${encodeURIComponent(semana)}`).then(r => r.json()),
+          fetch(`${API}/api/colider/published-agent-commissions?semana=${encodeURIComponent(semana)}`).then(r => r.json()).catch(() => ({ published: false, agents: [], exchange_rates: {} })),
         ])
 
         const rm: Record<string, number> = listR.exchange_rates ?? {}
@@ -124,24 +125,20 @@ import { subscribeToPush } from '@/lib/push'
           })
         }
 
-        const agentMap: Record<string, { usd: number; app: string; metodo_pago: string | null }> = {}
-        for (const a of (listR.agents ?? [])) {
-          if (!agentMap[a.agent_name]) agentMap[a.agent_name] = { usd: 0, app: a.app_name, metodo_pago: a.metodo_pago ?? null }
-          agentMap[a.agent_name].usd += Number(a.total_commission_usd) || 0
-        }
-        const efRate = rm['efectivo_agent'] ?? 0
-        for (const [name, info] of Object.entries(agentMap)) {
-          if (info.metodo_pago !== 'Efectivo (Cuba)') continue // colider solo ve efectivo cuba
+        // Agents: from published_agent_commissions (admin must publish to colider first)
+        const efRate = (agentPub.exchange_rates?.['efectivo_agent'] ?? rm['efectivo_agent']) ?? 0
+        for (const ag of (agentPub.agents ?? [])) {
+          const usd = Number(ag.total_usd) || 0
           entries.push({
-            key: `agent__${name}`,
-            person_uid: name,
+            key: `agent__${ag.agent_name}`,
+            person_uid: ag.agent_name,
             person_type: 'agent',
-            display_name: name,
-            real_name: name,
+            display_name: ag.agent_name,
+            real_name: ag.agent_name,
             phone: null,
-            app: info.app,
-            salary_usd: info.usd,
-            salary_cuba: efRate > 0 ? info.usd * efRate : 0,
+            app: '',
+            salary_usd: usd,
+            salary_cuba: efRate > 0 ? usd * efRate : 0,
             metodo_pago: 'Efectivo (Cuba)',
           })
         }
