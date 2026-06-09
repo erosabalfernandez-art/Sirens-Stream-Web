@@ -337,30 +337,22 @@ import { useState, useEffect } from 'react'
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="text-right">
-                                  {isCubanPay ? (
-                                    cupRate > 0 ? (
-                                      <>
-                                        <p className="text-xl font-extrabold text-amber-300">
-                                          {(Number(s.usd) * cupRate).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-base font-bold text-amber-400/70">CUP</span>
-                                        </p>
-                                        <p className="text-amber-400/50 text-xs mt-0.5 text-right">1 USD = {cupRate.toLocaleString('es-ES')}</p>
-                                      </>
-                                    ) : (
-                                      <div className="text-right">
-                                        <p className="text-sm font-semibold text-white/25">⏳ Cambio pendiente</p>
-                                        <p className="text-white/15 text-xs mt-0.5">En espera del tipo de cambio</p>
-                                      </div>
-                                    )
-                                  ) : (
-                                    <>
-                                      <p className="text-xl font-extrabold text-green-400">
-                                        ${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-                                      </p>
-                                      <div className="flex items-center justify-end gap-1 mt-0.5">
-                                        <Gem className="w-3.5 h-3.5 text-purple-400" />
-                                        <span className="text-purple-300 text-sm font-semibold">{fmt(s.diamantes)}</span>
-                                      </div>
-                                    </>
+                                  <p className="text-xl font-extrabold text-green-400">
+                                    ${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                                  </p>
+                                  {!isCubanPay && s.diamantes > 0 && (
+                                    <div className="flex items-center justify-end gap-1 mt-0.5">
+                                      <Gem className="w-3.5 h-3.5 text-purple-400" />
+                                      <span className="text-purple-300 text-sm font-semibold">{fmt(s.diamantes)}</span>
+                                    </div>
+                                  )}
+                                  {isCubanPay && cupRate > 0 && (
+                                    <p className="text-amber-300 font-bold text-sm mt-0.5">
+                                      {(Number(s.usd) * cupRate).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-xs font-semibold">CUP</span>
+                                    </p>
+                                  )}
+                                  {isCubanPay && cupRate <= 0 && (
+                                    <p className="text-white/25 text-xs mt-0.5">⏳ Cambio pendiente</p>
                                   )}
                                 </div>
                                 {isConfirming ? (
