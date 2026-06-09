@@ -80,7 +80,7 @@ import { subscribeToPush } from '@/lib/push'
 
     async function fetchWeeks() {
       try {
-        const r = await fetch(`${API}/api/colider/available-weeks`)
+        const r = await fetch(`${API}/api/colider/available-weeks?colider_user_id=${user?.id ?? ''}`)
         const d = await r.json()
         const w: string[] = d.weeks ?? []
         setWeeks(w)
@@ -91,7 +91,7 @@ import { subscribeToPush } from '@/lib/push'
     async function fetchNoCobro() {
       setNoCobroLoading(true)
       try {
-        const r = await fetch(`${API}/api/agent/no-cobro`)
+        const r = await fetch(`${API}/api/agent/no-cobro?agent_id=${user?.id ?? ''}`)
         if (r.ok) { const d = await r.json() as { entries: NoCobro[] }; setNoCobroData(d.entries ?? []) }
       } catch {}
       setNoCobroLoading(false)
@@ -101,9 +101,9 @@ import { subscribeToPush } from '@/lib/push'
       setLoadingData(true)
       try {
         const [listR, marksR, statusR, agentPub] = await Promise.all([
-          fetch(`${API}/api/colider/salary-list?semana=${encodeURIComponent(semana)}`).then(r => r.json()),
+          fetch(`${API}/api/colider/salary-list?semana=${encodeURIComponent(semana)}&colider_user_id=${user?.id ?? ''}`).then(r => r.json()),
           fetch(`${API}/api/colider/marks?semana=${encodeURIComponent(semana)}`).then(r => r.json()),
-          fetch(`${API}/api/colider/week-status?semana=${encodeURIComponent(semana)}`).then(r => r.json()),
+          fetch(`${API}/api/colider/week-status?semana=${encodeURIComponent(semana)}&colider_user_id=${user?.id ?? ''}`).then(r => r.json()),
           fetch(`${API}/api/colider/published-agent-commissions?semana=${encodeURIComponent(semana)}`).then(r => r.json()).catch(() => ({ published: false, agents: [], exchange_rates: {} })),
         ])
 
@@ -189,7 +189,7 @@ import { subscribeToPush } from '@/lib/push'
           }
           const r = await fetch(`${API}/api/colider/notify-admin`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ semana })
+            body: JSON.stringify({ semana, colider_user_id: user?.id ?? '' })
           })
           const d = await r.json()
           if (!r.ok) { setNotifyMsg(`❌ ${d.error ?? 'Error'}`); break }
@@ -262,7 +262,32 @@ import { subscribeToPush } from '@/lib/push'
             </div>
           </div>
 
-          {weeks.length > 0 && (
+
+            {/* Agent code card — colider shares this with their workers */}
+            {profile?.agent_code ? (
+              <div className="mb-4 bg-amber-500/8 border border-amber-500/20 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs text-amber-300/60 uppercase font-bold tracking-wider mb-0.5">Tu código de agente</p>
+                  <p className="text-white/50 text-xs">Las trabajadoras ponen este código en su perfil para vincularse contigo</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono font-extrabold text-amber-300 text-sm tracking-widest select-all">{profile.agent_code}</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(profile.agent_code ?? '')}
+                    className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors"
+                    title="Copiar código">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 bg-red-500/8 border border-red-500/20 rounded-2xl px-4 py-3">
+                <p className="text-red-300 text-sm font-bold">⚠️ Sin código de agente</p>
+                <p className="text-white/40 text-xs mt-0.5">Contacta al administrador para que te asigne un código de agente.</p>
+              </div>
+            )}
+
+            {weeks.length > 0 && (
             <div className="mb-4">
               <select value={semana} onChange={e => setSemana(e.target.value)}
                 className="w-full bg-[#0d0d1e] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50">
