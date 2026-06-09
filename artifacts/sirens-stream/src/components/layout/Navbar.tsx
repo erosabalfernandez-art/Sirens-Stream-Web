@@ -235,6 +235,10 @@ import { Link, useLocation } from "wouter";
                             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === "/nomina" ? "text-green-200 bg-green-500/15" : "text-green-400 hover:text-green-300 hover:bg-green-500/10"}`}>
                             <FileSpreadsheet className="w-3.5 h-3.5" /> {T.nomina}
                           </Link>
+                          <Link href="/comisiones-agente"
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === "/comisiones-agente" ? "text-amber-200 bg-amber-500/15" : "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"}`}>
+                            <DollarSign className="w-3.5 h-3.5" /> Comisiones
+                          </Link>
                           <button onClick={() => setCierreOpen(true)}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 transition-all">
                             <CheckCircle className="w-3.5 h-3.5" /> Cierre
