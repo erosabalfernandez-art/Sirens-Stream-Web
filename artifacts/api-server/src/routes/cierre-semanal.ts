@@ -50,8 +50,16 @@ import { Router } from 'express';
 
       // POST /api/cierre-semanal
       // Body: { force?: boolean }
-      // Normal: verifica que todos hayan confirmado, luego limpia datos activos (NO toca nomina_history)
-      // Force:  salta verificaciones y limpia datos activos directamente
+      //
+      // Qué hace el cierre:
+      //   - CONSERVA published_salaries  → historial permanente de cada trabajadora en /salarios
+      //   - CONSERVA agent_commissions   → historial permanente de cada agente en /agente
+      //   - CONSERVA nomina_history      → archivo del admin
+      //   - BORRA payment_confirmations  (para los salarios de esa semana) → resetea confirmaciones
+      //   - BORRA agent_payment_confirmations (para las comisiones de esa semana)
+      //   - BORRA colider_week_status    → resetea estado del colider
+      //   - BORRA weekly_no_cobro        → resetea lista de no-cobro
+      //   - MARCA nomina_history como published=false → desbloquea la página de nómina para nueva semana
       router.post('/cierre-semanal', async (req, res) => {
         const force = !!(req.body as Record<string, unknown>)?.force;
         try {
@@ -134,8 +142,17 @@ import { Router } from 'express';
             }
           }
 
-          // 3. All confirmed (or force) — clean active data for this week
-          //    nomina_history is KEPT as the permanent archive (never deleted here)
+          // 3. All confirmed (or force) — reset weekly state
+          //
+          //    published_salaries   → KEPT (permanent worker history visible in /salarios)
+          //    agent_commissions    → KEPT (permanent agent history visible in /agente)
+          //    nomina_history       → KEPT (permanent admin archive)
+          //
+          //    What gets cleared:
+          //      - payment_confirmations for this week's salaries
+          //      - agent_payment_confirmations for this week's commissions
+          //      - colider_week_status for this week
+          //      - weekly_no_cobro for this week
 
           const latestSalaryIds = allSalaries
             .filter((s: any) => s.semana === latestSemana)
@@ -145,11 +162,28 @@ import { Router } from 'express';
             .filter((c: any) => c.semana === latestSemana)
             .map((c: any) => c.id);
 
-          // Delete payment confirmations first (FK dependency)
-          const deleteConfirmations: Promise<any>[] = [];
+          const cleanupOps: Promise<any>[] = [
+            // Clear colider status
+            fetch(sbUrl(`colider_week_status?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            // Clear no-cobro records for this week
+            fetch(sbUrl(`weekly_no_cobro?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            // Mark nomina_history entries for this semana as published=false
+            // so the nomina page unlocks for the next week on page reload
+            fetch(sbUrl(`nomina_history?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'PATCH',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+              body: JSON.stringify({ published: false }),
+            }),
+          ];
 
           if (latestSalaryIds.length > 0) {
-            deleteConfirmations.push(
+            cleanupOps.push(
               fetch(sbUrl(`payment_confirmations?salary_id=in.(${latestSalaryIds.map((id: string) => `"${id}"`).join(',')})`), {
                 method: 'DELETE',
                 headers: { ...sbH(), Prefer: 'return=minimal' },
@@ -158,7 +192,7 @@ import { Router } from 'express';
           }
 
           if (latestCommissionIds.length > 0) {
-            deleteConfirmations.push(
+            cleanupOps.push(
               fetch(sbUrl(`agent_payment_confirmations?commission_id=in.(${latestCommissionIds.map((id: string) => `"${id}"`).join(',')})`), {
                 method: 'DELETE',
                 headers: { ...sbH(), Prefer: 'return=minimal' },
@@ -166,27 +200,7 @@ import { Router } from 'express';
             );
           }
 
-          await Promise.all(deleteConfirmations);
-
-          // Now delete the active salary and commission records
-          await Promise.all([
-            fetch(sbUrl(`published_salaries?semana=eq.${encodeURIComponent(latestSemana)}`), {
-              method: 'DELETE',
-              headers: { ...sbH(), Prefer: 'return=minimal' },
-            }),
-            fetch(sbUrl(`agent_commissions?semana=eq.${encodeURIComponent(latestSemana)}`), {
-              method: 'DELETE',
-              headers: { ...sbH(), Prefer: 'return=minimal' },
-            }),
-            fetch(sbUrl(`colider_week_status?semana=eq.${encodeURIComponent(latestSemana)}`), {
-              method: 'DELETE',
-              headers: { ...sbH(), Prefer: 'return=minimal' },
-            }),
-            fetch(sbUrl(`weekly_no_cobro?semana=eq.${encodeURIComponent(latestSemana)}`), {
-              method: 'DELETE',
-              headers: { ...sbH(), Prefer: 'return=minimal' },
-            }),
-          ]);
+          await Promise.all(cleanupOps);
 
           return res.json({ ok: true, allConfirmed: true, semana: latestSemana, forced: force });
         } catch (e: unknown) {
