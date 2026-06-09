@@ -754,6 +754,19 @@ import { useState, useEffect, useRef } from 'react'
         setLoadingData(false)
       }
 
+      // Reset weekly data tabs when cierre semanal is done
+      useEffect(() => {
+        function onCierre() {
+          setPagosData([])
+          setNoCobroEntries([])
+          setColiderMarks({ paid: [], pending: [] })
+          setAgentPayData({ confirmed: [], pending: [] })
+          setLaylaDirectNotifs([])
+        }
+        window.addEventListener('ea_cierre_done', onCierre)
+        return () => window.removeEventListener('ea_cierre_done', onCierre)
+      }, [])
+
       // Persist admin filters to localStorage
         useEffect(() => {
           try {
