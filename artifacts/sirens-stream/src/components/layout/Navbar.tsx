@@ -63,7 +63,14 @@ import { Link, useLocation } from "wouter";
         })
           .then(r => r.json())
           .then((d: CierreResult) => {
-            if (d.allConfirmed) window.dispatchEvent(new CustomEvent('ea_cierre_done'));
+            if (d.allConfirmed) {
+            try {
+              // Clear nomina localStorage so page resets on next load
+              localStorage.removeItem('ea_nomina_apps_v1')
+              localStorage.setItem('ea_cierre_done_ts', Date.now().toString())
+            } catch {}
+            window.dispatchEvent(new CustomEvent('ea_cierre_done'));
+          }
             setResult(d);
             setPhase('done');
           })
