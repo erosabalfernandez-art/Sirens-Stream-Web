@@ -46,7 +46,6 @@ import { useState, useEffect } from 'react'
     const [confirming, setConfirming] = useState<string | null>(null)
       const [workerPayMethods, setWorkerPayMethods] = useState<Record<string,string>>({})
       const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
-      const [validRateSemana] = useState<string>('')
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => { if (user) { fetchSalaries(); fetchConfirmed(); fetchWorkerInfo() } }, [user])
