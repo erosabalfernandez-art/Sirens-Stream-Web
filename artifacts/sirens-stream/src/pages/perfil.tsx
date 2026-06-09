@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
-    import { subscribeToPush, checkPushInDB, unsubscribeFromPush } from '@/lib/push'
-    import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check, Copy, Bell, BellOff, RefreshCw, CheckCircle2 } from 'lucide-react'
+    import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check, Copy } from 'lucide-react'
+import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
     const APPS = ['Waha', 'Layla', 'Howdy']
 
@@ -67,7 +67,6 @@ import { useState, useEffect } from 'react'
       const [formError, setFormError] = useState<string | null>(null)
       const [confirmClear, setConfirmClear] = useState(false)
       const [expandedApp, setExpandedApp] = useState<string | null>(null)
-      const [notifStatus, setNotifStatus] = useState<'checking'|'active'|'stale'|'idle'|'requesting'|'unsubscribing'|'denied'|'error'>('checking')
       const [laylaPayNotified, setLaylaPayNotified] = useState<Record<string, boolean>>({})
       const [laylaPayNotifying, setLaylaPayNotifying] = useState<Record<string, boolean>>({})
       const [laylaPayNeedSetup, setLaylaPayNeedSetup] = useState(false)
@@ -78,24 +77,6 @@ import { useState, useEffect } from 'react'
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
       useEffect(() => { if (user) { fetchEntries(); fetchLaylaPayStatus() } }, [user])
 
-      useEffect(() => {
-        if (!user) return
-        async function checkStatus() {
-          if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-            setNotifStatus('idle'); return
-          }
-          if (Notification.permission === 'denied') {
-            setNotifStatus('denied'); return
-          }
-          if (Notification.permission !== 'granted') {
-            setNotifStatus('idle'); return
-          }
-          // Permission is granted — check if subscription is alive in DB
-          const inDB = await checkPushInDB(user!.id)
-          setNotifStatus(inDB ? 'active' : 'stale')
-        }
-        checkStatus()
-      }, [user])
 
         // Persist draft in localStorage — data survives navigation/background
         useEffect(() => {
@@ -195,21 +176,6 @@ import { useState, useEffect } from 'react'
       async function handleDelete(id: string) { await supabase.from('worker_entries').delete().eq('id', id); fetchEntries() }
       async function handleClearAll() { await supabase.from('worker_entries').delete().eq('user_id', user!.id); setEntries([]); setConfirmClear(false) }
 
-      async function enableNotifications() {
-        if (!user) return
-        setNotifStatus('requesting')
-        const result = await subscribeToPush(user.id)
-        if (result === 'granted') setNotifStatus('active')
-        else if (result === 'denied') setNotifStatus('denied')
-        else setNotifStatus('error')
-      }
-
-      async function disableNotifications() {
-        if (!user) return
-        setNotifStatus('unsubscribing')
-        await unsubscribeFromPush(user.id)
-        setNotifStatus('idle')
-      }
 
       const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
 
@@ -259,115 +225,9 @@ import { useState, useEffect } from 'react'
               </button>
             </div>
 
-            
-            <div className="mb-4 bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-sm mb-0.5">{T.notifTitle}</p>
-                  <p className="text-white/40 text-xs">{T.notifSub}</p>
-                </div>
 
-                {/* CHECKING */}
-                {notifStatus === 'checking' && (
-                  <div className="flex items-center gap-2 text-white/30 text-xs">
-                    <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-                    {T.notifChecking}
-                  </div>
-                )}
+            <PushNotificationCard userId={user?.id ?? ''} lang={lang} />
 
-                {/* ACTIVE — suscripción aprobada */}
-                {notifStatus === 'active' && (
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <div className="flex items-center gap-1.5 text-green-400 text-xs font-bold">
-                      <CheckCircle2 className="w-4 h-4" /> {T.notifActive}
-                    </div>
-                    <button
-                      onClick={disableNotifications}
-                      disabled={notifStatus === 'unsubscribing' as any}
-                      className="flex items-center gap-1.5 text-white/30 hover:text-red-400 text-xs font-semibold px-2 py-1 rounded-lg transition-all hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
-                    >
-                      <BellOff className="w-3 h-3" /> {T.notifUnsub}
-                    </button>
-                  </div>
-                )}
-
-                {/* UNSUBSCRIBING */}
-                {notifStatus === 'unsubscribing' && (
-                  <div className="flex items-center gap-2 text-white/30 text-xs">
-                    <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-                    {T.notifUnsubbing}
-                  </div>
-                )}
-
-                {/* STALE — permiso concedido pero sin suscripción en DB */}
-                {notifStatus === 'stale' && (
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <p className="text-yellow-400 text-xs font-semibold">{T.notifStale}</p>
-                    <button
-                      onClick={enableNotifications}
-                      className="flex items-center gap-1.5 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30 text-yellow-300 text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
-                    >
-                      <RefreshCw className="w-3 h-3" /> {T.notifRenew}
-                    </button>
-                  </div>
-                )}
-
-                {/* IDLE — nunca activadas */}
-                {notifStatus === 'idle' && (
-                  <button
-                    onClick={enableNotifications}
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shrink-0"
-                  >
-                    <Bell className="w-3.5 h-3.5" /> {T.notifActivate}
-                  </button>
-                )}
-
-                {/* REQUESTING */}
-                {notifStatus === 'requesting' && (
-                  <div className="flex items-center gap-2 text-white/50 text-xs">
-                    <div className="w-3.5 h-3.5 border-2 border-purple-400/40 border-t-purple-400 rounded-full animate-spin" />
-                    {T.notifActivating}
-                  </div>
-                )}
-
-                {/* ERROR */}
-                {notifStatus === 'error' && (
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <p className="text-red-400 text-xs font-semibold">{T.notifError}</p>
-                    <button
-                      onClick={enableNotifications}
-                      className="flex items-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
-                    >
-                      <RefreshCw className="w-3 h-3" /> Reintentar
-                    </button>
-                  </div>
-                )}
-
-                {/* DENIED — bloqueadas en el navegador */}
-                {notifStatus === 'denied' && (
-                  <div className="max-w-[200px] text-right shrink-0">
-                    <div className="flex items-center justify-end gap-1.5 text-red-400 text-xs font-bold mb-1.5">
-                      <BellOff className="w-3.5 h-3.5" /> {T.notifBlocked}
-                    </div>
-                    <p className="text-white/35 text-xs leading-relaxed">
-                      Actívalas en{' '}
-                      <span className="text-white/60 font-semibold">Configuración del navegador → Permisos del sitio → Notificaciones</span>
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Multi-device warning */}
-                {(notifStatus === 'active' || notifStatus === 'stale' || notifStatus === 'requesting') && (
-                  <div className="mt-3 pt-3 border-t border-white/5 col-span-2">
-                    <p className="text-white/30 text-xs leading-relaxed">
-                      {lang === 'pt'
-                        ? '📱 Se você ativar em outro dispositivo, o anterior deixará de receber notificações. Apenas o último dispositivo inscrito recebe alertas.'
-                        : '📱 Si activas en otro dispositivo, el anterior dejará de recibir notificaciones. Solo el último dispositivo suscrito recibe alertas.'}
-                    </p>
-                  </div>
-                )}
-            </div>
 
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
