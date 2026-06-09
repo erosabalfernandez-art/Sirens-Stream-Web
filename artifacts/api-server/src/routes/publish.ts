@@ -211,16 +211,7 @@ import { Router } from 'express';
           return res.status(r.status).json({ error: errText });
         }
 
-        // Send individual push notifications per agent per app (fire-and-forget)
-        const notifItems = inserts
-          .filter(ins => agentIdMap[ins.agent_name])
-          .map(ins => ({
-            userId: agentIdMap[ins.agent_name],
-            title: `💰 Comisiones de ${ins.app_name} disponibles`,
-            body: `Semana ${ins.semana} — $${Number(ins.total_commission_usd).toFixed(2)} de comisión — Entra a ver el detalle.`,
-            url: '/agente',
-          }));
-        setImmediate(() => { dispatchPushIndividual(notifItems).catch(() => {}); });
+        // Agent commission notifications handled via /admin/publish-agent-commission
 
         const agentUserIds = Object.values(agentIdMap).filter(Boolean);
 
