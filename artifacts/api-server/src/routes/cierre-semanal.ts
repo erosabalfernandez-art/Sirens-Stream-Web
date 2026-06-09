@@ -208,4 +208,62 @@ import { Router } from 'express';
         }
       });
 
+
+  // POST /api/admin/reset-all-history
+  // ⚠️ NUCLEAR RESET — deletes ALL payroll history permanently.
+  // Tables cleared: published_salaries, agent_commissions, published_agent_commissions,
+  //   agent_commission_publish_log, colider_commission_publish_log, weekly_no_cobro,
+  //   colider_marks, colider_week_status, payment_confirmations,
+  //   agent_payment_confirmations, direct_payment_notifications, nomina_history
+  router.post('/admin/reset-all-history', async (req, res) => {
+    const { confirm } = req.body as { confirm?: string }
+    if (confirm !== 'BORRAR TODO') {
+      return res.status(400).json({ error: 'Se requiere confirmación: { confirm: "BORRAR TODO" }' })
+    }
+
+    const TABLES = [
+      'published_salaries',
+      'agent_commissions',
+      'published_agent_commissions',
+      'agent_commission_publish_log',
+      'colider_commission_publish_log',
+      'weekly_no_cobro',
+      'colider_marks',
+      'colider_week_status',
+      'payment_confirmations',
+      'agent_payment_confirmations',
+      'direct_payment_notifications',
+      'nomina_history',
+    ]
+
+    const results: Record<string, string> = {}
+
+    await Promise.all(
+      TABLES.map(async (table) => {
+        try {
+          // PostgREST requires a filter to DELETE; neq=null deletes all rows
+          const r = await fetch(
+            sbUrl(`${table}?id=neq.00000000-0000-0000-0000-000000000000`),
+            { method: 'DELETE', headers: { ...sbH(), Prefer: 'return=minimal' } }
+          )
+          if (!r.ok) {
+            const txt = await r.text()
+            // Table may not exist — treat as success
+            if (txt.includes('42P01') || txt.includes('does not exist')) {
+              results[table] = 'skipped (table does not exist)'
+            } else {
+              results[table] = `error: ${txt.substring(0, 120)}`
+            }
+          } else {
+            results[table] = 'cleared'
+          }
+        } catch (e: unknown) {
+          results[table] = `exception: ${e instanceof Error ? e.message : String(e)}`
+        }
+      })
+    )
+
+    return res.json({ ok: true, results })
+  })
+  
       export default router;
