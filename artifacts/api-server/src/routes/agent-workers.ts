@@ -49,7 +49,7 @@
 
     try {
       const profileRes = await fetch(
-        sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=id,agent_code,is_agent&limit=1`),
+        sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=id,agent_code,is_agent,is_colider&limit=1`),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!profileRes.ok) return res.status(profileRes.status).json({ error: await profileRes.text() });
