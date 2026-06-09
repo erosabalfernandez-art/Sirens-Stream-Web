@@ -221,7 +221,7 @@ import { useState, useEffect, useRef } from 'react'
           const salaryIds = (salaries as any[]).map((s: any) => s.id)
           const [{ data: profiles }, { data: workers }, { data: confirmations, error: confErr }] = await Promise.all([
             supabase.from('profiles').select('id, email').in('id', userIds),
-            supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera').eq('app_name', app).in('user_id', userIds),
+            supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera, agente').eq('app_name', app).in('user_id', userIds),
             supabase.from('payment_confirmations').select('salary_id, confirmed_at').in('salary_id', salaryIds),
           ])
           if (confErr?.code === '42P01') { setPagosNeedSetup(true); setPagosLoading(false); return }
@@ -237,6 +237,7 @@ import { useState, useEffect, useRef } from 'react'
               nombre_real: w.nombre_real ?? null, nombre_en_app: w.nombre_en_app ?? null,
               email: profileMap[s.user_id] ?? '—',
               metodo_pago: w.metodo_pago ?? null, billetera: w.billetera ?? null,
+              agente: w.agente ?? null,
               confirmed: !!confAt, confirmed_at: confAt ?? null,
             }
           })
@@ -290,7 +291,7 @@ import { useState, useEffect, useRef } from 'react'
             }
             const userIds = (notifs as any[]).map((n: any) => n.user_id)
             const [{ data: workers }, { data: profs }] = await Promise.all([
-              supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera').eq('app_name', 'Layla').in('user_id', userIds),
+              supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera, agente').eq('app_name', 'Layla').in('user_id', userIds),
               supabase.from('profiles').select('id, email').in('id', userIds),
             ])
             const wMap: Record<string, any> = Object.fromEntries(((workers ?? []) as any[]).map((w: any) => [w.user_id, w]))
@@ -302,6 +303,7 @@ import { useState, useEffect, useRef } from 'react'
               email: eMap[n.user_id] ?? '—',
               metodo_pago: wMap[n.user_id]?.metodo_pago ?? null,
               billetera: wMap[n.user_id]?.billetera ?? null,
+              agente: wMap[n.user_id]?.agente ?? null,
             }))
             setLaylaDirectNotifs(merged)
             setLaylaDirectLoading(false)
@@ -608,7 +610,7 @@ import { useState, useEffect, useRef } from 'react'
             }
             const userIds = (notifs as any[]).map((n: any) => n.user_id)
             const [{ data: workers }, { data: profs }] = await Promise.all([
-              supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera').eq('app_name', 'Layla').in('user_id', userIds),
+              supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, metodo_pago, billetera, agente').eq('app_name', 'Layla').in('user_id', userIds),
               supabase.from('profiles').select('id, email').in('id', userIds),
             ])
             const wMap: Record<string, any> = Object.fromEntries(((workers ?? []) as any[]).map((w: any) => [w.user_id, w]))
@@ -620,6 +622,7 @@ import { useState, useEffect, useRef } from 'react'
               email: eMap[n.user_id] ?? '—',
               metodo_pago: wMap[n.user_id]?.metodo_pago ?? null,
               billetera: wMap[n.user_id]?.billetera ?? null,
+              agente: wMap[n.user_id]?.agente ?? null,
             }))
             setLaylaDirectNotifs(merged)
             setLaylaDirectLoading(false)
@@ -1015,7 +1018,7 @@ import { useState, useEffect, useRef } from 'react'
                 <Users className="w-3.5 h-3.5" />
                 Agentes
               </button>
-              <button onClick={() => setTab('chicas')}
+              <button onClick={() => { setTab('chicas'); fetchAgents() }}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'chicas' ? 'bg-indigo-600 text-white' : 'text-white/40 hover:text-white'}`}>
                   <Users className="w-3.5 h-3.5" />
                   Chicas/Agente
@@ -1631,6 +1634,7 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                     <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
                                     <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-green-400">${row.usd.toFixed(2)} USD</span></p>
                                     {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
+                                    {row.agente && <p className="text-xs text-indigo-300/60 mt-0.5">Agente: {agentNameMap[row.agente] ?? row.agente}</p>}
                                   </div>
                                   <div className="text-right shrink-0">
                                     <p className="text-xs text-green-400 font-bold">Confirmado ✓</p>
@@ -1660,6 +1664,7 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                     <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
                                     <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-amber-400">${row.usd.toFixed(2)} USD</span></p>
                                     {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
+                                    {row.agente && <p className="text-xs text-indigo-300/60 mt-0.5">Agente: {agentNameMap[row.agente] ?? row.agente}</p>}
                                   </div>
                                   <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-3 py-1 rounded-full font-semibold shrink-0">Sin confirmar</span>
                                 </div>
@@ -2160,7 +2165,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                     {w.billetera && <div className="col-span-2"><p className="text-white/30 mb-0.5">{w.metodo_pago || 'Billetera'}</p><p className="text-white/80 font-medium font-mono break-all">{w.billetera}</p></div>}
                                     {w.pais && <div><p className="text-white/30 mb-0.5">País</p><p className="text-white/80 font-medium">{w.pais}</p></div>}
                                     {w.telefono && <div><p className="text-white/30 mb-0.5">Teléfono</p><p className="text-white/80 font-medium">{w.telefono}</p></div>}
-                                    {w.agente && <div><p className="text-white/30 mb-0.5">Agente</p><p className="text-white/80 font-medium">{w.agente}</p></div>}
+                                    {w.agente && <div><p className="text-white/30 mb-0.5">Agente</p><p className="text-white/80 font-medium">{agentNameMap[w.agente] ?? w.agente}</p></div>}
                                   </div>
                                 </div>
                               ))}
