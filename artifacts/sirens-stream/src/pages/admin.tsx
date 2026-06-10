@@ -2403,6 +2403,8 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                               // Apply agent filter
                               const agentFiltered = noCobAgentFilter === 'all'
                                 ? justFiltered
+                                : noCobAgentFilter === '__none__'
+                                ? justFiltered.filter(w => !w.agente_code)
                                 : justFiltered.filter(w => w.agente_code === noCobAgentFilter)
 
                               if (agentFiltered.length === 0) return (
@@ -2428,6 +2430,12 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${noCobAgentFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white'}`}>
                                         Todas ({justFiltered.length})
                                       </button>
+                                      {justFiltered.some(w => !w.agente_code) && (
+                                        <button onClick={() => setNoCobAgentFilter(noCobAgentFilter === '__none__' ? 'all' : '__none__')}
+                                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${noCobAgentFilter === '__none__' ? 'bg-red-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white'}`}>
+                                          Sin agente ({justFiltered.filter(w => !w.agente_code).length})
+                                        </button>
+                                      )}
                                       {agentList.map(ag => {
                                         const waLink = toWa(ag.phone)
                                         return (
@@ -2457,7 +2465,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                         {/* Agent section header */}
                                         <div className="flex items-center gap-2 mb-2 px-1">
                                           <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70">
-                                            Agente: {rep.agente_name || agentCode} — {rows.length} sin cobrar
+                                            {agentCode === 'sin_agente' ? `Sin agente asignado — ${rows.length} sin cobrar` : `Agente: ${rep.agente_name || agentCode} — ${rows.length} sin cobrar`}
                                           </h3>
                                           {agentWa && (
                                             <a href={agentWa} target="_blank" rel="noopener noreferrer"
