@@ -1,5 +1,5 @@
 import { Router } from 'express';
-  import { dispatchPush } from '../lib/push-dispatch';
+  import { dispatchPush, dispatchPushIndividual } from '../lib/push-dispatch';
 
   const router = Router();
 
@@ -180,7 +180,18 @@ import { Router } from 'express';
           });
         }
 
-        return res.json({ ok: true, granted: appNames.length, apps: appNames });
+        // Notify the user that channels were granted (fire-and-forget)
+          if (appNames.length > 0) {
+            setImmediate(() => {
+              dispatchPushIndividual([{
+                userId: user_id,
+                title: '📢 Acceso a canales activado',
+                body: `Tienes acceso a ${appNames.length} canal${appNames.length !== 1 ? 'es' : ''}. ¡Entra a revisar los comunicados!`,
+                url: '/canales',
+              }]).catch(() => {});
+            });
+          }
+          return res.json({ ok: true, granted: appNames.length, apps: appNames });
       } catch (e: unknown) {
         return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
       }
