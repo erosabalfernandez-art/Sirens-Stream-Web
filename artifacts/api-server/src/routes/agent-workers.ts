@@ -112,5 +112,80 @@ import { Router } from 'express';
     }
   });
 
+  // GET /api/orphaned-agents?app_name=Layla
+  // Lists all unique agente codes in worker_entries that have no matching profile
+  router.get('/orphaned-agents', async (req, res) => {
+    const app = ((req.query.app_name as string) ?? 'Layla').trim();
+    try {
+      const [workersRes, agentsRes] = await Promise.all([
+        fetch(sbUrl(`worker_entries?app_name=eq.${encodeURIComponent(app)}&agente=not.is.null&select=agente`), { headers: sbHeaders() as Record<string, string> }),
+        fetch(sbUrl('profiles?is_agent=eq.true&select=agent_code,agent_name'), { headers: sbHeaders() as Record<string, string> }),
+      ]);
+      const workers = await workersRes.json() as { agente: string }[];
+      const agents = await agentsRes.json() as { agent_code: string; agent_name: string }[];
+      const validCodes = new Set(agents.filter(a => a.agent_code).map(a => a.agent_code));
+      const allCodes = [...new Set(workers.map(w => w.agente).filter(Boolean))];
+      const orphaned = allCodes.filter(c => !validCodes.has(c));
+      return res.json({ ok: true, orphaned_codes: orphaned, valid_agents: agents, all_codes: allCodes });
+    } catch (e: unknown) {
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' });
+    }
+  });
+
+  // POST /api/fix-orphaned-workers
+  // Reassigns worker_entries that reference a deleted agent to a new valid agent_code.
+  // Body: { new_agent_code: string, app_name?: string }
+  router.post('/fix-orphaned-workers', async (req, res) => {
+    const { new_agent_code, app_name = 'Layla' } = req.body as { new_agent_code: string; app_name?: string };
+    if (!new_agent_code?.trim()) return res.status(400).json({ error: 'new_agent_code requerido' });
+
+    try {
+      const [workersRes, agentsRes, newAgentRes] = await Promise.all([
+        fetch(sbUrl(`worker_entries?app_name=eq.${encodeURIComponent(app_name)}&agente=not.is.null&select=id,agente`), { headers: sbHeaders() as Record<string, string> }),
+        fetch(sbUrl('profiles?is_agent=eq.true&select=agent_code'), { headers: sbHeaders() as Record<string, string> }),
+        fetch(sbUrl(`profiles?agent_code=eq.${encodeURIComponent(new_agent_code)}&is_agent=eq.true&select=agent_name&limit=1`), { headers: sbHeaders() as Record<string, string> }),
+      ]);
+
+      const workers = await workersRes.json() as { id: string; agente: string }[];
+      const agents = await agentsRes.json() as { agent_code: string }[];
+      const newAgentRows = await newAgentRes.json() as { agent_name: string }[];
+
+      if (!newAgentRows[0]) return res.status(404).json({ error: `Agente con código ${new_agent_code} no encontrado en profiles` });
+
+      const validCodes = new Set(agents.filter(a => a.agent_code).map(a => a.agent_code));
+      const orphanedCodes = [...new Set(workers.filter(w => w.agente && !validCodes.has(w.agente)).map(w => w.agente))];
+
+      if (orphanedCodes.length === 0) {
+        return res.json({ ok: true, updated: 0, message: 'No hay códigos huérfanos — todas las chicas ya tienen un agente válido.' });
+      }
+
+      // Update workers for each orphaned code
+      const results: { code: string; ok: boolean; error?: string }[] = [];
+      for (const code of orphanedCodes) {
+        const patchRes = await fetch(
+          sbUrl(`worker_entries?agente=eq.${encodeURIComponent(code)}&app_name=eq.${encodeURIComponent(app_name)}`),
+          {
+            method: 'PATCH',
+            headers: { ...sbHeaders(), Prefer: 'return=minimal' } as Record<string, string>,
+            body: JSON.stringify({ agente: new_agent_code }),
+          }
+        );
+        results.push({ code, ok: patchRes.ok, error: patchRes.ok ? undefined : await patchRes.text() });
+      }
+
+      req.log.info({ orphanedCodes, new_agent_code, results }, 'fix-orphaned-workers complete');
+      return res.json({
+        ok: true,
+        orphaned_codes: orphanedCodes,
+        new_agent_code,
+        new_agent_name: newAgentRows[0].agent_name,
+        results,
+        updated: results.filter(r => r.ok).length,
+      });
+    } catch (e: unknown) {
+      req.log.error(e, 'fix-orphaned-workers error');
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' });
+    }
+  });
+
   export default router;
-  
