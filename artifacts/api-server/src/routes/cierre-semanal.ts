@@ -90,7 +90,6 @@ import { dispatchPush } from '../lib/push-dispatch';
       //   - BORRA colider_marks          → resetea marcas de pago del colider
       //   - BORRA direct_payment_notifications → resetea notificaciones de pago directo (Layla)
       //   - PONE exchange_rates a 0  → oculta cambio a trabajadoras, colider y agentes hasta nueva publicación
-      //   - BORRA custom_worker_rates    → resetea cambios personalizados (se reasignan cada semana)
       //   - MARCA nomina_history como published=false → desbloquea la página de nómina para nueva semana
       router.post('/cierre-semanal', async (req, res) => {
         const force = !!(req.body as Record<string, unknown>)?.force;
@@ -327,13 +326,6 @@ import { dispatchPush } from '../lib/push-dispatch';
               }).catch(() => Promise.resolve(new Response()))
             );
 
-            // Clear custom per-worker exchange rates — admin re-assigns each week
-            cleanupOps.push(
-              fetch(sbUrl('custom_worker_rates?id=gte.00000000-0000-0000-0000-000000000000'), {
-                method: 'DELETE',
-                headers: { ...sbH(), Prefer: 'return=minimal' },
-              }).catch(() => Promise.resolve(new Response()))
-            );
 
             await Promise.all(cleanupOps);
 
