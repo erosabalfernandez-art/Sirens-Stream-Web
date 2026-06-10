@@ -197,5 +197,36 @@ import { Router } from 'express';
       }
     });
 
+
+    // POST /api/channel-request-submitted — notify all admins about a new pending channel request
+    router.post('/channel-request-submitted', async (req, res) => {
+      try {
+        const { user_id, app_name } = req.body as { user_id: string; app_name: string };
+        if (!user_id || !app_name)
+          return res.status(400).json({ error: 'Missing fields' });
+
+        const h = sbHeaders() as Record<string, string>;
+        const admRes = await fetch(sbUrl('profiles?is_admin=eq.true&select=id'), { headers: h });
+        if (admRes.ok) {
+          const admins = await admRes.json() as Array<{ id: string }>;
+          const adminIds = admins.map(a => a.id);
+          if (adminIds.length) {
+            setImmediate(() => {
+              dispatchPush(
+                adminIds,
+                '📋 Nueva solicitud de canal',
+                `Una trabajadora solicitó acceso al canal de ${app_name}.`,
+                '/admin'
+              ).catch(() => {});
+            });
+          }
+        }
+        return res.json({ ok: true });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+      }
+    });
+
+  
   export default router;
   
