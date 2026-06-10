@@ -30,6 +30,9 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
       'República Dominicana','Uruguay','Venezuela','Otro',
     ]
 
+function cleanNum(s: string | null | undefined): string { return (s ?? '').replace(/[^0-9]/g, '') }
+function cleanFullPhone(code: string | null | undefined, tel: string | null | undefined): string { return (`${code ?? ''}${tel ?? ''}`).replace(/[\s\-\+\(\)]/g, '') }
+
     const DUPE_FIELDS: { key: keyof WorkerRow; label: string }[] = [
       { key: 'id_aplicacion', label: 'ID en la app' },
       { key: 'billetera', label: 'Billetera' },
@@ -1153,10 +1156,10 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                                 {w.nombre_real && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.app_name}</span>}
                                 {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
                                 {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
-                    {w.agente && (() => { const aName = agentNameMap[w.agente] ?? w.agente; const aPhone = agentPhoneMap[w.agente]; return aPhone ? (<a href={`https://wa.me/${aPhone.replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer" className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/20 transition-colors">{aName} 📱</a>) : (<span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{aName}</span>); })()}
+                    {w.agente && (() => { const aName = agentNameMap[w.agente] ?? w.agente; const aPhone = agentPhoneMap[w.agente]; const _cp = cleanNum(aPhone); return aPhone ? (<a href={`https://wa.me/${_cp}`} target="_blank" rel="noreferrer" className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/20 transition-colors">{aName} 📱</a>) : (<span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{aName}</span>); })()}
                                 {w.telefono && (
                                   <a
-                                    href={`https://wa.me/${(`${w.codigo_pais ?? ''}${w.telefono}`).replace(/[\s\-\+\(\)]/g, '')}`}
+                                    href={`https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}`}
                                     target="_blank" rel="noopener noreferrer"
                                     onClick={e => e.stopPropagation()}
                                     className="text-xs bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full hover:bg-emerald-500/25 transition-colors font-medium">
@@ -1178,7 +1181,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                                 ['Nombre real', w.nombre_real],
                                 ['Nombre en app', w.nombre_en_app],
                                 ['ID en la app', w.id_aplicacion],
-                                ['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono, w.telefono ? `https://wa.me/${(`${w.codigo_pais ?? ''}${w.telefono}`).replace(/[\s\-\+\(\)]/g, '')}` : undefined],
+                                ['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono, w.telefono ? `https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}` : undefined],
                                 ['País', w.pais],
                                 ['Método de pago', w.metodo_pago],
                                 ['Billetera', w.billetera],
@@ -1779,7 +1782,7 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                   </div>
                                 )}
                                 {ag.phone && (
-                                  <a href={`https://wa.me/${ag.phone.replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer"
+                                  <a href={`https://wa.me/${cleanNum(ag.phone)}`} target="_blank" rel="noreferrer"
                                     className="mt-1 flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors">
                                     <span>📱</span><span>{ag.phone}</span>
                                   </a>
@@ -1888,7 +1891,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                 <p className="text-white/80 text-sm font-semibold">{c.colider_name || '—'}</p>
                                 <p className="text-white/35 text-xs">{c.email}</p>
                                 {c.telefono && (
-                                  <a href={`https://wa.me/${c.telefono.replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer"
+                                  <a href={`https://wa.me/${cleanNum(c.telefono)}`} target="_blank" rel="noreferrer"
                                     className="mt-1 flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors">
                                     <span>📱</span><span>{c.telefono}</span>
                                   </a>
