@@ -75,7 +75,6 @@ import React, { useState, useEffect } from 'react'
   const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'|'nocobro'>(() => { try { return (localStorage.getItem('ea_agent_tab') as any) || 'comisiones' } catch { return 'comisiones' } })
   const [workerAppFilter, setWorkerAppFilter] = useState(() => { try { return localStorage.getItem('ea_agent_workerapp') ?? '' } catch { return '' } })
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
-    const [validRateSemana, setValidRateSemana] = useState<string>('')
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
       const [agentConfirmed, setAgentConfirmed] = useState<Set<string>>(new Set())
       const [agentConfirming, setAgentConfirming] = useState<string | null>(null)
@@ -149,7 +148,6 @@ import React, { useState, useEffect } from 'react'
           const data = await res.json()
           setPublishedComms(data.commissions ?? [])
           if (data.exchange_rates) setExchangeRates(data.exchange_rates)
-          if (data.valid_rate_semana) setValidRateSemana(data.valid_rate_semana)
         }
       } catch {}
       setPubCommsLoading(false)
@@ -166,15 +164,10 @@ import React, { useState, useEffect } from 'react'
     }
 
     async function fetchExchangeRates() {
-      const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-      const [ratesRes, semanaRes] = await Promise.all([
-        supabase.from('exchange_rates').select('id, rate'),
-        fetch(`${apiBase}/api/site-settings/exchange_rates_valid_semana`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-      ])
+      const ratesRes = await supabase.from('exchange_rates').select('id, rate')
       const r: Record<string,number> = {}
       for (const row of (ratesRes.data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
       setExchangeRates(r)
-      setValidRateSemana((semanaRes as any)?.value ?? '')
     }
 
     async function fetchNoCobro() {
