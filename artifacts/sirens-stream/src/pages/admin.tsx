@@ -2176,67 +2176,136 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                       })}
 
                       {/* Girl detail modal */}
-                      {chicasModal && chicasModal.length > 0 && (
+                      {chicasModal && chicasModal.length > 0 && (() => {
+                        const firstPhone = chicasModal.find(w => w.telefono)
+                        const phoneRaw = firstPhone ? cleanFullPhone(firstPhone.codigo_pais, firstPhone.telefono) : ''
+                        const phoneDisplay = firstPhone ? `${firstPhone.codigo_pais ? firstPhone.codigo_pais + ' ' : ''}${firstPhone.telefono}` : null
+                        const nombreReal = chicasModal[0].nombre_real || '—'
+                        const agente = chicasModal[0].agente
+                        const aName = agente ? (agentNameMap[agente] ?? agente) : null
+                        const aPhone = agente ? agentPhoneMap[agente] : null
+                        return (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
                           onClick={() => setChicasModal(null)}>
                           <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl"
                             onClick={e => e.stopPropagation()}>
+
+                            {/* ── Header ── */}
                             <div className="flex items-center justify-between px-6 py-4 border-b border-purple-500/10 sticky top-0 bg-[#0d0d1e]">
                               <div>
-                                <p className="font-bold text-white text-base">{chicasModal[0].nombre_real || chicasModal[0].nombre_en_app || '—'}</p>
+                                <p className="font-bold text-white text-base">{nombreReal}</p>
                                 <p className="text-white/40 text-xs mt-0.5">{chicasModal[0].profile_email}</p>
                               </div>
                               <button onClick={() => setChicasModal(null)} className="text-white/30 hover:text-white transition-colors ml-4">
                                 <X className="w-5 h-5" />
                               </button>
                             </div>
-                            <div className="p-5 space-y-3">
-                              {chicasModal.map((w, i) => (
-                                <div key={i} className="bg-[#07070f] rounded-xl p-4 border border-purple-500/10">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <div className="w-6 h-6 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 font-bold text-xs shrink-0">{w.app_name[0]}</div>
-                                    <span className="text-blue-300 text-xs font-bold">{w.app_name}</span>
+
+                            <div className="p-5 space-y-4">
+
+                              {/* ── Datos personales (nivel persona) ── */}
+                              <div className="bg-[#07070f] rounded-xl p-4 border border-indigo-500/15 space-y-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/60">Datos personales</p>
+
+                                {/* Nombre real */}
+                                <div>
+                                  <p className="text-white/30 text-xs mb-0.5">Nombre real</p>
+                                  <p className="text-white/90 text-sm font-semibold">{nombreReal}</p>
+                                </div>
+
+                                {/* Teléfono — siempre visible */}
+                                <div>
+                                  <p className="text-white/30 text-xs mb-0.5">Teléfono</p>
+                                  {phoneDisplay ? (
+                                    <a
+                                      href={`https://wa.me/${phoneRaw}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-2 bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-semibold px-3 py-1.5 rounded-xl hover:bg-green-500/25 transition-colors"
+                                    >
+                                      📱 {phoneDisplay} · WhatsApp ↗
+                                    </a>
+                                  ) : (
+                                    <p className="text-white/25 text-sm">— sin teléfono registrado</p>
+                                  )}
+                                </div>
+
+                                {/* Agente */}
+                                {aName && (
+                                  <div>
+                                    <p className="text-white/30 text-xs mb-0.5">Agente</p>
+                                    {aPhone
+                                      ? <a href={`https://wa.me/${cleanNum(aPhone)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-amber-300 text-sm font-medium hover:text-amber-200 transition-colors">{aName} <span>📱</span></a>
+                                      : <p className="text-white/80 text-sm font-medium">{aName}</p>}
                                   </div>
-                                  <div className="grid grid-cols-2 gap-3 text-xs">
-                                    {w.nombre_real && <div><p className="text-white/30 mb-0.5">Nombre real</p><p className="text-white/80 font-medium">{w.nombre_real}</p></div>}
-                                    {w.nombre_en_app && <div><p className="text-white/30 mb-0.5">Nombre en app</p><p className="text-white/80 font-medium">{w.nombre_en_app}</p></div>}
-                                    {w.id_aplicacion && <div><p className="text-white/30 mb-0.5">ID en app</p><p className="text-white/80 font-medium font-mono">{w.id_aplicacion}</p></div>}
-                                    {w.metodo_pago && <div><p className="text-white/30 mb-0.5">Método de pago</p><p className="text-white/80 font-medium">{w.metodo_pago}</p></div>}
-                                    {w.billetera && <div className="col-span-2"><p className="text-white/30 mb-0.5">{w.metodo_pago || 'Billetera'}</p><p className="text-white/80 font-medium font-mono break-all">{w.billetera}</p></div>}
-                                    {w.pais && <div><p className="text-white/30 mb-0.5">País</p><p className="text-white/80 font-medium">{w.pais}</p></div>}
-                                    {w.telefono && (
+                                )}
+
+                                {/* País */}
+                                {chicasModal[0].pais && (
+                                  <div>
+                                    <p className="text-white/30 text-xs mb-0.5">País</p>
+                                    <p className="text-white/80 text-sm font-medium">{chicasModal[0].pais}</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* ── Por app ── */}
+                              <div className="space-y-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400/60 px-1">
+                                  Apps registradas ({chicasModal.length})
+                                </p>
+                                {chicasModal.map((w, i) => (
+                                  <div key={i} className="bg-[#07070f] rounded-xl p-4 border border-blue-500/15">
+                                    {/* App badge */}
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs shrink-0">{w.app_name[0]}</div>
+                                      <span className="text-blue-300 text-xs font-bold tracking-wide">{w.app_name}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                      {/* Nombre en app — siempre */}
+                                      <div>
+                                        <p className="text-white/30 mb-0.5">Nombre en app</p>
+                                        <p className="text-white/85 font-medium">{w.nombre_en_app || '—'}</p>
+                                      </div>
+                                      {/* ID en app — siempre */}
+                                      <div>
+                                        <p className="text-white/30 mb-0.5">ID en app</p>
+                                        <p className="text-white/85 font-semibold font-mono">{w.id_aplicacion || '—'}</p>
+                                      </div>
+                                      {/* Método de pago */}
+                                      {w.metodo_pago && (
+                                        <div>
+                                          <p className="text-white/30 mb-0.5">Método de pago</p>
+                                          <p className="text-white/80 font-medium">{w.metodo_pago}</p>
+                                        </div>
+                                      )}
+                                      {/* Billetera */}
+                                      {w.billetera && (
                                         <div className="col-span-2">
-                                          <p className="text-white/30 mb-0.5">Teléfono</p>
-                                          <a
-                                            href={`https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="flex items-center gap-1.5 text-green-300 font-medium hover:text-green-200 transition-colors text-xs"
-                                          >
-                                            <span>📱</span> {w.codigo_pais} {w.telefono}
+                                          <p className="text-white/30 mb-0.5">{w.metodo_pago || 'Billetera'}</p>
+                                          <p className="text-white/80 font-medium font-mono break-all">{w.billetera}</p>
+                                        </div>
+                                      )}
+                                      {/* Teléfono de esta app si es distinto al principal */}
+                                      {w.telefono && cleanFullPhone(w.codigo_pais, w.telefono) !== phoneRaw && (
+                                        <div className="col-span-2">
+                                          <p className="text-white/30 mb-0.5">Teléfono (esta app)</p>
+                                          <a href={`https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}`} target="_blank" rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-green-300 font-medium hover:text-green-200 transition-colors">
+                                            📱 {w.codigo_pais} {w.telefono} · WhatsApp ↗
                                           </a>
                                         </div>
                                       )}
-                                    {w.agente && (() => {
-                                      const aName = agentNameMap[w.agente] ?? w.agente
-                                      const aPhone = agentPhoneMap[w.agente]
-                                      const cleanPhone = cleanNum(aPhone)
-                                      return (
-                                        <div>
-                                          <p className="text-white/30 mb-0.5">Agente</p>
-                                          {aPhone
-                                            ? <a href={`https://wa.me/${cleanPhone}`} target="_blank" rel="noreferrer" className="text-green-300 font-medium hover:text-green-200 transition-colors flex items-center gap-1">{aName} <span>📱</span></a>
-                                            : <p className="text-white/80 font-medium">{aName}</p>}
-                                        </div>
-                                      )
-                                    })()}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
+
                             </div>
                           </div>
                         </div>
-                      )}
+                        )
+                      })()}
                     </div>
                   )
                 })()}
