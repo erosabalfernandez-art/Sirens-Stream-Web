@@ -413,5 +413,50 @@ import { Router } from 'express';
     });
 
   
+
+      // POST /api/confirm-payment — worker confirms payment received; notifies their colider/agent
+      router.post('/confirm-payment', async (req, res) => {
+        try {
+          const { salary_id, user_id, app_name, semana } = req.body as {
+            salary_id: string; user_id: string; app_name: string; semana: string;
+          };
+          if (!salary_id || !user_id || !app_name || !semana)
+            return res.status(400).json({ error: 'Missing fields' });
+          const h = sbHeaders() as Record<string, string>;
+          const iRes = await fetch(sbUrl('payment_confirmations'), {
+            method: 'POST',
+            headers: { ...h, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ salary_id, user_id, app_name, semana }),
+          });
+          if (!iRes.ok) {
+            const errText = await iRes.text();
+            if (!errText.includes('23505') && !errText.includes('duplicate'))
+              return res.status(iRes.status).json({ error: errText });
+          }
+          setImmediate(async () => {
+            try {
+              const weRes = await fetch(sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(user_id)}&app_name=eq.${encodeURIComponent(app_name)}&select=agente`), { headers: h });
+              if (!weRes.ok) return;
+              const workers = await weRes.json() as Array<{ agente: string | null }>;
+              const agentCode = workers[0]?.agente;
+              if (!agentCode) return;
+              const profRes = await fetch(sbUrl(`profiles?agent_code=eq.${encodeURIComponent(agentCode)}&select=id`), { headers: h });
+              if (!profRes.ok) return;
+              const profs = await profRes.json() as Array<{ id: string }>;
+              if (!profs[0]) return;
+              await dispatchPushIndividual([{
+                userId: profs[0].id,
+                title: '✅ Pago confirmado',
+                body: `Una trabajadora confirmó recibir su pago de la semana ${semana} (${app_name}).`,
+                url: '/agente',
+              }]);
+            } catch { /* fire-and-forget */ }
+          });
+          return res.json({ ok: true });
+        } catch (e: unknown) {
+          return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+        }
+      });
+  
       export default router;
   
