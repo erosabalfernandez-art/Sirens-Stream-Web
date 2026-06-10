@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase } from '@/lib/supabase'
   import { DollarSign, Gem, Calendar, ChevronDown, ChevronUp, Trash2, CheckCircle2, FileDown } from 'lucide-react'
+  import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
   interface PublishedSalary {
     id: string
@@ -250,6 +251,8 @@ import { useState, useEffect } from 'react'
               )}
             </div>
           </div>
+
+          {user && <PushNotificationCard userId={user.id} lang={lang} />}
 
           {fetching ? (
             <div className="space-y-3">
