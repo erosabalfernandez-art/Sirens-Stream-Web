@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
   import { Bell, BellOff, RefreshCw, CheckCircle2 } from 'lucide-react'
-  import { subscribeToPush, checkPushInDB, unsubscribeFromPush } from '@/lib/push'
+  import { subscribeToPush, checkPushEndpointInDB, unsubscribeFromPush } from '@/lib/push'
 
   interface PushNotificationCardProps {
     userId: string
@@ -21,8 +21,9 @@ import { useState, useEffect } from 'react'
         }
         if (Notification.permission === 'denied') { setStatus('denied'); return }
         if (Notification.permission !== 'granted') { setStatus('idle'); return }
-        const inDB = await checkPushInDB(userId)
-        setStatus(inDB ? 'active' : 'stale')
+        // Use endpoint comparison — more reliable than just checking DB existence
+        const synced = await checkPushEndpointInDB(userId)
+        setStatus(synced ? 'active' : 'stale')
       }
       checkStatus()
     }, [userId])
@@ -58,9 +59,9 @@ import { useState, useEffect } from 'react'
               </p>
               <p className="text-white/40 text-xs mt-0.5 truncate">
                 {status === 'active'
-                  ? (pt ? '✅ Suscripción activa' : '✅ Suscripción activa')
+                  ? (pt ? '✓ Suscripción activa' : '✓ Suscripción activa')
                   : status === 'stale'
-                  ? (pt ? '⚠️ Renovar suscripción' : '⚠️ Renovar suscripción')
+                  ? (pt ? '⚠ Renovar suscripción' : '⚠ Renovar suscripción')
                   : status === 'denied'
                   ? (pt ? 'Bloqueadas en el navegador' : 'Bloqueadas en el navegador')
                   : status === 'checking'
@@ -72,7 +73,6 @@ import { useState, useEffect } from 'react'
             </div>
           </div>
 
-          {/* Action buttons */}
           <div className="shrink-0 flex flex-col items-end gap-1.5">
             {status === 'checking' && (
               <div className="flex items-center gap-2 text-white/30 text-xs">
@@ -102,11 +102,11 @@ import { useState, useEffect } from 'react'
             {status === 'stale' && (
               <div className="flex flex-col items-end gap-1.5">
                 <span className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
-                  ⚠️ {pt ? 'Expirada' : 'Expirada'}
+                  ⚠ {pt ? 'Renovar' : 'Renovar'}
                 </span>
                 <button onClick={handleSubscribe}
                   className="flex items-center gap-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
-                  <RefreshCw className="w-3 h-3" /> {pt ? 'Renovar' : 'Renovar'}
+                  <RefreshCw className="w-3 h-3" /> {pt ? 'Reconectar' : 'Reconectar'}
                 </button>
               </div>
             )}
@@ -129,17 +129,6 @@ import { useState, useEffect } from 'react'
             )}
           </div>
         </div>
-
-        {/* Multi-device warning */}
-        {(status === 'active' || status === 'stale' || status === 'requesting') && (
-          <div className="mt-3 pt-3 border-t border-white/5">
-            <p className="text-white/30 text-xs leading-relaxed">
-              {pt
-                ? '📱 Se você ativar em outro dispositivo, o anterior deixará de receber notificações. Apenas o último dispositivo inscrito recebe alertas.'
-                : '📱 Si activas en otro dispositivo, el anterior dejará de recibir notificaciones. Solo el último dispositivo suscrito recibe alertas.'}
-            </p>
-          </div>
-        )}
       </div>
     )
   }
