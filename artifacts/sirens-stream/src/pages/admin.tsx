@@ -2180,11 +2180,12 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                     {w.agente && (() => {
                                       const aName = agentNameMap[w.agente] ?? w.agente
                                       const aPhone = agentPhoneMap[w.agente]
+                                      const cleanPhone = aPhone ? aPhone.replace(/[^0-9]/g, '') : ''
                                       return (
                                         <div>
                                           <p className="text-white/30 mb-0.5">Agente</p>
                                           {aPhone
-                                            ? <a href={`https://wa.me/${aPhone.replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer" className="text-green-300 font-medium hover:text-green-200 transition-colors flex items-center gap-1">{aName} <span>📱</span></a>
+                                            ? <a href={`https://wa.me/${cleanPhone}`} target="_blank" rel="noreferrer" className="text-green-300 font-medium hover:text-green-200 transition-colors flex items-center gap-1">{aName} <span>📱</span></a>
                                             : <p className="text-white/80 font-medium">{aName}</p>}
                                         </div>
                                       )
