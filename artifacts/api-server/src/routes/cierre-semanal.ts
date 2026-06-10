@@ -15,21 +15,48 @@ import { Router } from 'express';
         return `${process.env.SUPABASE_URL}/rest/v1/${path}`;
       }
 
-      // GET /api/no-cobro — returns all entries (no period state)
-      router.get('/no-cobro', async (_req, res) => {
-        try {
-          const r = await fetch(sbUrl('weekly_no_cobro?order=app_name.asc,user_id.asc,created_at.desc&select=*'), { headers: sbH() });
-          if (!r.ok) {
-            const txt = await r.text();
-            if (txt.includes('42P01') || txt.includes('does not exist')) return res.status(404).json({ error: txt });
-            return res.status(r.status).json({ error: txt });
+            // GET /api/no-cobro — returns all entries enriched with agent display names
+        router.get('/no-cobro', async (_req, res) => {
+          try {
+            const r = await fetch(sbUrl('weekly_no_cobro?order=app_name.asc,user_id.asc,created_at.desc&select=*'), { headers: sbH() });
+            if (!r.ok) {
+              const txt = await r.text();
+              if (txt.includes('42P01') || txt.includes('does not exist')) return res.status(404).json({ error: txt });
+              return res.status(r.status).json({ error: txt });
+            }
+            const entries = await r.json() as Array<Record<string, unknown>>;
+
+            // Resolve agente_name for entries where it is null but agente_code is present
+            const missingNameCodes = [...new Set(
+              entries
+                .filter((e) => e.agente_code && !e.agente_name)
+                .map((e) => e.agente_code as string)
+            )];
+            if (missingNameCodes.length > 0) {
+              const codes = missingNameCodes.map(c => '"' + c + '"').join(',');
+              const profRes = await fetch(
+                sbUrl(`profiles?agent_code=in.(${codes})&select=agent_code,agent_name,colider_name`),
+                { headers: sbH() }
+              );
+              if (profRes.ok) {
+                const profs = await profRes.json() as Array<{ agent_code: string; agent_name: string | null; colider_name: string | null }>;
+                const nameMap: Record<string, string> = {};
+                for (const p of profs) {
+                  if (p.agent_code) nameMap[p.agent_code] = p.agent_name ?? p.colider_name ?? p.agent_code;
+                }
+                for (const entry of entries) {
+                  if (entry.agente_code && !entry.agente_name) {
+                    entry.agente_name = nameMap[entry.agente_code as string] ?? entry.agente_code;
+                  }
+                }
+              }
+            }
+
+            return res.json({ ok: true, entries });
+          } catch (e: unknown) {
+            return res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' });
           }
-          const entries = await r.json();
-          return res.json({ ok: true, entries });
-        } catch (e: unknown) {
-          return res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' });
-        }
-      });
+        });
 
       // PATCH /api/toggle-justified — toggle justified flag on a no-cobro entry
       router.patch('/toggle-justified', async (req, res) => {
