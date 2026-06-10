@@ -188,6 +188,11 @@ import { Router } from 'express';
               method: 'DELETE',
               headers: { ...sbH(), Prefer: 'return=minimal' },
             }),
+            // Clear admin paid marks for this week
+            fetch(sbUrl(`admin_paid_marks?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
             // Clear direct payment notifications (Layla weekly resets)
             // Note: direct_payment_notifications uses YYYYMMDD semana format so we delete all
             fetch(sbUrl(`direct_payment_notifications?id=gte.00000000-0000-0000-0000-000000000000`), {
