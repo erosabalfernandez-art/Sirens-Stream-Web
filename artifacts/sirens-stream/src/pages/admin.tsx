@@ -2204,7 +2204,19 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                     {w.metodo_pago && <div><p className="text-white/30 mb-0.5">Método de pago</p><p className="text-white/80 font-medium">{w.metodo_pago}</p></div>}
                                     {w.billetera && <div className="col-span-2"><p className="text-white/30 mb-0.5">{w.metodo_pago || 'Billetera'}</p><p className="text-white/80 font-medium font-mono break-all">{w.billetera}</p></div>}
                                     {w.pais && <div><p className="text-white/30 mb-0.5">País</p><p className="text-white/80 font-medium">{w.pais}</p></div>}
-                                    {w.telefono && <div><p className="text-white/30 mb-0.5">Teléfono</p><p className="text-white/80 font-medium">{w.telefono}</p></div>}
+                                    {w.telefono && (
+                                        <div className="col-span-2">
+                                          <p className="text-white/30 mb-0.5">Teléfono</p>
+                                          <a
+                                            href={`https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-1.5 text-green-300 font-medium hover:text-green-200 transition-colors text-xs"
+                                          >
+                                            <span>📱</span> {w.codigo_pais} {w.telefono}
+                                          </a>
+                                        </div>
+                                      )}
                                     {w.agente && (() => {
                                       const aName = agentNameMap[w.agente] ?? w.agente
                                       const aPhone = agentPhoneMap[w.agente]
