@@ -715,7 +715,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                 const _cierreTs = (() => { try { return parseInt(localStorage.getItem('ea_cierre_done_ts') ?? '0') || 0 } catch { return 0 } })()
                 const _entryTs = _eb?.created_at ? new Date(_eb.created_at).getTime() : 0
                 const _cierreWasDone = _cierreTs > 0 && _entryTs <= _cierreTs
-                if (!_eb || _cierreWasDone || (!_eb.rows_data?.cobradas?.length && !_eb.rows_data?.noCobro?.length && !_eb.rows_data?.sinPerfil?.length)) {
+                if (!_eb || _cierreWasDone || (_eb as any).was_closed || (!_eb.rows_data?.cobradas?.length && !_eb.rows_data?.noCobro?.length && !_eb.rows_data?.sinPerfil?.length)) {
                   try { const _a = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); delete _a[app]; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_a)) } catch {}
                   setCobradas([]); setNoCobro([]); setSinPerfil([])
                   setSemana(''); setFileName(''); setAiSummary(null)
@@ -735,7 +735,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         const r = await fetch(`${apiBase}/api/nomina-state?app=${encodeURIComponent(app)}`)
         if (r.ok) {
           const { entry } = await r.json() as { entry: { app_name: string; semana: string; rows_data: { cobradas: Matched[]; noCobro: NoCobro[]; sinPerfil: NominaRow[] }; file_name?: string; published?: boolean } | null }
-          if (entry?.rows_data && (entry.rows_data.cobradas?.length > 0 || entry.rows_data.noCobro?.length > 0 || entry.rows_data.sinPerfil?.length > 0)) {
+          if (!(entry as any)?.was_closed && entry?.rows_data && (entry.rows_data.cobradas?.length > 0 || entry.rows_data.noCobro?.length > 0 || entry.rows_data.sinPerfil?.length > 0)) {
             setCobradas(entry.rows_data.cobradas)
             setNoCobro(entry.rows_data.noCobro ?? [])
             setSinPerfil(entry.rows_data.sinPerfil ?? [])
@@ -773,7 +773,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     function onCierre() {
       setCobradas([]); setNoCobro([]); setSinPerfil([])
       setSemana(''); setFileName(''); setAiSummary(null)
-      setPublishedOk(false); setStep('upload'); setSectionOpen(false); persistOpen(false)
+      setPublishedOk(false); setAgentPublishOk(false); setStep('upload'); setSectionOpen(false); persistOpen(false)
       try {
         const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
         delete all[app]
