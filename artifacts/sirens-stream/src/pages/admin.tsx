@@ -2405,3 +2405,4 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
         </div>
       )
     }
+}
