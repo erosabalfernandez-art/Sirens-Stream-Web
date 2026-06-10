@@ -198,6 +198,28 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [savingRate, setSavingRate] = useState<string|null>(null)
         const [rateSaved, setRateSaved] = useState<string|null>(null)
         const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
+        const [customRatesByKey, setCustomRatesByKey] = useState<Record<string, {user_id:string;app_name:string;nombre_en_app:string;efectivo_rate:number;transferencia_rate:number}>>({})
+        const [customRateInputs, setCustomRateInputs] = useState<Record<string, {efectivo:string;transferencia:string}>>({})
+        const [customRateApp, setCustomRateApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
+        const [customRateSearch, setCustomRateSearch] = useState('')
+        const [savingCustomRate, setSavingCustomRate] = useState<string|null>(null)
+        const [savedCustomRate, setSavedCustomRate] = useState<string|null>(null)
+        const [deletingCustomRate, setDeletingCustomRate] = useState<string|null>(null)
+        const [customRateSetupNeeded, setCustomRateSetupNeeded] = useState(false)
+        useEffect(() => {
+          if (tab !== 'cambio') return
+          const _ab = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+          fetch(`${_ab}/api/admin/custom-worker-rates`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+              if (!d || d.setup_needed) { setCustomRateSetupNeeded(true); return }
+              setCustomRateSetupNeeded(false)
+              const map: Record<string, any> = {}
+              for (const cr of (d.rates ?? [])) map[`${cr.user_id}__${cr.app_name}`] = cr
+              setCustomRatesByKey(map)
+            })
+            .catch(() => {})
+        }, [tab])
         const sqlDirectPayments = [
             "CREATE TABLE IF NOT EXISTS direct_payment_notifications (",
             "  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,",
@@ -1043,6 +1065,41 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               if (coliderIds.length > 0) sendPushViaApi(coliderIds, `💱 Cambio ${label} actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/colider', false)
             }
             setSavingRate(null); setRateSaved(id); setTimeout(() => setRateSaved(null), 3000)
+          }
+
+          async function saveCustomRate(worker: WorkerRow, tipo: 'efectivo'|'transferencia') {
+            const key = `${worker.user_id}__${worker.app_name}`
+            const inputs = customRateInputs[key] ?? { efectivo: '', transferencia: '' }
+            const rate = parseFloat(tipo === 'efectivo' ? (inputs.efectivo||'0') : (inputs.transferencia||'0'))
+            if (isNaN(rate) || rate < 0) return
+            const existing = customRatesByKey[key]
+            const ef = tipo === 'efectivo' ? rate : (existing?.efectivo_rate ?? 0)
+            const tr = tipo === 'transferencia' ? rate : (existing?.transferencia_rate ?? 0)
+            const saveKey = `${key}__${tipo}`
+            setSavingCustomRate(saveKey)
+            try {
+              const _ab = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+              const r = await fetch(`${_ab}/api/admin/custom-worker-rates`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: worker.user_id, app_name: worker.app_name, nombre_en_app: worker.nombre_en_app, efectivo_rate: ef, transferencia_rate: tr })
+              })
+              if (r.ok) {
+                setCustomRatesByKey(prev => ({ ...prev, [key]: { user_id: worker.user_id, app_name: worker.app_name, nombre_en_app: worker.nombre_en_app ?? '', efectivo_rate: ef, transferencia_rate: tr } }))
+                setSavedCustomRate(saveKey); setTimeout(() => setSavedCustomRate(null), 3000)
+              }
+            } catch {}
+            setSavingCustomRate(null)
+          }
+          async function deleteCustomRate(worker: WorkerRow) {
+            const key = `${worker.user_id}__${worker.app_name}`
+            setDeletingCustomRate(key)
+            try {
+              const _ab = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+              await fetch(`${_ab}/api/admin/custom-worker-rates?user_id=${encodeURIComponent(worker.user_id)}&app_name=${encodeURIComponent(worker.app_name)}`, { method: 'DELETE' })
+              setCustomRatesByKey(prev => { const n = {...prev}; delete n[key]; return n })
+              setCustomRateInputs(prev => { const n = {...prev}; delete n[key]; return n })
+            } catch {}
+            setDeletingCustomRate(null)
           }
 
           if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">Cargando...</div></div>
@@ -2024,6 +2081,95 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* CAMBIO PERSONALIZADO */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-400/70 mb-4 flex items-center gap-2">
+                      <span className="text-base">🎯</span> Cambio Personalizado por Chica
+                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">— sobreescribe el general</span>
+                    </h3>
+                    {customRateSetupNeeded ? (
+                      <div className="bg-[#0d0d1e] border border-yellow-500/20 rounded-2xl p-5">
+                        <p className="text-yellow-400 text-xs font-bold mb-2">⚠️ Tabla no creada aún — ejecuta esto en Supabase SQL Editor:</p>
+                        <pre className="text-white/50 text-xs bg-black/30 rounded-xl p-3 overflow-x-auto select-all">{'CREATE TABLE IF NOT EXISTS custom_worker_rates (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  user_id text NOT NULL,\n  app_name text NOT NULL,\n  nombre_en_app text,\n  efectivo_rate numeric(10,2) NOT NULL DEFAULT 0,\n  transferencia_rate numeric(10,2) NOT NULL DEFAULT 0,\n  updated_at timestamptz DEFAULT now(),\n  UNIQUE(user_id, app_name)\n);'}</pre>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex gap-2 mb-4">
+                          {(['Waha', 'Layla', 'Howdy'] as const).map(app => (
+                            <button key={app} onClick={() => setCustomRateApp(app)}
+                              className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${customRateApp === app ? 'bg-emerald-600 text-white' : 'bg-white/5 text-white/40 hover:text-white/70'}`}>
+                              {app}
+                            </button>
+                          ))}
+                        </div>
+                        <input type="text" placeholder="Buscar por nombre en app..."
+                          value={customRateSearch} onChange={e => setCustomRateSearch(e.target.value)}
+                          className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50 mb-4"
+                        />
+                        <div className="space-y-3">
+                          {workers.filter(w => w.app_name === customRateApp && (customRateSearch === '' || (w.nombre_en_app ?? '').toLowerCase().includes(customRateSearch.toLowerCase()))).map(w => {
+                            const key = `${w.user_id}__${w.app_name}`
+                            const existing = customRatesByKey[key]
+                            const inputs = customRateInputs[key] ?? { efectivo: '', transferencia: '' }
+                            return (
+                              <div key={key} className="bg-[#0d0d1e] border border-emerald-500/10 rounded-2xl p-4">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div>
+                                    <p className="text-white text-sm font-semibold">{w.nombre_en_app}</p>
+                                    {existing && <p className="text-emerald-400 text-xs mt-0.5">🎯 Activo · ef. {existing.efectivo_rate.toLocaleString('es-ES')} · transf. {existing.transferencia_rate.toLocaleString('es-ES')} CUP/USD</p>}
+                                  </div>
+                                  {existing && (
+                                    <button onClick={() => deleteCustomRate(w)} disabled={deletingCustomRate === key}
+                                      className="text-red-400/60 hover:text-red-400 text-xs px-2 py-1 rounded-lg transition-all disabled:opacity-50">
+                                      {deletingCustomRate === key ? '...' : '✕ Quitar'}
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1.5">Efectivo Cuba</p>
+                                    <div className="flex gap-2">
+                                      <input type="number" min="0" step="any" placeholder={existing?.efectivo_rate ? String(existing.efectivo_rate) : 'Ej: 400'}
+                                        value={inputs.efectivo}
+                                        onChange={e => setCustomRateInputs(prev => ({ ...prev, [key]: { ...(prev[key] ?? { efectivo: '', transferencia: '' }), efectivo: e.target.value } }))}
+                                        className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-amber-500/50 min-w-0"
+                                      />
+                                      <button onClick={() => saveCustomRate(w, 'efectivo')} disabled={savingCustomRate === `${key}__efectivo`}
+                                        className={`flex items-center gap-1 ${savedCustomRate === `${key}__efectivo` ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
+                                        {savingCustomRate === `${key}__efectivo` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                                        {savedCustomRate === `${key}__efectivo` ? '✓' : (savingCustomRate === `${key}__efectivo` ? '' : 'Pub.')}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1.5">Transferencia Cuba</p>
+                                    <div className="flex gap-2">
+                                      <input type="number" min="0" step="any" placeholder={existing?.transferencia_rate ? String(existing.transferencia_rate) : 'Ej: 390'}
+                                        value={inputs.transferencia}
+                                        onChange={e => setCustomRateInputs(prev => ({ ...prev, [key]: { ...(prev[key] ?? { efectivo: '', transferencia: '' }), transferencia: e.target.value } }))}
+                                        className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-blue-500/50 min-w-0"
+                                      />
+                                      <button onClick={() => saveCustomRate(w, 'transferencia')} disabled={savingCustomRate === `${key}__transferencia`}
+                                        className={`flex items-center gap-1 ${savedCustomRate === `${key}__transferencia` ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
+                                        {savingCustomRate === `${key}__transferencia` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                                        {savedCustomRate === `${key}__transferencia` ? '✓' : (savingCustomRate === `${key}__transferencia` ? '' : 'Pub.')}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                          {workers.filter(w => w.app_name === customRateApp && (customRateSearch === '' || (w.nombre_en_app ?? '').toLowerCase().includes(customRateSearch.toLowerCase()))).length === 0 && (
+                            <p className="text-white/20 text-sm text-center py-4">
+                              {customRateSearch ? 'No se encontraron chicas con ese nombre.' : `No hay chicas registradas en ${customRateApp}.`}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                 </div>
