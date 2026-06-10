@@ -90,21 +90,23 @@ import { Router } from 'express'
         } catch {}
       }
 
-      const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : false, apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
+      const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : lockedAgents.has(`__name__:${a.agent_name}`), apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
       res.json({ semana, agents, colider_published: coliderLog.length > 0, colider_published_at: (coliderLog[0] as any)?.published_at ?? null })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
   router.post('/admin/publish-agent-commission', async (req, res) => {
-    const { semana, agent_user_id, agent_name, commissions } = req.body as { semana: string; agent_user_id: string; agent_name: string; commissions: { worker_uid: string | null; worker_name: string; worker_real_name?: string | null; app_name: string; commission_usd: number }[] }
-    if (!semana || !agent_user_id || !agent_name || !Array.isArray(commissions)) { res.status(400).json({ error: 'Faltan campos requeridos' }); return }
+    const { semana, agent_user_id: rawAgentId, agent_name, commissions } = req.body as { semana: string; agent_user_id: string | null; agent_name: string; commissions: { worker_uid: string | null; worker_name: string; worker_real_name?: string | null; app_name: string; commission_usd: number }[] }
+    if (!semana || !agent_name || !Array.isArray(commissions)) { res.status(400).json({ error: 'Faltan campos requeridos' }); return }
+    // Use synthetic key for agents without a registered profile so PK constraints still work
+    const effectiveId = rawAgentId || `__name__:${agent_name}`
     try {
-      const existing = await sbGet(`agent_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&agent_user_id=eq.${encodeURIComponent(agent_user_id)}&limit=1`)
+      const existing = await sbGet(`agent_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&agent_user_id=eq.${encodeURIComponent(effectiveId)}&limit=1`)
       if (existing.length > 0) { res.status(409).json({ error: 'Ya publicado esta semana. Cierra la semana para republicar.' }); return }
-      const rows = commissions.map(c => ({ semana, agent_user_id, agent_name, worker_uid: c.worker_uid ?? null, worker_name: c.worker_name, worker_real_name: c.worker_real_name ?? null, app_name: c.app_name, commission_usd: Number(c.commission_usd) || 0, published_at: new Date().toISOString() }))
+      const rows = commissions.map(c => ({ semana, agent_user_id: effectiveId, agent_name, worker_uid: c.worker_uid ?? null, worker_name: c.worker_name, worker_real_name: c.worker_real_name ?? null, app_name: c.app_name, commission_usd: Number(c.commission_usd) || 0, published_at: new Date().toISOString() }))
       await sbPost('published_agent_commissions?on_conflict=semana,agent_user_id,app_name,worker_name', rows, 'resolution=merge-duplicates,return=minimal')
       const total = commissions.reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
-      await sbPost('agent_commission_publish_log?on_conflict=semana,agent_user_id', { semana, agent_user_id, agent_name, total_usd: total, published_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
-      if (ensureVapid()) setImmediate(() => { dispatchPush([agent_user_id], '💰 Tu comisión está disponible', `Semana ${semana} — $${total.toFixed(2)} USD. Entra a verla.`, '/agente').catch(() => {}) })
+      await sbPost('agent_commission_publish_log?on_conflict=semana,agent_user_id', { semana, agent_user_id: effectiveId, agent_name, total_usd: total, published_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
+      if (rawAgentId && ensureVapid()) setImmediate(() => { dispatchPush([rawAgentId], '💰 Tu comisión está disponible', `Semana ${semana} — $${total.toFixed(2)} USD. Entra a verla.`, '/agente').catch(() => {}) })
       res.json({ ok: true, total_usd: total })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
