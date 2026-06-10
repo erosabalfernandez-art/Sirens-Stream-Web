@@ -315,7 +315,7 @@ import { Router } from 'express';
           let agentProfiles: any[] = [];
           if (agentCodes.length) {
             const aRes = await fetch(
-              sbUrl(`profiles?agent_code=in.(${agentCodes.join(',')})&select=agent_code,agent_name,telefono,phone`),
+              sbUrl(`profiles?agent_code=in.(${agentCodes.join(',')})&select=agent_code,agent_name,colider_name,telefono,phone`),
               { headers: h }
             );
             if (aRes.ok) agentProfiles = await aRes.json();
@@ -337,7 +337,7 @@ import { Router } from 'express';
               telefono_worker:     w.telefono ?? null,
               codigo_pais_worker:  w.codigo_pais ?? null,
               agente_code:         w.agente ?? null,
-              agente_name:         ag.agent_name ?? null,
+              agente_name:         ag.agent_name ?? ag.colider_name ?? null,
               agente_phone:        ag.telefono ?? ag.phone ?? null,
             };
           });
