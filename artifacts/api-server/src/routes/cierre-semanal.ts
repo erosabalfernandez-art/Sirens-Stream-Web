@@ -249,6 +249,7 @@ import { Router } from 'express';
       ['colider_commission_publish_log','semana=like.*'],
       ['weekly_no_cobro',               'id=gte.00000000-0000-0000-0000-000000000000'],
       ['colider_marks',                 'id=gte.00000000-0000-0000-0000-000000000000'],
+        ['admin_paid_marks',               'id=gte.00000000-0000-0000-0000-000000000000'],
       ['colider_week_status',           'id=gte.00000000-0000-0000-0000-000000000000'],
       ['payment_confirmations',         'id=gte.00000000-0000-0000-0000-000000000000'],
       ['agent_payment_confirmations',   'id=gte.00000000-0000-0000-0000-000000000000'],
