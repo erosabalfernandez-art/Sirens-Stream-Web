@@ -27,6 +27,7 @@ function isoWeekLabel(date = new Date()): string {
     diamantes: number
     semana: string
     comision: number
+    agente: string | null
     extras: Record<string, string | number>
   }
 
@@ -847,7 +848,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   async function publishAgentCommissions() {
       const agentMap: Record<string, { uid: string; nombre: string; salary_usd: number; commission_usd: number }[]> = {}
       for (const { worker: w, nomina: nm } of cobradas) {
-        const agente = (w as any).agente as string | null
+        const agente = nm.agente ?? ((w as any).agente as string | null)
         if (!agente) continue
         if (!agentMap[agente]) agentMap[agente] = []
         agentMap[agente].push({ uid: nm.uid, nombre: nm.apodo, salary_usd: nm.usd, commission_usd: nm.comision })
@@ -926,6 +927,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         ['Diamantes Totales',   ['total monedas', 'total diamante', 'diamante', 'diamond', 'gem', 'piedra', 'coins', 'moneda', 'total dia']],
         ['Nombre de la agencia',['agency', 'agencia', 'manager', 'nombre agencia']],
         ['Comisión',            ['agc salary', '10 porciento', '12% del salario', 'commission', 'comisión', 'comision', '10%', '12%']],
+        ['Agente',              ['info de pago', 'agente', 'agent', 'host agent', 'nombre agente', 'canal de pago']],
       ]
 
       function smartCOL(canonical: string): number {
@@ -957,6 +959,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       let diaCol    = smartCOL('Diamantes Totales')
       let agenciaCol  = smartCOL('Nombre de la agencia')
       let comisionCol = smartCOL('Comisión')
+      let agenteCol   = smartCOL('Agente')
 
       if (uidCol === -1 || usdCol === -1) {
         setAiColDetect('🤖 Columnas no reconocidas — usando IA para identificarlas…')
@@ -987,7 +990,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       }
 
       const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
-      const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol, comisionCol].filter(i => i !== -1))
+      const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol, comisionCol, agenteCol].filter(i => i !== -1))
 
       const nominaRows: NominaRow[] = dataRows.map(r => {
         const extras: Record<string, string | number> = {}
@@ -1000,6 +1003,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
           comision: app === 'Waha' ? usd * 0.10 : (parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0),
           semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : isoWeekLabel()),
+          agente: agenteCol !== -1 ? (String(r[agenteCol] ?? '').trim() || null) : null,
           extras,
         }
       }).filter(r => r.uid !== '')
