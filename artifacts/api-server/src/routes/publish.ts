@@ -348,20 +348,49 @@ import { Router } from 'express';
         }
       });
 
-      // GET /api/agent/no-cobro — agents & coliders: all no-cobro entries
-    router.get('/agent/no-cobro', async (req, res) => {
-      try {
-        const r = await fetch(
-          sbUrl('weekly_no_cobro?select=*&order=semana.desc,created_at.desc'),
-          { headers: sbHeaders() as Record<string, string> }
-        );
-        if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
-        const entries = await r.json();
-        return res.json({ ok: true, entries });
-      } catch (e: unknown) {
-        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
-      }
-    });
+        // GET /api/agent/no-cobro — agents & coliders: filtered to their girls + enriched
+      router.get('/agent/no-cobro', async (req, res) => {
+        try {
+          const agentId = req.query.agent_id as string | undefined;
+          if (!agentId) return res.json({ ok: true, entries: [] });
+
+          const h = sbHeaders() as Record<string, string>;
+
+          // 1. Get agent_code from profile
+          const profR = await fetch(sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=agent_code,colider_code`), { headers: h });
+          if (!profR.ok) return res.status(500).json({ error: 'profile lookup failed' });
+          const profs = await profR.json() as Array<{ agent_code: string | null; colider_code: string | null }>;
+          const prof = profs[0];
+          const agentCode = prof?.agent_code ?? prof?.colider_code ?? null;
+          if (!agentCode) return res.json({ ok: true, entries: [] });
+
+          // 2. Get worker user_ids that belong to this agent
+          const weR = await fetch(sbUrl(`worker_entries?agente=eq.${encodeURIComponent(agentCode)}&select=user_id,id_aplicacion,telefono,codigo_pais`), { headers: h });
+          if (!weR.ok) return res.json({ ok: true, entries: [] });
+          const workers = await weR.json() as Array<{ user_id: string; id_aplicacion: string | null; telefono: string | null; codigo_pais: string | null }>;
+          if (!workers.length) return res.json({ ok: true, entries: [] });
+
+          const workerMap: Record<string, { id_aplicacion: string | null; telefono: string | null; codigo_pais: string | null }> = {};
+          for (const w of workers) workerMap[w.user_id] = { id_aplicacion: w.id_aplicacion, telefono: w.telefono, codigo_pais: w.codigo_pais };
+
+          // 3. Fetch no-cobro for those user_ids (OR filter)
+          const uids = workers.map(w => w.user_id);
+          const orFilter = uids.map(id => `user_id.eq.${id}`).join(',');
+          const ncR = await fetch(sbUrl(`weekly_no_cobro?or=(${encodeURIComponent(orFilter)})&order=semana.desc,created_at.desc`), { headers: h });
+          if (!ncR.ok) { const e = await ncR.text(); return res.status(ncR.status).json({ error: e }); }
+          const rawEntries = await ncR.json() as Array<Record<string, unknown>>;
+
+          // 4. Enrich with worker phone + id_aplicacion
+          const entries = rawEntries.map(e => {
+            const wk = workerMap[e.user_id as string] ?? {};
+            return { ...e, id_aplicacion: wk.id_aplicacion ?? null, telefono_worker: wk.telefono ?? null, codigo_pais_worker: wk.codigo_pais ?? null };
+          });
+
+          return res.json({ ok: true, entries });
+        } catch (e: unknown) {
+          return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+        }
+      });
 
     // PATCH /api/toggle-justified — toggle justified flag
     router.patch('/toggle-justified', async (req, res) => {
