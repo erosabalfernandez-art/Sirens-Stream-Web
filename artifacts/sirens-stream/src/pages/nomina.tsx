@@ -626,13 +626,21 @@ const APP_COLORS = {
 function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' | 'Layla' | 'Howdy'; reloadKey: number; exchangeRates?: Record<string,number> }) {
   const color = APP_COLORS[app]
 
-  // Accordion open state (auto-open if has saved data)
+  // Accordion open state — default closed, persists user's explicit choice
   const [sectionOpen, setSectionOpen] = useState<boolean>(() => {
     try {
-      const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-      return !!(all[app]?.cobradas?.length > 0)
+      const prefs = JSON.parse(localStorage.getItem('ea_nomina_open_prefs') || '{}')
+      return prefs[app] === true
     } catch { return false }
   })
+
+  function persistOpen(val: boolean) {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('ea_nomina_open_prefs') || '{}')
+      prefs[app] = val
+      localStorage.setItem('ea_nomina_open_prefs', JSON.stringify(prefs))
+    } catch {}
+  }
 
   // Per-app state
   const [step, setStep] = useState<'upload' | 'results'>('upload')
@@ -686,7 +694,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           if (s.aiSummary) setAiSummary(s.aiSummary)
           if (s.publishedOk) setPublishedOk(true)
           setStep('results')
-          setSectionOpen(true)
+          setSectionOpen(true); persistOpen(true)
           // Background check: if cierre was done, clear stale data
           void (async () => {
             try {
@@ -726,7 +734,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
             setFileName(entry.file_name ?? '')
             if (entry.published) setPublishedOk(true)
             setStep('results')
-            setSectionOpen(true)
+            setSectionOpen(true); persistOpen(true)
             try {
               const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
               all[app] = { cobradas: entry.rows_data.cobradas, noCobro: entry.rows_data.noCobro ?? [], sinPerfil: entry.rows_data.sinPerfil ?? [], semana: entry.semana, aiSummary: null, fileName: entry.file_name ?? '', publishedOk: entry.published ?? false }
@@ -756,7 +764,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     function onCierre() {
       setCobradas([]); setNoCobro([]); setSinPerfil([])
       setSemana(''); setFileName(''); setAiSummary(null)
-      setPublishedOk(false); setStep('upload'); setSectionOpen(false)
+      setPublishedOk(false); setStep('upload'); setSectionOpen(false); persistOpen(false)
       try {
         const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
         delete all[app]
@@ -1161,7 +1169,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     <div className={`border rounded-2xl overflow-hidden ${sectionOpen ? color.border : 'border-purple-500/10'} bg-[#0a0a18] transition-all`}>
       {/* ── Accordion header ── */}
       <button
-        onClick={() => setSectionOpen(o => !o)}
+        onClick={() => { const next = !sectionOpen; setSectionOpen(next); persistOpen(next) }}
         className={`w-full flex items-center justify-between px-5 py-4 transition-all ${sectionOpen ? color.accent : 'hover:bg-white/3'}`}>
         <div className="flex items-center gap-3">
           <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${step === 'results' && cobradas.length > 0 ? 'bg-green-400' : 'bg-white/15'}`} />
