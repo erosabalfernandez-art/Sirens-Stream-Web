@@ -175,6 +175,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           const [laylaDirectNeedSetup, setLaylaDirectNeedSetup] = useState(false)
           const [noCobroEntries, setNoCobroEntries] = useState<any[]>([])
           const [noCobFilter, setNoCobFilter] = useState<'all'|'justified'|'unjustified'>('all')
+            const [noCobAgentFilter, setNoCobAgentFilter] = useState<string>('all')
           const [noCobroLoading, setNoCobroLoading] = useState(false)
           const [togglingJustified, setTogglingJustified] = useState<string|null>(null)
           const [togglingAdminPaid, setTogglingAdminPaid] = useState<string | null>(null)
@@ -2311,13 +2312,12 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                 })()}
 
                   {tab === 'nocobro' && (
-                    <div className="space-y-6 max-w-3xl">
-
-                      {noCobroSetupNeeded ? (
-                        <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-6">
-                          <p className="text-amber-300 text-sm font-bold mb-2">⚠️ Falta crear las tablas en Supabase</p>
-                          <p className="text-white/50 text-xs mb-3">Ejecuta este SQL en el Editor SQL de Supabase:</p>
-                          <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all text-left">{`CREATE TABLE IF NOT EXISTS weekly_no_cobro (
+                      <div className="space-y-6 max-w-3xl">
+                        {noCobroSetupNeeded ? (
+                          <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-6">
+                            <p className="text-amber-300 text-sm font-bold mb-2">⚠️ Falta crear las tablas en Supabase</p>
+                            <p className="text-white/50 text-xs mb-3">Ejecuta este SQL en el Editor SQL de Supabase:</p>
+                            <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all text-left">{`CREATE TABLE IF NOT EXISTS weekly_no_cobro (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
     app_name text NOT NULL,
@@ -2337,91 +2337,196 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
   CREATE POLICY "workers_insert_own_nocobro" ON weekly_no_cobro
     FOR INSERT WITH CHECK (auth.uid() = user_id);
   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone text;`}</pre>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Filter + refresh */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <div className="flex items-center bg-[#0d0d1e] border border-white/8 rounded-xl p-1 gap-1">
-                              {(['all','unjustified','justified'] as const).map(f => (
-                                <button key={f} onClick={() => setNoCobFilter(f)}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${noCobFilter === f ? 'bg-purple-600 text-white' : 'text-white/40 hover:text-white'}`}>
-                                  {f === 'all' ? 'Todas' : f === 'justified' ? 'Justificadas' : 'No justificadas'}
-                                </button>
-                              ))}
-                            </div>
-                            <button onClick={fetchNoCobro} disabled={noCobroLoading}
-                              className="ml-auto px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
-                              {noCobroLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
-                            </button>
                           </div>
-                          {/* No-cobro list */}
-                          {noCobroLoading ? (
-                            <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
-                          ) : noCobroEntries.length === 0 ? (
-                            <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-12 text-center">
-                              <p className="text-white/40 text-sm">No hay trabajadoras en la lista de no cobraron.</p>
-                              <p className="text-white/25 text-xs mt-1">Aparecerán aquí automáticamente al subir nóminas (Waha/Howdy/Layla).</p>
+                        ) : (
+                          <>
+                            {/* Row 1: Justified filter + refresh */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center bg-[#0d0d1e] border border-white/8 rounded-xl p-1 gap-1">
+                                {(['all','unjustified','justified'] as const).map(f => (
+                                  <button key={f} onClick={() => setNoCobFilter(f)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${noCobFilter === f ? 'bg-purple-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                                    {f === 'all' ? 'Todas' : f === 'justified' ? 'Justificadas' : 'No justificadas'}
+                                  </button>
+                                ))}
+                              </div>
+                              <button onClick={fetchNoCobro} disabled={noCobroLoading}
+                                className="ml-auto px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
+                                {noCobroLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
+                              </button>
                             </div>
-                          ) : (() => {
-                            // Group entries by user_id+app_name, count weeks, apply filter
-                            const grouped: Record<string, any[]> = {}
-                            for (const e of noCobroEntries) {
-                              const k = `${e.user_id}_${e.app_name}`
-                              if (!grouped[k]) grouped[k] = []
-                              grouped[k].push(e)
-                            }
-                            const workerGroups = Object.values(grouped).map(group => {
-                              const latest = group.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-                              return { ...latest, weeks_count: group.length, is_justified: !!latest.justified }
-                            })
-                            const filtered = workerGroups.filter(w => {
-                              if (noCobFilter === 'justified') return w.is_justified
-                              if (noCobFilter === 'unjustified') return !w.is_justified
-                              return true
-                            })
-                            if (filtered.length === 0) return <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-8 text-center"><p className="text-white/40 text-sm">No hay resultados para este filtro.</p></div>
-                            return (
-                              <div className="space-y-4">
-                                {(['Layla', 'Waha', 'Howdy'] as const).map(appName => {
-                                  const rows = filtered.filter((r: any) => r.app_name === appName)
-                                  if (rows.length === 0) return null
-                                  return (
-                                    <div key={appName}>
-                                      <h3 className="text-xs font-bold uppercase tracking-widest text-red-400/70 mb-2 px-1">{appName} — {rows.length} sin cobrar</h3>
-                                      <div className="space-y-2">
-                                        {rows.map((row: any) => (
-                                          <div key={row.id} className={`bg-[#0d0d1e] border rounded-2xl px-5 py-3 flex items-center gap-4 ${row.is_justified ? 'border-amber-500/20' : 'border-red-500/15'}`}>
-                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{background: row.is_justified ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)'}}>
-                                              <span>{row.is_justified ? '⏸' : '✕'}</span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-bold text-white">{row.nombre_en_app || row.nombre_real || '—'}</p>
-                                              <p className="text-xs text-white/35 truncate">{row.email || '—'}</p>
-                                              <p className="text-xs mt-0.5" style={{color: row.weeks_count >= 3 ? '#f87171' : row.weeks_count === 2 ? '#fb923c' : '#9ca3af'}}>
-                                                {row.weeks_count} semana{row.weeks_count > 1 ? 's' : ''} sin cobrar
-                                              </p>
-                                            </div>
-                                            <div className="flex items-center gap-3 shrink-0">
-                                              <label className="flex items-center gap-1.5 cursor-pointer" title="Marcar como justificada">
+
+                            {/* No-cobro list */}
+                            {noCobroLoading ? (
+                              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
+                            ) : noCobroEntries.length === 0 ? (
+                              <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-12 text-center">
+                                <p className="text-white/40 text-sm">No hay trabajadoras en la lista de no cobraron.</p>
+                                <p className="text-white/25 text-xs mt-1">Aparecerán aquí automáticamente al subir nóminas.</p>
+                              </div>
+                            ) : (() => {
+                              // Helpers
+                              const toWa = (raw: string | null | undefined) => {
+                                if (!raw) return null
+                                const d = raw.replace(/\D/g, '')
+                                return d.length >= 7 ? `https://wa.me/${d}` : null
+                              }
+
+                              // Group by user_id+app_name → pick latest, count weeks
+                              const grouped: Record<string, any[]> = {}
+                              for (const e of noCobroEntries) {
+                                const k = `${e.user_id}_${e.app_name}`
+                                if (!grouped[k]) grouped[k] = []
+                                grouped[k].push(e)
+                              }
+                              const workerGroups = Object.values(grouped).map(group => {
+                                const latest = [...group].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                                return { ...latest, weeks_count: group.length, is_justified: !!latest.justified }
+                              })
+
+                              // Apply justified filter
+                              const justFiltered = workerGroups.filter(w => {
+                                if (noCobFilter === 'justified') return w.is_justified
+                                if (noCobFilter === 'unjustified') return !w.is_justified
+                                return true
+                              })
+
+                              // Build unique agent list
+                              const agentMap: Record<string, { code: string; name: string; phone: string | null; count: number }> = {}
+                              for (const w of justFiltered) {
+                                if (!w.agente_code) continue
+                                if (!agentMap[w.agente_code]) agentMap[w.agente_code] = { code: w.agente_code, name: w.agente_name || w.agente_code, phone: w.agente_phone, count: 0 }
+                                agentMap[w.agente_code].count++
+                              }
+                              const agentList = Object.values(agentMap)
+
+                              // Apply agent filter
+                              const agentFiltered = noCobAgentFilter === 'all'
+                                ? justFiltered
+                                : justFiltered.filter(w => w.agente_code === noCobAgentFilter)
+
+                              if (agentFiltered.length === 0) return (
+                                <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-8 text-center">
+                                  <p className="text-white/40 text-sm">No hay resultados para este filtro.</p>
+                                </div>
+                              )
+
+                              // Group displayed rows by agent
+                              const byAgent: Record<string, any[]> = {}
+                              for (const w of agentFiltered) {
+                                const k = w.agente_code || 'sin_agente'
+                                if (!byAgent[k]) byAgent[k] = []
+                                byAgent[k].push(w)
+                              }
+
+                              return (
+                                <div className="space-y-6">
+                                  {/* Agent filter bar */}
+                                  {agentList.length > 0 && (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <button onClick={() => setNoCobAgentFilter('all')}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${noCobAgentFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white'}`}>
+                                        Todas ({justFiltered.length})
+                                      </button>
+                                      {agentList.map(ag => {
+                                        const waLink = toWa(ag.phone)
+                                        return (
+                                          <div key={ag.code} className="flex items-center gap-1">
+                                            <button onClick={() => setNoCobAgentFilter(ag.code === noCobAgentFilter ? 'all' : ag.code)}
+                                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${noCobAgentFilter === ag.code ? 'bg-purple-600 text-white' : 'bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white'}`}>
+                                              {ag.name} ({ag.count})
+                                            </button>
+                                            {waLink && (
+                                              <a href={waLink} target="_blank" rel="noopener noreferrer"
+                                                className="text-[10px] bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-1 rounded-lg hover:bg-green-500/25 transition-colors font-semibold">
+                                                WA ↗
+                                              </a>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+
+                                  {/* Cards grouped by agent */}
+                                  {Object.entries(byAgent).map(([agentCode, rows]) => {
+                                    const rep = rows[0]
+                                    const agentWa = toWa(rep.agente_phone)
+                                    return (
+                                      <div key={agentCode}>
+                                        {/* Agent section header */}
+                                        <div className="flex items-center gap-2 mb-2 px-1">
+                                          <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70">
+                                            Agente: {rep.agente_name || agentCode} — {rows.length} sin cobrar
+                                          </h3>
+                                          {agentWa && (
+                                            <a href={agentWa} target="_blank" rel="noopener noreferrer"
+                                              className="text-[10px] bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/25 font-semibold">
+                                              WhatsApp ↗
+                                            </a>
+                                          )}
+                                        </div>
+
+                                        {/* Girl cards */}
+                                        <div className="space-y-2">
+                                          {rows.map((row: any) => {
+                                            const rawPhone = `${row.codigo_pais_worker ?? ''}${row.telefono_worker ?? ''}`
+                                            const workerWa = toWa(rawPhone)
+                                            const weeksColor = row.weeks_count >= 3 ? '#f87171' : row.weeks_count === 2 ? '#fb923c' : '#9ca3af'
+                                            return (
+                                              <div key={row.id} className={`bg-[#0d0d1e] border rounded-2xl px-4 py-3 flex items-start gap-3 ${row.is_justified ? 'border-amber-500/20' : 'border-red-500/15'}`}>
+                                                {/* Status icon */}
+                                                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                                                  style={{background: row.is_justified ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)'}}>
+                                                  <span className="text-sm">{row.is_justified ? '⏸' : '✕'}</span>
+                                                </div>
+
+                                                {/* Main info */}
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                                    <p className="text-sm font-bold text-white leading-tight">{row.nombre_en_app || row.nombre_real || '—'}</p>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${row.app_name === 'Waha' ? 'bg-blue-500/15 border-blue-500/20 text-blue-300' : row.app_name === 'Layla' ? 'bg-pink-500/15 border-pink-500/20 text-pink-300' : 'bg-orange-500/15 border-orange-500/20 text-orange-300'}`}>
+                                                      {row.app_name}
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex items-center gap-3 flex-wrap">
+                                                    {row.id_aplicacion && (
+                                                      <span className="text-xs text-white/40">ID: <span className="text-white/65 font-mono">{row.id_aplicacion}</span></span>
+                                                    )}
+                                                    {workerWa ? (
+                                                      <a href={workerWa} target="_blank" rel="noopener noreferrer"
+                                                        className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold transition-colors">
+                                                        📱 {rawPhone}
+                                                      </a>
+                                                    ) : row.telefono_worker && (
+                                                      <span className="text-xs text-white/35">📱 {row.telefono_worker}</span>
+                                                    )}
+                                                  </div>
+                                                  <p className="text-xs mt-1 font-semibold" style={{color: weeksColor}}>
+                                                    {row.weeks_count} semana{row.weeks_count > 1 ? 's' : ''} sin cobrar en {row.app_name}
+                                                  </p>
+                                                </div>
+
+                                                {/* Right: justified + semana */}
+                                                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                                  <label className="flex items-center gap-1.5 cursor-pointer" title="Marcar como justificada">
                                                     <input type="checkbox" checked={row.is_justified} disabled={togglingJustified === row.id}
                                                       onChange={e => handleToggleJustified(row.id, e.target.checked)}
                                                       className="w-3.5 h-3.5 accent-amber-500" />
                                                     <span className="text-xs text-white/40 whitespace-nowrap">Justificada</span>
                                                   </label>
-                                              <div className="text-right">
-                                                <p className="text-xs text-white/25">Semana {row.semana}</p>
+                                                  <p className="text-[10px] text-white/20">Sem. {row.semana?.split('-')[0]}</p>
+                                                </div>
                                               </div>
-                                            </div>
-                                          </div>
-                                        ))}
+                                            )
+                                          })}
+                                        </div>
                                       </div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )
-                          })()}
+                                    )
+                                  })}
+                                </div>
+                              )
+                            })()}
                           </>
                         )}
                       </div>
