@@ -61,6 +61,7 @@ import { Router } from 'express';
       //   - BORRA weekly_no_cobro        → resetea lista de no-cobro
       //   - BORRA colider_marks          → resetea marcas de pago del colider
       //   - BORRA direct_payment_notifications → resetea notificaciones de pago directo (Layla)
+      //   - PONE exchange_rates a 0  → oculta cambio a trabajadoras, colider y agentes hasta nueva publicación
       //   - BORRA custom_worker_rates    → resetea cambios personalizados (se reasignan cada semana)
       //   - MARCA nomina_history como published=false → desbloquea la página de nómina para nueva semana
       router.post('/cierre-semanal', async (req, res) => {
@@ -269,11 +270,6 @@ import { Router } from 'express';
               method: 'DELETE',
               headers: { ...sbH(), Prefer: 'return=minimal' },
             }),
-          // Clear custom per-worker exchange rates — admin re-assigns each week
-              fetch(sbUrl('custom_worker_rates?id=gte.00000000-0000-0000-0000-000000000000'), {
-                method: 'DELETE',
-                headers: { ...sbH(), Prefer: 'return=minimal' },
-              }).catch(() => Promise.resolve(new Response())),
           ];
 
           if (latestSalaryIds.length > 0) {
@@ -294,7 +290,24 @@ import { Router } from 'express';
             );
           }
 
-          await Promise.all(cleanupOps);
+          // Reset all exchange rates to 0 — workers, colider, and agents won't see rates until admin re-publishes
+            cleanupOps.push(
+              fetch(sbUrl('exchange_rates?rate=gte.0'), {
+                method: 'PATCH',
+                headers: { ...sbH(), Prefer: 'return=minimal' },
+                body: JSON.stringify({ rate: 0, updated_at: new Date().toISOString() }),
+              }).catch(() => Promise.resolve(new Response()))
+            );
+
+            // Clear custom per-worker exchange rates — admin re-assigns each week
+            cleanupOps.push(
+              fetch(sbUrl('custom_worker_rates?id=gte.00000000-0000-0000-0000-000000000000'), {
+                method: 'DELETE',
+                headers: { ...sbH(), Prefer: 'return=minimal' },
+              }).catch(() => Promise.resolve(new Response()))
+            );
+
+            await Promise.all(cleanupOps);
 
           return res.json({ ok: true, allConfirmed: true, semana: latestSemana, forced: force });
         } catch (e: unknown) {
