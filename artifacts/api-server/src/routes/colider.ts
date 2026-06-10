@@ -238,13 +238,9 @@ import { Router } from 'express'
       // Published agent commissions for colider view (queried by separate dedicated endpoint — kept minimal here)
       const publishedAgents: { published: boolean; agents: any[]; exchange_rates: Record<string,number> } = { published: false, agents: [], exchange_rates: {} }
 
-      const [rates, settingData] = await Promise.all([
-        sbGet('exchange_rates?select=id,rate'),
-        sbGet('site_settings?key=eq.exchange_rates_valid_semana&select=value&limit=1').catch(() => [] as any[]),
-      ])
+      const rates = await sbGet('exchange_rates?select=id,rate')
       const rm: Record<string,number> = {}
       for (const r of rates) rm[r.id] = r.rate
-      const validSemana: string = (settingData[0] as any)?.value ?? ''
 
       // Fetch agent payment methods
       const agentUserIds = (agents as any[]).filter((a: any) => a.agent_user_id).map((a: any) => a.agent_user_id as string)
@@ -267,7 +263,6 @@ import { Router } from 'express'
         agents: enrichedAgents,
         published_agent_commissions: publishedAgents,
         exchange_rates: rm,
-        rates_valid_semana: validSemana,
         agent_code: agentCode,
       })
     } catch (e) { res.status(500).json({ error: String(e) }) }
