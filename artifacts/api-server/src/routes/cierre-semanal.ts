@@ -206,6 +206,21 @@ import { Router } from 'express';
               headers: { ...sbH(), Prefer: 'return=minimal' },
               body: JSON.stringify({ published: false }),
             }),
+            // Clear agent commission publish log so agents unlock for next cycle
+            fetch(sbUrl(`agent_commission_publish_log?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            // Clear published agent commissions for this semana
+            fetch(sbUrl(`published_agent_commissions?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
+            // Clear colider commission publish log for this semana
+            fetch(sbUrl(`colider_commission_publish_log?semana=eq.${encodeURIComponent(latestSemana)}`), {
+              method: 'DELETE',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+            }),
           ];
 
           if (latestSalaryIds.length > 0) {
