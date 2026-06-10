@@ -33,6 +33,9 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     justified: boolean
     reason: string
     created_at: string
+    id_aplicacion?: string | null
+    telefono_worker?: string | null
+    codigo_pais_worker?: string | null
   }
 
   function fmtCup(n: number) { return n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }
@@ -414,10 +417,16 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                           {e.nombre_en_app && e.nombre_en_app !== e.nombre_real && <p className="text-white/40 text-xs">{e.nombre_en_app}</p>}
                           <p className="text-red-400/70 text-xs mt-0.5">{e.app_name} · Semana {e.semana}</p>
                           {e.reason === 'zero_commission' && <p className="text-amber-400/60 text-xs">Comisión $0</p>}
+                          <div className="flex items-center gap-2 flex-wrap mt-1">
+                            {(e as any).id_aplicacion && <span className="text-[10px] text-white/30 font-mono">ID: {(e as any).id_aplicacion}</span>}
+                            {(e as any).telefono_worker && (() => { const raw = `${(e as any).codigo_pais_worker ?? ''}${(e as any).telefono_worker}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold">📱 WA</a> : null })()} 
+                          </div>
                         </div>
                         <div className="text-right shrink-0">
                           {(e as any).weeks_count > 1 && <span className="text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">{(e as any).weeks_count} semanas</span>}
-                          {e.justified && <p className="text-green-400 text-xs font-bold mt-1">✓ Justificado</p>}
+                          {e.justified
+                            ? <p className="text-amber-400 text-xs font-bold mt-1">⏸ Justificada</p>
+                            : <p className="text-red-400 text-xs font-bold mt-1">✗ No justificada</p>}
                         </div>
                       </div>
                     ))}
