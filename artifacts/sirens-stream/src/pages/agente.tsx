@@ -42,6 +42,9 @@ import React, { useState, useEffect } from 'react'
       email: string | null
       justified: boolean
       created_at: string
+      id_aplicacion?: string | null
+      telefono_worker?: string | null
+      codigo_pais_worker?: string | null
     }
 
     function fmt(n: number) { return Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
@@ -873,7 +876,11 @@ import React, { useState, useEffect } from 'react'
                                   <div className="flex items-start justify-between gap-3 mb-2">
                                     <div>
                                       <p className="text-white font-bold text-sm">{nombre}</p>
-                                      <p className="text-white/35 text-xs">{latest.app_name} · {group.length} semanas</p>
+                                      <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                        <p className="text-white/35 text-xs">{latest.app_name} · {group.length} semanas</p>
+                                        {latest.id_aplicacion && <span className="text-[10px] text-white/30 font-mono">ID: {latest.id_aplicacion}</span>}
+                                      </div>
+                                      {(() => { const raw = `${latest.codigo_pais_worker ?? ''}${latest.telefono_worker ?? ''}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold transition-colors mt-0.5 inline-block">📱 WA</a> : null })()} 
                                     </div>
                                     <span className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full border bg-red-500/15 text-red-300 border-red-500/25">
                                       {group.length} sem.
@@ -910,7 +917,11 @@ import React, { useState, useEffect } from 'react'
                                 <div key={entry.id} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
                                   <div>
                                     <p className="text-white font-semibold text-sm">{nombre}</p>
-                                    <p className="text-white/35 text-xs">{entry.app_name} · Semana {entry.semana}</p>
+                                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                      <p className="text-white/35 text-xs">{entry.app_name} · Semana {entry.semana}</p>
+                                      {entry.id_aplicacion && <span className="text-[10px] text-white/30 font-mono">ID: {entry.id_aplicacion}</span>}
+                                    </div>
+                                    {(() => { const raw = `${entry.codigo_pais_worker ?? ''}${entry.telefono_worker ?? ''}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold mt-0.5 inline-block">📱 WA</a> : null })()} 
                                   </div>
                                   {entry.justified
                                     ? <span className="shrink-0 text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-1">✓ Justificada</span>
