@@ -134,7 +134,8 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
         for (const s of (listR.workers ?? [])) {
           const met = s.metodo_pago ?? ''
           if (met !== 'Efectivo (Cuba)') continue // colider solo ve efectivo cuba
-          const rate = rm['efectivo_worker'] ?? 0
+          const customRate = Number(s.custom_efectivo_rate ?? 0)
+          const rate = customRate > 0 ? customRate : (rm['efectivo_worker'] ?? 0)
           entries.push({
             key: `${s.user_id}__${s.app_name}`,
             person_uid: s.user_id,
