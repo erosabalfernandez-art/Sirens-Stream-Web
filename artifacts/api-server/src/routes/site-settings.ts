@@ -8,6 +8,18 @@ import { Router } from 'express';
   }
   function sbUrl(path: string) { return `${process.env.SUPABASE_URL}/rest/v1/${path}`; }
 
+  // GET /api/site-settings — returns all settings as { key: value } map
+  router.get('/site-settings', async (req, res) => {
+    try {
+      const r = await fetch(sbUrl('site_settings?select=key,value'), { headers: sbH() });
+      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+      const data = await r.json() as { key: string; value: string }[];
+      const map: Record<string, string> = {};
+      for (const row of data) map[row.key] = row.value;
+      res.json(map);
+    } catch (e: unknown) { res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' }); }
+  });
+
   // GET /api/site-settings/:key
   router.get('/site-settings/:key', async (req, res) => {
     try {
