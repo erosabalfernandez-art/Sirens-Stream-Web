@@ -320,7 +320,7 @@ const APP_COLORS = {
     const [workers, setWorkers] = useState<WorkerEntry[]>([])
     const [loadingWorkers, setLoadingWorkers] = useState(false)
     const [semana, setSemana] = useState(() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })
-    const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string }>>({})
+    const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string; porcentaje: string }>>({})
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
     const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
@@ -356,8 +356,8 @@ const APP_COLORS = {
       return () => window.removeEventListener('ea_cierre_done', onCierre)
     }, [])
 
-    function setField(id: string, field: 'retiradas' | 'comerciales', val: string) {
-      setValues(prev => ({ ...prev, [id]: { ...(prev[id] ?? { retiradas: '', comerciales: '' }), [field]: val } }))
+    function setField(id: string, field: 'retiradas' | 'comerciales' | 'porcentaje', val: string) {
+      setValues(prev => ({ ...prev, [id]: { ...(prev[id] ?? { retiradas: '', comerciales: '', porcentaje: '' }), [field]: val } }))
     }
 
     function calcUSD(retiradas: string) {
@@ -365,9 +365,10 @@ const APP_COLORS = {
       return n / LAYLA_RATE
     }
 
-    function calcCommission(comerciales: string) {
+    function calcCommission(comerciales: string, porcentaje: string) {
       const n = parseFloat(comerciales) || 0
-      return (n / LAYLA_RATE) * 0.12
+      const pct = parseFloat(porcentaje) || 0
+      return (n / LAYLA_RATE) * (pct / 100)
     }
 
     const totalUSD = workers.reduce((s, w) => s + calcUSD(values[w.id]?.retiradas ?? ''), 0)
@@ -382,11 +383,12 @@ const APP_COLORS = {
         // Build salary inserts for workers
         const salaryInserts = workers
           .map(w => {
-            const v = values[w.id] ?? { retiradas: '0', comerciales: '0' }
+            const v = values[w.id] ?? { retiradas: '0', comerciales: '0', porcentaje: '0' }
             const usd = calcUSD(v.retiradas)
             const monRetiradas = parseFloat(v.retiradas) || 0
             const monComerciales = parseFloat(v.comerciales) || 0
-            return { user_id: w.user_id, app_name: 'Layla', semana, usd, diamantes: monRetiradas, extras: { monedas_comerciales: monComerciales } }
+            const pct = parseFloat(v.porcentaje) || 0
+            return { user_id: w.user_id, app_name: 'Layla', semana, usd, diamantes: monRetiradas, extras: { monedas_comerciales: monComerciales, porcentaje_comision: pct } }
           })
 
         // Build cobradas array for history
@@ -396,6 +398,7 @@ const APP_COLORS = {
             const v = values[w.id]
             const usd = calcUSD(v.retiradas)
             const monComerciales = parseFloat(v.comerciales) || 0
+            const pct = parseFloat(v.porcentaje) || 0
             return {
               worker: { ...w, profile_email: '' },
               nomina: {
@@ -404,8 +407,8 @@ const APP_COLORS = {
                 usd,
                 diamantes: parseFloat(v.retiradas) || 0,
                 semana,
-                comision: calcCommission(v.comerciales),
-                extras: { monedas_comerciales: monComerciales },
+                comision: calcCommission(v.comerciales, v.porcentaje),
+                extras: { monedas_comerciales: monComerciales, porcentaje_comision: pct },
               },
             }
           })
@@ -439,8 +442,8 @@ const APP_COLORS = {
         for (const w of workers) {
           const agente = w.agente
           if (!agente) continue
-          const v = values[w.id] ?? { retiradas: '0', comerciales: '0' }
-          const commission = calcCommission(v.comerciales)
+          const v = values[w.id] ?? { retiradas: '0', comerciales: '0', porcentaje: '0' }
+          const commission = calcCommission(v.comerciales, v.porcentaje)
           if (commission <= 0) continue
           if (!agentMap[agente]) agentMap[agente] = []
           agentMap[agente].push({
@@ -504,7 +507,7 @@ const APP_COLORS = {
             {/* Conversion note */}
             <div className="flex items-center gap-2 text-white/25 text-xs">
               <span>📐</span>
-              <span>15,500 monedas = $1.00 USD · Comisión agente = 12% de monedas comerciales</span>
+              <span>15,500 monedas = $1.00 USD · Escribe el % de comisión de agente por cada chica</span>
             </div>
 
             {/* Workers */}
@@ -518,9 +521,9 @@ const APP_COLORS = {
             ) : (
               <div className="space-y-3">
                 {workers.map(w => {
-                  const v = values[w.id] ?? { retiradas: '', comerciales: '' }
+                  const v = values[w.id] ?? { retiradas: '', comerciales: '', porcentaje: '' }
                   const usd = calcUSD(v.retiradas)
-                  const comm = calcCommission(v.comerciales)
+                  const comm = calcCommission(v.comerciales, v.porcentaje)
                   const nombre = w.nombre_en_app ?? w.nombre_real ?? '—'
                   return (
                     <div key={w.id} className="bg-[#0d0d1e] border border-pink-500/15 rounded-2xl p-4">
@@ -536,12 +539,16 @@ const APP_COLORS = {
                         {usd > 0 && (
                           <div className="text-right shrink-0">
                             <p className="text-green-400 font-extrabold text-sm">${usd.toFixed(2)} USD</p>
-                            {comm > 0 && <p className="text-amber-400/70 text-xs">Com. agente: ${comm.toFixed(2)}</p>}
+                            {comm > 0 && (
+                              <p className="text-amber-400/70 text-xs">
+                                Com. agente ({v.porcentaje || '0'}%): ${comm.toFixed(2)}
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>
                       {/* Input fields */}
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="text-white/40 text-xs font-semibold mb-1.5 block">💎 Monedas retiradas</label>
                           <input
@@ -565,6 +572,22 @@ const APP_COLORS = {
                             onChange={e => setField(w.id, 'comerciales', e.target.value)}
                             className="w-full bg-[#13132a] border border-purple-500/20 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/15 focus:outline-none focus:border-pink-500/40 transition-colors"
                           />
+                        </div>
+                        <div>
+                          <label className="text-white/40 text-xs font-semibold mb-1.5 block">📊 % Comisión agente</label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              placeholder="0"
+                              value={v.porcentaje}
+                              onChange={e => setField(w.id, 'porcentaje', e.target.value)}
+                              className="w-full bg-[#13132a] border border-amber-500/30 rounded-xl px-3 py-2.5 text-amber-300 text-sm placeholder:text-white/15 focus:outline-none focus:border-amber-500/60 transition-colors pr-8"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/60 text-xs font-bold pointer-events-none">%</span>
+                          </div>
                         </div>
                       </div>
                     </div>
