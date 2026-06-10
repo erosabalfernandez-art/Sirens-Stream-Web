@@ -117,36 +117,83 @@ import { Router } from 'express';
             if (!allColiderPaid || unconfirmedWorkers.length > 0 || unconfirmedAgents.length > 0) {
               const pending: any[] = [];
 
-              if (!allColiderPaid) {
-                if (coliderMarks.length === 0) {
-                  pending.push({ type: 'colider', name: 'El colider aún no ha marcado ningún pago', app: '—' });
-                } else {
-                  for (const m of unpaidMarks) {
-                    pending.push({ type: 'colider_pendiente', app: m.person_app ?? m.person_type ?? '—', name: m.person_real_name ?? m.person_name ?? m.person_uid });
+                // --- Colider section ---
+                if (!allColiderPaid) {
+                  if (coliderMarks.length === 0) {
+                    pending.push({ type: 'colider', name: 'El colider aún no ha marcado ningún pago', app: '\u2014', phone: null });
+                  } else {
+                    // Fetch phones for unpaid persons
+                    const coliderPersonUids = [...new Set(unpaidMarks.filter((m: any) => m.person_uid).map((m: any) => m.person_uid as string))];
+                    const coliderPhoneMap: Record<string, string | null> = {};
+                    if (coliderPersonUids.length > 0) {
+                      const cpUidStr = coliderPersonUids.map((id: string) => '"' + id + '"').join(',');
+                      const phoneRes = await fetch(sbUrl('profiles?id=in.(' + cpUidStr + ')&select=id,telefono,phone'), { headers: sbH() });
+                      const phoneProfs: any[] = phoneRes.ok ? (await phoneRes.json()) as any[] : [];
+                      for (const pp of phoneProfs) coliderPhoneMap[pp.id] = pp.telefono ?? pp.phone ?? null;
+                    }
+                    for (const m of unpaidMarks) {
+                      pending.push({ type: 'colider_pendiente', app: m.person_app ?? m.person_type ?? '\u2014', name: m.person_real_name ?? m.person_name ?? m.person_uid, phone: coliderPhoneMap[m.person_uid] ?? null });
+                    }
                   }
                 }
-              }
 
-              if (unconfirmedWorkers.length > 0) {
-                const uids = [...new Set(unconfirmedWorkers.map((s: any) => s.user_id))];
-                const uidStr = uids.map((id: string) => `"${id}"`).join(',');
-                const [profRes, workerRes] = await Promise.all([
-                  fetch(sbUrl(`profiles?id=in.(${uidStr})&select=id,email`), { headers: sbH() }),
-                  fetch(sbUrl(`worker_entries?user_id=in.(${uidStr})&select=user_id,nombre_en_app,nombre_real,app_name`), { headers: sbH() }),
-                ]);
-                const profiles: any[] = profRes.ok ? (await profRes.json()) as any[] : [];
-                const workerData: any[] = workerRes.ok ? (await workerRes.json()) as any[] : [];
-                const emailMap: Record<string,string> = Object.fromEntries(profiles.map((p: any) => [p.id, p.email ?? '']));
-                const workerMap: Record<string,any> = {};
-                for (const w of workerData) workerMap[`${w.user_id}_${w.app_name}`] = w;
-                for (const s of unconfirmedWorkers) {
-                  const w = workerMap[`${s.user_id}_${s.app_name}`] ?? {};
-                  pending.push({ type: 'trabajadora', app: s.app_name, name: w.nombre_en_app ?? w.nombre_real ?? emailMap[s.user_id] ?? s.user_id });
+                // --- Workers section ---
+                if (unconfirmedWorkers.length > 0) {
+                  const uids = [...new Set(unconfirmedWorkers.map((s: any) => s.user_id))];
+                  const uidStr = uids.map((id: string) => '"' + id + '"').join(',');
+                  const [profRes, workerRes] = await Promise.all([
+                    fetch(sbUrl('profiles?id=in.(' + uidStr + ')&select=id,email'), { headers: sbH() }),
+                    fetch(sbUrl('worker_entries?user_id=in.(' + uidStr + ')&select=user_id,nombre_en_app,nombre_real,app_name,telefono,codigo_pais'), { headers: sbH() }),
+                  ]);
+                  const profiles: any[] = profRes.ok ? (await profRes.json()) as any[] : [];
+                  const workerData: any[] = workerRes.ok ? (await workerRes.json()) as any[] : [];
+                  const emailMap: Record<string,string> = Object.fromEntries(profiles.map((p: any) => [p.id, p.email ?? '']));
+                  const workerMap: Record<string,any> = {};
+                  for (const w of workerData) workerMap[w.user_id + '_' + w.app_name] = w;
+                  // Group by user — collect all unconfirmed apps per person
+                  const byUser: Record<string, { name: string; apps: string[]; phone: string | null; codigoPais: string }> = {};
+                  for (const s of unconfirmedWorkers) {
+                    const w = workerMap[s.user_id + '_' + s.app_name] ?? {};
+                    const uid = s.user_id as string;
+                    if (!byUser[uid]) {
+                      byUser[uid] = { name: w.nombre_en_app ?? w.nombre_real ?? emailMap[uid] ?? uid, apps: [], phone: w.telefono ?? null, codigoPais: w.codigo_pais ?? '+1' };
+                    }
+                    byUser[uid].apps.push(s.app_name);
+                    if (!byUser[uid].phone && w.telefono) { byUser[uid].phone = w.telefono; byUser[uid].codigoPais = w.codigo_pais ?? '+1'; }
+                  }
+                  for (const info of Object.values(byUser)) {
+                    pending.push({ type: 'trabajadora', app: info.apps.join(' \u00B7 '), apps: info.apps, name: info.name, phone: info.phone, codigoPais: info.codigoPais });
+                  }
                 }
-              }
 
-              pending.push(...unconfirmedAgents.map((c: any) => ({ type: 'agente', app: c.app_name, name: c.agent_name })));
-              return res.json({ ok: false, allConfirmed: false, pending });
+                // --- Agents section: fetch real names + phones from profiles ---
+                const agentUids = [...new Set(unconfirmedAgents.filter((c: any) => c.agent_user_id).map((c: any) => c.agent_user_id as string))];
+                if (agentUids.length > 0) {
+                  const agUidStr = agentUids.map((id: string) => '"' + id + '"').join(',');
+                  const agProfRes = await fetch(sbUrl('profiles?id=in.(' + agUidStr + ')&select=id,agent_name,phone'), { headers: sbH() });
+                  const agentProfs: any[] = agProfRes.ok ? (await agProfRes.json()) as any[] : [];
+                  const agentProfMap: Record<string, any> = Object.fromEntries(agentProfs.map((p: any) => [p.id, p]));
+                  const byAgent: Record<string, { name: string; apps: string[]; phone: string | null }> = {};
+                  for (const c of unconfirmedAgents) {
+                    if (!c.agent_user_id) continue;
+                    const uid = c.agent_user_id as string;
+                    const prof = agentProfMap[uid] ?? {};
+                    if (!byAgent[uid]) {
+                      byAgent[uid] = { name: prof.agent_name ?? c.agent_name ?? uid, apps: [], phone: prof.phone ?? null };
+                    }
+                    byAgent[uid].apps.push(c.app_name);
+                  }
+                  for (const info of Object.values(byAgent)) {
+                    pending.push({ type: 'agente', app: info.apps.join(' \u00B7 '), apps: info.apps, name: info.name, phone: info.phone });
+                  }
+                } else if (unconfirmedAgents.length > 0) {
+                  // fallback for agents without agent_user_id
+                  for (const c of unconfirmedAgents) {
+                    pending.push({ type: 'agente', app: c.app_name, name: c.agent_name, phone: null });
+                  }
+                }
+
+                return res.json({ ok: false, allConfirmed: false, pending });
             }
           }
 
