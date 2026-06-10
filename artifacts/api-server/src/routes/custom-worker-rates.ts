@@ -107,9 +107,18 @@ import { Router } from 'express'
         const { cup_efectivo_rate: _a, cup_transferencia_rate: _b, ...rest } = s.extras ?? {}
         return sbPatch(`published_salaries?id=eq.${s.id}`, { extras: Object.keys(rest).length ? rest : null })
       }))
-      res.json({ ok: true })
-    } catch (e: any) {
-      if (e.code === '42P01') { res.json({ ok: true }); return }
+      // Notify the worker their custom rate was removed (fire-and-forget)
+        setImmediate(() => {
+          dispatchPushIndividual([{
+            userId: user_id as string,
+            title: '💱 Tasa personalizada eliminada',
+            body: 'Tu tipo de cambio exclusivo fue eliminado. Ahora aplica el cambio general.',
+            url: '/salarios'
+          }]).catch(() => {})
+        })
+        res.json({ ok: true })
+      } catch (e: any) {
+        if (e.code === '42P01') { res.json({ ok: true }); return }
       res.status(500).json({ error: String(e) })
     }
   })
