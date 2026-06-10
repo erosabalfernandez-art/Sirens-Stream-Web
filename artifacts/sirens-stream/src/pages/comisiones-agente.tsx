@@ -94,8 +94,7 @@ import { useState, useEffect } from 'react'
     }
 
     async function publishAgent(ag: AgentRef) {
-      if (!ag.agent_user_id) { setMessages(m => ({ ...m, [ag.agent_name]: '❌ Agente no tiene ID registrado' })); return }
-      const agId = ag.agent_user_id
+      const agId = ag.agent_user_id ?? ag.agent_name
       const commissions = []
       for (const app of ag.apps) {
         for (const w of app.workers) {
@@ -107,12 +106,13 @@ import { useState, useEffect } from 'react'
       try {
         const r = await fetch(`${API}/api/admin/publish-agent-commission`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ semana, agent_user_id: agId, agent_name: ag.agent_name, commissions }),
+          body: JSON.stringify({ semana, agent_user_id: ag.agent_user_id ?? null, agent_name: ag.agent_name, commissions }),
         })
         const d = await r.json()
         if (!r.ok) setMessages(m => ({ ...m, [ag.agent_name]: `❌ ${d.error ?? 'Error'}` }))
         else {
-          setMessages(m => ({ ...m, [ag.agent_name]: `✅ Publicado — $${Number(d.total_usd).toFixed(2)} USD. Notificación enviada.` }))
+          const nota = ag.agent_user_id ? ' Notificación enviada.' : ' (Agente sin perfil registrado, sin notificación.)'
+          setMessages(m => ({ ...m, [ag.agent_name]: `✅ Publicado — $${Number(d.total_usd).toFixed(2)} USD.${nota}` }))
           setAgents(prev => prev.map(a => a.agent_name === ag.agent_name ? { ...a, locked: true } : a))
         }
       } catch { setMessages(m => ({ ...m, [ag.agent_name]: '❌ Error de red' })) }
@@ -184,7 +184,7 @@ import { useState, useEffect } from 'react'
                   {coliderPublished ? `✅ Publicado${coliderPublishedAt ? ' · ' + new Date(coliderPublishedAt).toLocaleDateString('es-ES') : ''}` : 'El cólider ve agentes de Efectivo Cuba solo después de esto'}
                 </p>
               </div>
-              <button onClick={publishToColider} disabled={publishingColider || publishedCount === 0}
+              <button onClick={publishToColider} disabled={publishingColider || agents.length === 0 || publishedCount < agents.length}
                 className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shrink-0">
                 {publishingColider ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 {coliderPublished ? 'Republicar al Cólider' : 'Publicar al Cólider'}
@@ -221,7 +221,7 @@ import { useState, useEffect } from 'react'
                         {ag.locked ? (
                           <span className="flex items-center gap-1.5 text-green-400 text-xs font-bold bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20"><Lock className="w-3 h-3" /> Publicado</span>
                         ) : (
-                          <button onClick={e => { e.stopPropagation(); void publishAgent(ag) }} disabled={publishing === agId || !ag.agent_user_id}
+                          <button onClick={e => { e.stopPropagation(); void publishAgent(ag) }} disabled={publishing === agId}
                             className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
                             {publishing === agId ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                             Publicar
