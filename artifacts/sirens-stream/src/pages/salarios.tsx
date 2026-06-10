@@ -86,11 +86,11 @@ import { useState, useEffect } from 'react'
 
       async function confirmPayment(salaryId: string, appName: string, semana: string) {
       setConfirming(salaryId)
-      await supabase.from('payment_confirmations').insert({
-        salary_id: salaryId,
-        user_id: user!.id,
-        app_name: appName,
-        semana,
+      const _apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+      await fetch(`${_apiBase}/api/confirm-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ salary_id: salaryId, user_id: user!.id, app_name: appName, semana }),
       })
       setConfirmed(prev => new Set([...prev, salaryId]))
       setConfirming(null)
