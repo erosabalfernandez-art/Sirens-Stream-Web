@@ -149,14 +149,13 @@ import { Router } from 'express'
     const { agent_id } = req.query as { agent_id?: string }
     if (!agent_id) { res.status(400).json({ error: 'agent_id required' }); return }
     try {
-      const [comms, rates, settingData] = await Promise.all([
+      const [comms, rates] = await Promise.all([
         sbGet(`published_agent_commissions?agent_user_id=eq.${encodeURIComponent(agent_id)}&select=*&order=semana.desc,published_at.desc`),
         sbGet('exchange_rates?select=id,rate'),
-        sbGet('site_settings?key=eq.exchange_rates_valid_semana&select=value&limit=1').catch(() => [] as any[]),
       ])
       const rm: Record<string, number> = {}
       for (const r of rates) rm[r.id] = r.rate
-      res.json({ commissions: comms, exchange_rates: rm, valid_rate_semana: (settingData[0] as any)?.value ?? '' })
+      res.json({ commissions: comms, exchange_rates: rm })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
   router.get('/colider/published-agent-commissions', async (req, res) => {
