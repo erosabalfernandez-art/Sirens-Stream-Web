@@ -177,27 +177,36 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
     }
 
     async function toggleMark(p: PersonEntry) {
-      const k = p.key
-      const newPaid = !marks[k]
-      setToggling(k)
-      setMarks(prev => ({ ...prev, [k]: newPaid }))
-      try {
-        await fetch(`${API}/api/colider/mark`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            semana, person_uid: p.person_uid, person_type: p.person_type,
-            person_name: p.display_name, person_real_name: p.real_name,
-            person_phone: p.phone, person_app: p.app,
-            salary_usd: p.salary_usd, salary_cuba: p.salary_cuba,
-            metodo_pago: p.metodo_pago, paid: newPaid,
+        const k = p.key
+        const newPaid = !marks[k]
+        setToggling(k)
+        const updatedMarks = { ...marks, [k]: newPaid }
+        setMarks(() => updatedMarks)
+        try {
+          await fetch(`${API}/api/colider/mark`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              semana, person_uid: p.person_uid, person_type: p.person_type,
+              person_name: p.display_name, person_real_name: p.real_name,
+              person_phone: p.phone, person_app: p.app,
+              salary_usd: p.salary_usd, salary_cuba: p.salary_cuba,
+              metodo_pago: p.metodo_pago, paid: newPaid,
+            })
           })
-        })
-      } catch { setMarks(prev => ({ ...prev, [k]: !newPaid })) }
-      setToggling(null)
-    }
+          // Auto-notificar al admin cuando el último pago queda marcado
+          if (newPaid) {
+            const allNowPaid = persons.length > 0 && persons.every(person => updatedMarks[person.key] === true)
+            const notYetNotified = !(weekStatus?.notified && !weekStatus?.admin_closed)
+            if (allNowPaid && notYetNotified) {
+              setTimeout(() => notifyAdmin(), 500)
+            }
+          }
+        } catch { setMarks(prev => ({ ...prev, [k]: !newPaid })) }
+        setToggling(null)
+      }
 
-    async function notifyAdmin() {
+      async function notifyAdmin() {
       setNotifying(true); setNotifyMsg('')
       for (let attempt = 0; attempt <= 1; attempt++) {
         try {
