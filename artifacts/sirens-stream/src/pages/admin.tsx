@@ -179,6 +179,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           const [togglingJustified, setTogglingJustified] = useState<string|null>(null)
           const [togglingAdminPaid, setTogglingAdminPaid] = useState<string | null>(null)
           const [cierreLoading, setCierreLoading] = useState(false)
+            const [efectivoExpanded, setEfectivoExpanded] = useState(false)
+            const [agenciaExpanded, setAgenciaExpanded] = useState(false)
+            const [agentMetodoMap, setAgentMetodoMap] = useState<Record<string, string>>({})
+            const [agentAdminPaidIds, setAgentAdminPaidIds] = useState<Set<string>>(new Set())
+            const [togglingAgentAdminPaid, setTogglingAgentAdminPaid] = useState<string | null>(null)
 
 
           const [noCobroSetupNeeded, setNoCobroSetupNeeded] = useState(false)
@@ -289,6 +294,21 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           setTogglingAdminPaid(null)
         }
 
+        async function toggleAgentAdminPaid(agentUserId: string, app: string, semana: string) {
+          if (togglingAgentAdminPaid === agentUserId) return
+          setTogglingAgentAdminPaid(agentUserId)
+          const uid = `agent_${agentUserId}`
+          const isPaid = agentAdminPaidIds.has(agentUserId)
+          if (isPaid) {
+            await supabase.from('admin_paid_marks').delete().eq('app_name', app).eq('semana', semana).eq('uid', uid)
+            setAgentAdminPaidIds(prev => { const s = new Set(prev); s.delete(agentUserId); return s })
+          } else {
+            await supabase.from('admin_paid_marks').insert({ app_name: app, semana, uid })
+            setAgentAdminPaidIds(prev => new Set([...prev, agentUserId]))
+          }
+          setTogglingAgentAdminPaid(null)
+        }
+
         async function fetchAgentPayData() {
             setAgentPayLoading(true)
             const { data: latestComm } = await supabase
@@ -311,10 +331,20 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             // Enrich with colider_marks for agents
             const _agentUids = all.filter((c: any) => c.agent_user_id).map((c: any) => c.agent_user_id as string)
             let _agentColiderMap: Record<string, boolean> = {}
+            let _agentMetodoMapLocal: Record<string, string> = {}
+            let _agentAdminPaidSet = new Set<string>()
             if (_agentUids.length > 0) {
-              const { data: _agColMarks } = await supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'agent').in('person_uid', _agentUids)
+              const [{ data: _agColMarks }, { data: _agWorkers }, { data: _agAdminMarks }] = await Promise.all([
+                supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'agent').in('person_uid', _agentUids),
+                supabase.from('worker_entries').select('user_id, metodo_pago').in('user_id', _agentUids),
+                supabase.from('admin_paid_marks').select('uid').eq('semana', semana).in('uid', _agentUids.map((u: string) => 'agent_' + u)),
+              ])
               for (const m of (_agColMarks ?? []) as any[]) _agentColiderMap[(m as any).person_uid] = (m as any).paid
+              for (const w of (_agWorkers ?? []) as any[]) if ((w as any).metodo_pago) _agentMetodoMapLocal[(w as any).user_id] = (w as any).metodo_pago
+              for (const a of (_agAdminMarks ?? []) as any[]) _agentAdminPaidSet.add((a as any).uid.replace('agent_', ''))
             }
+            setAgentMetodoMap(_agentMetodoMapLocal)
+            setAgentAdminPaidIds(_agentAdminPaidSet)
             setAgentPayData({
               confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({ ...c, confirmed_at: confMap[c.id], colider_paid: c.agent_user_id ? ((c.agent_user_id in _agentColiderMap) ? _agentColiderMap[c.agent_user_id] : null) : null })),
               pending: all.filter((c: any) => !confSet.has(c.id)).map((c: any) => ({ ...c, colider_paid: c.agent_user_id ? ((c.agent_user_id in _agentColiderMap) ? _agentColiderMap[c.agent_user_id] : null) : null })),
@@ -721,6 +751,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           setLaylaDirectNotifs([])
           setCierrePending([]); setCierreMsg('')
           setShowForzarModal(false)
+          setEfectivoExpanded(false)
+          setAgenciaExpanded(false)
+          setAgentAdminPaidIds(new Set())
+          setAgentMetodoMap({})
         }
         window.addEventListener('ea_cierre_done', onCierre)
         return () => window.removeEventListener('ea_cierre_done', onCierre)
@@ -1498,207 +1532,248 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                         </div>
                       ) : (() => {
                         const efectivoRows = (pagosData as any[]).filter((r: any) => (r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
-                        const otrosRows = (pagosData as any[]).filter((r: any) => !(r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
-                        // Agentes: todos pasan por el colíder (pago en efectivo)
-                        const agentEfectivoAll = [...agentPayData.confirmed, ...agentPayData.pending]
-                        const agentConfirmedIds = new Set(agentPayData.confirmed.map((r: any) => r.id))
-                        // Barra del Colíder: trabajadoras efectivo (colider_paid + confirmó) + agentes (colider_paid + agente confirmó)
-                        const coliderWorkerDone = efectivoRows.filter((r: any) => r.colider_paid && r.confirmed).length
-                        const coliderWorkerTotal = efectivoRows.length
-                        const coliderAgentDone = agentPayData.confirmed.filter((r: any) => r.colider_paid === true).length
-                        const coliderAgentTotal = agentEfectivoAll.length
-                        const coliderDone = coliderWorkerDone + coliderAgentDone
-                        const coliderTotal = coliderWorkerTotal + coliderAgentTotal
-                        const coliderPct = coliderTotal > 0 ? Math.round(coliderDone / coliderTotal * 100) : 100
-                        // Barra Otros Métodos: trabajadoras no-efectivo (admin_paid + confirmó)
-                        const otrosDone = otrosRows.filter((r: any) => r.admin_paid && r.confirmed).length
-                        const otrosTotal = otrosRows.length
-                        const otrosPct = otrosTotal > 0 ? Math.round(otrosDone / otrosTotal * 100) : 100
-                        // Barra Total General
-                        const totalDone = coliderDone + otrosDone
-                        const totalTotal = coliderTotal + otrosTotal
-                        const totalPct = totalTotal > 0 ? Math.round(totalDone / totalTotal * 100) : 100
-                        // Aliases para UI existente
-                        const efectivoDone = coliderWorkerDone
-                        const efectivoTotal = coliderWorkerTotal
-                        const efectivoPct = coliderWorkerTotal > 0 ? Math.round(coliderWorkerDone / coliderWorkerTotal * 100) : 100
-                        const allDone = coliderPct === 100 && otrosPct === 100 && totalPct === 100
-                        return (
-                          <div className="space-y-5">
-                            {/* Stats */}
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="bg-[#0d0d1e] border border-teal-500/20 rounded-2xl p-4 text-center">
-                                <p className="text-2xl font-extrabold text-teal-400">{coliderTotal}</p>
-                                <p className="text-xs text-white/40 mt-1">Pagos del Colíder</p>
-                              </div>
-                              <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-4 text-center">
-                                <p className="text-2xl font-extrabold text-purple-400">{otrosTotal}</p>
-                                <p className="text-xs text-white/40 mt-1">Otros métodos</p>
-                              </div>
-                              <div className="bg-[#0d0d1e] border border-white/5 rounded-2xl p-4 text-center">
-                                <p className="text-2xl font-extrabold text-white/70">{totalTotal}</p>
-                                <p className="text-xs text-white/40 mt-1">Total general</p>
-                              </div>
-                            </div>
-
-                            {/* Progress bar: Pagos del Colíder */}
-                            <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-teal-300/70 uppercase tracking-wider">💵 Pagos del Colíder</span>
-                                <span className="text-xs font-bold text-white/40">{coliderDone}/{coliderTotal} · {coliderPct}%</span>
-                              </div>
-                              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-teal-400 transition-all duration-500 rounded-full" style={{ width: `${coliderPct}%` }} />
-                              </div>
-                              <p className="text-xs text-white/20 mt-1">Colider marcó pagado + persona confirmó · trabajadoras efectivo + agentes</p>
-                            </div>
-
-                            {/* Progress bar: Otros métodos */}
-                            <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-purple-300/70 uppercase tracking-wider">💳 Otros métodos</span>
-                                <span className="text-xs font-bold text-white/40">{otrosDone}/{otrosTotal} · {otrosPct}%</span>
-                              </div>
-                              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-purple-400 transition-all duration-500 rounded-full" style={{ width: `${otrosPct}%` }} />
-                              </div>
-                              <p className="text-xs text-white/20 mt-1">Admin marcó pagado + trabajadora confirmó</p>
-                            </div>
-
-                            {/* Progress bar: Total General */}
-                            <div className={`bg-[#0d0d1e] border rounded-2xl p-4 ${totalPct === 100 ? 'border-green-500/30' : 'border-white/8'}`}>
-                              <div className="flex items-center justify-between mb-2">
-                                <span className={`text-xs font-bold uppercase tracking-wider ${totalPct === 100 ? 'text-green-300/80' : 'text-white/40'}`}>🏆 Total General</span>
-                                <span className="text-xs font-bold text-white/40">{totalDone}/{totalTotal} · {totalPct}%</span>
-                              </div>
-                              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                                <div className={`h-full transition-all duration-500 rounded-full ${totalPct === 100 ? 'bg-green-400' : 'bg-gradient-to-r from-teal-400 to-purple-400'}`} style={{ width: `${totalPct}%` }} />
-                              </div>
-                              <p className={`text-xs mt-1 ${totalPct === 100 ? 'text-green-400/60 font-semibold' : 'text-white/20'}`}>
-                                {totalPct === 100 ? '✅ Todos los pagos confirmados — cierre semanal disponible' : 'Colíder + Admin · todos los métodos combinados'}
-                              </p>
-                            </div>
-
-                            {/* Efectivo sub-section - always visible */}
-                            <div>
-                              <h3 className="text-xs font-bold uppercase tracking-widest text-teal-400/70 mb-3 px-1">
-                                💵 Efectivo (Cuba) · pagos del colíder ({coliderTotal})
-                              </h3>
-                              {coliderTotal === 0 ? (
-                                <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl p-6 text-center">
-                                  <p className="text-white/25 text-sm">Sin pagos en efectivo esta semana</p>
+                          const agenciaRows = (pagosData as any[]).filter((r: any) => !(r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
+                          const allAgents = [...agentPayData.confirmed, ...agentPayData.pending]
+                          const agentConfirmedIds = new Set(agentPayData.confirmed.map((r: any) => r.id))
+                          // Split agents: efectivo → colider bar, others → agencia bar
+                          const agentEfectivo = allAgents.filter((a: any) => {
+                            const mp = (agentMetodoMap[a.agent_user_id] ?? '').toLowerCase()
+                            return !agentMetodoMap[a.agent_user_id] || mp.includes('efectivo')
+                          })
+                          const agentAgencia = allAgents.filter((a: any) => {
+                            const mp = (agentMetodoMap[a.agent_user_id] ?? '').toLowerCase()
+                            return agentMetodoMap[a.agent_user_id] && !mp.includes('efectivo')
+                          })
+                          // Progress: Efectivo (colider territory) = workers efectivo + agents efectivo
+                          const coliderWorkerDone = efectivoRows.filter((r: any) => r.colider_paid && r.confirmed).length
+                          const coliderAgentDone = agentEfectivo.filter((a: any) => a.colider_paid === true && agentConfirmedIds.has(a.id)).length
+                          const coliderDone = coliderWorkerDone + coliderAgentDone
+                          const coliderTotal = efectivoRows.length + agentEfectivo.length
+                          const coliderPct = coliderTotal > 0 ? Math.round(coliderDone / coliderTotal * 100) : 100
+                          // Progress: Pagos Agencia (admin territory) = workers no-efectivo + agents no-efectivo
+                          const agenciaDoneWorkers = agenciaRows.filter((r: any) => r.admin_paid && r.confirmed).length
+                          const agenciaDoneAgents = agentAgencia.filter((a: any) => agentAdminPaidIds.has(a.agent_user_id) && agentConfirmedIds.has(a.id)).length
+                          const agenciaDone = agenciaDoneWorkers + agenciaDoneAgents
+                          const agenciaTotal = agenciaRows.length + agentAgencia.length
+                          const agenciaPct = agenciaTotal > 0 ? Math.round(agenciaDone / agenciaTotal * 100) : 100
+                          // Total
+                          const totalDone = coliderDone + agenciaDone
+                          const totalTotal = coliderTotal + agenciaTotal
+                          const totalPct = totalTotal > 0 ? Math.round(totalDone / totalTotal * 100) : 100
+                          return (
+                            <div className="space-y-5">
+                              {/* Stats */}
+                              <div className="grid grid-cols-3 gap-3">
+                                <div className="bg-[#0d0d1e] border border-teal-500/20 rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-extrabold text-teal-400">{coliderTotal}</p>
+                                  <p className="text-xs text-white/40 mt-1">Pagos del Colíder</p>
                                 </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {efectivoRows.map((row: any) => (
-                                    <div key={row.salary_id} className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl px-5 py-3 flex items-center gap-4">
-                                      <div className="w-8 h-8 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
-                                        {(row.colider_paid && row.confirmed) ? <CheckCircle2 className="w-4 h-4 text-teal-400" /> : <Clock className="w-4 h-4 text-teal-400/40" />}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
-                                        <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-teal-400">${row.usd.toFixed(2)} USD</span></p>
-                                        {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
-                                        {row.agente && <p className="text-xs text-indigo-300/60 mt-0.5">Agente: {agentNameMap[row.agente] ?? row.agente}</p>}
-                                        {row.cup_amount && <p className="text-xs text-amber-300/60 mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
-                                      </div>
-                                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                        {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
-                                        {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full">Sin pagar</span>}
-                                        {row.colider_paid === null && <span className="text-xs text-white/20">Sin marcar</span>}
-                                        {row.confirmed
-                                          ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmada ✓</span>
-                                          : <span className="text-xs text-white/25">Sin confirmar</span>}
-                                        <div title="cobra en efectivo — pago del colíder" className="flex items-center gap-1 opacity-25 cursor-not-allowed select-none">
-                                          <div className="w-4 h-4 rounded border-2 border-white/30 flex items-center justify-center">
-                                            <Check className="w-2.5 h-2.5 text-white/30" />
-                                          </div>
-                                          <span className="text-xs text-white/30">Admin</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {/* Agent efectivo section */}
-                                  {agentEfectivoAll.length > 0 && (
-                                    <>
-                                      <p className="text-xs font-bold text-amber-400/60 uppercase tracking-wider pt-3 pb-1 px-1">🤝 Agentes</p>
-                                      {agentEfectivoAll.map((row: any, idx: number) => (
-                                        <div key={row.id ?? idx} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-5 py-3 flex items-center gap-4">
-                                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                                            {(row.colider_paid && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-4 h-4 text-amber-400" /> : <Clock className="w-4 h-4 text-amber-400/40" />}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
-                                            <p className="text-xs text-white/35">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)} USD</span></p>
-                                            {row.email && <p className="text-xs text-white/20 mt-0.5">{row.email}</p>}
-                                          </div>
-                                          <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                            {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
-                                            {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full">Sin pagar</span>}
-                                            {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-xs text-white/20">Sin marcar</span>}
-                                            {agentConfirmedIds.has(row.id)
-                                              ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmado ✓</span>
-                                              : <span className="text-xs text-white/25">Sin confirmar</span>}
-                                            <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300/80 px-2 py-0.5 rounded-full">Agente</span>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </>
-                                  )}
+                                <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-extrabold text-purple-400">{agenciaTotal}</p>
+                                  <p className="text-xs text-white/40 mt-1">Pagos Agencia</p>
                                 </div>
-                              )}
-                            </div>
+                                <div className="bg-[#0d0d1e] border border-white/5 rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-extrabold text-white/70">{totalTotal}</p>
+                                  <p className="text-xs text-white/40 mt-1">Total general</p>
+                                </div>
+                              </div>
 
-                            {/* Otros métodos sub-section - always visible */}
-                            <div>
-                              <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3 px-1">
-                                💳 Otros métodos ({otrosTotal})
-                              </h3>
-                              {otrosTotal === 0 ? (
-                                <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-6 text-center">
-                                  <p className="text-white/25 text-sm">Sin pagos con otros métodos esta semana</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {otrosRows.map((row: any) => (
-                                    <div key={row.salary_id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl px-5 py-3 flex items-center gap-4">
-                                      <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
-                                        {(row.admin_paid && row.confirmed) ? <CheckCircle2 className="w-4 h-4 text-purple-400" /> : <Clock className="w-4 h-4 text-purple-400/40" />}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
-                                        <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-purple-400">${row.usd.toFixed(2)} USD</span></p>
-                                        {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
-                                        {row.agente && <p className="text-xs text-indigo-300/60 mt-0.5">Agente: {agentNameMap[row.agente] ?? row.agente}</p>}
-                                        {row.cup_amount && <p className="text-xs text-amber-300/60 mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
-                                      </div>
-                                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                        {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
-                                        {row.colider_paid === null && <span className="text-xs text-white/20 hidden">Sin colider</span>}
-                                        {row.confirmed
-                                          ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmada ✓</span>
-                                          : <span className="text-xs text-white/25">Sin confirmar</span>}
-                                        <button
-                                          onClick={() => toggleAdminPaid(row.id_aplicacion, pagosApp, pagosSemana)}
-                                          disabled={!row.id_aplicacion || togglingAdminPaid === row.id_aplicacion}
-                                          title={row.admin_paid ? 'Quitar marca de pagado' : 'Marcar como pagado (admin)'}
-                                          className={`flex items-center gap-1 transition-all ${!row.id_aplicacion ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'}`}>
-                                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${row.admin_paid ? 'bg-purple-500 border-purple-500' : 'border-white/30 hover:border-purple-400/60'}`}>
-                                            {row.admin_paid && <Check className="w-2.5 h-2.5 text-white" />}
-                                            {togglingAdminPaid === row.id_aplicacion && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
+                              {/* ── BARRA EFECTIVO (colider) ─────────────────── */}
+                              <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl overflow-hidden">
+                                <button
+                                  onClick={() => setEfectivoExpanded(v => !v)}
+                                  className="w-full p-4 text-left hover:bg-teal-500/5 transition-colors">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-teal-300/80 uppercase tracking-wider flex items-center gap-2">
+                                      💵 Pago en Efectivo
+                                      <span className="text-teal-400/40 text-[10px] font-normal">{coliderTotal > 0 ? (efectivoExpanded ? '▲ Ocultar' : '▼ Ver personas') : ''}</span>
+                                    </span>
+                                    <span className="text-xs font-bold text-white/40">{coliderDone}/{coliderTotal} · {coliderPct}%</span>
+                                  </div>
+                                  <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-teal-400 transition-all duration-500 rounded-full" style={{ width: `${coliderPct}%` }} />
+                                  </div>
+                                  <p className="text-xs text-white/20 mt-1.5">Toca para ver agentes y chicas · confirmación del colider</p>
+                                </button>
+                                {/* Expanded: efectivo workers + agents */}
+                                {efectivoExpanded && coliderTotal > 0 && (
+                                  <div className="border-t border-teal-500/10 p-4 space-y-2">
+                                    {efectivoRows.length > 0 && (
+                                      <>
+                                        <p className="text-xs font-bold text-teal-400/60 uppercase tracking-wider pb-1">👤 Chicas</p>
+                                        {efectivoRows.map((row: any) => (
+                                          <div key={row.salary_id} className="bg-black/30 border border-teal-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
+                                              {(row.colider_paid && row.confirmed) ? <CheckCircle2 className="w-4 h-4 text-teal-400" /> : <Clock className="w-4 h-4 text-teal-400/40" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                              <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-teal-400">${row.usd.toFixed(2)} USD</span></p>
+                                              {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
+                                              {row.agente && <p className="text-xs text-indigo-300/60 mt-0.5">Agente: {agentNameMap[row.agente] ?? row.agente}</p>}
+                                              {row.cup_amount && <p className="text-xs text-amber-300/60 mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                              {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                              {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full">Sin pagar</span>}
+                                              {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-xs text-white/20">Sin marcar</span>}
+                                              {row.confirmed
+                                                ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span>
+                                                : <span className="text-xs text-white/25">Sin confirmar</span>}
+                                            </div>
                                           </div>
-                                          <span className={`text-xs font-medium ${row.admin_paid ? 'text-purple-300' : 'text-white/30'}`}>Admin</span>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                                        ))}
+                                      </>
+                                    )}
+                                    {agentEfectivo.length > 0 && (
+                                      <>
+                                        <p className="text-xs font-bold text-amber-400/60 uppercase tracking-wider pt-2 pb-1">🤝 Agentes</p>
+                                        {agentEfectivo.map((row: any, idx: number) => (
+                                          <div key={row.id ?? idx} className="bg-black/30 border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                                              {(row.colider_paid && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-4 h-4 text-amber-400" /> : <Clock className="w-4 h-4 text-amber-400/40" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
+                                              <p className="text-xs text-white/35">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)} USD</span></p>
+                                              {row.email && <p className="text-xs text-white/20 mt-0.5">{row.email}</p>}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                              {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                              {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full">Sin pagar</span>}
+                                              {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-xs text-white/20">Sin marcar</span>}
+                                              {agentConfirmedIds.has(row.id)
+                                                ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span>
+                                                : <span className="text-xs text-white/25">Sin confirmar</span>}
+                                              <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300/80 px-2 py-0.5 rounded-full">Agente</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
+                                    {coliderTotal === 0 && (
+                                      <p className="text-center text-white/25 text-sm py-4">Sin pagos en efectivo esta semana</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
 
-                          </div>
-                        )
-                      })()
+                              {/* ── BARRA PAGOS AGENCIA (admin) ──────────────── */}
+                              <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl overflow-hidden">
+                                <button
+                                  onClick={() => setAgenciaExpanded(v => !v)}
+                                  className="w-full p-4 text-left hover:bg-purple-500/5 transition-colors">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-purple-300/80 uppercase tracking-wider flex items-center gap-2">
+                                      💳 Pagos Agencia
+                                      <span className="text-purple-400/40 text-[10px] font-normal">{agenciaTotal > 0 ? (agenciaExpanded ? '▲ Ocultar' : '▼ Ver personas') : ''}</span>
+                                    </span>
+                                    <span className="text-xs font-bold text-white/40">{agenciaDone}/{agenciaTotal} · {agenciaPct}%</span>
+                                  </div>
+                                  <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-purple-400 transition-all duration-500 rounded-full" style={{ width: `${agenciaPct}%` }} />
+                                  </div>
+                                  <p className="text-xs text-white/20 mt-1.5">Toca para ver · marcar si ya les pagaste</p>
+                                </button>
+                                {/* Expanded: agencia workers + agents */}
+                                {agenciaExpanded && agenciaTotal > 0 && (
+                                  <div className="border-t border-purple-500/10 p-4 space-y-2">
+                                    {agenciaRows.length > 0 && (
+                                      <>
+                                        <p className="text-xs font-bold text-purple-400/60 uppercase tracking-wider pb-1">👤 Chicas</p>
+                                        {agenciaRows.map((row: any) => (
+                                          <div key={row.salary_id} className="bg-black/30 border border-purple-500/10 rounded-2xl px-4 py-3 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
+                                              {(row.admin_paid && row.confirmed) ? <CheckCircle2 className="w-4 h-4 text-purple-400" /> : <Clock className="w-4 h-4 text-purple-400/40" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                              <p className="text-xs text-white/35 truncate">{row.email} · <span className="text-purple-400">${row.usd.toFixed(2)} USD</span></p>
+                                              {row.metodo_pago && <p className="text-xs text-white/20 mt-0.5">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
+                                              {row.agente && <p className="text-xs text-indigo-300/60 mt-0.5">Agente: {agentNameMap[row.agente] ?? row.agente}</p>}
+                                              {row.cup_amount && <p className="text-xs text-amber-300/60 mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                              {row.confirmed
+                                                ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span>
+                                                : <span className="text-xs text-white/25">Sin confirmar</span>}
+                                              <button
+                                                onClick={() => toggleAdminPaid(row.id_aplicacion, pagosApp, pagosSemana)}
+                                                disabled={!row.id_aplicacion || togglingAdminPaid === row.id_aplicacion}
+                                                title={row.admin_paid ? 'Quitar marca de pagado' : 'Marcar como pagado (admin)'}
+                                                className={`flex items-center gap-1 transition-all ${!row.id_aplicacion ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'}`}>
+                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${row.admin_paid ? 'bg-purple-500 border-purple-500' : 'border-white/30 hover:border-purple-400/60'}`}>
+                                                  {row.admin_paid && <Check className="w-2.5 h-2.5 text-white" />}
+                                                  {togglingAdminPaid === row.id_aplicacion && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
+                                                </div>
+                                                <span className={`text-xs font-medium ${row.admin_paid ? 'text-purple-300' : 'text-white/30'}`}>
+                                                  {row.admin_paid ? 'Pagado ✓' : 'Marcar pagado'}
+                                                </span>
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
+                                    {agentAgencia.length > 0 && (
+                                      <>
+                                        <p className="text-xs font-bold text-amber-400/60 uppercase tracking-wider pt-2 pb-1">🤝 Agentes</p>
+                                        {agentAgencia.map((row: any, idx: number) => (
+                                          <div key={row.id ?? idx} className="bg-black/30 border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                                              {(agentAdminPaidIds.has(row.agent_user_id) && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-4 h-4 text-amber-400" /> : <Clock className="w-4 h-4 text-amber-400/40" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
+                                              <p className="text-xs text-white/35">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)} USD</span></p>
+                                              {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20 mt-0.5">{agentMetodoMap[row.agent_user_id]}</p>}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                              {agentConfirmedIds.has(row.id)
+                                                ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span>
+                                                : <span className="text-xs text-white/25">Sin confirmar</span>}
+                                              <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300/80 px-2 py-0.5 rounded-full">Agente</span>
+                                              <button
+                                                onClick={() => toggleAgentAdminPaid(row.agent_user_id, pagosApp, pagosSemana)}
+                                                disabled={!row.agent_user_id || togglingAgentAdminPaid === row.agent_user_id}
+                                                title={agentAdminPaidIds.has(row.agent_user_id) ? 'Quitar marca de pagado' : 'Marcar como pagado (admin)'}
+                                                className={`flex items-center gap-1 transition-all ${!row.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'}`}>
+                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${agentAdminPaidIds.has(row.agent_user_id) ? 'bg-purple-500 border-purple-500' : 'border-white/30 hover:border-purple-400/60'}`}>
+                                                  {agentAdminPaidIds.has(row.agent_user_id) && <Check className="w-2.5 h-2.5 text-white" />}
+                                                  {togglingAgentAdminPaid === row.agent_user_id && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
+                                                </div>
+                                                <span className={`text-xs font-medium ${agentAdminPaidIds.has(row.agent_user_id) ? 'text-purple-300' : 'text-white/30'}`}>
+                                                  {agentAdminPaidIds.has(row.agent_user_id) ? 'Pagado ✓' : 'Marcar pagado'}
+                                                </span>
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
+                                    {agenciaTotal === 0 && (
+                                      <p className="text-center text-white/25 text-sm py-4">Sin pagos por agencia esta semana</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Total General */}
+                              <div className={`bg-[#0d0d1e] border rounded-2xl p-4 ${totalPct === 100 ? 'border-green-500/30' : 'border-white/8'}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className={`text-xs font-bold uppercase tracking-wider ${totalPct === 100 ? 'text-green-300/80' : 'text-white/40'}`}>🏆 Total General</span>
+                                  <span className="text-xs font-bold text-white/40">{totalDone}/{totalTotal} · {totalPct}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                  <div className={`h-full transition-all duration-500 rounded-full ${totalPct === 100 ? 'bg-green-400' : 'bg-gradient-to-r from-teal-400 to-purple-400'}`} style={{ width: `${totalPct}%` }} />
+                                </div>
+                                <p className={`text-xs mt-1 ${totalPct === 100 ? 'text-green-400/60 font-semibold' : 'text-white/20'}`}>
+                                  {totalPct === 100 ? '✅ Todos los pagos confirmados — cierre semanal disponible' : 'Efectivo (colíder) + Pagos Agencia (admin) · todos los métodos'}
+                                </p>
+                              </div>
+
+                            </div>
+                          )
                     )}
                 </div>
               )}
