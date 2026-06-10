@@ -186,6 +186,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             const [efectivoExpanded, setEfectivoExpanded] = useState(false)
             const [agenciaExpanded, setAgenciaExpanded] = useState(false)
             const [agentMetodoMap, setAgentMetodoMap] = useState<Record<string, string>>({})
+            const [agentBilleteraMap, setAgentBilleteraMap] = useState<Record<string, string>>({})
             const [agentAdminPaidIds, setAgentAdminPaidIds] = useState<Set<string>>(new Set())
             const [togglingAgentAdminPaid, setTogglingAgentAdminPaid] = useState<string | null>(null)
 
@@ -454,14 +455,19 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             if (_agentUids.length > 0) {
               const [{ data: _agColMarks }, { data: _agWorkers }, { data: _agAdminMarks }] = await Promise.all([
                 supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'agent').in('person_uid', _agentUids),
-                supabase.from('worker_entries').select('user_id, metodo_pago').in('user_id', _agentUids),
+                supabase.from('worker_entries').select('user_id, metodo_pago, billetera').in('user_id', _agentUids),
                 supabase.from('admin_paid_marks').select('uid').eq('semana', semana).in('uid', _agentUids.map((u: string) => 'agent_' + u)),
               ])
               for (const m of (_agColMarks ?? []) as any[]) _agentColiderMap[(m as any).person_uid] = (m as any).paid
-              for (const w of (_agWorkers ?? []) as any[]) if ((w as any).metodo_pago) _agentMetodoMapLocal[(w as any).user_id] = (w as any).metodo_pago
+              const _agentBilleteraMapLocal: Record<string, string> = {}
+              for (const w of (_agWorkers ?? []) as any[]) {
+                if ((w as any).metodo_pago) _agentMetodoMapLocal[(w as any).user_id] = (w as any).metodo_pago
+                if ((w as any).billetera) _agentBilleteraMapLocal[(w as any).user_id] = (w as any).billetera
+              }
               for (const a of (_agAdminMarks ?? []) as any[]) _agentAdminPaidSet.add((a as any).uid.replace('agent_', ''))
             }
             setAgentMetodoMap(_agentMetodoMapLocal)
+            setAgentBilleteraMap(_agentBilleteraMapLocal)
             setAgentAdminPaidIds(_agentAdminPaidSet)
             setAgentPayData({
               confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({ ...c, confirmed_at: confMap[c.id], colider_paid: c.agent_user_id ? ((c.agent_user_id in _agentColiderMap) ? _agentColiderMap[c.agent_user_id] : null) : null })),
@@ -1638,6 +1644,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
                                                 <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
+                                                {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20">{agentMetodoMap[row.agent_user_id]}{agentBilleteraMap[row.agent_user_id] ? ' · ' + agentBilleteraMap[row.agent_user_id] : ''}</p>}
                                               </div>
                                               <div className="flex flex-col items-end gap-1 shrink-0">
                                                 {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
@@ -1731,7 +1738,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
                                                 <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
-                                                {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20">{agentMetodoMap[row.agent_user_id]}</p>}
+                                                {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20">{agentMetodoMap[row.agent_user_id]}{agentBilleteraMap[row.agent_user_id] ? ' · ' + agentBilleteraMap[row.agent_user_id] : ''}</p>}
                                               </div>
                                               <div className="flex flex-col items-end gap-1 shrink-0">
                                                 {agentConfirmedIds.has(row.id) ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
