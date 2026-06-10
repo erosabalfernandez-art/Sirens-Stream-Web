@@ -1384,13 +1384,16 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <p className="font-bold text-base leading-tight">{n.apodo}</p>
-                                  <button
-                                    onClick={() => togglePaid(n.uid)}
-                                    disabled={togglingPaid === n.uid}
-                                    title={paidMarks.has(n.uid) ? 'Quitar marca de pagado' : 'Marcar como pagado'}
-                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${paidMarks.has(n.uid) ? 'bg-green-500 border-green-500 text-white' : 'border-white/25 text-transparent hover:border-green-400/60'}`}>
-                                    <Check className="w-3 h-3" />
-                                  </button>
+                                  {(w.metodo_pago ?? '').toLowerCase().includes('efectivo')
+                                      ? <span title="cobra en efectivo — pago del colíder" className="text-xs bg-teal-500/8 border border-teal-500/20 text-teal-400/50 px-1.5 py-0.5 rounded-full font-medium select-none shrink-0">💵</span>
+                                      : <button
+                                          onClick={() => togglePaid(n.uid)}
+                                          disabled={togglingPaid === n.uid}
+                                          title={paidMarks.has(n.uid) ? 'Quitar marca de pagado' : 'Marcar como pagado'}
+                                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${paidMarks.has(n.uid) ? 'bg-green-500 border-green-500 text-white' : 'border-white/25 text-transparent hover:border-green-400/60'}`}>
+                                          <Check className="w-3 h-3" />
+                                        </button>
+                                    }
                                 </div>
                                 {w.nombre_real && <p className="text-white/40 text-xs mt-0.5">{w.nombre_real}</p>}
                                 <p className="text-white/30 text-xs mt-0.5">{w.profile_email}</p>
