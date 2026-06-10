@@ -70,6 +70,7 @@ import { Link, useLocation } from "wouter";
               localStorage.setItem('ea_cierre_done_ts', Date.now().toString())
             } catch {}
             window.dispatchEvent(new CustomEvent('ea_cierre_done'));
+              window.dispatchEvent(new CustomEvent('ea_rates_cleared'));
           }
             setResult(d);
             setPhase('done');
