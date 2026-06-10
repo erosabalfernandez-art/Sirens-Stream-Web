@@ -2403,14 +2403,12 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                               </p>
                                             </div>
                                             <div className="flex items-center gap-3 shrink-0">
-                                              {appName !== 'Waha' && (
-                                                <label className="flex items-center gap-1.5 cursor-pointer" title="Marcar como justificada">
-                                                  <input type="checkbox" checked={row.is_justified} disabled={togglingJustified === row.id}
-                                                    onChange={e => handleToggleJustified(row.id, e.target.checked)}
-                                                    className="w-3.5 h-3.5 accent-amber-500" />
-                                                  <span className="text-xs text-white/40 whitespace-nowrap">Justificada</span>
-                                                </label>
-                                              )}
+                                              <label className="flex items-center gap-1.5 cursor-pointer" title="Marcar como justificada">
+                                                    <input type="checkbox" checked={row.is_justified} disabled={togglingJustified === row.id}
+                                                      onChange={e => handleToggleJustified(row.id, e.target.checked)}
+                                                      className="w-3.5 h-3.5 accent-amber-500" />
+                                                    <span className="text-xs text-white/40 whitespace-nowrap">Justificada</span>
+                                                  </label>
                                               <div className="text-right">
                                                 <p className="text-xs text-white/25">Semana {row.semana}</p>
                                               </div>
