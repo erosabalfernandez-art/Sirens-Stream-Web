@@ -318,7 +318,7 @@ const APP_COLORS = {
     const [open, setOpen] = useState<boolean>(false)
     const [workers, setWorkers] = useState<WorkerEntry[]>([])
     const [loadingWorkers, setLoadingWorkers] = useState(false)
-    const [semana, setSemana] = useState('')
+    const semana = isoWeekLabel()
     const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string }>>({})
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
@@ -343,7 +343,6 @@ const APP_COLORS = {
     useEffect(() => {
       function onCierre() {
         setValues({})
-        setSemana('')
         setPublishedOk(false)
         try { localStorage.removeItem('ea_nomina_layla_published') } catch {}
       }
@@ -368,12 +367,7 @@ const APP_COLORS = {
     const totalUSD = workers.reduce((s, w) => s + calcUSD(values[w.id]?.retiradas ?? ''), 0)
 
     async function publicar() {
-      if (!semana.trim()) { alert('Por favor escribe la semana antes de publicar.'); return }
-      const hasData = workers.some(w => {
-        const v = values[w.id]
-        return v && (parseFloat(v.retiradas) > 0 || parseFloat(v.comerciales) > 0)
-      })
-      if (!hasData) { alert('Ingresa los datos de al menos una trabajadora.'); return }
+
 
       setPublishing(true)
       try {
@@ -388,7 +382,6 @@ const APP_COLORS = {
             const monComerciales = parseFloat(v.comerciales) || 0
             return { user_id: w.user_id, app_name: 'Layla', semana, usd, diamantes: monRetiradas, extras: { monedas_comerciales: monComerciales } }
           })
-          .filter(i => i.usd > 0 || i.diamantes > 0)
 
         // Build cobradas array for history
         const cobradas = workers
@@ -411,6 +404,10 @@ const APP_COLORS = {
             }
           })
 
+        const noCobro = workers
+          .filter(w => !(calcUSD(values[w.id]?.retiradas ?? '') > 0))
+          .map(w => ({ worker: { ...w, profile_email: '' }, nomina: null }))
+
         const total_usd = salaryInserts.reduce((s, i) => s + i.usd, 0)
         const total_diamantes = salaryInserts.reduce((s, i) => s + i.diamantes, 0)
 
@@ -420,7 +417,7 @@ const APP_COLORS = {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             inserts: salaryInserts, app_name: 'Layla', semana,
-            cobradas, noCobro: [], sinPerfil: [],
+            cobradas, noCobro, sinPerfil: [],
             total_usd, total_diamantes,
             file_name: `Layla-manual-${semana}`,
           }),
@@ -498,18 +495,6 @@ const APP_COLORS = {
         {/* Content */}
         {open && (
           <div className="border-t border-pink-500/10 p-5 space-y-5">
-            {/* Semana */}
-            <div>
-              <label className="text-white/50 text-xs font-bold uppercase tracking-wider mb-2 block">Semana</label>
-              <input
-                type="text"
-                placeholder="Ej: 9-15 Jun 2025"
-                value={semana}
-                onChange={e => setSemana(e.target.value)}
-                className="w-full sm:w-72 bg-[#0d0d1e] border border-purple-500/20 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-pink-500/50"
-              />
-            </div>
-
             {/* Conversion note */}
             <div className="flex items-center gap-2 text-white/25 text-xs">
               <span>📐</span>
@@ -592,7 +577,7 @@ const APP_COLORS = {
                 </div>
                 <button
                   onClick={publicar}
-                  disabled={publishing || !semana.trim()}
+                  disabled={publishing}
                   className="flex items-center gap-2 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-pink-900/30 text-sm">
                   {publishing
                     ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Publicando...</>
@@ -629,7 +614,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [cobradas, setCobradas] = useState<Matched[]>([])
   const [noCobro, setNoCobro] = useState<NoCobro[]>([])
   const [sinPerfil, setSinPerfil] = useState<NominaRow[]>([])
-  const [semana, setSemana] = useState('')
+  const semana = isoWeekLabel()
   const [fileName, setFileName] = useState('')
   const [tab, setTab] = useState<'cobradas' | 'nocobro' | 'sinperfil'>('cobradas')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
