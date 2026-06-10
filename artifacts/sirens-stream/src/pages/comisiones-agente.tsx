@@ -34,6 +34,18 @@ import { useState, useEffect } from 'react'
   // Persist semana selection
   useEffect(() => { try { if (semana) localStorage.setItem('ea_com_semana', semana) } catch {} }, [semana])
 
+  // Reset page state after weekly cierre so agents unlock for the new cycle
+  useEffect(() => {
+    function onCierre() {
+      setAgents([])
+      setSemana('')
+      try { localStorage.removeItem('ea_com_semana') } catch {}
+      if (profile?.is_admin) fetchWeeks()
+    }
+    window.addEventListener('ea_cierre_done', onCierre)
+    return () => window.removeEventListener('ea_cierre_done', onCierre)
+  }, [profile])
+
     useEffect(() => { if (!loading && !profile?.is_admin) navigate('/') }, [loading, profile])
     useEffect(() => { if (profile?.is_admin) fetchWeeks() }, [profile])
     useEffect(() => { if (semana) loadData() }, [semana])
