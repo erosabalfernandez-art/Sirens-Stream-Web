@@ -60,30 +60,52 @@ import { Router } from 'express'
         }
       }
 
-      // Resolve agent_user_id for agents whose name is actually an agent_code (Layla flow)
+      // Step 1: Resolve agent_user_id for agents whose name is actually an agent_code (no user_id yet)
       const unresolvedNames = Object.values(agentMap).filter(a => !a.agent_user_id).map(a => a.agent_name)
       if (unresolvedNames.length > 0) {
         try {
           const resolveRes = await fetch(
-            `${SB}/rest/v1/profiles?agent_code=in.(${unresolvedNames.map(n => '"' + n + '"').join(',')})&select=id,agent_code,colider_name`,
+            `${SB}/rest/v1/profiles?agent_code=in.(${unresolvedNames.map(n => '"' + n + '"').join(',')})&select=id,agent_code,colider_name,agent_name`,
             { headers: h() }
           )
           if (resolveRes.ok) {
-            const resolved = await resolveRes.json() as { id: string; agent_code: string | null; colider_name: string | null }[]
+            const resolved = await resolveRes.json() as { id: string; agent_code: string | null; colider_name: string | null; agent_name: string | null }[]
             for (const p of resolved) {
               if (p.agent_code && p.id && agentMap[p.agent_code]) {
                 agentMap[p.agent_code].agent_user_id = p.id
-                if (p.colider_name) agentMap[p.agent_code].agent_name = p.colider_name
-                // Also update the agent_commissions record in DB for future use (fire-and-forget)
+                const displayName = p.colider_name ?? p.agent_name
+                if (displayName) agentMap[p.agent_code].agent_name = displayName
                 setImmediate(async () => {
                   try {
                     await fetch(`${SB}/rest/v1/agent_commissions?agent_name=eq.${encodeURIComponent(p.agent_code!)}&semana=eq.${encodeURIComponent(semana)}&agent_user_id=is.null`, {
                       method: 'PATCH',
                       headers: { ...h(), Prefer: 'return=minimal' },
-                      body: JSON.stringify({ agent_user_id: p.id, agent_name: p.colider_name ?? p.agent_code }),
+                      body: JSON.stringify({ agent_user_id: p.id, agent_name: displayName ?? p.agent_code }),
                     })
                   } catch {}
                 })
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // Step 2: Resolve display names for agents that already have agent_user_id but may show code as name
+      const agentsWithId = Object.values(agentMap).filter(a => a.agent_user_id)
+      if (agentsWithId.length > 0) {
+        try {
+          const ids = agentsWithId.map(a => a.agent_user_id!)
+          const profileRes = await fetch(
+            `${SB}/rest/v1/profiles?id=in.(${ids.map(id => `"${id}"`).join(',')})&select=id,agent_name,colider_name`,
+            { headers: h() }
+          )
+          if (profileRes.ok) {
+            const profiles = await profileRes.json() as { id: string; agent_name: string | null; colider_name: string | null }[]
+            for (const p of profiles) {
+              const ag = agentsWithId.find(a => a.agent_user_id === p.id)
+              if (ag) {
+                const displayName = p.colider_name ?? p.agent_name
+                if (displayName) ag.agent_name = displayName
               }
             }
           }
