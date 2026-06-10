@@ -96,7 +96,9 @@ import { Router } from 'express'
   })
   router.post('/admin/publish-agent-commission', async (req, res) => {
     const { semana, agent_user_id: rawAgentId, agent_name, commissions } = req.body as { semana: string; agent_user_id: string | null; agent_name: string; commissions: { worker_uid: string | null; worker_name: string; worker_real_name?: string | null; app_name: string; commission_usd: number }[] }
-    if (!semana || !agent_name || !Array.isArray(commissions)) { res.status(400).json({ error: 'Faltan campos requeridos' }); return }
+    if (!semana) { res.status(400).json({ error: 'Campo requerido faltante: semana' }); return }
+    if (!agent_name) { res.status(400).json({ error: 'Campo requerido faltante: agent_name' }); return }
+    if (!Array.isArray(commissions)) { res.status(400).json({ error: 'Campo requerido faltante: commissions (debe ser array)' }); return }
     // Use synthetic key for agents without a registered profile so PK constraints still work
     const effectiveId = rawAgentId || `__name__:${agent_name}`
     try {
