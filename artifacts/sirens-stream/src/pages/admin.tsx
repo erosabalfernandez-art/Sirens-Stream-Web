@@ -1550,12 +1550,16 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                               </div>
                             )}
 
-                            {/* Efectivo sub-section */}
-                            {efectivoTotal > 0 && (
-                              <div>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-teal-400/70 mb-3 px-1">
-                                  ðµ Efectivo (Cuba) Â· pago del colÃ­der ({efectivoTotal})
-                                </h3>
+                            {/* Efectivo sub-section - always visible */}
+                            <div>
+                              <h3 className="text-xs font-bold uppercase tracking-widest text-teal-400/70 mb-3 px-1">
+                                💵 Efectivo (Cuba) · pago del colíder ({efectivoTotal})
+                              </h3>
+                              {efectivoTotal === 0 ? (
+                                <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl p-6 text-center">
+                                  <p className="text-white/25 text-sm">Sin pagos en efectivo esta semana</p>
+                                </div>
+                              ) : (
                                 <div className="space-y-2">
                                   {efectivoRows.map((row: any) => (
                                     <div key={row.salary_id} className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl px-5 py-3 flex items-center gap-4">
@@ -1586,15 +1590,19 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                     </div>
                                   ))}
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
 
-                            {/* Otros mÃ©todos sub-section */}
-                            {otrosTotal > 0 && (
-                              <div>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3 px-1">
-                                  ð³ Otros mÃ©todos ({otrosTotal})
-                                </h3>
+                            {/* Otros métodos sub-section - always visible */}
+                            <div>
+                              <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-3 px-1">
+                                💳 Otros métodos ({otrosTotal})
+                              </h3>
+                              {otrosTotal === 0 ? (
+                                <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-6 text-center">
+                                  <p className="text-white/25 text-sm">Sin pagos con otros métodos esta semana</p>
+                                </div>
+                              ) : (
                                 <div className="space-y-2">
                                   {otrosRows.map((row: any) => (
                                     <div key={row.salary_id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl px-5 py-3 flex items-center gap-4">
@@ -1629,8 +1637,8 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                     </div>
                                   ))}
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
 
                             {/* Cierre Semanal */}
                             <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
