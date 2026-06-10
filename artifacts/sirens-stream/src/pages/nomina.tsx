@@ -331,12 +331,16 @@ const APP_COLORS = {
       Promise.all([
         supabase.from('worker_entries').select('*').eq('app_name', 'Layla'),
         supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
-      ]).then(([{ data: workerData }, { data: agentData }]) => {
+        supabase.from('nomina_history').select('semana').neq('app_name', 'Layla').order('created_at', { ascending: false }).limit(1),
+      ]).then(([{ data: workerData }, { data: agentData }, { data: semanaData }]) => {
         setWorkers((workerData ?? []) as WorkerEntry[])
         const am: Record<string,string> = Object.fromEntries(
           ((agentData ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
         )
         setAgentNameMap(am)
+        // Auto-sync semana with latest Waha/Howdy nomina period so both appear together in Comisiones
+        const latestSemana = ((semanaData ?? []) as any[])[0]?.semana
+        if (latestSemana && latestSemana !== '') setSemana(latestSemana)
         setLoadingWorkers(false)
       })
     }, [open])
