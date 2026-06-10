@@ -57,8 +57,12 @@ import { Router } from 'express';
       const profile = profiles[0];
       if (!profile?.is_agent && !profile?.is_colider) return res.json([]);
 
+      // Workers store the agent_code (e.g. EA-3ASQB6DY) in the agente field, not the agent_name
+      const agentCode = profile.agent_code ?? '';
+      if (!agentCode) return res.json([]);
+
       const workersRes = await fetch(
-        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(profile.agent_name ?? profile.colider_name ?? '')}&select=id,user_id,app_name,nombre_real,nombre_en_app,pais,metodo_pago,agente,created_at&order=created_at.desc`),
+        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(agentCode)}&select=id,user_id,app_name,nombre_real,nombre_en_app,pais,metodo_pago,agente,created_at&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!workersRes.ok) return res.status(workersRes.status).json({ error: await workersRes.text() });
@@ -85,8 +89,10 @@ import { Router } from 'express';
       const profile = profiles[0];
       if (!profile?.is_agent && !profile?.is_colider) return res.json({ entries: [] });
 
+      const agentCodeForNoCobro = profile.agent_code ?? '';
+      if (!agentCodeForNoCobro) return res.json({ entries: [] });
       const workersRes = await fetch(
-        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(profile.agent_name ?? profile.colider_name ?? '')}&select=user_id&order=created_at.desc`),
+        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(agentCodeForNoCobro)}&select=user_id&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       const workers = await workersRes.json() as { user_id: string }[];
