@@ -10,10 +10,6 @@ import { useState, useEffect } from 'react'
   interface AgentRef { agent_name: string; agent_user_id: string | null; locked: boolean; apps: AgentApp[] }
 
   function inputKey(agentId: string, app: string, worker: string) { return `${agentId}__${app}__${worker}` }
-  function calcLayla(monedas: number | null, pct: string): number {
-    if (!monedas || !pct || isNaN(Number(pct)) || Number(pct) <= 0) return 0
-    return (monedas * Number(pct)) / 100
-  }
 
   export default function ComisionesAgente() {
     const { profile, loading } = useAuth()
@@ -24,7 +20,6 @@ import { useState, useEffect } from 'react'
     const [dataLoading, setDataLoading] = useState(false)
     const [coliderPublished, setColiderPublished] = useState(false)
     const [coliderPublishedAt, setColiderPublishedAt] = useState<string | null>(null)
-    const [laylaPercent, setLaylaPercent] = useState<Record<string, string>>({})
     const [inputs, setInputs] = useState<Record<string, string>>({})
     const [publishing, setPublishing] = useState<string | null>(null)
     const [publishingColider, setPublishingColider] = useState(false)
@@ -77,7 +72,7 @@ import { useState, useEffect } from 'react'
             for (const w of app.workers) {
               const k = inputKey(agId, app.app_name, w.worker_name)
               if (w.published_usd !== null) init[k] = String(w.published_usd)
-              else if (app.app_name !== 'Layla' && w.agc_usd > 0) init[k] = (w.agc_usd ?? 0).toFixed(2)
+              else if (w.agc_usd > 0) init[k] = (w.agc_usd ?? 0).toFixed(2)
             }
           }
         }
@@ -212,7 +207,6 @@ import { useState, useEffect } from 'react'
                 const agId = ag.agent_user_id ?? ag.agent_name
                 const isExpanded = expandedAgents.has(agId)
                 const total = agentTotal(ag)
-                const layPct = laylaPercent[agId] ?? ''
                 return (
                   <div key={agId} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
                     <div className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none" onClick={() => toggleAgent(agId)}>
@@ -247,26 +241,6 @@ import { useState, useEffect } from 'react'
                             <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3 flex items-center gap-2">
                               <span className="w-1 h-3 bg-amber-500 rounded-full" />{app.app_name}
                             </p>
-                            {app.app_name === 'Layla' && (
-                              <div className="flex items-center gap-2 mb-3 bg-purple-500/5 border border-purple-500/15 rounded-xl px-3 py-2">
-                                <span className="text-white/50 text-xs shrink-0">% que aplicas:</span>
-                                <input type="number" min="0" max="100" step="0.1" placeholder="ej: 10" value={layPct}
-                                  onChange={e => {
-                                    const pct = e.target.value
-                                    setLaylaPercent(prev => ({ ...prev, [agId]: pct }))
-                                    setInputs(prev => {
-                                      const next = { ...prev }
-                                      for (const w of app.workers) {
-                                        const k = inputKey(agId, 'Layla', w.worker_name)
-                                        if (w.monedas !== null) next[k] = calcLayla(w.monedas, pct).toFixed(2)
-                                      }
-                                      return next
-                                    })
-                                  }}
-                                  className="w-20 bg-[#0d0d1e] border border-purple-500/20 rounded-lg px-2 py-1.5 text-sm text-white text-center focus:outline-none focus:border-amber-500/50" />
-                                <span className="text-white/30 text-xs">%</span>
-                              </div>
-                            )}
                             <div className="space-y-2">
                               {app.workers.map(w => {
                                 const k = inputKey(agId, app.app_name, w.worker_name)
@@ -275,7 +249,7 @@ import { useState, useEffect } from 'react'
                                     <div className="flex-1 min-w-0">
                                       <p className="text-white/85 text-xs font-semibold truncate">{w.worker_name}</p>
                                       <p className="text-white/30 text-xs">
-                                        {app.app_name === 'Layla' ? (w.monedas !== null ? `${w.monedas.toLocaleString('es-ES')} monedas comerciales` : 'Sin datos Layla') : `AGC: $${(w.agc_usd ?? 0).toFixed(2)}`}
+                                        {app.app_name === 'Layla' ? 'Calculado desde nómina' : `AGC: $${(w.agc_usd ?? 0).toFixed(2)}`}
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-1 shrink-0">
