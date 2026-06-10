@@ -319,7 +319,7 @@ const APP_COLORS = {
     const [open, setOpen] = useState<boolean>(false)
     const [workers, setWorkers] = useState<WorkerEntry[]>([])
     const [loadingWorkers, setLoadingWorkers] = useState(false)
-    const [semana, setSemana] = useState('')
+    const [semana, setSemana] = useState(() => isoWeekLabel())
     const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string }>>({})
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
@@ -439,7 +439,7 @@ const APP_COLORS = {
           if (commission <= 0) continue
           if (!agentMap[agente]) agentMap[agente] = []
           agentMap[agente].push({
-            uid: w.id_aplicacion ?? '',
+            uid: w.user_id ?? '',
             nombre: w.nombre_en_app ?? w.nombre_real ?? '',
             salary_usd: calcUSD(v.retiradas),
             commission_usd: commission,
