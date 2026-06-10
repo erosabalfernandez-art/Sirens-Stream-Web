@@ -1156,7 +1156,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                 {w.nombre_real && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.app_name}</span>}
                                 {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
                                 {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
-                    {w.agente && (() => { const aName = agentNameMap[w.agente] ?? w.agente; const aPhone = agentPhoneMap[w.agente]; return aPhone ? (<a href={`https://wa.me/${cleanNum(aPhone)}`} target="_blank" rel="noreferrer" className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/20 transition-colors">{aName} 📱</a>) : (<span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{aName}</span>); })()}
+                    {w.agente && (() => { const aName = agentNameMap[w.agente] ?? w.agente; const aPhone = agentPhoneMap[w.agente]; const _cp = cleanNum(aPhone); return aPhone ? (<a href={`https://wa.me/${_cp}`} target="_blank" rel="noreferrer" className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/20 transition-colors">{aName} 📱</a>) : (<span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{aName}</span>); })()}
                                 {w.telefono && (
                                   <a
                                     href={`https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}`}
@@ -1700,6 +1700,8 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                         )
                       })()
                     )}
+                </div>
+              )}
 
 
               {tab === 'dupes' && (
@@ -2191,11 +2193,12 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                     {w.agente && (() => {
                                       const aName = agentNameMap[w.agente] ?? w.agente
                                       const aPhone = agentPhoneMap[w.agente]
+                                      const cleanPhone = cleanNum(aPhone)
                                       return (
                                         <div>
                                           <p className="text-white/30 mb-0.5">Agente</p>
                                           {aPhone
-                                            ? <a href={`https://wa.me/${cleanNum(aPhone)}`} target="_blank" rel="noreferrer" className="text-green-300 font-medium hover:text-green-200 transition-colors flex items-center gap-1">{aName} <span>📱</span></a>
+                                            ? <a href={`https://wa.me/${cleanPhone}`} target="_blank" rel="noreferrer" className="text-green-300 font-medium hover:text-green-200 transition-colors flex items-center gap-1">{aName} <span>📱</span></a>
                                             : <p className="text-white/80 font-medium">{aName}</p>}
                                         </div>
                                       )
@@ -2405,4 +2408,3 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
         </div>
       )
     }
-}
