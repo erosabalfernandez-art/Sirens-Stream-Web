@@ -140,13 +140,23 @@ import { Link, useLocation } from "wouter";
                 <p className="text-white/40 text-xs mb-3">No se puede cerrar todavía. Esto es lo que falta:</p>
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {result.pending.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between bg-[#1a1a2e] rounded-xl px-4 py-2.5">
-                      <div>
-                        <p className="text-white/80 text-sm font-semibold">{p.name}</p>
-                        <p className="text-white/35 text-xs">{p.app}</p>
+                    <div key={i} className="flex items-start justify-between bg-[#1a1a2e] rounded-xl px-4 py-2.5 gap-3">
+                      <div className="min-w-0">
+                        <p className="text-white/80 text-sm font-semibold truncate">{p.name}</p>
+                        <p className="text-white/40 text-xs">{p.app}</p>
+                        {p.phone && (
+                          <a
+                            href={`https://wa.me/${(p.codigoPais ?? '').replace(/\\D/g,'')}${(p.phone ?? '').replace(/\\D/g,'')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 mt-0.5 text-xs text-green-400 hover:text-green-300 transition-colors"
+                          >
+                            📱 {p.codigoPais} {p.phone}
+                          </a>
+                        )}
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${badgeClass(p.type)}`}>
-                        {p.type}
+                      <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${badgeClass(p.type)}`}>
+                        {p.type === 'colider_pendiente' ? 'colider' : p.type}
                       </span>
                     </div>
                   ))}
