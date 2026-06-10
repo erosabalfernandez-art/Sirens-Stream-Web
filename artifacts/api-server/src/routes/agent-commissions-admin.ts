@@ -177,7 +177,10 @@ import { Router } from 'express'
       const agentMap: Record<string, { agent_user_id: string; agent_name: string; total_usd: number; workers: any[] }> = {}
       for (const c of (comms as any[])) {
         const payMethod = c.agent_user_id ? (agentPayMethods[c.agent_user_id] ?? null) : null
-        if (payMethod !== 'Efectivo (Cuba)') continue
+        // Show agent if their metodo_pago is 'Efectivo (Cuba)' OR if it is unknown (no worker_entries row).
+        // Agents who are pure recruiters (no app) won't have a worker_entries row; we trust the admin
+        // to only publish efectivo-cuba agents to the colider in the first place.
+        if (payMethod !== null && payMethod !== 'Efectivo (Cuba)') continue
         const key = c.agent_user_id ?? c.agent_name
         if (!agentMap[key]) agentMap[key] = { agent_user_id: c.agent_user_id, agent_name: c.agent_name, total_usd: 0, workers: [] }
         agentMap[key].total_usd += Number(c.commission_usd) || 0
