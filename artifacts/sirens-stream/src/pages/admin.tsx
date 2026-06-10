@@ -1717,33 +1717,6 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                     })()}
                   </div>
                 )}
-                                    {agenciaTotal === 0 && (
-                                      <p className="text-center text-white/25 text-sm py-4">Sin pagos por agencia esta semana</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Total General */}
-                              <div className={`bg-[#0d0d1e] border rounded-2xl p-4 ${totalPct === 100 ? 'border-green-500/30' : 'border-white/8'}`}>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className={`text-xs font-bold uppercase tracking-wider ${totalPct === 100 ? 'text-green-300/80' : 'text-white/40'}`}>🏆 Total General</span>
-                                  <span className="text-xs font-bold text-white/40">{totalDone}/{totalTotal} · {totalPct}%</span>
-                                </div>
-                                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                                  <div className={`h-full transition-all duration-500 rounded-full ${totalPct === 100 ? 'bg-green-400' : 'bg-gradient-to-r from-teal-400 to-purple-400'}`} style={{ width: `${totalPct}%` }} />
-                                </div>
-                                <p className={`text-xs mt-1 ${totalPct === 100 ? 'text-green-400/60 font-semibold' : 'text-white/20'}`}>
-                                  {totalPct === 100 ? '✅ Todos los pagos confirmados — cierre semanal disponible' : 'Efectivo (colíder) + Pagos Agencia (admin) · todos los métodos'}
-                                </p>
-                              </div>
-
-                            </div>
-                          )
-                      })()
-                    )}
-                </div>
-              )}
 
 
               {tab === 'dupes' && (
