@@ -148,9 +148,11 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
         const efRate = (agentPub.exchange_rates?.['efectivo_agent'] ?? rm['efectivo_agent']) ?? 0
         for (const ag of (agentPub.agents ?? [])) {
           const usd = Number(ag.total_usd) || 0
+          // Use agent_user_id as person_uid so admin colider-marks lookup works correctly
+          const agUid = ag.agent_user_id ?? ag.agent_name
           entries.push({
-            key: `agent__${ag.agent_name}`,
-            person_uid: ag.agent_name,
+            key: `${agUid}__`,
+            person_uid: agUid,
             person_type: 'agent',
             display_name: ag.agent_name,
             real_name: ag.agent_name,
