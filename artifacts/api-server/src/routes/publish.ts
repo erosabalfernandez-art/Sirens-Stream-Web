@@ -291,22 +291,64 @@ import { Router } from 'express';
   })
 
 
-    // GET /api/no-cobro — admin: all no-cobro entries
-    router.get('/no-cobro', async (req, res) => {
-      try {
-        const r = await fetch(
-          sbUrl('weekly_no_cobro?select=*&order=semana.desc,created_at.desc'),
-          { headers: sbHeaders() as Record<string, string> }
-        );
-        if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
-        const entries = await r.json();
-        return res.json({ ok: true, entries });
-      } catch (e: unknown) {
-        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
-      }
-    });
+    // GET /api/no-cobro — admin: all no-cobro entries enriched with worker + agent data
+      router.get('/no-cobro', async (req, res) => {
+        try {
+          const h = sbHeaders() as Record<string, string>;
 
-    // GET /api/agent/no-cobro — agents & coliders: all no-cobro entries
+          // 1. No-cobro entries
+          const r = await fetch(sbUrl('weekly_no_cobro?select=*&order=semana.desc,created_at.desc'), { headers: h });
+          if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
+          const entries: any[] = await r.json();
+          if (!entries.length) return res.json({ ok: true, entries: [] });
+
+          // 2. Worker entries for this set of users (id_aplicacion, telefono, agente code)
+          const userIds = [...new Set(entries.map((e: any) => e.user_id))];
+          const wRes = await fetch(
+            sbUrl(`worker_entries?user_id=in.(${userIds.join(',')})&select=user_id,app_name,id_aplicacion,telefono,codigo_pais,agente`),
+            { headers: h }
+          );
+          const workers: any[] = wRes.ok ? await wRes.json() : [];
+
+          // 3. Agent profiles by code (name + phone)
+          const agentCodes = [...new Set(workers.map((w: any) => w.agente).filter(Boolean))];
+          let agentProfiles: any[] = [];
+          if (agentCodes.length) {
+            const aRes = await fetch(
+              sbUrl(`profiles?agent_code=in.(${agentCodes.join(',')})&select=agent_code,agent_name,telefono,phone`),
+              { headers: h }
+            );
+            if (aRes.ok) agentProfiles = await aRes.json();
+          }
+
+          // 4. Lookup maps
+          const workerMap: Record<string, any> = {};
+          for (const w of workers) workerMap[`${w.user_id}_${w.app_name}`] = w;
+          const agentMap: Record<string, any> = {};
+          for (const a of agentProfiles) agentMap[a.agent_code] = a;
+
+          // 5. Enrich
+          const enriched = entries.map((e: any) => {
+            const w = workerMap[`${e.user_id}_${e.app_name}`] || {};
+            const ag = agentMap[w.agente] || {};
+            return {
+              ...e,
+              id_aplicacion:       w.id_aplicacion ?? null,
+              telefono_worker:     w.telefono ?? null,
+              codigo_pais_worker:  w.codigo_pais ?? null,
+              agente_code:         w.agente ?? null,
+              agente_name:         ag.agent_name ?? null,
+              agente_phone:        ag.telefono ?? ag.phone ?? null,
+            };
+          });
+
+          return res.json({ ok: true, entries: enriched });
+        } catch (e: unknown) {
+          return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+        }
+      });
+
+      // GET /api/agent/no-cobro — agents & coliders: all no-cobro entries
     router.get('/agent/no-cobro', async (req, res) => {
       try {
         const r = await fetch(
