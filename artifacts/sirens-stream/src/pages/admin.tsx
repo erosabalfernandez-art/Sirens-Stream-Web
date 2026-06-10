@@ -272,6 +272,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           const _adminPaidSet = new Set(((_adminMarks ?? []) as {uid:string}[]).map((r: {uid:string}) => r.uid))
           const mergedWithAdmin = mergedFull.map((row: any) => ({ ...row, admin_paid: _adminPaidSet.has(row.id_aplicacion ?? '') }))
           setPagosData(mergedWithAdmin); setPagosLoading(false)
+          fetchAgentPayData()
         }
 
         async function toggleAdminPaid(uid: string, app: string, semana: string) {
@@ -1498,65 +1499,92 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                       ) : (() => {
                         const efectivoRows = (pagosData as any[]).filter((r: any) => (r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
                         const otrosRows = (pagosData as any[]).filter((r: any) => !(r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
-                        const efectivoDone = efectivoRows.filter((r: any) => r.colider_paid && r.confirmed).length
-                        const efectivoTotal = efectivoRows.length
-                        const efectivoPct = efectivoTotal > 0 ? Math.round(efectivoDone / efectivoTotal * 100) : 100
+                        // Agentes: todos pasan por el colíder (pago en efectivo)
+                        const agentEfectivoAll = [...agentPayData.confirmed, ...agentPayData.pending]
+                        const agentConfirmedIds = new Set(agentPayData.confirmed.map((r: any) => r.id))
+                        // Barra del Colíder: trabajadoras efectivo (colider_paid + confirmó) + agentes (colider_paid + agente confirmó)
+                        const coliderWorkerDone = efectivoRows.filter((r: any) => r.colider_paid && r.confirmed).length
+                        const coliderWorkerTotal = efectivoRows.length
+                        const coliderAgentDone = agentPayData.confirmed.filter((r: any) => r.colider_paid === true).length
+                        const coliderAgentTotal = agentEfectivoAll.length
+                        const coliderDone = coliderWorkerDone + coliderAgentDone
+                        const coliderTotal = coliderWorkerTotal + coliderAgentTotal
+                        const coliderPct = coliderTotal > 0 ? Math.round(coliderDone / coliderTotal * 100) : 100
+                        // Barra Otros Métodos: trabajadoras no-efectivo (admin_paid + confirmó)
                         const otrosDone = otrosRows.filter((r: any) => r.admin_paid && r.confirmed).length
                         const otrosTotal = otrosRows.length
                         const otrosPct = otrosTotal > 0 ? Math.round(otrosDone / otrosTotal * 100) : 100
-                        const allDone = efectivoPct === 100 && otrosPct === 100
+                        // Barra Total General
+                        const totalDone = coliderDone + otrosDone
+                        const totalTotal = coliderTotal + otrosTotal
+                        const totalPct = totalTotal > 0 ? Math.round(totalDone / totalTotal * 100) : 100
+                        // Aliases para UI existente
+                        const efectivoDone = coliderWorkerDone
+                        const efectivoTotal = coliderWorkerTotal
+                        const efectivoPct = coliderWorkerTotal > 0 ? Math.round(coliderWorkerDone / coliderWorkerTotal * 100) : 100
+                        const allDone = coliderPct === 100 && otrosPct === 100 && totalPct === 100
                         return (
                           <div className="space-y-5">
                             {/* Stats */}
                             <div className="grid grid-cols-3 gap-3">
                               <div className="bg-[#0d0d1e] border border-teal-500/20 rounded-2xl p-4 text-center">
-                                <p className="text-2xl font-extrabold text-teal-400">{efectivoTotal}</p>
-                                <p className="text-xs text-white/40 mt-1">Efectivo (Cuba)</p>
+                                <p className="text-2xl font-extrabold text-teal-400">{coliderTotal}</p>
+                                <p className="text-xs text-white/40 mt-1">Pagos del Colíder</p>
                               </div>
                               <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-4 text-center">
                                 <p className="text-2xl font-extrabold text-purple-400">{otrosTotal}</p>
                                 <p className="text-xs text-white/40 mt-1">Otros métodos</p>
                               </div>
                               <div className="bg-[#0d0d1e] border border-white/5 rounded-2xl p-4 text-center">
-                                <p className="text-2xl font-extrabold text-white/70">{(pagosData as any[]).length}</p>
-                                <p className="text-xs text-white/40 mt-1">Total cobraron</p>
+                                <p className="text-2xl font-extrabold text-white/70">{totalTotal}</p>
+                                <p className="text-xs text-white/40 mt-1">Total general</p>
                               </div>
                             </div>
 
-                            {/* Progress bar: Efectivo */}
-                            {efectivoTotal > 0 && (
-                              <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-bold text-teal-300/70 uppercase tracking-wider">💵 Efectivo (Cuba)</span>
-                                  <span className="text-xs font-bold text-white/40">{efectivoDone}/{efectivoTotal} · {efectivoPct}%</span>
-                                </div>
-                                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                                  <div className="h-full bg-teal-400 transition-all duration-500 rounded-full" style={{ width: `${efectivoPct}%` }} />
-                                </div>
-                                <p className="text-xs text-white/20 mt-1">Colider marcó pagado + trabajadora confirmó</p>
+                            {/* Progress bar: Pagos del Colíder */}
+                            <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-teal-300/70 uppercase tracking-wider">💵 Pagos del Colíder</span>
+                                <span className="text-xs font-bold text-white/40">{coliderDone}/{coliderTotal} · {coliderPct}%</span>
                               </div>
-                            )}
+                              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-teal-400 transition-all duration-500 rounded-full" style={{ width: `${coliderPct}%` }} />
+                              </div>
+                              <p className="text-xs text-white/20 mt-1">Colider marcó pagado + persona confirmó · trabajadoras efectivo + agentes</p>
+                            </div>
 
                             {/* Progress bar: Otros métodos */}
-                            {otrosTotal > 0 && (
-                              <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-bold text-purple-300/70 uppercase tracking-wider">💳 Otros métodos</span>
-                                  <span className="text-xs font-bold text-white/40">{otrosDone}/{otrosTotal} · {otrosPct}%</span>
-                                </div>
-                                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                                  <div className="h-full bg-purple-400 transition-all duration-500 rounded-full" style={{ width: `${otrosPct}%` }} />
-                                </div>
-                                <p className="text-xs text-white/20 mt-1">Admin marcó pagado + trabajadora confirmó</p>
+                            <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-purple-300/70 uppercase tracking-wider">💳 Otros métodos</span>
+                                <span className="text-xs font-bold text-white/40">{otrosDone}/{otrosTotal} · {otrosPct}%</span>
                               </div>
-                            )}
+                              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-purple-400 transition-all duration-500 rounded-full" style={{ width: `${otrosPct}%` }} />
+                              </div>
+                              <p className="text-xs text-white/20 mt-1">Admin marcó pagado + trabajadora confirmó</p>
+                            </div>
+
+                            {/* Progress bar: Total General */}
+                            <div className={`bg-[#0d0d1e] border rounded-2xl p-4 ${totalPct === 100 ? 'border-green-500/30' : 'border-white/8'}`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className={`text-xs font-bold uppercase tracking-wider ${totalPct === 100 ? 'text-green-300/80' : 'text-white/40'}`}>🏆 Total General</span>
+                                <span className="text-xs font-bold text-white/40">{totalDone}/{totalTotal} · {totalPct}%</span>
+                              </div>
+                              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div className={`h-full transition-all duration-500 rounded-full ${totalPct === 100 ? 'bg-green-400' : 'bg-gradient-to-r from-teal-400 to-purple-400'}`} style={{ width: `${totalPct}%` }} />
+                              </div>
+                              <p className={`text-xs mt-1 ${totalPct === 100 ? 'text-green-400/60 font-semibold' : 'text-white/20'}`}>
+                                {totalPct === 100 ? '✅ Todos los pagos confirmados — cierre semanal disponible' : 'Colíder + Admin · todos los métodos combinados'}
+                              </p>
+                            </div>
 
                             {/* Efectivo sub-section - always visible */}
                             <div>
                               <h3 className="text-xs font-bold uppercase tracking-widest text-teal-400/70 mb-3 px-1">
-                                💵 Efectivo (Cuba) · pago del colíder ({efectivoTotal})
+                                💵 Efectivo (Cuba) · pagos del colíder ({coliderTotal})
                               </h3>
-                              {efectivoTotal === 0 ? (
+                              {coliderTotal === 0 ? (
                                 <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl p-6 text-center">
                                   <p className="text-white/25 text-sm">Sin pagos en efectivo esta semana</p>
                                 </div>
@@ -1590,6 +1618,33 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                                       </div>
                                     </div>
                                   ))}
+                                  {/* Agent efectivo section */}
+                                  {agentEfectivoAll.length > 0 && (
+                                    <>
+                                      <p className="text-xs font-bold text-amber-400/60 uppercase tracking-wider pt-3 pb-1 px-1">🤝 Agentes</p>
+                                      {agentEfectivoAll.map((row: any, idx: number) => (
+                                        <div key={row.id ?? idx} className="bg-[#0d0d1e] border border-amber-500/15 rounded-2xl px-5 py-3 flex items-center gap-4">
+                                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                                            {(row.colider_paid && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-4 h-4 text-amber-400" /> : <Clock className="w-4 h-4 text-amber-400/40" />}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
+                                            <p className="text-xs text-white/35">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)} USD</span></p>
+                                            {row.email && <p className="text-xs text-white/20 mt-0.5">{row.email}</p>}
+                                          </div>
+                                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                            {row.colider_paid === true && <span className="text-xs bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                            {row.colider_paid === false && <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full">Sin pagar</span>}
+                                            {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-xs text-white/20">Sin marcar</span>}
+                                            {agentConfirmedIds.has(row.id)
+                                              ? <span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmado ✓</span>
+                                              : <span className="text-xs text-white/25">Sin confirmar</span>}
+                                            <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300/80 px-2 py-0.5 rounded-full">Agente</span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </>
+                                  )}
                                 </div>
                               )}
                             </div>
