@@ -7,8 +7,12 @@ import webPush, { PushSubscriptionJSON } from 'web-push';
     let vapidReady = false;
     export function ensureVapid() {
       if (!vapidReady && VAPID_PUBLIC && VAPID_PRIVATE) {
-        webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
-        vapidReady = true;
+        try {
+          webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+          vapidReady = true;
+        } catch (e) {
+          console.error('[push] ensureVapid failed:', e instanceof Error ? e.message : e);
+        }
       }
       return vapidReady;
     }
