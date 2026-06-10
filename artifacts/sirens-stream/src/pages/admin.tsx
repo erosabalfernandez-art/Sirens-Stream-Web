@@ -713,6 +713,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
       useEffect(() => {
         function onCierre() {
           setPagosData([])
+          setPagosSemana('')
           setNoCobroEntries([])
           setColiderMarks({ paid: [], pending: [] })
           setAgentPayData({ confirmed: [], pending: [] })
@@ -1640,62 +1641,6 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
                               )}
                             </div>
 
-                            {/* Cierre Semanal */}
-                            <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-5">
-                              <h3 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">Cierre Semanal · {pagosSemana}</h3>
-                              <div className="flex flex-col sm:flex-row gap-3">
-                                <button
-                                  onClick={async () => {
-                                    if (!allDone || cierreLoading) return
-                                    setCierreLoading(true)
-                                    try {
-                                      const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
-                                      const r = await fetch(`${apiBase}/api/cierre-semanal`, {
-                                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ force: false }),
-                                      })
-                                      const d = await r.json() as any
-                                      if (d.ok) {
-                                        window.dispatchEvent(new Event('ea_cierre_done'))
-                                        try { localStorage.setItem('ea_cierre_done_ts', Date.now().toString()) } catch {}
-                                        setPagosData([]); setPagosSemana('')
-                                      } else {
-                                        alert(`No se pudo cerrar: ${d.error ?? d.reason ?? 'faltan confirmaciones'}`)
-                                      }
-                                    } finally { setCierreLoading(false) }
-                                  }}
-                                  disabled={!allDone || cierreLoading}
-                                  title={!allDone ? `Ambas barras deben llegar al 100% — Efectivo: ${efectivoPct}%, Otros: ${otrosPct}%` : 'Cerrar semana normalmente'}
-                                  className={`flex-1 py-3 px-5 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${allDone && !cierreLoading ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-white/5 text-white/25 cursor-not-allowed'}`}>
-                                  {cierreLoading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> Cerrando...</> : <>✓ Cierre Normal {!allDone && <span className="text-xs font-normal opacity-50">({efectivoPct}%·{otrosPct}%)</span>}</>}
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    if (!confirm('¿Forzar cierre? Restablece todo sin esperar confirmaciones.')) return
-                                    setCierreLoading(true)
-                                    try {
-                                      const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
-                                      const r = await fetch(`${apiBase}/api/cierre-semanal`, {
-                                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ force: true }),
-                                      })
-                                      const d = await r.json() as any
-                                      if (d.ok) {
-                                        window.dispatchEvent(new Event('ea_cierre_done'))
-                                        try { localStorage.setItem('ea_cierre_done_ts', Date.now().toString()) } catch {}
-                                        setPagosData([]); setPagosSemana('')
-                                      } else {
-                                        alert(`Error al forzar cierre: ${d.error ?? 'desconocido'}`)
-                                      }
-                                    } finally { setCierreLoading(false) }
-                                  }}
-                                  disabled={cierreLoading}
-                                  className="flex-1 py-3 px-5 rounded-2xl text-sm font-bold bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-300 hover:text-red-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                  ⚡ Forzar Cierre
-                                </button>
-                              </div>
-                              {!allDone && <p className="text-xs text-white/20 mt-3 text-center">Las barras deben estar al 100% para el cierre normal. Forzar siempre está disponible.</p>}
-                            </div>
                           </div>
                         )
                       })()
