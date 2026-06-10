@@ -319,7 +319,7 @@ const APP_COLORS = {
     const [open, setOpen] = useState<boolean>(false)
     const [workers, setWorkers] = useState<WorkerEntry[]>([])
     const [loadingWorkers, setLoadingWorkers] = useState(false)
-    const [semana, setSemana] = useState(() => isoWeekLabel())
+    const [semana, setSemana] = useState(() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })
     const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string }>>({})
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
@@ -331,16 +331,15 @@ const APP_COLORS = {
       Promise.all([
         supabase.from('worker_entries').select('*').eq('app_name', 'Layla'),
         supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
-        supabase.from('nomina_history').select('semana').neq('app_name', 'Layla').order('created_at', { ascending: false }).limit(1),
-      ]).then(([{ data: workerData }, { data: agentData }, { data: semanaData }]) => {
+      ]).then(([{ data: workerData }, { data: agentData }]) => {
         setWorkers((workerData ?? []) as WorkerEntry[])
         const am: Record<string,string> = Object.fromEntries(
           ((agentData ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
         )
         setAgentNameMap(am)
-        // Auto-sync semana with latest Waha/Howdy nomina period so both appear together in Comisiones
-        const latestSemana = ((semanaData ?? []) as any[])[0]?.semana
-        if (latestSemana && latestSemana !== '') setSemana(latestSemana)
+        // Sync semana from localStorage (set by Waha upload, cleared by cierre semanal)
+        const activeSemana = (() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })()
+        if (activeSemana) setSemana(activeSemana)
         setLoadingWorkers(false)
       })
     }, [open])
@@ -349,7 +348,9 @@ const APP_COLORS = {
       function onCierre() {
         setValues({})
         setPublishedOk(false)
+        setSemana('')
         try { localStorage.removeItem('ea_nomina_layla_published') } catch {}
+        try { localStorage.removeItem('ea_active_semana') } catch {}
       }
       window.addEventListener('ea_cierre_done', onCierre)
       return () => window.removeEventListener('ea_cierre_done', onCierre)
@@ -738,6 +739,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         delete all[app]
         localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(all))
       } catch {}
+      try { localStorage.removeItem('ea_active_semana') } catch {}
     }
     window.addEventListener('ea_cierre_done', onCierre)
     return () => window.removeEventListener('ea_cierre_done', onCierre)
@@ -1014,6 +1016,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
       const sem = nominaRows[0]?.semana || isoWeekLabel()
       setSemana(sem)
+      try { localStorage.setItem('ea_active_semana', sem) } catch {}
 
       const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', app)
       if (entriesErr) throw new Error('Error de base de datos: ' + entriesErr.message)
@@ -1222,16 +1225,10 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
                   <Download className="w-4 h-4" /> Exportar PDF
                 </button>
-                {publishedOk ? (
-                  <span className="flex items-center gap-1.5 text-yellow-400/70 text-xs font-semibold bg-yellow-500/10 px-3 py-2 rounded-xl border border-yellow-500/20">
-                    🔒 Haz cierre semanal para subir otra nómina
-                  </span>
-                ) : (
                 <button onClick={reset}
                   className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
                   <Upload className="w-4 h-4" /> Nueva nómina
                 </button>
-                )}
               </div>
 
               <div className="p-5 space-y-6">
