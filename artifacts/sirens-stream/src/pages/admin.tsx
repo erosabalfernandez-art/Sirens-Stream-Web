@@ -1774,6 +1774,7 @@ CREATE POLICY "admin_read_all" ON payment_confirmations FOR SELECT USING (
 
                             </div>
                           )
+                      })()
                     )}
                 </div>
               )}
