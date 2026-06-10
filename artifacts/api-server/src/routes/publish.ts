@@ -357,11 +357,11 @@ import { Router } from 'express';
           const h = sbHeaders() as Record<string, string>;
 
           // 1. Get agent_code from profile
-          const profR = await fetch(sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=agent_code,colider_code`), { headers: h });
+          const profR = await fetch(sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=agent_code`), { headers: h });
           if (!profR.ok) return res.status(500).json({ error: 'profile lookup failed' });
-          const profs = await profR.json() as Array<{ agent_code: string | null; colider_code: string | null }>;
+          const profs = await profR.json() as Array<{ agent_code: string | null }>;
           const prof = profs[0];
-          const agentCode = prof?.agent_code ?? prof?.colider_code ?? null;
+          const agentCode = prof?.agent_code ?? null;
           if (!agentCode) return res.json({ ok: true, entries: [] });
 
           // 2. Get worker user_ids that belong to this agent
