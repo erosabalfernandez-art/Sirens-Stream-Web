@@ -2183,7 +2183,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                                     {w.agente && (() => {
                                       const aName = agentNameMap[w.agente] ?? w.agente
                                       const aPhone = agentPhoneMap[w.agente]
-                                      const cleanPhone = aPhone ? aPhone.replace(/[^0-9]/g, '') : ''
+                                      const cleanPhone = cleanNum(aPhone)
                                       return (
                                         <div>
                                           <p className="text-white/30 mb-0.5">Agente</p>
