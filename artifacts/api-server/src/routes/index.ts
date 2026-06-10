@@ -15,6 +15,7 @@ import { Router, type IRouter } from 'express';
       import channelsRouter from './channels';
   import profileRouter from './profile';
   import agentCommissionsAdminRouter from './agent-commissions-admin';
+  import customWorkerRatesRouter from './custom-worker-rates';
 
         const router: IRouter = Router();
 
@@ -34,6 +35,7 @@ import { Router, type IRouter } from 'express';
       router.use(channelsRouter);
     router.use(profileRouter);
     router.use(agentCommissionsAdminRouter);
+    router.use(customWorkerRatesRouter);
 
         export default router;
         
