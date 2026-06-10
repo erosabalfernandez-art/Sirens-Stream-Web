@@ -694,7 +694,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           if (s.aiSummary) setAiSummary(s.aiSummary)
           if (s.publishedOk) setPublishedOk(true)
           setStep('results')
-          setSectionOpen(true); persistOpen(true)
+          // (do NOT force open — respect user's saved preference)
           // Background check: if cierre was done, clear stale data
           void (async () => {
             try {
@@ -734,7 +734,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
             setFileName(entry.file_name ?? '')
             if (entry.published) setPublishedOk(true)
             setStep('results')
-            setSectionOpen(true); persistOpen(true)
+            // (do NOT force open — respect user's saved preference)
             try {
               const all = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
               all[app] = { cobradas: entry.rows_data.cobradas, noCobro: entry.rows_data.noCobro ?? [], sinPerfil: entry.rows_data.sinPerfil ?? [], semana: entry.semana, aiSummary: null, fileName: entry.file_name ?? '', publishedOk: entry.published ?? false }
@@ -1109,7 +1109,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           }),
         })
       } catch {}
-      setStep('results')
+      setStep('results'); setSectionOpen(true); persistOpen(true)
       callGroq(cobradasList, noCobroList, sem)
     } catch (err: any) {
       setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
