@@ -329,12 +329,11 @@ import { Router } from 'express'
       }
       if (colider_user_id) statusPayload.colider_user_id = colider_user_id
 
-      const conflictCols = colider_user_id ? 'semana,colider_user_id' : 'semana'
-      await sbPost(
-        `colider_week_status?on_conflict=${conflictCols}`,
-        statusPayload,
-        'resolution=merge-duplicates,return=minimal'
-      )
+      // DELETE + INSERT because colider_week_status may not have a unique constraint
+      let delFilter = `semana=eq.${encodeURIComponent(semana)}`
+      if (colider_user_id) delFilter += `&colider_user_id=eq.${encodeURIComponent(colider_user_id)}`
+      await sbDel('colider_week_status', delFilter)
+      await sbPost('colider_week_status', statusPayload, 'return=minimal')
 
       const admins = await sbGet('profiles?is_admin=eq.true&select=id')
       const adminIds: string[] = admins.map((a: any) => a.id as string)
@@ -367,9 +366,11 @@ import { Router } from 'express'
     if (!semana) { res.status(400).json({ error: 'semana required' }); return }
     try {
       await sbDel('colider_marks', `semana=eq.${encodeURIComponent(semana)}`)
-      await sbPost('colider_week_status?on_conflict=semana', {
+      // DELETE + INSERT because colider_week_status may not have a unique constraint on semana
+      await sbDel('colider_week_status', `semana=eq.${encodeURIComponent(semana)}`)
+      await sbPost('colider_week_status', {
         semana, notified: false, admin_closed: true, admin_closed_at: new Date().toISOString()
-      }, 'resolution=merge-duplicates,return=minimal')
+      }, 'return=minimal')
       res.json({ ok: true })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
