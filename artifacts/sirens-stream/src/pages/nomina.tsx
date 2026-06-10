@@ -35,7 +35,16 @@ function isoWeekLabel(date = new Date()): string {
   interface Matched  { worker: WorkerRow; nomina: NominaRow }
   interface NoCobro  { worker: WorkerRow; nomina: NominaRow | null }
 
-  interface HistoryEntry {
+  interface CustomWorkerRate {
+      id?: string
+      user_id: string
+      app_name: string
+      nombre_en_app: string | null
+      efectivo_rate: number
+      transferencia_rate: number
+    }
+
+    interface HistoryEntry {
     id: string
     app_name: string
     semana: string
@@ -1620,6 +1629,15 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [nominaSavingRate, setNominaSavingRate] = useState<string|null>(null)
   const [nominaRateSaved, setNominaRateSaved] = useState<string|null>(null)
   const [showCambio, setShowCambio] = useState(false)
+    const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/,'')
+    const [showPersonalizado, setShowPersonalizado] = useState(false)
+    const [customRates, setCustomRates] = useState<CustomWorkerRate[]>([])
+    const [allWorkers, setAllWorkers] = useState<{user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null}[]>([])
+    const [workerSearch, setWorkerSearch] = useState('')
+    const [loadingCustom, setLoadingCustom] = useState(false)
+    const [setupNeeded, setSetupNeeded] = useState(false)
+    const [savingCustomKey, setSavingCustomKey] = useState<string|null>(null)
+    const [customInputs, setCustomInputs] = useState<Record<string,{ef:string,tr:string}>>({})
 
   if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
@@ -1668,7 +1686,57 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     setNominaSavingRate(null); setNominaRateSaved(id); setTimeout(() => setNominaRateSaved(null), 3000)
   }
 
-  async function fetchHistory() {
+  async function loadCustomRates() {
+      setLoadingCustom(true)
+      setSetupNeeded(false)
+      try {
+        const [workersRes, ratesRes] = await Promise.all([
+          supabase.from('worker_entries').select('user_id,app_name,nombre_en_app,nombre_real,metodo_pago').order('nombre_en_app'),
+          fetch(API_URL + '/api/admin/custom-worker-rates').then(r => r.json()).catch(() => ({ rates: [], setup_needed: true }))
+        ])
+        if (ratesRes.setup_needed) { setSetupNeeded(true); setLoadingCustom(false); return }
+        const workers = (workersRes.data ?? []) as {user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null}[]
+        setAllWorkers(workers)
+        setCustomRates(ratesRes.rates ?? [])
+        const inputs: Record<string,{ef:string,tr:string}> = {}
+        for (const r of (ratesRes.rates ?? []) as CustomWorkerRate[]) {
+          const k = r.user_id + '::' + r.app_name
+          inputs[k] = { ef: r.efectivo_rate > 0 ? String(r.efectivo_rate) : '', tr: r.transferencia_rate > 0 ? String(r.transferencia_rate) : '' }
+        }
+        setCustomInputs(inputs)
+      } catch (e) { console.error(e) }
+      setLoadingCustom(false)
+    }
+
+    async function saveCustomRate(userId: string, appName: string, nombreEnApp: string | null) {
+      const k = userId + '::' + appName
+      const inp = customInputs[k] ?? { ef: '', tr: '' }
+      const ef = parseFloat(inp.ef) || 0
+      const tr = parseFloat(inp.tr) || 0
+      setSavingCustomKey(k)
+      try {
+        const res = await fetch(API_URL + '/api/admin/custom-worker-rates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, app_name: appName, nombre_en_app: nombreEnApp, efectivo_rate: ef, transferencia_rate: tr })
+        })
+        const data = await res.json()
+        if (data.setup_needed) { setSetupNeeded(true) } else { await loadCustomRates() }
+      } catch {}
+      setSavingCustomKey(null)
+    }
+
+    async function deleteCustomRate(userId: string, appName: string) {
+      const k = userId + '::' + appName
+      setSavingCustomKey(k)
+      try {
+        await fetch(API_URL + '/api/admin/custom-worker-rates?user_id=' + encodeURIComponent(userId) + '&app_name=' + encodeURIComponent(appName), { method: 'DELETE' })
+        await loadCustomRates()
+      } catch {}
+      setSavingCustomKey(null)
+    }
+
+    async function fetchHistory() {
     setHistoryLoading(true)
     const { data } = await supabase
       .from('nomina_history')
@@ -1802,8 +1870,156 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           </div>
         )}
 
-        {historyView ? (
-          <HistoryPanel
+        {/* 🎯 Cambio Personalizado */}
+          {!historyView && (
+            <div className="bg-[#0d0d1e] border border-violet-500/20 rounded-2xl overflow-hidden mb-4">
+              <button
+                onClick={() => { if (!showPersonalizado) { loadCustomRates() } setShowPersonalizado(prev => !prev) }}
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-violet-500/5 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🎯</span>
+                  <span className="text-violet-300 text-sm font-bold">Cambio Personalizado por Trabajadora</span>
+                  {customRates.length > 0 && (
+                    <span className="text-xs bg-violet-500/15 border border-violet-500/25 text-violet-300 px-2 py-0.5 rounded-full">
+                      {customRates.length} asignado{customRates.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                <span className="text-white/30 text-xs">{showPersonalizado ? '▲ Cerrar' : '▼ Editar'}</span>
+              </button>
+
+              {showPersonalizado && (
+                <div className="border-t border-violet-500/10 p-5">
+                  <p className="text-white/40 text-xs mb-4 leading-relaxed">
+                    Asigna un tipo de cambio exclusivo a trabajadoras específicas. Ese cambio reemplaza el global solo para ellas — lo verán en sus salarios y el colider lo verá en sus cálculos.
+                  </p>
+
+                  {setupNeeded && (
+                    <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 mb-4">
+                      <p className="text-rose-300 text-xs font-bold mb-1">⚠️ Tabla no creada en Supabase</p>
+                      <p className="text-rose-200/70 text-xs mb-3">Ejecuta este SQL en el Editor SQL de Supabase y presiona Reintentar:</p>
+                      <pre className="bg-black/40 rounded-lg p-3 text-xs text-green-300 font-mono overflow-x-auto whitespace-pre-wrap select-all">{`CREATE TABLE IF NOT EXISTS custom_worker_rates (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id text NOT NULL,
+    app_name text NOT NULL,
+    nombre_en_app text,
+    efectivo_rate numeric(10,2) NOT NULL DEFAULT 0,
+    transferencia_rate numeric(10,2) NOT NULL DEFAULT 0,
+    updated_at timestamptz DEFAULT now(),
+    UNIQUE(user_id, app_name)
+  );
+  ALTER TABLE custom_worker_rates ENABLE ROW LEVEL SECURITY;`}</pre>
+                      <button onClick={loadCustomRates} className="mt-3 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg transition-all">Reintentar</button>
+                    </div>
+                  )}
+
+                  {loadingCustom && (
+                    <div className="flex items-center gap-2 text-white/40 text-sm py-6 justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin" /><span>Cargando...</span>
+                    </div>
+                  )}
+
+                  {!loadingCustom && !setupNeeded && (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                        <input type="text" value={workerSearch} onChange={e => setWorkerSearch(e.target.value)}
+                          placeholder="Buscar por nombre o app..."
+                          className="w-full bg-black/30 border border-white/10 rounded-xl pl-8 pr-8 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-violet-500/50"
+                        />
+                        {workerSearch && (
+                          <button onClick={() => setWorkerSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <X className="w-3.5 h-3.5 text-white/30 hover:text-white/70" />
+                          </button>
+                        )}
+                      </div>
+
+                      {customRates.length > 0 && (
+                        <div className="bg-violet-500/5 border border-violet-500/15 rounded-xl p-3">
+                          <p className="text-violet-300 text-xs font-bold mb-2">📋 Cambios activos</p>
+                          <div className="space-y-1">
+                            {customRates.map(cr => (
+                              <div key={cr.user_id + '::' + cr.app_name} className="flex items-center justify-between text-xs">
+                                <span className="text-white/60">{cr.nombre_en_app ?? cr.user_id} <span className="text-violet-400/60">· {cr.app_name}</span></span>
+                                <div className="flex items-center gap-2">
+                                  {cr.efectivo_rate > 0 && <span className="text-amber-400 font-bold">Ef: {cr.efectivo_rate.toLocaleString('es-ES')}</span>}
+                                  {cr.transferencia_rate > 0 && <span className="text-blue-400 font-bold">Tr: {cr.transferencia_rate.toLocaleString('es-ES')}</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(() => {
+                        const search = workerSearch.toLowerCase()
+                        const filtered = allWorkers.filter(w =>
+                          !search ||
+                          (w.nombre_en_app ?? '').toLowerCase().includes(search) ||
+                          (w.nombre_real ?? '').toLowerCase().includes(search) ||
+                          w.app_name.toLowerCase().includes(search)
+                        )
+                        if (filtered.length === 0) return (
+                          <p className="text-white/30 text-sm text-center py-6">
+                            {workerSearch ? 'No se encontraron trabajadoras con ese criterio.' : 'No hay trabajadoras registradas aún.'}
+                          </p>
+                        )
+                        return filtered.map(w => {
+                          const k = w.user_id + '::' + w.app_name
+                          const existing = customRates.find(r => r.user_id === w.user_id && r.app_name === w.app_name)
+                          const inp = customInputs[k] ?? { ef: '', tr: '' }
+                          const isSaving = savingCustomKey === k
+                          return (
+                            <div key={k} className="bg-black/20 border border-white/8 rounded-xl p-3">
+                              <div className="flex items-center justify-between mb-2.5">
+                                <div>
+                                  <span className="text-white/80 text-sm font-semibold">{w.nombre_en_app ?? '—'}</span>
+                                  {w.nombre_real && <span className="text-white/35 text-xs ml-2">{w.nombre_real}</span>}
+                                  <span className="ml-2 text-xs bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded">{w.app_name}</span>
+                                  {existing && <span className="ml-1 text-xs text-violet-300/60">· personalizado</span>}
+                                </div>
+                                {existing && (
+                                  <button onClick={() => deleteCustomRate(w.user_id, w.app_name)} disabled={isSaving}
+                                    className="text-xs text-rose-400/70 hover:text-rose-400 transition-colors disabled:opacity-40 px-2 py-0.5 rounded hover:bg-rose-500/10">
+                                    Borrar
+                                  </button>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <p className="text-amber-400/70 text-xs font-bold mb-1">💵 Efectivo CUP</p>
+                                  <input type="number" min="0" step="any" value={inp.ef}
+                                    onChange={e => setCustomInputs(prev => ({ ...prev, [k]: { ...(prev[k] ?? {ef:'',tr:''}), ef: e.target.value } }))}
+                                    placeholder={existing?.efectivo_rate ? String(existing.efectivo_rate) : 'Ej: 420'}
+                                    className="w-full bg-[#07070f] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500/50" />
+                                </div>
+                                <div>
+                                  <p className="text-blue-400/70 text-xs font-bold mb-1">🏦 Transferencia CUP</p>
+                                  <input type="number" min="0" step="any" value={inp.tr}
+                                    onChange={e => setCustomInputs(prev => ({ ...prev, [k]: { ...(prev[k] ?? {ef:'',tr:''}), tr: e.target.value } }))}
+                                    placeholder={existing?.transferencia_rate ? String(existing.transferencia_rate) : 'Ej: 420'}
+                                    className="w-full bg-[#07070f] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500/50" />
+                                </div>
+                              </div>
+                              <button onClick={() => saveCustomRate(w.user_id, w.app_name, w.nombre_en_app)}
+                                disabled={isSaving || (!inp.ef && !inp.tr)}
+                                className="mt-2 w-full text-xs font-bold py-1.5 rounded-lg transition-all disabled:opacity-40 bg-violet-600 hover:bg-violet-500 text-white">
+                                {isSaving ? '...' : existing ? '✓ Actualizar cambio' : 'Guardar cambio personalizado'}
+                              </button>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {historyView ? (
+            <HistoryPanel
             history={history}
             historyLoading={historyLoading}
             historyFilterSemana={historyFilterSemana}
