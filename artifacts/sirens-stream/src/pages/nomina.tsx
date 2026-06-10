@@ -319,7 +319,7 @@ const APP_COLORS = {
     const [open, setOpen] = useState<boolean>(false)
     const [workers, setWorkers] = useState<WorkerEntry[]>([])
     const [loadingWorkers, setLoadingWorkers] = useState(false)
-    const semana = isoWeekLabel()
+    const [semana, setSemana] = useState('')
     const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string }>>({})
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
@@ -615,7 +615,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [cobradas, setCobradas] = useState<Matched[]>([])
   const [noCobro, setNoCobro] = useState<NoCobro[]>([])
   const [sinPerfil, setSinPerfil] = useState<NominaRow[]>([])
-  const semana = isoWeekLabel()
+  const [semana, setSemana] = useState('')
   const [fileName, setFileName] = useState('')
   const [tab, setTab] = useState<'cobradas' | 'nocobro' | 'sinperfil'>('cobradas')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -1138,7 +1138,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           <span className="font-extrabold text-lg tracking-tight">{app}</span>
           {step === 'results' && cobradas.length > 0 && (
             <span className="text-xs text-white/60 font-normal hidden sm:inline">
-              {semana && `${semana} · `}{cobradas.length} cobraron · ${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD
+              {cobradas.length} cobraron · ${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD
             </span>
           )}
           {step === 'upload' && (
