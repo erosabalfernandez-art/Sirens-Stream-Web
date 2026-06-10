@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { dispatchPush } from '../lib/push-dispatch';
 
       const router = Router();
 
@@ -336,7 +337,24 @@ import { Router } from 'express';
 
             await Promise.all(cleanupOps);
 
-          return res.json({ ok: true, allConfirmed: true, semana: latestSemana, forced: force });
+            // Notify workers, agents, and coliders that the week was officially closed (fire-and-forget)
+            setImmediate(async () => {
+              try {
+                const workerIds = [...new Set(allSalaries.filter((s: any) => s.semana === latestSemana).map((s: any) => s.user_id as string))];
+                const agentIds  = [...new Set(allCommissions.filter((c: any) => c.semana === latestSemana && c.agent_user_id).map((c: any) => c.agent_user_id as string))];
+                const colRes = await fetch(sbUrl('profiles?role=eq.colider&select=id'), { headers: sbH() });
+                const coliders: any[] = colRes.ok ? await colRes.json() : [];
+                const coliderIds = coliders.map((r: any) => r.id as string).filter(Boolean);
+                const semLabel = latestSemana ?? '';
+                const notifs: Promise<any>[] = [];
+                if (workerIds.length > 0) notifs.push(dispatchPush(workerIds, '🔒 Semana cerrada', `Semana ${semLabel} cerrada. Tu historial de pagos está guardado en /salarios.`, '/salarios'));
+                if (agentIds.length  > 0) notifs.push(dispatchPush(agentIds,  '🔒 Semana cerrada', `Semana ${semLabel} cerrada. El ciclo se ha reiniciado.`, '/agente'));
+                if (coliderIds.length > 0) notifs.push(dispatchPush(coliderIds, '🔒 Semana cerrada', `El admin cerró la semana ${semLabel}. El ciclo se reinicia.`, '/colider'));
+                await Promise.all(notifs);
+              } catch { /* ignore push errors */ }
+            });
+
+            return res.json({ ok: true, allConfirmed: true, semana: latestSemana, forced: force });
         } catch (e: unknown) {
           return res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' });
         }
