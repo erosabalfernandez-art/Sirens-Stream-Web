@@ -155,14 +155,6 @@ import { useState, useEffect } from 'react'
           </div>
 
           {messages['_load'] && <p className="text-xs font-semibold text-red-400 mb-3">{messages['_load']}</p>}
-          {weeks.length > 0 && (
-            <div className="mb-4">
-              <select value={semana} onChange={e => setSemana(e.target.value)}
-                className="w-full bg-[#0d0d1e] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500/50">
-                {weeks.map(w => <option key={w} value={w}>Semana {w}</option>)}
-              </select>
-            </div>
-          )}
 
           {agents.length > 0 && (
             <div className="mb-4 bg-[#0d0d1e] border border-amber-500/10 rounded-xl px-4 py-3">
