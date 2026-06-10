@@ -214,7 +214,18 @@ import { Router } from 'express'
       }
       const wm: Record<string,any> = {}
       for (const w of workers) wm[`${w.user_id}__${w.app_name}`] = w
-      const enriched = salaries.map((s: any) => ({ ...s, ...wm[`${s.user_id}__${s.app_name}`] ?? {} }))
+      // Fetch per-worker custom exchange rates
+        let customRateMap: Record<string, any> = {}
+        if (uids.length > 0) {
+          try {
+            const crRows = await sbGet(`custom_worker_rates?user_id=in.(${uids.map((id: string) => '"' + id + '"').join(',')})&select=user_id,app_name,efectivo_rate,transferencia_rate`)
+            for (const c of crRows) customRateMap[`${c.user_id}__${c.app_name}`] = c
+          } catch { /* table may not exist yet */ }
+        }
+        const enriched = salaries.map((s: any) => {
+          const cr = customRateMap[`${s.user_id}__${s.app_name}`] ?? null
+          return { ...s, ...wm[`${s.user_id}__${s.app_name}`] ?? {}, custom_efectivo_rate: cr?.efectivo_rate ?? 0, custom_transferencia_rate: cr?.transferencia_rate ?? 0 }
+        })
 
       // Agent commissions for this colider
       // Layla publishes with agent_name = agent_code; Waha/Howdy resolves agent_user_id
