@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
   import { Phone, CheckCircle, Circle, Bell, BellOff, Lock, Clock, Users, DollarSign, AlertTriangle } from 'lucide-react'
 import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
+function cleanNum(s: string | null | undefined): string { return (s ?? '').replace(/[^0-9]/g, '') }
+
   const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
 
   interface PersonEntry {
@@ -366,7 +368,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                           </div>
                         </div>
                         {p.phone && (
-                          <a href={`https://wa.me/${p.phone.replace(/[^0-9]/g,'')}`} target="_blank" rel="noopener noreferrer"
+                          <a href={`https://wa.me/${cleanNum(p.phone)}`} target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
                             <Phone className="w-3 h-3" /> {p.phone}
                           </a>
