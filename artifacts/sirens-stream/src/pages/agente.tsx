@@ -668,9 +668,8 @@ import React, { useState, useEffect } from 'react'
                               <div className="border-t border-purple-500/10 px-5 py-4 space-y-2">
                                 {rows.map((row, i) => {
                                   const workerSalUsd = Number(row.worker_salary_usd ?? 0)
-                                  const met = row.worker_metodo_pago ?? ''
-                                  const isCuban = met.includes('Cuba')
-                                  const isEfectivo = met.includes('Efectivo')
+                                  const met = (row.worker_metodo_pago ?? '').toLowerCase()
+                                  const isEfectivo = met.includes('efectivo') || (!met.includes('transfer') && workerSalUsd > 0)
                                   const customEf = Number(row.custom_efectivo_rate ?? 0)
                                   const customTr = Number(row.custom_transferencia_rate ?? 0)
                                   const globalEf = exchangeRates['efectivo_worker'] ?? 0
@@ -679,7 +678,7 @@ import React, { useState, useEffect } from 'react'
                                   const trRate = customTr > 0 ? customTr : globalTr
                                   const workerRate = isEfectivo ? efRate : trRate
                                   const hasExclusive = customEf > 0 || customTr > 0
-                                  const cupAmount = isCuban && workerRate > 0 && workerSalUsd > 0 ? workerSalUsd * workerRate : 0
+                                  const cupAmount = workerSalUsd > 0 && workerRate > 0 ? workerSalUsd * workerRate : 0
                                   return (
                                     <div key={i} className="py-2 border-b border-white/5 last:border-0">
                                       <div className="flex items-start justify-between gap-3">
