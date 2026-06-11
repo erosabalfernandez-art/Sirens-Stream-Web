@@ -139,6 +139,9 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
         if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
         if (!form.pais) { setFormError('Selecciona tu país'); return }
         if (!form.metodo_pago) { setFormError('Selecciona un método de pago'); return }
+                if (form.agente && (profile as any)?.agent_code && form.agente.trim().toUpperCase() === ((profile as any).agent_code ?? '').trim().toUpperCase()) {
+          setFormError('No puedes usar tu propio código de agente como referido.'); setSaving(false); return
+        }
         setSaving(true); setFormError(null)
         const payload = {
           user_id: user!.id, app_name: form.app_name,
