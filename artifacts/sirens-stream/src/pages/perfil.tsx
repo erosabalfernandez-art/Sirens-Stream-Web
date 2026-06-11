@@ -117,6 +117,370 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
         setLaylaPayNotifying(p => ({ ...p, [entryId]: false }))
       }
 
+      async function notifyPaymentReceived(entry: WorkerEntry) {
+        const key = entry.id
+        if (payNotified[key] || payNotifying[key]) return
+        setPayNotifying(p => ({ ...p, [key]: true }))
+        try {
+          await fetch(`${API}/api/payment-sticker`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: user!.id, app_name: entry.app_name,
+              nombre_en_app: entry.nombre_en_app ?? null,
+              sticker_index: Math.floor(Math.random() * 3),
+            }),
+          })
+          setPayNotified(p => ({ ...p, [key]: true }))
+        } catch { /* ignore */ }
+        setPayNotifying(p => ({ ...p, [key]: false }))
+      }
+
+      function openAdd() {
+          setEditingId(null); setFormError(null)
+          setAgenteInfo(null); setAgenteError(null)
+          const isAgent = !!(profile as any)?.agent_code
+          const agentCode = ((profile as any)?.agent_code as string | undefined) ?? ''
+          if (isAgent) {
+            setForm({ ...EMPTY_FORM, agente: agentCode })
+            setTimeout(() => checkAgentCode(agentCode), 100)
+          } else {
+            const draft = loadDraft()
+            setForm(draft)
+            if (draft.agente) setTimeout(() => checkAgentCode(draft.agente), 100)
+          }
+        }
+
+      function openEdit(entry: WorkerEntry) {
+        setEditingId(entry.id)
+        setForm({
+          app_name: entry.app_name, nombre_real: entry.nombre_real ?? '',
+          nombre_en_app: entry.nombre_en_app ?? '', id_aplicacion: entry.id_aplicacion ?? '',
+          telefono: entry.telefono ?? '', codigo_pais: entry.codigo_pais ?? '+1',
+          pais: entry.pais ?? '', metodo_pago: entry.metodo_pago ?? '',
+          billetera: entry.billetera ?? '', agente: entry.agente ?? '',
+        })
+        setFormError(null); setShowForm(true)
+      }
+
+      async function handleSave() {
+        if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
+        if (!form.pais) { setFormError('Selecciona tu país'); return }
+        if (!form.metodo_pago) { setFormError('Selecciona un método de pago'); return }
+        if ((profile as any)?.agent_code) {
+          const ownCode = ((profile as any).agent_code as string).trim().toUpperCase()
+          if (!form.agente || form.agente.trim().toUpperCase() !== ownCode) {
+            setFormError('Como agente debes vincular tu propio código.'); setSaving(false); return
+          }
+        }
+        setSaving(true); setFormError(null)
+        const payload = {
+          user_id: user!.id, app_name: form.app_name,
+          nombre_real: form.nombre_real || null, nombre_en_app: form.nombre_en_app || null,
+          id_aplicacion: form.id_aplicacion || null, telefono: form.telefono || null,
+          codigo_pais: form.codigo_pais || null, pais: form.pais || null,
+          metodo_pago: form.metodo_pago || null,
+          billetera: form.billetera || null,
+          agente: form.agente || null,
+          updated_at: new Date().toISOString(),
+        }
+        let error: string | null = null
+        if (editingId) {
+          const { error: e } = await supabase.from('worker_entries').update(payload).eq('id', editingId)
+          error = e?.message ?? null
+        } else {
+          if (entries.find(e => e.app_name === form.app_name)) { setFormError('Ya tienes una entrada para esta app.'); setSaving(false); return }
+          const { error: e } = await supabase.from('worker_entries').insert(payload)
+            error = e?.message ?? null
+            if (!e) {
+              if (!profile?.is_agent && !profile?.is_colider) {
+                await supabase.from('channel_requests').upsert(
+                  { user_id: user!.id, app_name: form.app_name, status: 'pending' },
+                  { onConflict: 'user_id,app_name', ignoreDuplicates: true }
+                )
+              }
+            }
+          }
+        setSaving(false)
+        if (error) { setFormError(error); return }
+        if (!editingId) clearDraft()
+        setShowForm(false); fetchEntries()
+      }
+
+      async function handleDelete(id: string) { await supabase.from('worker_entries').delete().eq('id', id); fetchEntries() }
+      async function handleClearAll() { await supabase.from('worker_entries').delete().eq('user_id', user!.id); setEntries([]); setConfirmClear(false) }
+
+
+      const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+
+        async function checkAgentCode(code: string) {
+          const trimmed = code.trim().toUpperCase()
+          if (!trimmed) { setAgenteInfo(null); setAgenteError(null); return }
+          setAgenteChecking(true); setAgenteInfo(null); setAgenteError(null)
+          try {
+            const r = await fetch(`${API}/api/agent-code-info?code=${encodeURIComponent(trimmed)}`)
+            if (r.ok) {
+              const d = await r.json() as { name: string; is_colider: boolean }
+              setAgenteInfo(d)
+            } else {
+              setAgenteError('Código no encontrado. Pide el código a tu agente.')
+            }
+          } catch { setAgenteError('Error al verificar. Intenta de nuevo.') }
+          setAgenteChecking(false)
+        }
+
+        const paymentMethods = getPaymentMethods(form.pais)
+      const walletLabel = getWalletLabel(form.metodo_pago)
+      const usedApps = entries.map(e => e.app_name)
+      const availableApps = APPS.filter(a => !usedApps.includes(a) || (editingId && entries.find(e => e.id === editingId)?.app_name === a))
+
+      if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">{T.loading}</div></div>
+
+      return (
+        <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
+          <div className="max-w-2xl mx-auto px-4">
+            <div className="flex items-start justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-extrabold">{T.title}</h1>
+                <p className="text-white/40 text-sm mt-0.5">{user?.email}</p>
+                {user && (
+                  <div className="mt-2 inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
+                    <span className="text-purple-400/50 text-xs">Tu ID:</span>
+                    <span className="text-purple-300 text-xs font-mono font-bold tracking-wider">{'SS-' + user.id.replace(/-/g,'').slice(0,6).toUpperCase()}</span>
+                    <button onClick={() => navigator.clipboard.writeText('SS-' + user.id.replace(/-/g,'').slice(0,6).toUpperCase())}
+                      className="text-purple-400/30 hover:text-purple-400 transition-colors" title="Copiar ID">
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button onClick={signOut} className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm transition-colors">
+                <LogOut className="w-4 h-4" /> {T.logout}
+              </button>
+            </div>
+
+
+            <PushNotificationCard userId={user?.id ?? ''} lang={lang} />
+
+
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-purple-400/70">{T.myApps}</h2>
+                {availableApps.length > 0 && (
+                  <button onClick={openAdd} className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+                    <Plus className="w-3.5 h-3.5" /> Agregar app
+                  </button>
+                )}
+              </div>
+              {loadingEntries ? <div className="text-white/30 text-sm">Cargando...</div>
+              : entries.length === 0 ? (
+                <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-8 text-center">
+                  <p className="text-white/40 text-sm mb-4">No tienes ninguna app registrada aún.</p>
+                  <button onClick={openAdd} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl mx-auto transition-all">
+                    <Plus className="w-4 h-4" /> Agregar mi primera app
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {entries.map(entry => (
+                    <div key={entry.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
+                      <button onClick={() => setExpandedApp(expandedApp === entry.id ? null : entry.id)}
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/2 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 font-bold text-xs">
+                            {(entry.nombre_real || entry.app_name)[0].toUpperCase()}
+                          </div>
+                          <div className="text-left">
+                            <p className="font-bold text-sm">{entry.nombre_real || entry.app_name}</p>
+                            <p className="text-white/35 text-xs">{entry.app_name}{entry.nombre_en_app ? ` · ${entry.nombre_en_app}` : ''}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={e => { e.stopPropagation(); openEdit(entry) }} className="p-1.5 rounded-lg text-white/35 hover:text-purple-400 hover:bg-purple-500/10 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
+                          <button onClick={e => { e.stopPropagation(); handleDelete(entry.id) }} className="p-1.5 rounded-lg text-white/35 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                          {expandedApp === entry.id ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+                        </div>
+                      </button>
+                      {expandedApp === entry.id && (
+                        <div className="px-5 pb-5 border-t border-purple-500/8">
+                          <div className="grid grid-cols-2 gap-3 mt-4">
+                            {([
+                              ['Nombre real', entry.nombre_real],
+                              ['Nombre en app', entry.nombre_en_app],
+                              ['ID en la app', entry.id_aplicacion],
+                              ['Teléfono', entry.codigo_pais && entry.telefono ? `${entry.codigo_pais} ${entry.telefono}` : entry.telefono],
+                              ['País', entry.pais],
+                              ['Método de pago', entry.metodo_pago],
+                              ...(entry.billetera ? [['Billetera', entry.billetera]] : []),
+                              ...(entry.agente ? [['ID de agente', entry.agente]] : []),
+                            ] as [string, string | null][]).map(([label, value]) => (
+                              <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><p className="text-white/80 text-sm font-medium">{value || '—'}</p></div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Pago recibido — todos los apps */}
+                        {(!laylaPayNeedSetup || entry.app_name !== 'Layla') && (
+                          <div className="px-5 py-3 border-t border-purple-500/8">
+                            {(entry.app_name === 'Layla'
+                              ? laylaPayNotified[new Date().toISOString().slice(0,10).replace(/-/g,'').slice(0,8)]
+                              : payNotified[entry.id]) ? (
+                              <div className="flex items-center gap-2 text-green-400">
+                                <Check className="w-4 h-4 shrink-0" />
+                                <span className="text-sm font-semibold">Pago recibido notificado ✓</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  if (entry.app_name === 'Layla') notifyLaylaPayment(entry.id)
+                                  notifyPaymentReceived(entry)
+                                }}
+                                disabled={!!(entry.app_name === 'Layla' ? laylaPayNotifying[entry.id] : payNotifying[entry.id])}
+                                className="flex items-center gap-2 text-sm font-semibold text-white/40 hover:text-green-400 transition-colors disabled:opacity-40">
+                                {(entry.app_name === 'Layla' ? laylaPayNotifying[entry.id] : payNotifying[entry.id])
+                                  ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" />
+                                  : <Check className="w-4 h-4 shrink-0" />}
+                                Notificar pago recibido
+                              </button>
+                            )}
+                          </div>
+                        )}} from 'react'
+    import { useLanguage } from '@/contexts/LanguageContext'
+    import { useLocation } from 'wouter'
+    import { useAuth } from '@/contexts/AuthContext'
+    import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
+    import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check, Copy } from 'lucide-react'
+import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
+
+    const APPS = ['Waha', 'Layla', 'Howdy']
+
+    interface EntryFormData {
+      app_name: string
+      nombre_real: string
+      nombre_en_app: string
+      id_aplicacion: string
+      telefono: string
+      codigo_pais: string
+      pais: string
+      metodo_pago: string
+      billetera: string
+      agente: string
+    }
+
+    const EMPTY_FORM: EntryFormData = {
+      app_name: '', nombre_real: '', nombre_en_app: '',
+      id_aplicacion: '', telefono: '', codigo_pais: '+1',
+      pais: '', metodo_pago: '', billetera: '', agente: ''
+    }
+
+      const DRAFT_KEY = 'ea_perfil_draft_new'
+      function loadDraft(): EntryFormData {
+        try { const raw = localStorage.getItem(DRAFT_KEY); if (raw) return { ...EMPTY_FORM, ...JSON.parse(raw) } } catch {}
+        return EMPTY_FORM
+      }
+      function saveDraft(f: EntryFormData) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(f)) } catch {} }
+      function clearDraft() { try { localStorage.removeItem(DRAFT_KEY) } catch {} }
+
+    export default function Perfil() {
+      const { user, profile, loading, signOut } = useAuth()
+        const { lang } = useLanguage()
+        const T = {
+          title:             lang === 'pt' ? 'Meu Perfil'                        : 'Mi Perfil',
+          logout:            lang === 'pt' ? 'Sair'                              : 'Salir',
+          notifTitle:        lang === 'pt' ? 'Notificações push'                 : 'Notificaciones push',
+          notifSub:          lang === 'pt' ? 'Receba alertas de salários e comunicados' : 'Recibe alertas de salarios y comunicados',
+          notifActive:       lang === 'pt' ? '✅ Suscripción aprobada'           : '✅ Suscripción aprobada',
+          notifStale:        lang === 'pt' ? '⚠️ Renovar suscripción'           : '⚠️ Renovar suscripción',
+          notifBlocked:      lang === 'pt' ? 'Bloqueadas'                        : 'Bloqueadas',
+          notifActivate:     lang === 'pt' ? 'Ativar notificações'               : 'Activar notificaciones',
+          notifActivating:   lang === 'pt' ? 'Ativando...'                       : 'Activando...',
+          notifRenew:        lang === 'pt' ? 'Renovar agora'                     : 'Renovar ahora',
+          notifRenewing:     lang === 'pt' ? 'Renovando...'                      : 'Renovando...',
+          notifUnsub:        lang === 'pt' ? 'Desativar'                         : 'Desactivar',
+          notifUnsubbing:    lang === 'pt' ? 'Desativando...'                    : 'Desactivando...',
+          notifChecking:     lang === 'pt' ? 'Verificando...'                    : 'Verificando...',
+          notifError:        lang === 'pt' ? 'Erro. Tente novamente.'            : 'Error. Intenta de nuevo.',
+          myApps:            lang === 'pt' ? 'Meus Aplicativos'                  : 'Mis Aplicaciones',
+          loading:           lang === 'pt' ? 'Carregando...'                     : 'Cargando...',
+        }
+      const [, navigate] = useLocation()
+      const [entries, setEntries] = useState<WorkerEntry[]>([])
+      const [loadingEntries, setLoadingEntries] = useState(true)
+      const [showForm, setShowForm] = useState(false)
+      const [editingId, setEditingId] = useState<string | null>(null)
+      const [form, setForm] = useState<EntryFormData>(EMPTY_FORM)
+      const [saving, setSaving] = useState(false)
+      const [formError, setFormError] = useState<string | null>(null)
+      const [confirmClear, setConfirmClear] = useState(false)
+      const [expandedApp, setExpandedApp] = useState<string | null>(null)
+      const [laylaPayNotified, setLaylaPayNotified] = useState<Record<string, boolean>>({})
+      const [laylaPayNotifying, setLaylaPayNotifying] = useState<Record<string, boolean>>({})
+      const [laylaPayNeedSetup, setLaylaPayNeedSetup] = useState(false)
+        const [payNotified, setPayNotified] = useState<Record<string, boolean>>({})
+        const [payNotifying, setPayNotifying] = useState<Record<string, boolean>>({})
+        const [agenteInfo, setAgenteInfo] = useState<{ name: string; is_colider: boolean } | null>(null)
+        const [agenteChecking, setAgenteChecking] = useState(false)
+        const [agenteError, setAgenteError] = useState<string | null>(null)
+
+      useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
+      useEffect(() => { if (user) { fetchEntries(); fetchLaylaPayStatus() } }, [user])
+
+
+        // Persist draft in localStorage — data survives navigation/background
+        useEffect(() => {
+          if (showForm && !editingId) saveDraft(form)
+        }, [form, showForm, editingId])
+
+      async function fetchEntries() {
+        setLoadingEntries(true)
+        const { data } = await supabase.from('worker_entries').select('*').eq('user_id', user!.id).order('created_at', { ascending: true })
+        setEntries((data as WorkerEntry[]) ?? [])
+        setLoadingEntries(false)
+      }
+
+      async function fetchLaylaPayStatus() {
+        if (!user) return
+        const { data, error } = await supabase
+          .from('direct_payment_notifications')
+          .select('semana')
+          .eq('user_id', user.id)
+          .eq('app_name', 'Layla')
+        if (error?.code === '42P01') { setLaylaPayNeedSetup(true); return }
+        const map: Record<string, boolean> = {}
+        for (const row of (data ?? []) as any[]) map[row.semana] = true
+        setLaylaPayNotified(map)
+      }
+
+      async function notifyLaylaPayment(entryId: string) {
+        const semana = new Date().toISOString().slice(0,10).replace(/-/g,'').slice(0,8)
+        if (laylaPayNotified[semana]) return
+        setLaylaPayNotifying(p => ({ ...p, [entryId]: true }))
+        const { error } = await supabase.from('direct_payment_notifications').insert({
+          user_id: user!.id, app_name: 'Layla', semana, nota: null,
+        })
+        if (error?.code === '42P01') setLaylaPayNeedSetup(true)
+        else if (!error) setLaylaPayNotified(p => ({ ...p, [semana]: true }))
+        setLaylaPayNotifying(p => ({ ...p, [entryId]: false }))
+      }
+
+      async function notifyPaymentReceived(entry: WorkerEntry) {
+        const key = entry.id
+        if (payNotified[key] || payNotifying[key]) return
+        setPayNotifying(p => ({ ...p, [key]: true }))
+        try {
+          await fetch(`${API}/api/payment-sticker`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: user!.id, app_name: entry.app_name,
+              nombre_en_app: entry.nombre_en_app ?? null,
+              sticker_index: Math.floor(Math.random() * 3),
+            }),
+          })
+          setPayNotified(p => ({ ...p, [key]: true }))
+        } catch { /* ignore */ }
+        setPayNotifying(p => ({ ...p, [key]: false }))
+      }
+
       function openAdd() {
           setEditingId(null); setFormError(null)
           setAgenteInfo(null); setAgenteError(null)
