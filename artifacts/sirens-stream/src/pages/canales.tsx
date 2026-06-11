@@ -229,7 +229,7 @@ export default function Canales() {
           })}
           {isAdmin && (<>
             <div style={{padding:'14px 16px 4px',borderTop:'1px solid rgba(255,255,255,0.05)',marginTop:6}}>
-              <span style={{color:'rgba(37,211,102,0.7)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1.2}}>💰 Pagos · Todas las Apps</span>
+              <span style={{color:'rgba(37,211,102,0.7)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1.2}}>💰 Confirmaciones de Pagos</span>
             </div>
             {(()=>{
               const isActive=activeCh==='pagos-all'
@@ -238,13 +238,13 @@ export default function Canales() {
                   style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'8px 14px',border:'none',cursor:'pointer',textAlign:'left',background:isActive?'rgba(37,211,102,0.1)':'transparent',transition:'background 0.15s',borderLeft:`3px solid ${isActive?'#25d366':'transparent'}`}}>
                   <div style={{position:'relative',flexShrink:0}}>
                     <div style={{width:46,height:46,borderRadius:'50%',overflow:'hidden',border:`2px solid ${isActive?'#25d366':'rgba(255,255,255,0.08)'}`}}>
-                      <img src="/images/eclipse-logo-nobg.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                      <img src="/images/eclipse-angels-logo.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                     </div>
                     <div style={{position:'absolute',bottom:-1,right:-1,width:17,height:17,borderRadius:'50%',background:'#25d366',border:'2px solid #17212b',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:9,fontWeight:900}}>$</div>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{color:isActive?'#fff':'rgba(255,255,255,0.85)',fontWeight:600,fontSize:14}}>Canal de Pagos</div>
-                    <div style={{color:'rgba(255,255,255,0.3)',fontSize:12,marginTop:1}}>Waha · Layla · Howdy</div>
+                    <div style={{color:isActive?'#fff':'rgba(255,255,255,0.85)',fontWeight:600,fontSize:14}}>CONFIRMACIONES DE PAGOS</div>
+                    <div style={{color:'rgba(255,255,255,0.3)',fontSize:12,marginTop:1}}>Stickers de pago recibido</div>
                   </div>
                 </button>
               )
@@ -393,11 +393,11 @@ export default function Canales() {
             <ChevronLeft size={22}/>
           </button>
           <div style={{width:38,height:38,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(37,211,102,0.4)'}}>
-            <img src="/images/eclipse-logo-nobg.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            <img src="/images/eclipse-angels-logo.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal de Pagos</div>
-            <div style={{color:'#25d366',fontSize:12}}>Canal de pagos confirmados</div>
+            <div style={{color:'white',fontWeight:700,fontSize:15}}>CONFIRMACIONES DE PAGOS</div>
+            <div style={{color:'#25d366',fontSize:12}}>Stickers de pago recibido</div>
           </div>
           <Phone size={17} color="rgba(255,255,255,0.3)" style={{cursor:'pointer',flexShrink:0}}/>
           <MoreVertical size={17} color="rgba(255,255,255,0.3)" style={{cursor:'pointer',flexShrink:0,marginLeft:4}}/>
