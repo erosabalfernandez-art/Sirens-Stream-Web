@@ -264,10 +264,42 @@ import { Router } from 'express'
           for (const w of agentWorkerData) { if (w.user_id && w.metodo_pago) agentPayMethods[w.user_id] = w.metodo_pago }
         } catch {}
       }
-      const enrichedAgents = (agents as any[]).map((a: any) => ({
-        ...a,
-        metodo_pago: a.agent_user_id ? (agentPayMethods[a.agent_user_id] ?? null) : null,
-      }))
+      // Resolve real agent display names from profiles (agent_commissions may store agent_code as agent_name)
+        const agentProfileNameMap: Record<string, string> = {}
+        try {
+          const idsForNames = (agents as any[]).filter((a: any) => a.agent_user_id).map((a: any) => a.agent_user_id as string)
+          const codesForNames = (agents as any[]).filter((a: any) => !a.agent_user_id && a.agent_name).map((a: any) => a.agent_name as string)
+          const [byIdProfs, byCodeProfs] = await Promise.all([
+            idsForNames.length > 0
+              ? sbGet(`profiles?id=in.(${idsForNames.map((id: string) => '"' + id + '"').join(',')})&select=id,agent_name,colider_name`)
+              : Promise.resolve([]),
+            codesForNames.length > 0
+              ? sbGet(`profiles?agent_code=in.(${codesForNames.map((c: string) => '"' + c + '"').join(',')})&select=agent_code,agent_name,colider_name`)
+              : Promise.resolve([]),
+          ])
+          for (const p of byIdProfs as any[]) {
+            const name = p.colider_name ?? p.agent_name
+            if (p.id && name) agentProfileNameMap[p.id] = name
+          }
+          for (const p of byCodeProfs as any[]) {
+            const name = p.colider_name ?? p.agent_name
+            if (p.agent_code && name) agentProfileNameMap[`__code__:${p.agent_code}`] = name
+          }
+        } catch { /* non-critical: keep raw agent_name if resolution fails */ }
+
+        const enrichedAgents = (agents as any[]).map((a: any) => {
+          let resolvedName: string = a.agent_name ?? ''
+          if (a.agent_user_id && agentProfileNameMap[a.agent_user_id]) {
+            resolvedName = agentProfileNameMap[a.agent_user_id]
+          } else if (!a.agent_user_id && agentProfileNameMap[`__code__:${a.agent_name}`]) {
+            resolvedName = agentProfileNameMap[`__code__:${a.agent_name}`]
+          }
+          return {
+            ...a,
+            agent_name: resolvedName || a.agent_name,
+            metodo_pago: a.agent_user_id ? (agentPayMethods[a.agent_user_id] ?? null) : null,
+          }
+        })
 
       res.json({
         workers: enriched,
