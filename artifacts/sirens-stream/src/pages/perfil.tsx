@@ -148,6 +148,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
             setForm(draft)
             if (draft.agente) setTimeout(() => checkAgentCode(draft.agente), 100)
           }
+          setShowForm(true)
         }
 
       function openEdit(entry: WorkerEntry) {
