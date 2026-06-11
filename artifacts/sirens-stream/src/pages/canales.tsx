@@ -34,7 +34,7 @@ interface Stk { id:string; user_id:string; app_name:string; nombre_en_app:string
 interface CReq { app_name:string; status:string }
 
 export default function Canales() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   const [, navigate] = useLocation()
   const API = ((import.meta.env.VITE_API_URL as string|undefined)??'').replace(/\/$/, '')
 
@@ -150,13 +150,16 @@ export default function Canales() {
 
   if(approved.length===0){
     const pend=reqs.filter(r=>r.status==='pending').map(r=>r.app_name)
+    const isAgentOrColider = !!(profile as any)?.is_agent || !!(profile as any)?.is_colider
     return (
       <div style={{minHeight:'100vh',background:'#17212b',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,padding:24,paddingTop:80}}>
         <div style={{fontSize:52}}>{pend.length>0?'⏳':'🔒'}</div>
-        <p style={{color:'rgba(255,255,255,0.45)',textAlign:'center',maxWidth:280,margin:0,lineHeight:1.6}}>
+        <p style={{color:'rgba(255,255,255,0.45)',textAlign:'center',maxWidth:300,margin:0,lineHeight:1.6}}>
           {pend.length>0
             ? 'Tu solicitud para '+pend.join(', ')+' está pendiente de aprobación.'
-            : 'No tienes acceso a ningún canal. Agrega una app en tu perfil primero.'}
+            : isAgentOrColider
+              ? 'Aún no tienes acceso a los canales. El administrador te los asignará desde el panel de admin.'
+              : 'No tienes acceso a ningún canal. Agrega una app en tu perfil primero.'}
         </p>
       </div>
     )
