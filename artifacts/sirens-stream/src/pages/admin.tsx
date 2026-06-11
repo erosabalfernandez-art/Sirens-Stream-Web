@@ -1701,27 +1701,27 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                               <p style={{color:'rgba(255,255,255,0.15)',fontSize:12,marginTop:6}}>Aparecerán aquí cuando alguien confirme su pago</p>
                             </div>
                           ) : (
-                            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+                            <div style={{display:'flex',flexDirection:'column',gap:10}}>
                               {[...adminPayStk.filter(s=>s.app_name===adminPayApp)].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).map(stk=>{
                                 const stkUrls = ['https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_0_money.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_1_lady.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_2_cat.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_3_gold.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_4_pink.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_5_man.jpg'];
                                 const nm = stk.nombre_en_app||'Usuario';
                                 const stickerImg = stkUrls[stk.sticker_index % stkUrls.length];
+                                const sentTime = new Date(stk.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+                                const sentDate = new Date(stk.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
                                 return (
-                                  <div key={stk.id} style={{background:'#1f2c34',borderRadius:14,overflow:'hidden',boxShadow:'0 2px 12px rgba(0,0,0,0.4)',border:'1px solid rgba(37,211,102,0.1)'}}>
-                                    <div style={{padding:'8px 12px 5px',display:'flex',alignItems:'center',gap:8}}>
-                                      <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#7e57c2,#9c27b0)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'white',flexShrink:0}}>
-                                        {(nm[0]||'?').toUpperCase()}
-                                      </div>
-                                      <div style={{flex:1,minWidth:0}}>
-                                        <div style={{color:'#25d366',fontSize:12,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
-                                        <div style={{color:'rgba(255,255,255,0.25)',fontSize:10}}>{new Date(stk.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>
-                                      </div>
+                                  <div key={stk.id} style={{display:'flex',alignItems:'flex-end',gap:8}}>
+                                    <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,#7e57c2,#9c27b0)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'white',flexShrink:0,marginBottom:2}}>
+                                      {(nm[0]||'?').toUpperCase()}
                                     </div>
-                                    <div style={{position:'relative'}}>
-                                      <img src={stickerImg} alt="Pago recibido" style={{width:'100%',aspectRatio:'1',objectFit:'cover',display:'block'}}/>
-                                    </div>
-                                    <div style={{padding:'6px 12px 8px',textAlign:'center',background:'rgba(0,0,0,0.2)'}}>
-                                      <span style={{color:'rgba(255,255,255,0.3)',fontSize:10}}>{new Date(stk.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'})}</span>
+                                    <div style={{maxWidth:220,background:'#1f2c34',borderRadius:'14px 14px 14px 4px',overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,0.35)',border:'1px solid rgba(37,211,102,0.1)'}}>
+                                      <div style={{padding:'5px 10px 3px',color:'#25d366',fontSize:12,fontWeight:700}}>{nm}</div>
+                                      <div style={{position:'relative'}}>
+                                        <img src={stickerImg} alt="Pago recibido" style={{width:200,height:200,objectFit:'cover',display:'block'}}/>
+                                        <div style={{position:'absolute',bottom:6,right:8,background:'rgba(0,0,0,0.55)',borderRadius:8,padding:'2px 7px',display:'flex',alignItems:'center',gap:4}}>
+                                          <span style={{color:'rgba(255,255,255,0.9)',fontSize:11,fontWeight:600}}>{sentTime}</span>
+                                          <span style={{color:'rgba(255,255,255,0.5)',fontSize:10}}>· {sentDate}</span>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 )
