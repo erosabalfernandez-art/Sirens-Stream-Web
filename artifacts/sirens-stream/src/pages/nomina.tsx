@@ -1149,6 +1149,12 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     } else {
       await supabase.from('admin_paid_marks').insert({ app_name: app, semana, uid })
       setPaidMarks(prev => new Set([...prev, uid]))
+      try {
+        const _apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+        const matched = (cobradas as any[]).find((c: any) => c?.nomina?.uid === uid || c?.worker?.id === uid)
+        const nombre = matched ? (matched?.nomina?.apodo ?? matched?.worker?.profile_email ?? uid) : uid
+        await fetch(`${_apiUrl}/api/payment-sticker`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: uid, app_name: app, nombre_en_app: nombre, sticker_index: 0 }) })
+      } catch {}
     }
     setTogglingPaid(null)
   }
