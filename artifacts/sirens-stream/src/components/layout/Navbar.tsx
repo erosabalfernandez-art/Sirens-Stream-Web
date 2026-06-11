@@ -13,6 +13,7 @@ import { Link, useLocation } from "wouter";
         { href: "/apps", label: "Apps" },
         { href: "/nosotros", label: "Equipo" },
         { href: "/pagos", label: "Pagos" },
+        { href: "/ranking", label: "Ranking" },
       ],
       pt: [
         { href: "/", label: "Início" },
@@ -21,6 +22,7 @@ import { Link, useLocation } from "wouter";
         { href: "/apps", label: "Apps" },
         { href: "/nosotros", label: "Equipe" },
         { href: "/pagos", label: "Pagamentos" },
+        { href: "/ranking", label: "Ranking" },
       ],
     };
 
