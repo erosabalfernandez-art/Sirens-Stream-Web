@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
   import { useLanguage } from '@/contexts/LanguageContext'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
-  import { MessageSquare, Clock, Radio } from 'lucide-react'
+  import { MessageSquare, Clock, Radio, Download, X } from 'lucide-react'
 
   interface ChannelMessage {
     id: string
@@ -39,6 +39,7 @@ import { useState, useEffect } from 'react'
     const [messages, setMessages] = useState<ChannelMessage[]>([])
     const [activeApp, setActiveApp] = useState<string | null>(null)
     const [fetching, setFetching] = useState(true)
+    const [lightbox, setLightbox] = useState<string | null>(null)
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => { if (user) fetchData() }, [user])
@@ -72,6 +73,45 @@ import { useState, useEffect } from 'react'
 
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
+        {/* Lightbox overlay */}
+        {lightbox && (
+          <div
+            onClick={() => setLightbox(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.92)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out',
+            }}>
+            <img
+              src={lightbox} alt="foto"
+              style={{ maxWidth: '95vw', maxHeight: '92vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 60px rgba(0,0,0,0.8)' }}
+              onClick={e => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setLightbox(null)}
+              style={{
+                position: 'absolute', top: 16, right: 16, width: 40, height: 40,
+                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: 'white',
+              }}>
+              <X className="w-5 h-5" />
+            </button>
+            <a
+              href={lightbox} download target="_blank" rel="noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'absolute', top: 16, right: 68,
+                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '50%', width: 40, height: 40,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+                textDecoration: 'none',
+              }}
+              title="Descargar foto">
+              <Download className="w-5 h-5" />
+            </a>
+          </div>
+        )}
         <div className="max-w-3xl mx-auto px-4">
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 rounded-full px-3 py-1 mb-3">
@@ -130,8 +170,30 @@ import { useState, useEffect } from 'react'
                   {activeMessages.map(msg => (
                     <div key={msg.id} className="bg-[#0d0d1e] border border-blue-500/10 rounded-2xl overflow-hidden">
                       {msg.image_url && (
-                        <img src={msg.image_url} alt="comunicado"
-                          className="w-full max-h-96 object-cover" />
+                        <div style={{ position: 'relative', cursor: 'zoom-in' }} onClick={() => setLightbox(msg.image_url)}>
+                          <img src={msg.image_url} alt="comunicado"
+                            className="w-full max-h-96 object-cover" />
+                          <div style={{
+                            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)',
+                            display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end',
+                            padding: 8,
+                          }}
+                            className="hover-img-overlay">
+                            <a
+                              href={msg.image_url} download target="_blank" rel="noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              style={{
+                                background: 'rgba(0,0,0,0.55)', borderRadius: 8,
+                                padding: '5px 10px', display: 'flex', alignItems: 'center',
+                                gap: 5, color: 'white', fontSize: 11, fontWeight: 700,
+                                textDecoration: 'none', opacity: 0,
+                              }}
+                              className="img-download-btn">
+                              <Download className="w-3.5 h-3.5" /> Descargar
+                            </a>
+                          </div>
+                          <style>{`.img-download-btn:hover{opacity:1!important} .hover-img-overlay:hover .img-download-btn{opacity:1!important}`}</style>
+                        </div>
                       )}
                       {msg.content && (
                         <div className="px-5 py-4">
