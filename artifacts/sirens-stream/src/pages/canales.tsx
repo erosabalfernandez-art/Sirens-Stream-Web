@@ -22,7 +22,11 @@ import { useState, useEffect, useRef } from 'react'
   }
 
   const APP_COLORS: Record<string, string> = { Waha: '#ff6b35', Layla: '#6c63ff', Howdy: '#00bcd4' }
-  const APP_EMOJI: Record<string, string> = { Waha: '🎧', Layla: '💜', Howdy: '👋' }
+  const APP_ICONS: Record<string, string> = {
+    Waha:  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/waha.jpg',
+    Layla: 'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/layla.jpg',
+    Howdy: 'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/howdy.jpg',
+  }
 
   interface ChannelMessage {
     id: string; app_name: string; content: string | null; image_url: string | null; created_at: string
@@ -234,10 +238,12 @@ import { useState, useEffect, useRef } from 'react'
           {/* Channel info row */}
           <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 16px' }}>
             <div style={{
-              width:42, height:42, borderRadius:'50%', flexShrink:0,
-              background: APP_COLORS[activeApp] || '#555',
-              display:'flex', alignItems:'center', justifyContent:'center', fontSize:21,
-            }}>{APP_EMOJI[activeApp]}</div>
+              width:42, height:42, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+              border:'2px solid rgba(255,255,255,0.15)', boxShadow:'0 2px 8px rgba(0,0,0,0.4)',
+            }}>
+              <img src={APP_ICONS[activeApp]} alt={activeApp}
+                style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+            </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ color:'white', fontWeight:700, fontSize:15, lineHeight:1.3 }}>
                 {isTg ? `📢 Canal ${activeApp}` : `💸 Pagos — ${activeApp}`}
