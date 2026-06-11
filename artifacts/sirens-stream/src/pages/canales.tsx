@@ -49,6 +49,7 @@ export default function Canales() {
   const [posting, setPosting] = useState(false)
   const [lb, setLb] = useState<string|null>(null)
   const [rxLoad, setRxLoad] = useState<Record<string,boolean>>({})
+  const [msgLoading, setMsgLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const btmRef = useRef<HTMLDivElement>(null)
     const lbPinchRef = useRef<number|null>(null)
@@ -77,7 +78,7 @@ export default function Canales() {
   },[activeCh])
   useEffect(()=>{
     if(!user) return
-    const t=setInterval(()=>{ if(!ch) return; if(ch.type==='canal') loadMsgs(ch.app); else loadStk(ch.app) },30000)
+    const t=setInterval(()=>{ if(!ch) return; if(ch.type==='canal') loadMsgs(ch.app); else loadStk(ch.app) },10000)
     return ()=>clearInterval(t)
   },[activeCh,user])
   useEffect(()=>{ btmRef.current?.scrollIntoView({behavior:'smooth'}) },[msgs,stickers,activeCh])
@@ -89,18 +90,28 @@ export default function Canales() {
     if(r.ok){ const d=await r.json(); setReqs(d.requests??[]) }
     setFetching(false)
   }
-  async function loadMsgs(app:string){
-    const r=await fetch(`${API}/api/channel-messages?user_id=${user!.id}`)
-    if(!r.ok) return
-    const d=await r.json()
-    const sorted:Msg[]=(d.messages??[]).filter((m:Msg)=>m.app_name===app).sort((a:Msg,b:Msg)=>new Date(a.created_at).getTime()-new Date(b.created_at).getTime())
-    setMsgs(sorted)
-    if(sorted.length>0){
-      const ids=sorted.map((m:Msg)=>m.id)
-      const rr=await fetch(`${API}/api/channel-reactions-bulk?user_id=${user!.id}&message_ids=${ids.join(',')}`)
-      if(rr.ok){ const dd=await rr.json(); setRx(dd.reactions??{}) }
+  async function loadMsgs(app:string, attempt=0){
+      setMsgLoading(true)
+      try {
+        const r=await fetch(`${API}/api/channel-messages?user_id=${user!.id}`)
+        if(!r.ok) throw new Error('not-ok')
+        const d=await r.json()
+        const sorted:Msg[]=(d.messages??[]).filter((m:Msg)=>m.app_name===app).sort((a:Msg,b:Msg)=>new Date(a.created_at).getTime()-new Date(b.created_at).getTime())
+        setMsgs(sorted)
+        if(sorted.length>0){
+          const ids=sorted.map((m:Msg)=>m.id)
+          const rr=await fetch(`${API}/api/channel-reactions-bulk?user_id=${user!.id}&message_ids=${ids.join(',')}`)
+          if(rr.ok){ const dd=await rr.json(); setRx(dd.reactions??{}) }
+        } else if(attempt<3){
+          setTimeout(()=>loadMsgs(app, attempt+1), 4000*(attempt+1))
+          return
+        }
+      } catch {
+        if(attempt<3){ setTimeout(()=>loadMsgs(app, attempt+1), 4000*(attempt+1)); return }
+      } finally {
+        setMsgLoading(false)
+      }
     }
-  }
   async function loadStk(app:string){
     if(app==='all'){
       const results=await Promise.all(['Waha','Layla','Howdy'].map(a=>fetch(`${API}/api/payment-stickers?app_name=${encodeURIComponent(a)}`).then(r=>r.ok?r.json():{events:[]}).catch(()=>({events:[]}))))
@@ -269,7 +280,13 @@ export default function Canales() {
         </div>
         {/* Messages */}
         <div className="tg-msgs-bg" style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
-          {groups.length===0&&(
+          {msgLoading&&msgs.length===0&&(
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'60px 24px',gap:12}}>
+                <div style={{width:28,height:28,border:'3px solid rgba(44,165,224,0.2)',borderTopColor:'#2ca5e0',borderRadius:'50%',animation:'tgspin 0.8s linear infinite'}}/>
+                <span style={{color:'rgba(255,255,255,0.3)',fontSize:13}}>Cargando mensajes...</span>
+              </div>
+            )}
+            {groups.length===0&&(
             <div style={{textAlign:'center',padding:'64px 24px'}}>
               <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(44,165,224,0.1)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
                 <Megaphone size={30} color="#2ca5e0"/>
@@ -524,7 +541,8 @@ export default function Canales() {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%2325d366' stroke-width='1.4' opacity='0.08'%3E%3Cpath d='M20,60 C20,35 40,35 40,60 C40,85 20,85 20,60Z'/%3E%3Cpath d='M80,30 C80,5 100,5 100,30 C100,55 80,55 80,30Z'/%3E%3Cpath d='M80,90 C80,65 100,65 100,90 C100,115 80,115 80,90Z'/%3E%3Cpath d='M-5,30 C-5,5 15,5 15,30 C15,55 -5,55 -5,30Z'/%3E%3Cpath d='M30,0 C55,0 55,20 30,20 C5,20 5,0 30,0Z'/%3E%3Cpath d='M90,60 C115,60 115,80 90,80 C65,80 65,60 90,60Z'/%3E%3C/g%3E%3C/svg%3E");
             background-size: 120px 120px;
           }
-        `}</style>
+          @keyframes tgspin { to { transform: rotate(360deg); } }
+`}</style>
       {Lightbox}
       <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
         <div className={`ch-sidebar${!sidebar?' collapsed':''}`} style={{width:300,minWidth:300,height:'100%',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.05)',display:'flex'}}>
