@@ -52,7 +52,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     const [loadingData, setLoadingData] = useState(false)
     const [notifying, setNotifying] = useState(false)
     const [toggling, setToggling] = useState<string | null>(null)
-  const [tab, setTab] = useState<'workers' | 'agents' | 'nocobro'>(() => { try { return (localStorage.getItem('ea_colider_tab') as any) || 'workers' } catch { return 'workers' } })
+  const [tab, setTab] = useState<'workers' | 'agents' | 'dual' | 'nocobro'>(() => { try { return (localStorage.getItem('ea_colider_tab') as any) || 'workers' } catch { return 'workers' } })
     const [noCobroData, setNoCobroData] = useState<NoCobro[]>([])
     const [noCobroLoading, setNoCobroLoading] = useState(false)
     const [notifyMsg, setNotifyMsg] = useState('')
@@ -245,7 +245,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     const allPaid = total > 0 && totalPaid === total
     const alreadyNotified = !!(weekStatus?.notified && !weekStatus?.admin_closed)
     const notifyLocked = !allPaid || alreadyNotified
-    const listToShow = tab === 'workers' ? pureWorkers : pureAgents
+    const listToShow = tab === 'workers' ? pureWorkers : tab === 'agents' ? pureAgents : [...dualWorkers, ...dualAgents]
 
     if (loading) return (
       <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
@@ -326,12 +326,9 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
           )}
 
           <div className="flex gap-2 mb-4 flex-wrap">
-            {(['workers', 'agents'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === t ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>
-                {t === 'workers' ? `👩 Trabajadoras (${workers.length})` : `🧡 Agentes (${agents.length})`}
-              </button>
-            ))}
+            <button onClick={() => setTab('workers')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'workers' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>👩 Trabajadoras ({pureWorkers.length})</button>
+            <button onClick={() => setTab('agents')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'agents' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>🧡 Agentes ({pureAgents.length})</button>
+            {dualUids.size > 0 && (<button onClick={() => setTab('dual')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'dual' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>🔗 Agente+Trabajadora ({dualUids.size})</button>)}
             <button onClick={() => setTab('nocobro')}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'nocobro' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>
               🚨 Sin cobrar{noCobroData.length > 0 ? ` (${noCobroData.length})` : ''}
@@ -354,7 +351,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
               {listToShow.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest mb-2 px-1 text-teal-400/60 dark:text-teal-400/60">
-                    {tab === 'workers' ? '👩‍💻 Trabajadora' : '👑 Agente'}
+                    {tab === 'workers' ? '👩‍💻 Trabajadoras' : tab === 'agents' ? '👑 Agentes' : '🔗 Agente + Trabajadora'}
                   </p>
                   <div className="space-y-2">
                     {listToShow.map(p => {
@@ -396,49 +393,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                   </div>
                 </div>
               )}
-              {(tab === 'workers' ? dualWorkers : dualAgents).length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2 px-1 text-violet-400/60">🔗 Agente + Trabajadora</p>
-                  <div className="space-y-2">
-                    {(tab === 'workers' ? dualWorkers : dualAgents).map(p => {
-                      const paid = marks[p.key] ?? false
-                      const tog  = toggling === p.key
-                      return (
-                    <div key={p.key} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-purple-500/10'}`}>
-                      <div className="flex items-start gap-3">
-                        <button onClick={() => toggleMark(p)} disabled={tog}
-                          className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${paid ? 'bg-green-500 border-green-500' : 'border-white/20 hover:border-green-400'} disabled:opacity-50`}>
-                          {paid
-                            ? <CheckCircle className="w-4 h-4 text-white" />
-                            : <Circle className={`w-4 h-4 ${tog ? 'text-white/50 animate-pulse' : 'text-white/20'}`} />}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
-                              {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
-                              <p className="text-white/30 text-xs">{p.app}</p>
-                              {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
-                              {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
-                            </div>
-                          </div>
-                          {p.phone && (
-                            <a href={`https://wa.me/${cleanNum(p.phone)}`} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
-                              <Phone className="w-3 h-3" /> {p.phone}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                  </div>
-                </div>
-              )}
+
             </div>
           )}
           </>
