@@ -1192,7 +1192,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                   </span>
                 )}
               </button>
-              <button onClick={() => { setTab('canales'); fetchChannelMessages(channelApp) }}
+              <button onClick={() => { setTab('canales'); fetchChannelMessages(channelApp); fetchAdminPayStk(adminPayApp) }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'canales' ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Radio className="w-3.5 h-3.5" />
                 Canales
