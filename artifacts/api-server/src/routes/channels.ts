@@ -278,5 +278,121 @@ import { Router } from 'express';
     }
   })
 
-  export default router;
+  
+  // POST /api/channel-reaction — toggle a reaction (heart or like) on a message
+  router.post('/channel-reaction', async (req, res) => {
+    const { message_id, user_id, reaction_type } = req.body as {
+      message_id: string; user_id: string; reaction_type: 'heart' | 'like';
+    };
+    if (!message_id || !user_id || !reaction_type) return res.status(400).json({ error: 'Missing fields' });
+    try {
+      // Check if reaction exists
+      const existsRes = await fetch(
+        sbUrl(`channel_reactions?message_id=eq.${encodeURIComponent(message_id)}&user_id=eq.${encodeURIComponent(user_id)}&reaction_type=eq.${reaction_type}&select=id`),
+        { headers: sbH() }
+      );
+      const existing: { id: string }[] = existsRes.ok ? await existsRes.json() : [];
+      if (Array.isArray(existing) && existing.length > 0) {
+        // Toggle off — delete
+        await fetch(
+          sbUrl(`channel_reactions?message_id=eq.${encodeURIComponent(message_id)}&user_id=eq.${encodeURIComponent(user_id)}&reaction_type=eq.${reaction_type}`),
+          { method: 'DELETE', headers: sbH() }
+        );
+      } else {
+        // Toggle on — insert
+        await fetch(sbUrl('channel_reactions'), {
+          method: 'POST',
+          headers: { ...sbH(), Prefer: 'return=minimal' },
+          body: JSON.stringify({ message_id, user_id, reaction_type }),
+        });
+      }
+      // Return updated summary for this message
+      const summaryRes = await fetch(
+        sbUrl(`channel_reactions?message_id=eq.${encodeURIComponent(message_id)}&select=reaction_type,user_id`),
+        { headers: sbH() }
+      );
+      const all: { reaction_type: string; user_id: string }[] = summaryRes.ok ? await summaryRes.json() : [];
+      return res.json({
+        ok: true,
+        summary: {
+          heart: all.filter(r => r.reaction_type === 'heart').length,
+          like: all.filter(r => r.reaction_type === 'like').length,
+          user_heart: all.some(r => r.reaction_type === 'heart' && r.user_id === user_id),
+          user_like: all.some(r => r.reaction_type === 'like' && r.user_id === user_id),
+        },
+      });
+    } catch (e: unknown) {
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+    }
+  });
+
+  // GET /api/channel-reactions-bulk?message_ids=id1,id2,...&user_id=X
+  router.get('/channel-reactions-bulk', async (req, res) => {
+    const rawIds = req.query.message_ids as string | undefined;
+    const user_id = req.query.user_id as string | undefined;
+    if (!rawIds) return res.json({ reactions: {} });
+    const messageIds = rawIds.split(',').filter(Boolean);
+    if (messageIds.length === 0) return res.json({ reactions: {} });
+    try {
+      const encodedIds = messageIds.map(encodeURIComponent).join(',');
+      const r = await fetch(
+        sbUrl(`channel_reactions?message_id=in.(${encodedIds})&select=message_id,reaction_type,user_id`),
+        { headers: sbH() }
+      );
+      const all: { message_id: string; reaction_type: string; user_id: string }[] = r.ok ? await r.json() : [];
+      const result: Record<string, { heart: number; like: number; user_heart: boolean; user_like: boolean }> = {};
+      for (const msgId of messageIds) {
+        const rows = all.filter(r => r.message_id === msgId);
+        result[msgId] = {
+          heart: rows.filter(r => r.reaction_type === 'heart').length,
+          like: rows.filter(r => r.reaction_type === 'like').length,
+          user_heart: rows.some(r => r.reaction_type === 'heart' && r.user_id === user_id),
+          user_like: rows.some(r => r.reaction_type === 'like' && r.user_id === user_id),
+        };
+      }
+      return res.json({ reactions: result });
+    } catch (e: unknown) {
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+    }
+  });
+
+  // GET /api/payment-stickers?app_name=X
+  router.get('/payment-stickers', async (req, res) => {
+    const app_name = req.query.app_name as string | undefined;
+    if (!app_name) return res.status(400).json({ error: 'app_name requerido' });
+    try {
+      const r = await fetch(
+        sbUrl(`payment_sticker_events?app_name=eq.${encodeURIComponent(app_name)}&order=created_at.asc&limit=200&select=*`),
+        { headers: sbH() }
+      );
+      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+      const events = await r.json();
+      return res.json({ events: Array.isArray(events) ? events : [] });
+    } catch (e: unknown) {
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+    }
+  });
+
+  // POST /api/payment-sticker — called when a worker/agent marks payment received
+  router.post('/payment-sticker', async (req, res) => {
+    const { user_id, app_name, nombre_en_app, sticker_index } = req.body as {
+      user_id: string; app_name: string; nombre_en_app?: string; sticker_index?: number;
+    };
+    if (!user_id || !app_name) return res.status(400).json({ error: 'user_id y app_name requeridos' });
+    try {
+      const idx = sticker_index !== undefined ? sticker_index : Math.floor(Math.random() * 3);
+      const r = await fetch(sbUrl('payment_sticker_events'), {
+        method: 'POST',
+        headers: { ...sbH(), Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id, app_name, nombre_en_app: nombre_en_app ?? null, sticker_index: idx }),
+      });
+      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+      return res.json({ ok: true });
+    } catch (e: unknown) {
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+    }
+  });
+
+  
+export default router;
   
