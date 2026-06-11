@@ -273,42 +273,53 @@ export default function Canales() {
               <div style={{display:'flex',justifyContent:'center',padding:'10px 0 6px'}}>
                 <span style={{background:'rgba(0,0,0,0.35)',color:'rgba(255,255,255,0.45)',fontSize:11,padding:'3px 10px',borderRadius:8,fontWeight:500}}>{g.label}</span>
               </div>
-              {g.items.map(m=>{
+              {g.items.map((m,mi)=>{
                 const rxm=rx[m.id]??{heart:0,like:0,user_heart:false,user_like:false}
+                const hasReactions=rxm.heart>0||rxm.like>0
                 return (
-                  <div key={m.id} style={{padding:'0 10px 6px'}}>
-                    <div style={{background:'#182533',borderRadius:12,overflow:'hidden'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8,padding:'9px 12px 7px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                        <div style={{width:28,height:28,borderRadius:'50%',overflow:'hidden',flexShrink:0}}>
+                  <div key={m.id} style={{padding:'0 10px',marginBottom:8,marginTop:mi===0?4:0}}>
+                    {/* Telegram-style channel bubble */}
+                    <div style={{background:'#182533',borderRadius:18,overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.3)'}}>
+                      {/* Channel identity row — compact, no divider */}
+                      <div style={{display:'flex',alignItems:'center',gap:7,padding:'10px 14px 5px'}}>
+                        <div style={{width:22,height:22,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'1.5px solid rgba(44,165,224,0.4)'}}>
                           <img src={APP_ICONS[ch.app]} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                         </div>
-                        <div style={{flex:1}}>
-                          <span style={{color:'#2ca5e0',fontWeight:700,fontSize:13}}>Canal {ch.app}</span>
-                          <span style={{color:'rgba(255,255,255,0.18)',fontSize:10,marginLeft:5}}>Eclipse Angels</span>
-                        </div>
-                        <span style={{color:'rgba(255,255,255,0.22)',fontSize:11,flexShrink:0}}>{fmtTime(m.created_at)}</span>
+                        <span style={{color:'#2ca5e0',fontWeight:700,fontSize:13,lineHeight:1}}>Canal {ch.app}</span>
+                        <span style={{color:'rgba(255,255,255,0.2)',fontSize:10,marginLeft:1}}>· Eclipse Angels</span>
                       </div>
+                      {/* Image */}
                       {m.image_url&&(
-                        <div style={{cursor:'zoom-in'}} onClick={()=>setLb(m.image_url)}>
-                          <img src={m.image_url} alt="" style={{width:'100%',maxHeight:320,objectFit:'cover',display:'block'}}/>
+                        <div style={{cursor:'zoom-in',margin:'2px 0'}} onClick={()=>setLb(m.image_url)}>
+                          <img src={m.image_url} alt="" style={{width:'100%',maxHeight:300,objectFit:'cover',display:'block'}}/>
                         </div>
                       )}
-                      {m.content&&<div style={{padding:'8px 12px 10px',color:'rgba(255,255,255,0.88)',fontSize:14,lineHeight:1.55,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{m.content}</div>}
-                      {!isAdmin&&(
-                        <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px 8px',flexWrap:'wrap'}}>
-                          {(['heart','like'] as const).map(t=>{
-                            const k=m.id+'-'+t; const active=t==='heart'?rxm.user_heart:rxm.user_like; const count=t==='heart'?rxm.heart:rxm.like
-                            return (
-                              <button key={t} onClick={()=>toggleRx(m.id,t)} disabled={rxLoad[k]}
-                                style={{display:'flex',alignItems:'center',gap:4,background:active?'rgba(44,165,224,0.18)':'rgba(255,255,255,0.05)',border:`1px solid ${active?'rgba(44,165,224,0.45)':'rgba(255,255,255,0.08)'}`,borderRadius:14,padding:'3px 9px',cursor:'pointer',transition:'all 0.15s',opacity:rxLoad[k]?0.5:1}}>
-                                <span style={{fontSize:13}}>{t==='heart'?'❤️':'👍'}</span>
-                                {count>0&&<span style={{color:active?'#2ca5e0':'rgba(255,255,255,0.4)',fontSize:12,fontWeight:600}}>{count}</span>}
-                              </button>
-                            )
-                          })}
+                      {/* Text content */}
+                      {m.content&&(
+                        <div style={{padding:`${m.image_url?'8px':'2px'} 14px 0`,color:'rgba(255,255,255,0.9)',fontSize:14.5,lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
+                          {m.content}
                         </div>
                       )}
+                      {/* Timestamp — bottom right, Telegram style */}
+                      <div style={{display:'flex',justifyContent:'flex-end',padding:'3px 14px 10px',gap:4,alignItems:'center'}}>
+                        <span style={{color:'rgba(255,255,255,0.26)',fontSize:11}}>{fmtTime(m.created_at)}</span>
+                      </div>
                     </div>
+                    {/* Reactions — float below the bubble like Telegram */}
+                    {!isAdmin&&(
+                      <div style={{display:'flex',alignItems:'center',gap:5,marginTop:5,paddingLeft:4,flexWrap:'wrap'}}>
+                        {(['heart','like'] as const).map(t=>{
+                          const k=m.id+'-'+t; const active=t==='heart'?rxm.user_heart:rxm.user_like; const count=t==='heart'?rxm.heart:rxm.like
+                          return (
+                            <button key={t} onClick={()=>toggleRx(m.id,t)} disabled={rxLoad[k]}
+                              style={{display:'flex',alignItems:'center',gap:5,background:active?'rgba(44,165,224,0.22)':'rgba(255,255,255,0.07)',border:`1.5px solid ${active?'rgba(44,165,224,0.55)':'rgba(255,255,255,0.1)'}`,borderRadius:20,padding:'5px 12px',cursor:'pointer',transition:'all 0.18s',opacity:rxLoad[k]?0.5:1,backdropFilter:'blur(4px)'}}>
+                              <span style={{fontSize:15,lineHeight:1}}>{t==='heart'?'❤️':'👍'}</span>
+                              <span style={{color:active?'#64bfed':'rgba(255,255,255,0.5)',fontSize:13,fontWeight:700,minWidth:8}}>{count>0?count:''}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 )
               })}
