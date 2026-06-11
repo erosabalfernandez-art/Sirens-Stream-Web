@@ -146,11 +146,8 @@ import { Router } from 'express';
       const { user_id } = req.body as { user_id?: string };
       if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
       try {
-        // Get all distinct channel apps from channel_messages
-        const appsRes = await fetch(sbUrl('channel_messages?select=app_name'), { headers: sbH() });
-        const allMsgs: { app_name: string }[] = appsRes.ok ? await appsRes.json() : [];
-        const appNames = [...new Set(allMsgs.map((m) => m.app_name).filter(Boolean))];
-        if (appNames.length === 0) return res.json({ ok: true, granted: 0, apps: [] });
+        // Always grant all 3 app channels — admin assigns directly, no need for messages to exist yet
+        const appNames = ['Waha', 'Layla', 'Howdy'];
 
         // Get existing channel_requests for this user
         const existingRes = await fetch(
