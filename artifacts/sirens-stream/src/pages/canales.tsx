@@ -64,9 +64,9 @@ export default function Canales() {
   type CType = 'canal'|'pagos'
   interface Ch { id:string; type:CType; app:string }
   const chans: Ch[] = [
-    ...approved.map(app=>({id:'canal-'+app, type:'canal' as CType, app})),
-    ...(isAdmin ? approved.map(app=>({id:'pagos-'+app, type:'pagos' as CType, app})) : []),
-  ]
+      ...approved.map(app=>({id:'canal-'+app, type:'canal' as CType, app})),
+      ...(isAdmin ? [{id:'pagos-all', type:'pagos' as CType, app:'all'}] : []),
+    ]
   const ch = chans.find(c=>c.id===activeCh)
 
   useEffect(()=>{ if(chans.length>0&&!activeCh) setActiveCh(chans[0].id) },[chans.length])
@@ -102,8 +102,13 @@ export default function Canales() {
     }
   }
   async function loadStk(app:string){
-    const r=await fetch(`${API}/api/payment-stickers?app_name=${encodeURIComponent(app)}`)
-    if(r.ok){ const d=await r.json(); setStickers(d.events??[]) }
+    if(app==='all'){
+      const results=await Promise.all(['Waha','Layla','Howdy'].map(a=>fetch(`${API}/api/payment-stickers?app_name=${encodeURIComponent(a)}`).then(r=>r.ok?r.json():{events:[]}).catch(()=>({events:[]}))))
+      setStickers(results.flatMap((d:any)=>d.events??[]))
+    } else {
+      const r=await fetch(`${API}/api/payment-stickers?app_name=${encodeURIComponent(app)}`)
+      if(r.ok){ const d=await r.json(); setStickers(d.events??[]) }
+    }
   }
   async function toggleRx(id:string, type:'heart'|'like'){
     if(!user||isAdmin) return
@@ -210,27 +215,27 @@ export default function Canales() {
             )
           })}
           {isAdmin && (<>
-          <div style={{padding:'14px 16px 4px',borderTop:'1px solid rgba(255,255,255,0.05)',marginTop:6}}>
-            <span style={{color:'rgba(37,211,102,0.7)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1.2}}>💰 Pagos · WhatsApp</span>
-          </div>
-          {chans.filter(c=>c.type==='pagos').map(c=>{
-            const isActive=activeCh===c.id
-            return (
-              <button key={c.id} onClick={()=>{setActiveCh(c.id);setSidebar(false);setMsgs([]);setStickers([])}}
-                style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'8px 14px',border:'none',cursor:'pointer',textAlign:'left',background:isActive?'rgba(37,211,102,0.1)':'transparent',transition:'background 0.15s',borderLeft:`3px solid ${isActive?'#25d366':'transparent'}`}}>
-                <div style={{position:'relative',flexShrink:0}}>
-                  <div style={{width:46,height:46,borderRadius:'50%',overflow:'hidden',border:`2px solid ${isActive?'#25d366':'rgba(255,255,255,0.08)'}`}}>
-                    <img src={APP_ICONS[c.app]} alt={c.app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            <div style={{padding:'14px 16px 4px',borderTop:'1px solid rgba(255,255,255,0.05)',marginTop:6}}>
+              <span style={{color:'rgba(37,211,102,0.7)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1.2}}>💰 Pagos · Todas las Apps</span>
+            </div>
+            {(()=>{
+              const isActive=activeCh==='pagos-all'
+              return (
+                <button onClick={()=>{setActiveCh('pagos-all');setSidebar(false);setMsgs([]);setStickers([])}}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'8px 14px',border:'none',cursor:'pointer',textAlign:'left',background:isActive?'rgba(37,211,102,0.1)':'transparent',transition:'background 0.15s',borderLeft:`3px solid ${isActive?'#25d366':'transparent'}`}}>
+                  <div style={{position:'relative',flexShrink:0}}>
+                    <div style={{width:46,height:46,borderRadius:'50%',overflow:'hidden',border:`2px solid ${isActive?'#25d366':'rgba(255,255,255,0.08)'}`}}>
+                      <img src="/images/eclipse-logo-nobg.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                    </div>
+                    <div style={{position:'absolute',bottom:-1,right:-1,width:17,height:17,borderRadius:'50%',background:'#25d366',border:'2px solid #17212b',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:9,fontWeight:900}}>$</div>
                   </div>
-                  <div style={{position:'absolute',bottom:-1,right:-1,width:17,height:17,borderRadius:'50%',background:'#25d366',border:'2px solid #17212b',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:9,fontWeight:900}}>$</div>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{color:isActive?'#fff':'rgba(255,255,255,0.85)',fontWeight:600,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Pagos {c.app}</div>
-                  <div style={{color:'rgba(255,255,255,0.3)',fontSize:12,marginTop:1}}>Confirmaciones de pago</div>
-                </div>
-              </button>
-            )
-          })}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{color:isActive?'#fff':'rgba(255,255,255,0.85)',fontWeight:600,fontSize:14}}>Canal de Pagos</div>
+                    <div style={{color:'rgba(255,255,255,0.3)',fontSize:12,marginTop:1}}>Waha · Layla · Howdy</div>
+                  </div>
+                </button>
+              )
+            })()}
           </>)}
         </div>
       </div>
@@ -371,10 +376,10 @@ export default function Canales() {
             <ChevronLeft size={22}/>
           </button>
           <div style={{width:38,height:38,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(37,211,102,0.4)'}}>
-            <img src={APP_ICONS[ch.app]} alt={ch.app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            <img src={"/images/eclipse-logo-nobg.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos {ch.app}</div>
+            <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal de Pagos</div>
             <div style={{color:'#25d366',fontSize:12}}>Canal de pagos confirmados</div>
           </div>
           <Phone size={17} color="rgba(255,255,255,0.3)" style={{cursor:'pointer',flexShrink:0}}/>
@@ -408,7 +413,7 @@ export default function Canales() {
                       <div style={{background:'#1f2c34',borderRadius:'0 10px 10px 10px',overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,0.4)'}}>
                         <div style={{padding:'5px 10px 3px'}}>
                           <span style={{color:'#25d366',fontSize:12,fontWeight:700}}>{senderName}</span>
-                          <span style={{color:'rgba(255,255,255,0.22)',fontSize:10,marginLeft:5}}>{ch.app}</span>
+                          <span style={{color:'rgba(255,255,255,0.22)',fontSize:10,marginLeft:5}}>{stk.app_name}</span>
                         </div>
                         <div style={{position:'relative',background:'#111b21'}}>
                           <img src={stickerImg} alt="Pago recibido" style={{width:160,height:160,objectFit:'cover',display:'block'}}/>
