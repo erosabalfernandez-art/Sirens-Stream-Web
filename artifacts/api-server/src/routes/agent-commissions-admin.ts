@@ -90,27 +90,47 @@ import { Router } from 'express'
         } catch {}
       }
 
-      // Step 2: Resolve display names for agents that already have agent_user_id but may show code as name
-      const agentsWithId = Object.values(agentMap).filter(a => a.agent_user_id)
-      if (agentsWithId.length > 0) {
-        try {
-          const ids = agentsWithId.map(a => a.agent_user_id!)
-          const profileRes = await fetch(
-            `${SB}/rest/v1/profiles?id=in.(${ids.map(id => `"${id}"`).join(',')})&select=id,agent_name,colider_name`,
-            { headers: h() }
-          )
-          if (profileRes.ok) {
-            const profiles = await profileRes.json() as { id: string; agent_name: string | null; colider_name: string | null }[]
-            for (const p of profiles) {
-              const ag = agentsWithId.find(a => a.agent_user_id === p.id)
-              if (ag) {
-                const displayName = p.colider_name ?? p.agent_name
-                if (displayName) ag.agent_name = displayName
+        // Step 2: Resolve display names for agents that already have agent_user_id but may show code as name
+        const agentsWithId = Object.values(agentMap).filter(a => a.agent_user_id)
+        if (agentsWithId.length > 0) {
+          try {
+            const ids = agentsWithId.map(a => a.agent_user_id!)
+            const profileRes = await fetch(
+              `${SB}/rest/v1/profiles?id=in.(${ids.map(id => '"' + id + '"').join(',')})&select=id,agent_name,colider_name`,
+              { headers: h() }
+            )
+            if (profileRes.ok) {
+              const profiles = await profileRes.json() as { id: string; agent_name: string | null; colider_name: string | null }[]
+              const toFix: { id: string; realName: string; currentName: string; agentUserId: string }[] = []
+              for (const p of profiles) {
+                const ag = agentsWithId.find(a => a.agent_user_id === p.id)
+                if (ag) {
+                  const displayName = p.colider_name ?? p.agent_name
+                  if (displayName) {
+                    if (ag.agent_name !== displayName) {
+                      // Stored name differs from profile real name — queue a background fix
+                      toFix.push({ id: ag.agent_user_id!, realName: displayName, currentName: ag.agent_name, agentUserId: ag.agent_user_id! })
+                    }
+                    ag.agent_name = displayName
+                  }
+                }
+              }
+              // Background: fix stored agent_name in agent_commissions so it always shows the real name
+              if (toFix.length > 0) {
+                setImmediate(async () => {
+                  for (const fix of toFix) {
+                    try {
+                      await fetch(`${SB}/rest/v1/agent_commissions?agent_user_id=eq.${encodeURIComponent(fix.agentUserId)}&semana=eq.${encodeURIComponent(semana)}`,
+                        { method: 'PATCH', headers: { ...h(), Prefer: 'return=minimal' }, body: JSON.stringify({ agent_name: fix.realName }) })
+                      await fetch(`${SB}/rest/v1/agent_commission_publish_log?agent_user_id=eq.${encodeURIComponent(fix.agentUserId)}&semana=eq.${encodeURIComponent(semana)}`,
+                        { method: 'PATCH', headers: { ...h(), Prefer: 'return=minimal' }, body: JSON.stringify({ agent_name: fix.realName }) })
+                    } catch {}
+                  }
+                })
               }
             }
-          }
-        } catch {}
-      }
+          } catch {}
+        }
 
       const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : lockedAgents.has(`__name__:${a.agent_name}`), apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
       res.json({ semana, agents, colider_published: coliderLog.length > 0, colider_published_at: (coliderLog[0] as any)?.published_at ?? null })
