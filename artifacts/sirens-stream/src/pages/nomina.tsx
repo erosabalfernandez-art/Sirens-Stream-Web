@@ -1185,9 +1185,10 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     if (fIdApp && !(w.id_aplicacion ?? '').toLowerCase().includes(fIdApp.toLowerCase())) return false
     if (fTelefono && !(w.telefono ?? '').toLowerCase().includes(fTelefono.toLowerCase())) return false
     return true
-  }).sort((a, b) => fSortDir === 'desc' ? (b.nomina?.usd ?? 0) - (a.nomina?.usd ?? 0) : (a.nomina?.usd ?? 0) - (b.nomina?.usd ?? 0))
+  }).sort((a, b) => { const _s1 = new Set(Object.values(agentIdMap)); const da = _s1.has(a.worker.user_id)?1:0, db = _s1.has(b.worker.user_id)?1:0; if(da!==db)return da-db; return fSortDir==='desc'?(b.nomina?.usd??0)-(a.nomina?.usd??0):(a.nomina?.usd??0)-(b.nomina?.usd??0); })
   const nfHasFilters = !!(fPais || fPago || fEmail || fBilletera || fAgente || fNombreReal || fNombreApp || fIdApp || fTelefono)
   function clearNominaFilters() { setFPais(''); setFPago(''); setFEmail(''); setFBilletera(''); setFAgente(''); setFNombreReal(''); setFNombreApp(''); setFIdApp(''); setFTelefono('') }
+  const _agentUids = new Set(Object.values(agentIdMap))
 
   return (
     <div className={`border rounded-2xl overflow-hidden ${sectionOpen ? color.border : 'border-purple-500/10'} bg-[#0a0a18] transition-all`}>
@@ -1417,11 +1418,17 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
                     {cobradasFiltered.length === 0 && cobradas.length > 0 && <Empty msg="No hay resultados con los filtros aplicados." />}
                     {cobradas.length === 0 && <Empty msg="Ninguna chica cobró o no se encontraron coincidencias." />}
-                    {cobradasFiltered.map(({ worker: w, nomina: n }) => {
+                    {cobradasFiltered.map(({ worker: w, nomina: n }, _cfIdx) => {
+                      const _isDual = _agentUids.has(w.user_id)
+                      const _prevIsDual = _cfIdx>0 && _agentUids.has(cobradasFiltered[_cfIdx-1].worker.user_id)
+                      const _showPureHdr = !_isDual && _cfIdx===0 && cobradasFiltered.some(x=>_agentUids.has(x.worker.user_id))
+                      const _showDualHdr = _isDual && !_prevIsDual
                       const cardOpen = expanded.has(n.uid)
                       const waNum = [w.codigo_pais, w.telefono].filter(Boolean).join('').replace(/\D/g, '')
                       const waLink = waNum ? `https://wa.me/${waNum}` : null
-                      return (
+                      return (<>
+                        {_showPureHdr&&<p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/50 pb-2">👩 Trabajadoras</p>}
+                        {_showDualHdr&&<p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/50 pb-2 pt-3">🔗 Agente + Trabajadora</p>}
                         <div key={n.uid} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
                           <div className="px-5 py-4 flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3 min-w-0">
@@ -1505,6 +1512,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                             </div>
                           )}
                         </div>
+                        </>
                       )
                     })}
                   </div>
@@ -1514,12 +1522,19 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                 {tab === 'nocobro' && (
                   <div className="space-y-3">
                     {noCobro.length === 0 && <Empty msg="¡Todas las chicas registradas cobraron esta semana!" />}
-                    {noCobro.map(({ worker: w, nomina: n }) => {
+                    {noCobro.map(({ worker: w, nomina: n }, _ncIdx) => {
+                      const _ncIsDual = _agentUids.has(w.user_id)
+                      const _ncPrevDual = _ncIdx>0 && _agentUids.has(noCobro[_ncIdx-1].worker.user_id)
+                      const _ncShowPure = !_ncIsDual && _ncIdx===0 && noCobro.some(x=>_agentUids.has(x.worker.user_id))
+                      const _ncShowDual = _ncIsDual && !_ncPrevDual
                       const key = n ? n.uid : 'db_' + w.id
                       const ncOpen = expanded.has('nc_' + key)
                       const ncWaNum = [w.codigo_pais, w.telefono].filter(Boolean).join('').replace(/\D/g, '')
                       const ncWaLink = ncWaNum ? `https://wa.me/${ncWaNum}` : null
                       return (
+                        <>
+                        {_ncShowPure&&<p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/50 pb-2">👩 Trabajadoras</p>}
+                        {_ncShowDual&&<p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/50 pb-2 pt-3">🔗 Agente + Trabajadora</p>}
                         <div key={key} className="bg-[#0d0d1e] border border-orange-500/20 rounded-2xl overflow-hidden">
                           <div className="px-5 py-4 flex items-start gap-3">
                             <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
@@ -1566,6 +1581,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                             </>
                           )}
                         </div>
+                        </>
                       )
                     })}
                   </div>
