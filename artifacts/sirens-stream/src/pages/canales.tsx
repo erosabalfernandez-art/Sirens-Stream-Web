@@ -105,7 +105,7 @@ export default function Canales() {
         if(sorted.length>0){
           const ids=sorted.map((m:Msg)=>m.id)
           const rr=await fetch(`${API}/api/channel-reactions-bulk?user_id=${user!.id}&message_ids=${ids.join(',')}`)
-          if(rr.ok&&activeChRef.current===myChannelId){ const dd=await rr.json(); setRx(dd.reactions??{}) }
+          if(rr.ok){ const dd=await rr.json(); setRx(prev=>({...prev,...(dd.reactions??{})})) }
         }
       } catch(e:unknown) {
         if(e instanceof Error&&e.name==='AbortError') return
@@ -123,7 +123,7 @@ export default function Canales() {
       if(r.ok){ const d=await r.json(); setStickers(d.events??[]) }
     }
   }
-  async function toggleRx(id:string, type:'heart'|'like'){
+  async function toggleRx(id:string, type:'heart'){
     if(!user||isAdmin) return
     const k=id+'-'+type
     setRxLoad(p=>({...p,[k]:true}))
