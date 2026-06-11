@@ -145,8 +145,9 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
             setTimeout(() => checkAgentCode(agentCode), 100)
           } else {
             const draft = loadDraft()
-            setForm(draft)
-            if (draft.agente) setTimeout(() => checkAgentCode(draft.agente), 100)
+            const _initAgente = lockedAgente ?? draft.agente
+            setForm({ ...draft, agente: _initAgente })
+            if (_initAgente) setTimeout(() => checkAgentCode(_initAgente), 100)
           }
           setShowForm(true)
         }
@@ -158,7 +159,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
           nombre_en_app: entry.nombre_en_app ?? '', id_aplicacion: entry.id_aplicacion ?? '',
           telefono: entry.telefono ?? '', codigo_pais: entry.codigo_pais ?? '+1',
           pais: entry.pais ?? '', metodo_pago: entry.metodo_pago ?? '',
-          billetera: entry.billetera ?? '', agente: entry.agente ?? '',
+          billetera: entry.billetera ?? '', agente: lockedAgente ?? entry.agente ?? '',
         })
         setFormError(null); setShowForm(true)
       }
@@ -181,7 +182,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
           codigo_pais: form.codigo_pais || null, pais: form.pais || null,
           metodo_pago: form.metodo_pago || null,
           billetera: form.billetera || null,
-          agente: form.agente || null,
+          agente: lockedAgente ?? form.agente || null,
           updated_at: new Date().toISOString(),
         }
         let error: string | null = null
@@ -236,7 +237,9 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
       if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">{T.loading}</div></div>
 
-      return (
+      const lockedAgente = entries.find(e => e.agente)?.agente ?? null
+
+        return (
         <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
           <div className="max-w-2xl mx-auto px-4">
             <div className="flex items-start justify-between mb-8">
@@ -415,21 +418,27 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                   <Field label={walletLabel || 'Billetera / Dirección de pago'}>
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
-                  <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : "ID de agente (opcional)"}>
+                  <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
                       <FInput
                         value={form.agente}
                         onChange={v => {
-                          if ((profile as any)?.agent_code) return
+                          if ((profile as any)?.agent_code || lockedAgente) return
                           setForm(f => ({ ...f, agente: v })); setAgenteInfo(null); setAgenteError(null)
                         }}
                         onBlur={() => checkAgentCode(form.agente)}
                         placeholder="Código EA-XXXXXXXX de tu agente o co-líder"
-                        style={(profile as any)?.agent_code ? { opacity: 0.65, cursor: 'not-allowed', pointerEvents: 'none' } as React.CSSProperties : undefined}
+                        style={((profile as any)?.agent_code || lockedAgente) ? { opacity: 0.65, cursor: 'not-allowed', pointerEvents: 'none' } as React.CSSProperties : undefined}
                       />
                       {(profile as any)?.agent_code && (
                         <div className="flex items-center gap-1.5 mt-1.5 text-amber-400/80">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                           <span className="text-xs">Como agente, no recibirás comisión por esta cuenta de trabajadora.</span>
+                        </div>
+                      )}
+                      {lockedAgente && !(profile as any)?.agent_code && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-indigo-400/80">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          <span className="text-xs">Tu agente queda bloqueado permanentemente. No podrás cambiarlo.</span>
                         </div>
                       )}
                       {agenteChecking && (
