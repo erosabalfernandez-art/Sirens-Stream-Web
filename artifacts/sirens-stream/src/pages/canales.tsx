@@ -275,7 +275,7 @@ export default function Canales() {
               </div>
               {g.items.map((m,mi)=>{
                 const rxm=rx[m.id]??{heart:0,like:0,user_heart:false,user_like:false}
-                const hasReactions=rxm.heart>0||rxm.like>0
+                const hasReactions=rxm.heart>0
                 return (
                   <div key={m.id} style={{padding:'0 10px',marginBottom:8,marginTop:mi===0?4:0}}>
                     {/* Telegram-style channel bubble */}
@@ -306,21 +306,20 @@ export default function Canales() {
                       </div>
                     </div>
                     {/* Reactions — float below the bubble like Telegram */}
-                    {!isAdmin&&(
-                      <div style={{display:'flex',alignItems:'center',gap:5,marginTop:5,paddingLeft:4,flexWrap:'wrap'}}>
-                        {(['heart','like'] as const).map(t=>{
-                          const k=m.id+'-'+t; const active=t==='heart'?rxm.user_heart:rxm.user_like; const count=t==='heart'?rxm.heart:rxm.like
-                          return (
-                            <button key={t} onClick={()=>toggleRx(m.id,t)} disabled={rxLoad[k]}
-                              style={{display:'flex',alignItems:'center',gap:5,background:active?'rgba(44,165,224,0.22)':'rgba(255,255,255,0.07)',border:`1.5px solid ${active?'rgba(44,165,224,0.55)':'rgba(255,255,255,0.1)'}`,borderRadius:20,padding:'5px 12px',cursor:'pointer',transition:'all 0.18s',opacity:rxLoad[k]?0.5:1,backdropFilter:'blur(4px)'}}>
-                              <span style={{fontSize:15,lineHeight:1}}>{t==='heart'?'❤️':'👍'}</span>
-                              <span style={{color:active?'#64bfed':'rgba(255,255,255,0.5)',fontSize:13,fontWeight:700,minWidth:8}}>{count>0?count:''}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
+                    {!isAdmin&&({(rxm.heart>0||!isAdmin)&&(
+                        <div style={{display:'flex',alignItems:'center',gap:5,marginTop:5,paddingLeft:4,flexWrap:'wrap'}}>
+                          {(()=>{
+                            const active=rxm.user_heart; const count=rxm.heart; const k=m.id+'-heart'
+                            return (
+                              <button onClick={!isAdmin?()=>toggleRx(m.id,'heart'):undefined} disabled={rxLoad[k]}
+                                style={{display:'flex',alignItems:'center',gap:5,background:active?'rgba(44,165,224,0.22)':'rgba(255,255,255,0.07)',border:`1.5px solid ${active?'rgba(44,165,224,0.55)':'rgba(255,255,255,0.1)'}`,borderRadius:20,padding:'5px 12px',cursor:isAdmin?'default':'pointer',transition:'all 0.18s',opacity:rxLoad[k]?0.5:1,backdropFilter:'blur(4px)'}}>
+                                <span style={{fontSize:15,lineHeight:1}}>❤️</span>
+                                <span style={{color:active?'#64bfed':'rgba(255,255,255,0.5)',fontSize:13,fontWeight:700,minWidth:8}}>{count>0?count:''}</span>
+                              </button>
+                            )
+                          })()}
+                        </div>
+                      )}       </div>
                 )
               })}
             </div>
