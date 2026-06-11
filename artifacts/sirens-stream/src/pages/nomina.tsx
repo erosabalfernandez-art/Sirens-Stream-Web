@@ -684,6 +684,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [fBilletera, setFBilletera] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_billetera`) ?? '' } catch { return '' } })
   const [fAgente, setFAgente] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_agente`) ?? '' } catch { return '' } })
   const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
+  const [agentIdMap, setAgentIdMap] = useState<Record<string,string>>({})
   const [agentPhoneMap, setAgentPhoneMap] = useState<Record<string,string>>({})
   const [fNombreReal, setFNombreReal] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_nombrereal`) ?? '' } catch { return '' } })
   const [fNombreApp, setFNombreApp] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_nombreapp`) ?? '' } catch { return '' } })
