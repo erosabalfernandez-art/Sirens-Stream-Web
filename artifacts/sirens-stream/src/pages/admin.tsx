@@ -1666,9 +1666,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'14px 18px',background:'rgba(37,211,102,0.08)',border:'none',cursor:'pointer',textAlign:'left',transition:'background 0.2s'}}
                       onMouseEnter={e=>(e.currentTarget.style.background='rgba(37,211,102,0.14)')}
                       onMouseLeave={e=>(e.currentTarget.style.background='rgba(37,211,102,0.08)')}>
-                      <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#25d366,#128C7E)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 8px rgba(37,211,102,0.4)',fontSize:18}}>
-                        💰
-                      </div>
+                      <div style={{width:36,height:36,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(37,211,102,0.5)',boxShadow:'0 2px 8px rgba(37,211,102,0.4)'}}>
+                          <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${adminPayApp.toLowerCase()}.jpg`} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                        </div>
                       <div style={{flex:1}}>
                         <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos WhatsApp — {adminPayApp}</div>
                         <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Stickers enviados al confirmar pagos</div>
@@ -1682,6 +1682,19 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                     {/* WhatsApp body */}
                     {waOpen && (
                       <div style={{background:'#0b141a'}}>
+                        {/* Channel header bar */}
+                        <div style={{background:'#1f2c34',padding:'12px 16px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(0,0,0,0.3)'}}>
+                          <div style={{width:42,height:42,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid #25d366',boxShadow:'0 2px 8px rgba(37,211,102,0.3)'}}>
+                            <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${adminPayApp.toLowerCase()}.jpg`} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{display:'flex',alignItems:'center',gap:7}}>
+                              <span style={{color:'white',fontWeight:700,fontSize:15}}>Pagos {adminPayApp}</span>
+                              <span style={{background:'#25d366',borderRadius:5,padding:'1px 7px',fontSize:9,color:'white',fontWeight:800,letterSpacing:0.5}}>PAGOS</span>
+                            </div>
+                            <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Canal de confirmaciones de pago · Vista Admin</div>
+                          </div>
+                        </div>
                         {/* App sub-selector */}
                         <div style={{padding:'12px 16px 8px',background:'#111c22',display:'flex',gap:6,flexWrap:'wrap',borderBottom:'1px solid rgba(255,255,255,0.04)',alignItems:'center'}}>
                           {(['Waha','Layla','Howdy'] as const).map(app=>(
