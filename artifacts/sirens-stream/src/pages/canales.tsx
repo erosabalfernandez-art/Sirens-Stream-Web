@@ -335,20 +335,18 @@ export default function Canales() {
                       </div>
                     </div>
                     {/* Reactions — float below the bubble like Telegram */}
-                    {(rxm.heart>0||!isAdmin)&&(
-                        <div style={{display:'flex',alignItems:'center',gap:5,marginTop:5,paddingLeft:4,flexWrap:'wrap'}}>
-                          {(()=>{
-                            const active=rxm.user_heart; const count=rxm.heart; const k=m.id+'-heart'
-                            return (
-                              <button onClick={!isAdmin?()=>toggleRx(m.id,'heart'):undefined} disabled={rxLoad[k]}
-                                style={{display:'flex',alignItems:'center',gap:5,background:active?'rgba(44,165,224,0.22)':'rgba(255,255,255,0.07)',border:`1.5px solid ${active?'rgba(44,165,224,0.55)':'rgba(255,255,255,0.1)'}`,borderRadius:20,padding:'5px 12px',cursor:isAdmin?'default':'pointer',transition:'all 0.18s',opacity:rxLoad[k]?0.5:1,backdropFilter:'blur(4px)'}}>
-                                <span style={{fontSize:15,lineHeight:1}}>❤️</span>
-                                <span style={{color:active?'#64bfed':'rgba(255,255,255,0.5)',fontSize:13,fontWeight:700,minWidth:8}}>{count>0?count:''}</span>
-                              </button>
-                            )
-                          })()}
-                        </div>
-                      )}       </div>
+                    <div style={{display:'flex',alignItems:'center',gap:5,marginTop:5,paddingLeft:4,flexWrap:'wrap'}}>
+                      {(()=>{
+                        const active=rxm.user_heart; const count=rxm.heart; const k=m.id+'-heart'
+                        return (
+                          <button onClick={!isAdmin?()=>toggleRx(m.id,'heart'):undefined} disabled={rxLoad[k]}
+                            style={{display:'flex',alignItems:'center',gap:5,background:active?'rgba(44,165,224,0.22)':'rgba(255,255,255,0.07)',border:`1.5px solid ${active?'rgba(44,165,224,0.55)':'rgba(255,255,255,0.1)'}`,borderRadius:20,padding:'5px 12px',cursor:isAdmin?'default':'pointer',transition:'all 0.18s',opacity:rxLoad[k]?0.5:1,backdropFilter:'blur(4px)'}}>
+                            <span style={{fontSize:15,lineHeight:1}}>❤️</span>
+                            <span style={{color:active?'#64bfed':'rgba(255,255,255,0.5)',fontSize:13,fontWeight:700,minWidth:8}}>{isAdmin?count:(count>0?count:'')}</span>
+                          </button>
+                        )
+                      })()}
+                    </div>       </div>
                 )
               })}
             </div>
