@@ -258,7 +258,7 @@ export default function Canales() {
           <Search size={17} color="rgba(255,255,255,0.3)" style={{cursor:'pointer',flexShrink:0}}/>
         </div>
         {/* Messages */}
-        <div style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
+        <div className="tg-msgs-bg" style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
           {groups.length===0&&(
             <div style={{textAlign:'center',padding:'64px 24px'}}>
               <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(44,165,224,0.1)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
@@ -366,7 +366,7 @@ export default function Canales() {
           <MoreVertical size={17} color="rgba(255,255,255,0.3)" style={{cursor:'pointer',flexShrink:0,marginLeft:4}}/>
         </div>
         {/* WA Chat Background */}
-        <div style={{flex:1,overflowY:'auto',padding:'10px 10px',background:'#0b141a'}}>
+        <div className="wa-msgs-bg" style={{flex:1,overflowY:'auto',padding:'10px 10px'}}>
           {groups.length===0&&(
             <div style={{textAlign:'center',padding:'64px 24px'}}>
               <div style={{width:70,height:70,borderRadius:'50%',background:'rgba(37,211,102,0.08)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
@@ -442,18 +442,31 @@ export default function Canales() {
   return (
     <>
       <style>{`
-        .ch-back { display: none !important }
-        @media(max-width:639px){
-          .ch-back { display: flex !important }
-          .ch-sidebar { width: 100% !important; min-width: 100% !important }
-          .ch-main { display: none }
-          .ch-main.active { display: flex }
-        }
-        * { box-sizing: border-box }
-        ::-webkit-scrollbar { width: 4px }
-        ::-webkit-scrollbar-track { background: transparent }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px }
-      `}</style>
+          .ch-back { display: none !important }
+          @media(max-width:639px){
+            .ch-back { display: flex !important }
+            .ch-sidebar { width: 100% !important; min-width: 100% !important }
+            .ch-main { display: none }
+            .ch-main.active { display: flex }
+          }
+          * { box-sizing: border-box }
+          ::-webkit-scrollbar { width: 4px }
+          ::-webkit-scrollbar-track { background: transparent }
+          ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px }
+          .tg-msgs-bg {
+            background-color: #0e1621;
+            background-image:
+              radial-gradient(rgba(44,165,224,0.1) 1.5px, transparent 1.5px),
+              radial-gradient(rgba(44,165,224,0.05) 1px, transparent 1px);
+            background-size: 28px 28px, 14px 14px;
+            background-position: 0 0, 7px 7px;
+          }
+          .wa-msgs-bg {
+            background-color: #0b141a;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%2325d366' stroke-width='1.4' opacity='0.08'%3E%3Cpath d='M20,60 C20,35 40,35 40,60 C40,85 20,85 20,60Z'/%3E%3Cpath d='M80,30 C80,5 100,5 100,30 C100,55 80,55 80,30Z'/%3E%3Cpath d='M80,90 C80,65 100,65 100,90 C100,115 80,115 80,90Z'/%3E%3Cpath d='M-5,30 C-5,5 15,5 15,30 C15,55 -5,55 -5,30Z'/%3E%3Cpath d='M30,0 C55,0 55,20 30,20 C5,20 5,0 30,0Z'/%3E%3Cpath d='M90,60 C115,60 115,80 90,80 C65,80 65,60 90,60Z'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: 120px 120px;
+          }
+        `}</style>
       {Lightbox}
       <div style={{display:'flex',height:'100vh',overflow:'hidden',paddingTop:0}}>
         <div className="ch-sidebar" style={{width:300,minWidth:300,height:'100%',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.05)',display:'flex'}}>
