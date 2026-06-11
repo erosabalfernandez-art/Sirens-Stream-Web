@@ -405,6 +405,21 @@ import { dispatchPush } from '../lib/push-dispatch';
       })
     )
 
+    // Also reset ranking timestamp
+    try {
+      await fetch(
+        sbUrl('site_settings'),
+        {
+          method: 'POST',
+          headers: { ...sbH(), Prefer: 'resolution=merge-duplicates,return=minimal' } as Record<string, string>,
+          body: JSON.stringify({ key: 'ranking_reset_at', value: new Date().toISOString() }),
+        }
+      )
+      results['ranking_reset'] = 'reset'
+    } catch (e: unknown) {
+      results['ranking_reset'] = `exception: ${e instanceof Error ? e.message : String(e)}`
+    }
+
     const errors = Object.entries(results).filter(([,v]) => v.startsWith('error') || v.startsWith('exception'))
     return res.json({ ok: errors.length === 0, results })
   })
