@@ -181,7 +181,7 @@ export default function Canales() {
   function Sidebar(){
     return (
       <div style={{width:'100%',height:'100%',background:'#17212b',display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <div style={{padding:'56px 16px 12px',background:'#242f3d',borderBottom:'1px solid rgba(255,255,255,0.04)',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{padding:'12px 16px 12px',background:'#242f3d',borderBottom:'1px solid rgba(255,255,255,0.04)',display:'flex',alignItems:'center',gap:10}}>
           <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#2ca5e0,#1a7fba)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
             <Megaphone size={18} color="white"/>
           </div>
@@ -526,7 +526,7 @@ export default function Canales() {
           }
         `}</style>
       {Lightbox}
-      <div style={{display:'flex',height:'100vh',overflow:'hidden',paddingTop:0}}>
+      <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
         <div className={`ch-sidebar${!sidebar?' collapsed':''}`} style={{width:300,minWidth:300,height:'100%',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.05)',display:'flex'}}>
           <Sidebar/>
         </div>
