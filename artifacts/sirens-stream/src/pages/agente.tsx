@@ -669,7 +669,8 @@ import React, { useState, useEffect } from 'react'
                                 {rows.map((row, i) => {
                                   const workerSalUsd = Number(row.worker_salary_usd ?? 0)
                                   const met = (row.worker_metodo_pago ?? '').toLowerCase()
-                                  const isEfectivo = met.includes('efectivo') || (!met.includes('transfer') && workerSalUsd > 0)
+                                  const isCuban = met.includes('cuba')
+                                  const isEfectivo = met.includes('efectivo')
                                   const customEf = Number(row.custom_efectivo_rate ?? 0)
                                   const customTr = Number(row.custom_transferencia_rate ?? 0)
                                   const globalEf = exchangeRates['efectivo_worker'] ?? 0
@@ -678,7 +679,7 @@ import React, { useState, useEffect } from 'react'
                                   const trRate = customTr > 0 ? customTr : globalTr
                                   const workerRate = isEfectivo ? efRate : trRate
                                   const hasExclusive = customEf > 0 || customTr > 0
-                                  const cupAmount = workerSalUsd > 0 && workerRate > 0 ? workerSalUsd * workerRate : 0
+                                  const cupAmount = isCuban && workerSalUsd > 0 && workerRate > 0 ? workerSalUsd * workerRate : 0
                                   return (
                                     <div key={i} className="py-2 border-b border-white/5 last:border-0">
                                       <div className="flex items-start justify-between gap-3">
@@ -688,7 +689,10 @@ import React, { useState, useEffect } from 'react'
                                         </div>
                                         <div className="text-right shrink-0">
                                           <span className="text-green-400 font-bold text-sm block">${Number(row.commission_usd).toFixed(2)} <span className="text-white/30 font-normal text-xs">comisión</span></span>
-                                          {cupAmount > 0 && (
+                                          {workerSalUsd > 0 && (
+                                            <span className="text-purple-300 font-bold text-xs block mt-0.5">${workerSalUsd.toFixed(2)} <span className="text-white/30 font-normal">salario</span></span>
+                                          )}
+                                          {isCuban && cupAmount > 0 && (
                                             <span className={`font-bold text-xs block mt-0.5 ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>
                                               {cupAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
                                             </span>
