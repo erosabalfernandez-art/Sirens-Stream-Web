@@ -2832,7 +2832,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                 </div>
                 <div className="bg-red-950/40 border border-red-500/15 rounded-xl p-4 mb-5 space-y-1">
                   <p className="text-xs font-bold text-red-300 mb-2">Se borrará permanentemente:</p>
-                  {['Salarios publicados de todas las trabajadoras','Comisiones de todos los agentes','Confirmaciones de pago (trabajadoras y agentes)','Marcas del colider','Lista de no-cobraron','Historial de nóminas subidas al admin','Registro de comisiones publicadas del colider'].map(item => (
+                  {['Salarios publicados de todas las trabajadoras','Comisiones de todos los agentes','Confirmaciones de pago (trabajadoras y agentes)','Marcas del colider','Lista de no-cobraron','Historial de nóminas subidas al admin','Registro de comisiones publicadas del colider','Estadísticas del ranking del mes (se reiniciará desde cero)'].map(item => (
                     <div key={item} className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
                       <p className="text-xs text-white/55">{item}</p>
