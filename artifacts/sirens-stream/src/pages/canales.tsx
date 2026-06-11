@@ -333,7 +333,7 @@ export default function Canales() {
                       </div>
                     </div>
                     {/* Reactions — float below the bubble like Telegram */}
-                    {!isAdmin&&({(rxm.heart>0||!isAdmin)&&(
+                    {(rxm.heart>0||!isAdmin)&&(
                         <div style={{display:'flex',alignItems:'center',gap:5,marginTop:5,paddingLeft:4,flexWrap:'wrap'}}>
                           {(()=>{
                             const active=rxm.user_heart; const count=rxm.heart; const k=m.id+'-heart'
