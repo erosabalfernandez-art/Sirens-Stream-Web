@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'wouter'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
 import { Send, X, ChevronLeft, Image as ImgIcon, CheckCheck, Megaphone, Phone, MoreVertical, Search } from 'lucide-react'
 
 const STICKER_URLS = [
@@ -38,7 +37,7 @@ export default function Canales() {
   const [, navigate] = useLocation()
   const API = ((import.meta.env.VITE_API_URL as string|undefined)??'').replace(/\/$/, '')
 
-  const [isAdmin, setIsAdmin] = useState(false)
+  const isAdmin = !!(profile as any)?.is_admin
   const [reqs, setReqs] = useState<CReq[]>([])
   const [fetching, setFetching] = useState(true)
   const [activeCh, setActiveCh] = useState<string|null>(null)
@@ -54,7 +53,7 @@ export default function Canales() {
   const btmRef = useRef<HTMLDivElement>(null)
 
   useEffect(()=>{ if(!loading&&!user) navigate('/login') },[loading,user])
-  useEffect(()=>{ if(user){ loadAdmin(); loadAccess() } },[user])
+  useEffect(()=>{ if(user) loadAccess() },[user])
 
   const approved = reqs.filter(r=>r.status==='approved').map(r=>r.app_name)
 
@@ -62,7 +61,7 @@ export default function Canales() {
   interface Ch { id:string; type:CType; app:string }
   const chans: Ch[] = [
     ...approved.map(app=>({id:'canal-'+app, type:'canal' as CType, app})),
-    ...approved.map(app=>({id:'pagos-'+app, type:'pagos' as CType, app})),
+    ...(isAdmin ? approved.map(app=>({id:'pagos-'+app, type:'pagos' as CType, app})) : []),
   ]
   const ch = chans.find(c=>c.id===activeCh)
 
@@ -79,10 +78,6 @@ export default function Canales() {
   },[activeCh,user])
   useEffect(()=>{ btmRef.current?.scrollIntoView({behavior:'smooth'}) },[msgs,stickers,activeCh])
 
-  async function loadAdmin(){
-    const {data}=await supabase.from('profiles').select('is_admin').eq('id',user!.id).single()
-    setIsAdmin(!!(data as {is_admin?:boolean}|null)?.is_admin)
-  }
   async function loadAccess(){
     setFetching(true)
     const r=await fetch(`${API}/api/channel-access?user_id=${user!.id}`)
@@ -209,6 +204,7 @@ export default function Canales() {
               </button>
             )
           })}
+          {isAdmin && (<>
           <div style={{padding:'14px 16px 4px',borderTop:'1px solid rgba(255,255,255,0.05)',marginTop:6}}>
             <span style={{color:'rgba(37,211,102,0.7)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1.2}}>💰 Pagos · WhatsApp</span>
           </div>
@@ -230,6 +226,7 @@ export default function Canales() {
               </button>
             )
           })}
+          </>)}
         </div>
       </div>
     )
