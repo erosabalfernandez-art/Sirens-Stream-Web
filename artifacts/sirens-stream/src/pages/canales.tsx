@@ -154,9 +154,9 @@ import { useState, useEffect, useRef } from 'react'
             <p style={{margin:'2px 0 0',color:'rgba(255,255,255,0.35)',fontSize:12}}>Eclipse Angels Agency</p>
           </div>
           <div style={{flex:1,overflowY:'auto'}}>
-            <p style={{margin:0,padding:'12px 16px 4px',color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>📢 Comunicados</p>
+            <p style={{margin:0,padding:'12px 16px 4px',color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>ð¢ Comunicados</p>
             {channels.filter(c=>c.type==='canal').map(c=><SideItem key={c.id} c={c}/>)}
-            <p style={{margin:0,padding:'14px 16px 4px',color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>💸 Pagos</p>
+            <p style={{margin:0,padding:'14px 16px 4px',color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>ð¸ Pagos</p>
             {channels.filter(c=>c.type==='pagos').map(c=><SideItem key={c.id} c={c}/>)}
           </div>
         </div>
@@ -173,7 +173,7 @@ import { useState, useEffect, useRef } from 'react'
               <img src={APP_ICONS[c.app]} alt={c.app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
             </div>
             <div style={{position:'absolute',bottom:0,right:0,width:16,height:16,borderRadius:'50%',background:c.type==='canal'?'#2ca5e0':'#25d366',border:'2px solid #1a1f2e',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8}}>
-              {c.type==='canal'?'📢':'💸'}
+              {c.type==='canal'?'ð¢':'ð¸'}
             </div>
           </div>
           <div style={{flex:1,minWidth:0}}>
@@ -209,7 +209,7 @@ import { useState, useEffect, useRef } from 'react'
             </div>
             <div style={{flex:1}}>
               <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal {c.app}</div>
-              <div style={{color:'#2ca5e0',fontSize:12}}>Eclipse Angels Agency{isAdmin?' · Admin':''}</div>
+              <div style={{color:'#2ca5e0',fontSize:12}}>Eclipse Angels Agency{isAdmin?' Â· Admin':''}</div>
             </div>
             <svg width="22" height="22" viewBox="0 0 240 240" fill="none" opacity="0.35"><circle cx="120" cy="120" r="120" fill="#2ca5e0"/><path d="M73 135l14 28 10-17 47 22-57-110-14 77z" fill="white"/><path d="M73 135l31-20 16 15-47 5z" fill="rgba(255,255,255,0.7)"/></svg>
           </div>
@@ -220,8 +220,8 @@ import { useState, useEffect, useRef } from 'react'
             `}</style>
             {groups.length===0&&(
               <div style={{textAlign:'center',color:'rgba(255,255,255,0.22)',marginTop:64,fontSize:14}}>
-                <div style={{fontSize:44,marginBottom:12}}>📢</div>
-                <div>Aún no hay mensajes en este canal.</div>
+                <div style={{fontSize:44,marginBottom:12}}>ð¢</div>
+                <div>AÃºn no hay mensajes en este canal.</div>
               </div>
             )}
             {groups.map(g=>(
@@ -250,7 +250,7 @@ import { useState, useEffect, useRef } from 'react'
                               {(['heart','like'] as const).map(type=>{
                                 const count=type==='heart'?r.heart:r.like
                                 const active=type==='heart'?r.user_heart:r.user_like
-                                const emoji=type==='heart'?'❤️':'👍'
+                                const emoji=type==='heart'?'â¤ï¸':'ð'
                                 if(isAdmin&&count===0) return null
                                 return (
                                   <button key={type} onClick={()=>toggleRx(m.id,type)} disabled={isAdmin||rxLoading[`${m.id}-${type}`]} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 9px',borderRadius:12,border:`1px solid ${active?'#2ca5e0':'rgba(255,255,255,0.1)'}`,background:active?'rgba(44,165,224,0.15)':'rgba(255,255,255,0.04)',cursor:isAdmin?'default':'pointer',fontSize:13,color:active?'#2ca5e0':'rgba(255,255,255,0.45)',transition:'all 0.15s'}}>
@@ -312,22 +312,22 @@ import { useState, useEffect, useRef } from 'react'
             </div>
             <div style={{flex:1}}>
               <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos {c.app}</div>
-              <div style={{color:'#25d366',fontSize:12}}>Confirmaciones automáticas · {stickers.length} pago{stickers.length!==1?'s':''}</div>
+              <div style={{color:'#25d366',fontSize:12}}>Confirmaciones automÃ¡ticas Â· {stickers.length} pago{stickers.length!==1?'s':''}</div>
             </div>
             <svg width="20" height="20" viewBox="0 0 48 48" fill="none" opacity="0.4"><circle cx="24" cy="24" r="24" fill="#25d366"/><path d="M34 14H14a2 2 0 00-2 2v20l4-4h18a2 2 0 002-2V16a2 2 0 00-2-2z" fill="white"/></svg>
           </div>
           {/* Messages */}
-          <div style={{flex:1,overflowY:'auto',padding:'12px 14px',background:'#0b141a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cpath d='M10 10h20v20H10z' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='0.5'/%3E%3Cpath d='M110 110h20v20H110z' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='0.5'/%3E%3C/svg%3E") repeat'}}>
+          <div style={{flex:1,overflowY:'auto',padding:'12px 14px',background:'#0b141a'}}>
             {/* Info badge */}
             <div style={{textAlign:'center',marginBottom:18}}>
               <div style={{display:'inline-block',background:'rgba(37,211,102,0.08)',border:'1px solid rgba(37,211,102,0.18)',borderRadius:14,padding:'7px 14px',color:'rgba(255,255,255,0.4)',fontSize:12,maxWidth:300,lineHeight:1.5}}>
-                🔒 Este canal es automático. Un sticker aparece cada vez que alguien confirma su pago.
+                ð Este canal es automÃ¡tico. Un sticker aparece cada vez que alguien confirma su pago.
               </div>
             </div>
             {groups.length===0&&(
               <div style={{textAlign:'center',color:'rgba(255,255,255,0.22)',marginTop:48,fontSize:14}}>
-                <div style={{fontSize:44,marginBottom:12}}>💸</div>
-                <div>Aún no hay confirmaciones de pago para {c.app}.</div>
+                <div style={{fontSize:44,marginBottom:12}}>ð¸</div>
+                <div>AÃºn no hay confirmaciones de pago para {c.app}.</div>
               </div>
             )}
             {groups.map(g=>(
@@ -351,7 +351,7 @@ import { useState, useEffect, useRef } from 'react'
                             <img src={url} alt="sticker" onClick={()=>setLightbox(url)} style={{width:150,height:150,objectFit:'cover',borderRadius:10,display:'block',cursor:'zoom-in',border:'2px solid rgba(37,211,102,0.2)'}}/>
                           </div>
                           <div style={{padding:'2px 12px 10px'}}>
-                            <div style={{color:'#25d366',fontSize:14,fontWeight:700}}>✅ Pago recibido</div>
+                            <div style={{color:'#25d366',fontSize:14,fontWeight:700}}>â Pago recibido</div>
                             <div style={{color:'rgba(255,255,255,0.38)',fontSize:12,marginTop:2}}>App: {ev.app_name}</div>
                             <div style={{color:'rgba(255,255,255,0.25)',fontSize:11,textAlign:'right',marginTop:5,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:4}}>
                               <span>{fmtTime(ev.created_at)}</span>
@@ -370,7 +370,7 @@ import { useState, useEffect, useRef } from 'react'
           {/* Footer */}
           <div style={{background:'#1f2c34',borderTop:'1px solid rgba(255,255,255,0.05)',padding:'10px 16px',display:'flex',alignItems:'center',gap:8}}>
             <div style={{width:6,height:6,borderRadius:'50%',background:'#25d366',flexShrink:0}}/>
-            <span style={{color:'rgba(255,255,255,0.3)',fontSize:12}}>Los stickers se envían al confirmar pagos en tu perfil</span>
+            <span style={{color:'rgba(255,255,255,0.3)',fontSize:12}}>Los stickers se envÃ­an al confirmar pagos en tu perfil</span>
           </div>
         </div>
       )
@@ -391,9 +391,9 @@ import { useState, useEffect, useRef } from 'react'
       const pending=requests.filter(r=>r.status==='pending').map(r=>r.app_name)
       return (
         <div style={{minHeight:'100vh',background:'#17212b',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,padding:24,paddingTop:80}}>
-          <div style={{fontSize:52}}>{pending.length>0?'⏳':'🔒'}</div>
+          <div style={{fontSize:52}}>{pending.length>0?'â³':'ð'}</div>
           <p style={{color:'rgba(255,255,255,0.45)',textAlign:'center',maxWidth:280,margin:0,lineHeight:1.6}}>
-            {pending.length>0?`Tu solicitud para ${pending.join(', ')} está pendiente.`:'No tienes acceso a ningún canal. Agrega una app en tu perfil primero.'}
+            {pending.length>0?`Tu solicitud para ${pending.join(', ')} estÃ¡ pendiente.`:'No tienes acceso a ningÃºn canal. Agrega una app en tu perfil primero.'}
           </p>
         </div>
       )
@@ -432,7 +432,7 @@ import { useState, useEffect, useRef } from 'react'
           {!ch?(
             <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',background:'#17212b'}}>
               <div style={{textAlign:'center',color:'rgba(255,255,255,0.2)'}}>
-                <div style={{fontSize:48,marginBottom:10}}>💬</div>
+                <div style={{fontSize:48,marginBottom:10}}>ð¬</div>
                 <p style={{margin:0,fontSize:14}}>Selecciona un canal</p>
               </div>
             </div>
