@@ -33,6 +33,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import AgentePanel from "@/pages/agente";
   import Colider from "@/pages/colider";
 import ComisionesAgente from "@/pages/comisiones-agente";
+import Ranking from "@/pages/ranking";
 
   function ScrollToTop() {
     const [location] = useLocation();
@@ -104,6 +105,7 @@ import ComisionesAgente from "@/pages/comisiones-agente";
               {profile?.is_admin && <Route path="/comisiones-agente" component={ComisionesAgente} />}
               {(profile?.is_agent || profile?.is_colider) && <Route path="/agente" component={AgentePanel} />}
               {profile?.is_colider && <Route path="/colider" component={Colider} />}
+              <Route path="/ranking" component={Ranking} />
               <Route component={() => <RedirectTo href={profile?.is_agent && !profile?.is_admin ? "/agente" : profile?.is_colider && !profile?.is_admin ? "/colider" : "/perfil"} />} />
             </Switch>
           </main>
@@ -127,6 +129,7 @@ import ComisionesAgente from "@/pages/comisiones-agente";
             <Route path="/contacto"        component={Contacto} />
             <Route path="/errores-comunes" component={ErroresComunes} />
             <Route path="/login"           component={Login} />
+            <Route path="/ranking"          component={Ranking} />
             <Route component={NotFound} />
           </Switch>
         </main>
