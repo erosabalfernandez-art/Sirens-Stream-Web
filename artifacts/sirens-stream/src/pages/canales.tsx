@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase } from '@/lib/supabase'
-  import { Send, Paperclip, Smile, X } from 'lucide-react'
+  import { Send, X, ChevronLeft, Image as ImgIcon } from 'lucide-react'
 
   const STICKER_URLS = [
     'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_0_cat.jpg',
@@ -10,490 +10,434 @@ import { useState, useEffect, useRef } from 'react'
     'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_2_pink.jpg',
   ]
 
-  const AVATAR_COLORS = [
-    '#25d366','#128c7e','#e91e63','#9c27b0','#ff5722',
-    '#ff9800','#2196f3','#00bcd4','#34b7f1','#0288d1',
-  ]
-
-  function getAvatarColor(name: string) {
-    let h = 0
-    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
-    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
-  }
-
-  const APP_COLORS: Record<string, string> = { Waha: '#ff6b35', Layla: '#6c63ff', Howdy: '#00bcd4' }
   const APP_ICONS: Record<string, string> = {
     Waha:  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/waha.jpg',
     Layla: 'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/layla.jpg',
     Howdy: 'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/howdy.jpg',
   }
 
-  interface ChannelMessage {
-    id: string; app_name: string; content: string | null; image_url: string | null; created_at: string
-  }
-  interface ReactionSummary {
-    heart: number; like: number; user_heart: boolean; user_like: boolean
-  }
-  interface PaymentStickerEvent {
-    id: string; user_id: string; app_name: string
-    nombre_en_app: string | null; sticker_index: number; created_at: string
-  }
-  interface ChannelRequest { app_name: string; status: string }
+  const AVATAR_COLORS = ['#e91e63','#9c27b0','#ff5722','#ff9800','#2196f3','#00bcd4','#4caf50','#795548','#f06292','#7e57c2']
+  function avatarColor(name: string) { let h=0; for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h); return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length] }
+  function initial(name: string) { return (name||'?')[0].toUpperCase() }
 
-  function fmtTime(d: string) {
-    return new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-  }
+  function fmtTime(d: string) { return new Date(d).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) }
   function fmtDateLabel(d: string) {
-    const date = new Date(d)
-    const today = new Date()
-    const yest = new Date(); yest.setDate(yest.getDate() - 1)
-    if (date.toDateString() === today.toDateString()) return 'Hoy'
-    if (date.toDateString() === yest.toDateString()) return 'Ayer'
-    return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+    const dt=new Date(d), today=new Date(), yest=new Date(); yest.setDate(yest.getDate()-1)
+    if(dt.toDateString()===today.toDateString()) return 'Hoy'
+    if(dt.toDateString()===yest.toDateString()) return 'Ayer'
+    return dt.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})
   }
-  function groupByDate(msgs: ChannelMessage[]) {
-    const groups: { label: string; messages: ChannelMessage[] }[] = []
-    let cur = ''
-    for (const m of msgs) {
-      const lbl = fmtDateLabel(m.created_at)
-      if (lbl !== cur) { cur = lbl; groups.push({ label: lbl, messages: [] }) }
-      groups[groups.length - 1].messages.push(m)
-    }
-    return groups
-  }
+
+  interface Msg { id:string; app_name:string; content:string|null; image_url:string|null; created_at:string }
+  interface Rx { heart:number; like:number; user_heart:boolean; user_like:boolean }
+  interface StickerEv { id:string; user_id:string; app_name:string; nombre_en_app:string|null; sticker_index:number; created_at:string }
+  interface ChanReq { app_name:string; status:string }
+  type ChType = 'canal'|'pagos'
+  interface Chan { id:string; type:ChType; app:string }
 
   export default function Canales() {
     const { user, loading } = useAuth()
     const [, navigate] = useLocation()
+    const API = ((import.meta.env.VITE_API_URL as string|undefined)??'').replace(/\/$/,'')
 
     const [isAdmin, setIsAdmin] = useState(false)
-    const [requests, setRequests] = useState<ChannelRequest[]>([])
-    const [activeApp, setActiveApp] = useState('Waha')
-    const [activeMode, setActiveMode] = useState<'canal' | 'pagos'>('canal')
+    const [requests, setRequests] = useState<ChanReq[]>([])
     const [fetching, setFetching] = useState(true)
+    const [activeCh, setActiveCh] = useState<string|null>(null)
+    const [showSidebar, setShowSidebar] = useState(true)
 
-    const [messages, setMessages] = useState<ChannelMessage[]>([])
-    const [reactions, setReactions] = useState<Record<string, ReactionSummary>>({})
+    const [msgs, setMsgs] = useState<Msg[]>([])
+    const [rx, setRx] = useState<Record<string,Rx>>({})
     const [postText, setPostText] = useState('')
     const [posting, setPosting] = useState(false)
-    const [lightbox, setLightbox] = useState<string | null>(null)
-    const [reactionLoading, setReactionLoading] = useState<Record<string, boolean>>({})
-
-    const [stickerEvents, setStickerEvents] = useState<PaymentStickerEvent[]>([])
+    const [lightbox, setLightbox] = useState<string|null>(null)
+    const [rxLoading, setRxLoading] = useState<Record<string,boolean>>({})
+    const [stickers, setStickers] = useState<StickerEv[]>([])
 
     const fileRef = useRef<HTMLInputElement>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
 
-    const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    useEffect(()=>{ if(!loading&&!user) navigate('/login') },[loading,user])
+    useEffect(()=>{ if(user){ checkAdmin(); loadAccess() } },[user])
 
-    useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
-    useEffect(() => { if (user) { checkAdmin(); loadAccess() } }, [user])
-    useEffect(() => {
-      if (!user || requests.length === 0) return
-      if (activeMode === 'canal') loadMessages()
-      else loadStickers()
-    }, [user, activeApp, activeMode, requests])
-    useEffect(() => {
-      if (!user) return
-      const t = setInterval(() => { if (activeMode === 'canal') loadMessages(); else loadStickers() }, 30000)
-      return () => clearInterval(t)
-    }, [user, activeApp, activeMode])
-    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, stickerEvents, activeMode])
+    const approved = requests.filter(r=>r.status==='approved').map(r=>r.app_name)
+    const channels: Chan[] = [
+      ...approved.map(app=>({ id:`canal-${app}`, type:'canal' as ChType, app })),
+      ...approved.map(app=>({ id:`pagos-${app}`, type:'pagos' as ChType, app })),
+    ]
+    const ch = channels.find(c=>c.id===activeCh)
+
+    useEffect(()=>{ if(channels.length>0&&!activeCh) setActiveCh(channels[0].id) },[channels.length])
+
+    useEffect(()=>{
+      if(!user||!ch) return
+      setMsgs([]); setStickers([])
+      if(ch.type==='canal') loadMsgs(ch.app)
+      else loadStickers(ch.app)
+    },[activeCh])
+
+    useEffect(()=>{
+      if(!user) return
+      const t=setInterval(()=>{ if(!ch) return; if(ch.type==='canal') loadMsgs(ch.app); else loadStickers(ch.app) },30000)
+      return ()=>clearInterval(t)
+    },[activeCh, user])
+
+    useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:'smooth'}) },[msgs,stickers,activeCh])
 
     async function checkAdmin() {
-      const { data } = await supabase.from('profiles').select('is_admin').eq('id', user!.id).single()
-      setIsAdmin(!!(data as { is_admin?: boolean } | null)?.is_admin)
+      const {data}=await supabase.from('profiles').select('is_admin').eq('id',user!.id).single()
+      setIsAdmin(!!(data as {is_admin?:boolean}|null)?.is_admin)
     }
-
     async function loadAccess() {
       setFetching(true)
-      const r = await fetch(`${API}/api/channel-access?user_id=${user!.id}`)
-      if (r.ok) {
-        const d = await r.json()
-        const reqs: ChannelRequest[] = d.requests ?? []
-        setRequests(reqs)
-        const approved = reqs.filter(r => r.status === 'approved').map(r => r.app_name)
-        if (approved.length > 0 && !approved.includes(activeApp)) setActiveApp(approved[0])
-      }
+      const r=await fetch(`${API}/api/channel-access?user_id=${user!.id}`)
+      if(r.ok){ const d=await r.json(); setRequests(d.requests??[]) }
       setFetching(false)
     }
-
-    async function loadMessages() {
-      const r = await fetch(`${API}/api/channel-messages?user_id=${user!.id}`)
-      if (!r.ok) return
-      const d = await r.json()
-      const all: ChannelMessage[] = d.messages ?? []
-      const filtered = all.filter(m => m.app_name === activeApp)
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-      setMessages(filtered)
-      if (filtered.length > 0) {
-        const ids = filtered.map(m => m.id)
-        const rr = await fetch(`${API}/api/channel-reactions-bulk?user_id=${user!.id}&message_ids=${ids.join(',')}`)
-        if (rr.ok) { const dd = await rr.json(); setReactions(dd.reactions ?? {}) }
+    async function loadMsgs(app: string) {
+      const r=await fetch(`${API}/api/channel-messages?user_id=${user!.id}`)
+      if(!r.ok) return
+      const d=await r.json()
+      const all:Msg[]=d.messages??[]
+      const filtered=all.filter(m=>m.app_name===app).sort((a,b)=>new Date(a.created_at).getTime()-new Date(b.created_at).getTime())
+      setMsgs(filtered)
+      if(filtered.length>0){
+        const ids=filtered.map(m=>m.id)
+        const rr=await fetch(`${API}/api/channel-reactions-bulk?user_id=${user!.id}&message_ids=${ids.join(',')}`)
+        if(rr.ok){ const dd=await rr.json(); setRx(dd.reactions??{}) }
       }
     }
-
-    async function loadStickers() {
-      const r = await fetch(`${API}/api/payment-stickers?app_name=${encodeURIComponent(activeApp)}`)
-      if (r.ok) { const d = await r.json(); setStickerEvents(d.events ?? []) }
+    async function loadStickers(app: string) {
+      const r=await fetch(`${API}/api/payment-stickers?app_name=${encodeURIComponent(app)}`)
+      if(r.ok){ const d=await r.json(); setStickers(d.events??[]) }
     }
-
-    async function toggleReaction(msgId: string, type: 'heart' | 'like') {
-      if (!user || isAdmin) return
-      const key = `${msgId}-${type}`
-      setReactionLoading(p => ({ ...p, [key]: true }))
-      const r = await fetch(`${API}/api/channel-reaction`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message_id: msgId, user_id: user.id, reaction_type: type }),
-      })
-      if (r.ok) { const d = await r.json(); setReactions(p => ({ ...p, [msgId]: d.summary })) }
-      setReactionLoading(p => ({ ...p, [key]: false }))
+    async function toggleRx(msgId:string, type:'heart'|'like') {
+      if(!user||isAdmin) return
+      const k=`${msgId}-${type}`
+      setRxLoading(p=>({...p,[k]:true}))
+      const r=await fetch(`${API}/api/channel-reaction`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message_id:msgId,user_id:user.id,reaction_type:type})})
+      if(r.ok){ const d=await r.json(); setRx(p=>({...p,[msgId]:d.summary})) }
+      setRxLoading(p=>({...p,[k]:false}))
     }
-
-    async function handlePost() {
-      if (!postText.trim() || posting) return
+    async function doPost() {
+      if(!postText.trim()||posting||!ch) return
       setPosting(true)
-      const r = await fetch(`${API}/api/post-channel-message`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_name: activeApp, content: postText.trim(), created_by: user?.id }),
-      })
-      if (r.ok) { setPostText(''); loadMessages() }
+      const r=await fetch(`${API}/api/post-channel-message`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app_name:ch.app,content:postText.trim(),created_by:user?.id})})
+      if(r.ok){ setPostText(''); loadMsgs(ch.app) }
       setPosting(false)
     }
-
-    async function handleImagePost(file: File) {
-      if (!file || posting) return
+    async function doImgPost(file:File) {
+      if(!file||posting||!ch) return
       setPosting(true)
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        const b64 = (e.target?.result as string)?.split(',')[1]
-        if (!b64) { setPosting(false); return }
-        const up = await fetch(`${API}/api/upload-channel-image`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64: b64, mime: file.type, filename: file.name }),
-        })
-        if (up.ok) {
-          const { url } = await up.json()
-          await fetch(`${API}/api/post-channel-message`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ app_name: activeApp, content: postText.trim() || null, image_url: url, created_by: user?.id }),
-          })
-          setPostText(''); loadMessages()
+      const reader=new FileReader()
+      reader.onload=async(e)=>{
+        const b64=(e.target?.result as string)?.split(',')[1]
+        if(!b64){ setPosting(false); return }
+        const up=await fetch(`${API}/api/upload-channel-image`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,mime:file.type,filename:file.name})})
+        if(up.ok){
+          const {url}=await up.json()
+          await fetch(`${API}/api/post-channel-message`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app_name:ch.app,content:postText.trim()||null,image_url:url,created_by:user?.id})})
+          setPostText(''); loadMsgs(ch.app)
         }
         setPosting(false)
       }
       reader.readAsDataURL(file)
     }
+    function pickCh(id:string){ setActiveCh(id); setShowSidebar(false) }
 
-    const approvedApps = requests.filter(r => r.status === 'approved').map(r => r.app_name)
-    const pendingApps  = requests.filter(r => r.status === 'pending').map(r => r.app_name)
-    const isTg = activeMode === 'canal'
-
-    if (loading || fetching) return (
-      <div style={{ minHeight:'100vh', background:'#1b1e2e', display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <div style={{ color:'rgba(255,255,255,0.4)' }}>Cargando...</div>
-      </div>
-    )
-
-    if (approvedApps.length === 0) return (
-      <div style={{ minHeight:'100vh', background:'#1b1e2e', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, padding:24, paddingTop:80 }}>
-        <div style={{ fontSize:48 }}>{pendingApps.length > 0 ? '⏳' : '🔒'}</div>
-        <p style={{ color:'rgba(255,255,255,0.5)', textAlign:'center', maxWidth:280 }}>
-          {pendingApps.length > 0
-            ? `Tu solicitud para ${pendingApps.join(', ')} está pendiente de aprobación.`
-            : 'No tienes acceso a ningún canal. Agrega una app en tu perfil primero.'}
-        </p>
-      </div>
-    )
-
-    return (
-      <div style={{
-        height:'100dvh', background: isTg ? '#1b1e2e' : '#0b141a',
-        display:'flex', flexDirection:'column', overflow:'hidden',
-        fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      }}>
-
-        {/* LIGHTBOX */}
-        {lightbox && (
-          <div onClick={() => setLightbox(null)} style={{
-            position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.93)',
-            display:'flex', alignItems:'center', justifyContent:'center', cursor:'zoom-out',
-          }}>
-            <img src={lightbox} alt="" onClick={e => e.stopPropagation()}
-              style={{ maxWidth:'95vw', maxHeight:'92vh', objectFit:'contain', borderRadius:8 }} />
-            <button onClick={() => setLightbox(null)} style={{
-              position:'absolute', top:16, right:16, width:36, height:36, borderRadius:'50%',
-              background:'rgba(255,255,255,0.15)', border:'none', color:'white', cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center',
-            }}><X size={18} /></button>
+    /* ---- SIDEBAR ---- */
+    function Sidebar() {
+      return (
+        <div style={{width:'100%',height:'100%',background:'#1a1f2e',borderRight:'1px solid rgba(255,255,255,0.07)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{padding:'60px 16px 14px',background:'#1e2436',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+            <h2 style={{margin:0,color:'white',fontSize:17,fontWeight:700}}>Canales</h2>
+            <p style={{margin:'2px 0 0',color:'rgba(255,255,255,0.35)',fontSize:12}}>Eclipse Angels Agency</p>
           </div>
-        )}
-
-        {/* HEADER */}
-        <div style={{
-          background: isTg ? '#1e2236' : '#1f2c34',
-          borderBottom:'1px solid rgba(255,255,255,0.06)',
-          paddingTop:56, flexShrink:0, zIndex:10,
-        }}>
-          {/* Channel info row */}
-          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 16px' }}>
-            <div style={{
-              width:42, height:42, borderRadius:'50%', flexShrink:0, overflow:'hidden',
-              border:'2px solid rgba(255,255,255,0.15)', boxShadow:'0 2px 8px rgba(0,0,0,0.4)',
-            }}>
-              <img src={APP_ICONS[activeApp]} alt={activeApp}
-                style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-            </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ color:'white', fontWeight:700, fontSize:15, lineHeight:1.3 }}>
-                {isTg ? `📢 Canal ${activeApp}` : `💸 Pagos — ${activeApp}`}
-              </div>
-              <div style={{ color:'rgba(255,255,255,0.45)', fontSize:12 }}>
-                {isTg
-                  ? `Eclipse Angels Agency${isAdmin ? ' · Admin' : ''}`
-                  : 'solo los administradores pueden escribir'}
-              </div>
-            </div>
-          </div>
-
-          {/* App tabs */}
-          <div style={{ display:'flex', paddingLeft:12, overflowX:'auto' }}>
-            {approvedApps.map(app => {
-              const active = activeApp === app
-              const color = isTg ? '#2ca5e0' : '#25d366'
-              return (
-                <button key={app} onClick={() => setActiveApp(app)} style={{
-                  padding:'6px 16px', border:'none', background:'none', cursor:'pointer',
-                  color: active ? color : 'rgba(255,255,255,0.45)',
-                  fontWeight: active ? 700 : 500, fontSize:14, whiteSpace:'nowrap',
-                  borderBottom: `2px solid ${active ? color : 'transparent'}`,
-                  transition:'all 0.15s',
-                }}>{app}</button>
-              )
-            })}
-          </div>
-
-          {/* Mode tabs */}
-          <div style={{ display:'flex', paddingLeft:12 }}>
-            {[
-              { key:'canal', label:'📢 Canal', color:'#2ca5e0' },
-              { key:'pagos', label:'💳 Pagos',  color:'#25d366' },
-            ].map(tab => (
-              <button key={tab.key} onClick={() => setActiveMode(tab.key as 'canal' | 'pagos')} style={{
-                padding:'6px 14px', border:'none', background:'none', cursor:'pointer',
-                color: activeMode === tab.key ? tab.color : 'rgba(255,255,255,0.4)',
-                fontWeight: activeMode === tab.key ? 700 : 500, fontSize:13,
-                borderBottom: `2px solid ${activeMode === tab.key ? tab.color : 'transparent'}`,
-                transition:'all 0.15s',
-              }}>{tab.label}</button>
-            ))}
+          <div style={{flex:1,overflowY:'auto'}}>
+            <p style={{margin:0,padding:'12px 16px 4px',color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>📢 Comunicados</p>
+            {channels.filter(c=>c.type==='canal').map(c=><SideItem key={c.id} c={c}/>)}
+            <p style={{margin:0,padding:'14px 16px 4px',color:'rgba(255,255,255,0.3)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1}}>💸 Pagos</p>
+            {channels.filter(c=>c.type==='pagos').map(c=><SideItem key={c.id} c={c}/>)}
           </div>
         </div>
+      )
+    }
 
-        {/* ===================== TELEGRAM CHANNEL ===================== */}
-        {isTg && (
-          <>
-            <div style={{
-              flex:1, overflowY:'auto',
-              backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Ctext y='50' font-size='30' opacity='0.025' fill='white'%3E%F0%9F%8E%AE%3C/text%3E%3Ctext x='90' y='110' font-size='24' opacity='0.025' fill='white'%3E%F0%9F%8C%99%3C/text%3E%3Ctext x='15' y='160' font-size='22' opacity='0.025' fill='white'%3E%E2%AD%90%3C/text%3E%3Ctext x='120' y='180' font-size='20' opacity='0.025' fill='white'%3E%F0%9F%8E%AF%3C/text%3E%3C/svg%3E")`,
-              backgroundRepeat:'repeat', backgroundSize:'200px 200px',
-            }}>
-              <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:6, minHeight:'100%' }}>
-                {messages.length === 0 ? (
-                  <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200 }}>
-                    <div style={{ background:'rgba(0,0,0,0.35)', borderRadius:12, padding:'8px 18px' }}>
-                      <span style={{ color:'rgba(255,255,255,0.5)', fontSize:14 }}>No hay mensajes aún</span>
-                    </div>
-                  </div>
-                ) : groupByDate(messages).map(group => (
-                  <div key={group.label}>
-                    {/* Date separator */}
-                    <div style={{ display:'flex', justifyContent:'center', margin:'8px 0' }}>
-                      <span style={{
-                        background:'rgba(0,0,0,0.4)', color:'rgba(255,255,255,0.65)',
-                        fontSize:12, padding:'4px 14px', borderRadius:8, backdropFilter:'blur(4px)',
-                        textTransform:'capitalize',
-                      }}>{group.label}</span>
-                    </div>
-
-                    {group.messages.map(msg => {
-                      const rx = reactions[msg.id] || { heart:0, like:0, user_heart:false, user_like:false }
-                      return (
-                        <div key={msg.id} style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:8 }}>
-                          {/* Bubble */}
-                          <div style={{
-                            background:'#212134', borderRadius:12, overflow:'hidden',
-                            maxWidth: 'min(85vw, 520px)', minWidth:100,
-                            boxShadow:'0 1px 4px rgba(0,0,0,0.5)',
-                          }}>
-                            {msg.image_url && (
-                              <div onClick={() => setLightbox(msg.image_url)} style={{ cursor:'zoom-in' }}>
-                                <img src={msg.image_url} alt=""
-                                  style={{ width:'100%', maxHeight:380, objectFit:'cover', display:'block' }} />
-                              </div>
-                            )}
-                            {msg.content && (
-                              <div style={{ padding: msg.image_url ? '6px 14px 4px' : '8px 14px 4px' }}>
-                                <p style={{ color:'rgba(255,255,255,0.9)', fontSize:14, lineHeight:1.55, margin:0, whiteSpace:'pre-wrap' }}>
-                                  {msg.content}
-                                </p>
-                              </div>
-                            )}
-                            <div style={{ padding:'2px 12px 8px', display:'flex', justifyContent:'flex-end', alignItems:'center', gap:4 }}>
-                              <span style={{ color:'rgba(255,255,255,0.3)', fontSize:11 }}>{fmtTime(msg.created_at)}</span>
-                              <span style={{ color:'#2ca5e0', fontSize:11 }}>✓✓</span>
-                            </div>
-                          </div>
-
-                          {/* Reactions */}
-                          <div style={{ display:'flex', gap:6, marginTop:5 }}>
-                            {(['heart','like'] as const).map(type => {
-                              const cnt   = type === 'heart' ? rx.heart : rx.like
-                              const on    = type === 'heart' ? rx.user_heart : rx.user_like
-                              const emoji = type === 'heart' ? '❤️' : '👍'
-                              const col   = type === 'heart' ? '#ff5252' : '#53bdeb'
-                              const busy  = reactionLoading[`${msg.id}-${type}`]
-                              return (
-                                <button key={type}
-                                  onClick={() => toggleReaction(msg.id, type)}
-                                  disabled={isAdmin || !!busy}
-                                  style={{
-                                    display:'flex', alignItems:'center', gap:5,
-                                    background: on ? `${col}22` : 'rgba(255,255,255,0.07)',
-                                    border: `1px solid ${on ? `${col}60` : 'rgba(255,255,255,0.1)'}`,
-                                    borderRadius:20, padding:'3px 10px',
-                                    cursor: isAdmin ? 'default' : 'pointer',
-                                    transition:'all 0.15s', opacity: busy ? 0.6 : 1,
-                                  }}>
-                                  <span style={{ fontSize:13 }}>{emoji}</span>
-                                  <span style={{ color: on ? col : 'rgba(255,255,255,0.55)', fontSize:12, fontWeight:600 }}>{cnt}</span>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ))}
-                <div ref={bottomRef} />
-              </div>
+    function SideItem({c}:{c:Chan}) {
+      const active=activeCh===c.id
+      const accent=c.type==='canal'?'#2ca5e0':'#25d366'
+      return (
+        <button onClick={()=>pickCh(c.id)} style={{width:'100%',display:'flex',alignItems:'center',gap:11,padding:'9px 16px',border:'none',cursor:'pointer',textAlign:'left',background:active?'rgba(44,165,224,0.1)':'transparent',borderLeft:`3px solid ${active?accent:'transparent'}`,transition:'all 0.15s'}}>
+          <div style={{position:'relative',flexShrink:0}}>
+            <div style={{width:44,height:44,borderRadius:'50%',overflow:'hidden',border:`2px solid ${accent}40`}}>
+              <img src={APP_ICONS[c.app]} alt={c.app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
             </div>
+            <div style={{position:'absolute',bottom:0,right:0,width:16,height:16,borderRadius:'50%',background:c.type==='canal'?'#2ca5e0':'#25d366',border:'2px solid #1a1f2e',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8}}>
+              {c.type==='canal'?'📢':'💸'}
+            </div>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{color:active?'white':'rgba(255,255,255,0.82)',fontWeight:active?700:500,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+              {c.type==='canal'?`Canal ${c.app}`:`Pagos ${c.app}`}
+            </div>
+            <div style={{color:'rgba(255,255,255,0.32)',fontSize:12,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+              {c.type==='canal'?'Comunicados oficiales':'Confirmaciones de pago'}
+            </div>
+          </div>
+        </button>
+      )
+    }
 
-            {/* Admin post bar */}
-            {isAdmin && (
-              <div style={{
-                background:'#1f222e', borderTop:'1px solid rgba(255,255,255,0.07)',
-                padding:'8px 12px', display:'flex', alignItems:'center', gap:10, flexShrink:0,
-              }}>
-                <button style={{ color:'rgba(255,255,255,0.4)', background:'none', border:'none', padding:6, cursor:'pointer', flexShrink:0 }}>
-                  <Smile size={22} />
-                </button>
-                <input value={postText} onChange={e => setPostText(e.target.value)}
-                  onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); handlePost() } }}
-                  placeholder="Publicar..."
-                  style={{
-                    flex:1, background:'#2a2d3d', border:'none', borderRadius:22,
-                    padding:'9px 16px', color:'white', fontSize:14, outline:'none', minWidth:0,
-                  }} />
-                <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
-                  onChange={e => { if (e.target.files?.[0]) { handleImagePost(e.target.files[0]); e.target.value = '' } }} />
-                <button onClick={() => fileRef.current?.click()}
-                  style={{ color:'rgba(255,255,255,0.4)', background:'none', border:'none', padding:6, cursor:'pointer', flexShrink:0 }}>
-                  <Paperclip size={20} />
-                </button>
-                <button onClick={handlePost} disabled={posting || !postText.trim()} style={{
-                  width:38, height:38, borderRadius:'50%', border:'none', flexShrink:0,
-                  background: postText.trim() && !posting ? '#2ca5e0' : '#2a2d3d',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor: postText.trim() && !posting ? 'pointer' : 'default', transition:'all 0.15s',
-                }}>
-                  {posting
-                    ? <div style={{ width:16, height:16, border:'2px solid rgba(255,255,255,0.3)', borderTop:'2px solid white', borderRadius:'50%' }} />
-                    : <Send size={16} color={postText.trim() ? 'white' : 'rgba(255,255,255,0.3)'} />}
-                </button>
+    /* ---- TELEGRAM CHANNEL ---- */
+    function TelegramCh({c}:{c:Chan}) {
+      const groups:{ label:string; ms:Msg[] }[]=[]
+      let cur=''
+      for(const m of msgs){
+        const lbl=fmtDateLabel(m.created_at)
+        if(lbl!==cur){ cur=lbl; groups.push({label:lbl,ms:[]}) }
+        groups[groups.length-1].ms.push(m)
+      }
+      return (
+        <div style={{flex:1,display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',background:'#17212b'}}>
+          {/* Header */}
+          <div style={{background:'#1e2c3a',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'10px 14px',display:'flex',alignItems:'center',gap:11,flexShrink:0,paddingTop:'max(10px, env(safe-area-inset-top))'}}>
+            <button className="ch-back" onClick={()=>setShowSidebar(true)} style={{background:'none',border:'none',color:'#2ca5e0',cursor:'pointer',padding:4,display:'flex',marginRight:2}}>
+              <ChevronLeft size={22}/>
+            </button>
+            <div style={{width:40,height:40,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(44,165,224,0.25)'}}>
+              <img src={APP_ICONS[c.app]} alt={c.app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal {c.app}</div>
+              <div style={{color:'#2ca5e0',fontSize:12}}>Eclipse Angels Agency{isAdmin?' · Admin':''}</div>
+            </div>
+            <svg width="22" height="22" viewBox="0 0 240 240" fill="none" opacity="0.35"><circle cx="120" cy="120" r="120" fill="#2ca5e0"/><path d="M73 135l14 28 10-17 47 22-57-110-14 77z" fill="white"/><path d="M73 135l31-20 16 15-47 5z" fill="rgba(255,255,255,0.7)"/></svg>
+          </div>
+          {/* Messages */}
+          <div style={{flex:1,overflowY:'auto',padding:'12px 14px',background:'#17212b'}}>
+            <style>{`
+              .tg-bg{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='1'/%3E%3C/svg%3E");background-repeat:repeat;background-size:100px 100px;}
+            `}</style>
+            {groups.length===0&&(
+              <div style={{textAlign:'center',color:'rgba(255,255,255,0.22)',marginTop:64,fontSize:14}}>
+                <div style={{fontSize:44,marginBottom:12}}>📢</div>
+                <div>Aún no hay mensajes en este canal.</div>
               </div>
             )}
-          </>
-        )}
-
-        {/* ===================== WHATSAPP PAYMENTS ===================== */}
-        {!isTg && (
-          <>
-            <div style={{
-              flex:1, overflowY:'auto',
-              backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Ctext y='55' font-size='38' opacity='0.035' fill='%2325d366'%3E%F0%9F%92%AC%3C/text%3E%3Ctext x='75' y='130' font-size='30' opacity='0.035' fill='%2325d366'%3E%F0%9F%93%B1%3C/text%3E%3C/svg%3E")`,
-              backgroundRepeat:'repeat', backgroundSize:'150px 150px',
-            }}>
-              <div style={{ padding:'8px 14px', display:'flex', flexDirection:'column', gap:4 }}>
-                {stickerEvents.length === 0 ? (
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:300, gap:10 }}>
-                    <div style={{ fontSize:44 }}>💸</div>
-                    <p style={{ color:'rgba(255,255,255,0.4)', fontSize:14, textAlign:'center' }}>
-                      Aún no hay pagos confirmados en {activeApp}
-                    </p>
-                  </div>
-                ) : stickerEvents.map(ev => {
-                  const name  = ev.nombre_en_app || 'Anónima'
-                  const color = getAvatarColor(name)
-                  const init  = name[0]?.toUpperCase() || '?'
-                  const surl  = STICKER_URLS[ev.sticker_index % 3]
+            {groups.map(g=>(
+              <div key={g.label}>
+                <div style={{textAlign:'center',margin:'14px 0 8px'}}>
+                  <span style={{background:'rgba(30,44,58,0.85)',backdropFilter:'blur(4px)',color:'rgba(255,255,255,0.48)',fontSize:12,padding:'3px 12px',borderRadius:12}}>{g.label}</span>
+                </div>
+                {g.ms.map(m=>{
+                  const r=rx[m.id]??{heart:0,like:0,user_heart:false,user_like:false}
                   return (
-                    <div key={ev.id} style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'4px 0' }}>
-                      {/* Avatar */}
-                      <div style={{
-                        width:38, height:38, borderRadius:'50%', flexShrink:0, background:color,
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:16, fontWeight:700, color:'white', marginTop:20,
-                      }}>{init}</div>
-
-                      {/* Message */}
-                      <div style={{ maxWidth:'74%' }}>
-                        <div style={{ color:'#53bdeb', fontSize:13, fontWeight:600, marginBottom:4, marginLeft:2 }}>
-                          ~ {name}
-                        </div>
-                        <div style={{
-                          background:'#1f2c34', borderRadius:'0 8px 8px 8px',
-                          overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.5)', maxWidth:220,
-                        }}>
-                          <img src={surl} alt="Pago recibido"
-                            style={{ width:'100%', display:'block' }} />
-                        </div>
-                        <div style={{ color:'#8696a0', fontSize:11, marginTop:3, textAlign:'right', marginRight:4 }}>
-                          {fmtTime(ev.created_at)}
+                    <div key={m.id} style={{display:'flex',gap:8,marginBottom:10,maxWidth:'82%'}}>
+                      <div style={{width:34,height:34,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'1.5px solid rgba(44,165,224,0.28)',marginTop:2}}>
+                        <img src={APP_ICONS[c.app]} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                      </div>
+                      <div>
+                        <div style={{color:'#2ca5e0',fontSize:12,fontWeight:700,marginBottom:3}}>Eclipse Angels Agency</div>
+                        <div style={{background:'#1e2c3a',borderRadius:'2px 14px 14px 14px',padding:'9px 12px',boxShadow:'0 1px 4px rgba(0,0,0,0.3)'}}>
+                          {m.image_url&&<img src={m.image_url} alt="" onClick={()=>setLightbox(m.image_url!)} style={{maxWidth:260,width:'100%',borderRadius:8,display:'block',marginBottom:m.content?8:0,cursor:'zoom-in'}}/>}
+                          {m.content&&<div style={{color:'rgba(255,255,255,0.9)',fontSize:14,lineHeight:1.55,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{m.content}</div>}
+                          <div style={{color:'rgba(255,255,255,0.28)',fontSize:11,textAlign:'right',marginTop:5,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:4}}>
+                            <span>{fmtTime(m.created_at)}</span>
+                            <svg width="14" height="11" viewBox="0 0 14 11" fill="none"><path d="M1 5.5L4.5 9L13 1" stroke="#2ca5e0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 5.5L9.5 9" stroke="#2ca5e0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                          {(!isAdmin||(r.heart>0||r.like>0))&&(
+                            <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
+                              {(['heart','like'] as const).map(type=>{
+                                const count=type==='heart'?r.heart:r.like
+                                const active=type==='heart'?r.user_heart:r.user_like
+                                const emoji=type==='heart'?'❤️':'👍'
+                                if(isAdmin&&count===0) return null
+                                return (
+                                  <button key={type} onClick={()=>toggleRx(m.id,type)} disabled={isAdmin||rxLoading[`${m.id}-${type}`]} style={{display:'flex',alignItems:'center',gap:4,padding:'3px 9px',borderRadius:12,border:`1px solid ${active?'#2ca5e0':'rgba(255,255,255,0.1)'}`,background:active?'rgba(44,165,224,0.15)':'rgba(255,255,255,0.04)',cursor:isAdmin?'default':'pointer',fontSize:13,color:active?'#2ca5e0':'rgba(255,255,255,0.45)',transition:'all 0.15s'}}>
+                                    <span>{emoji}</span>{count>0&&<span style={{fontWeight:600,fontSize:12}}>{count}</span>}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   )
                 })}
-                <div ref={bottomRef} />
               </div>
+            ))}
+            <div ref={bottomRef}/>
+          </div>
+          {/* Input */}
+          {isAdmin?(
+            <div style={{background:'#1e2c3a',borderTop:'1px solid rgba(255,255,255,0.06)',padding:'10px 12px',display:'flex',gap:8,alignItems:'flex-end',flexShrink:0}}>
+              <input type="file" ref={fileRef} accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f) doImgPost(f);e.target.value=''}}/>
+              <button onClick={()=>fileRef.current?.click()} style={{background:'rgba(44,165,224,0.12)',border:'none',borderRadius:10,color:'#2ca5e0',cursor:'pointer',padding:'10px 12px',flexShrink:0}}><ImgIcon size={18}/></button>
+              <div style={{flex:1,background:'#243342',borderRadius:22,padding:'9px 14px',display:'flex',alignItems:'center'}}>
+                <textarea value={postText} onChange={e=>setPostText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doPost()}}} placeholder="Escribir en el canal..." rows={1} style={{background:'none',border:'none',outline:'none',color:'white',fontSize:14,flex:1,resize:'none',lineHeight:1.4,fontFamily:'inherit',margin:0,padding:0,maxHeight:96,overflow:'auto'}}/>
+              </div>
+              <button onClick={doPost} disabled={!postText.trim()||posting} style={{background:postText.trim()?'#2ca5e0':'rgba(44,165,224,0.18)',border:'none',borderRadius:'50%',width:42,height:42,color:'white',cursor:postText.trim()?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.15s'}}>
+                {posting?<div style={{width:16,height:16,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'white',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>:<Send size={16}/>}
+              </button>
             </div>
+          ):(
+            <div style={{background:'#1e2c3a',borderTop:'1px solid rgba(255,255,255,0.06)',padding:'10px 16px',display:'flex',alignItems:'center',gap:8}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:'#2ca5e0',flexShrink:0}}/>
+              <span style={{color:'rgba(255,255,255,0.32)',fontSize:12}}>Solo los administradores pueden publicar</span>
+            </div>
+          )}
+        </div>
+      )
+    }
 
-            {/* Decorative WhatsApp input bar */}
-            <div style={{
-              background:'#1f2c34', borderTop:'1px solid rgba(255,255,255,0.05)',
-              padding:'8px 12px', display:'flex', alignItems:'center', gap:10, flexShrink:0,
-            }}>
-              <button style={{ color:'rgba(255,255,255,0.35)', background:'none', border:'none', padding:6, cursor:'not-allowed', flexShrink:0 }}>
-                <Smile size={22} />
-              </button>
-              <div style={{
-                flex:1, background:'#2a3942', borderRadius:22, minWidth:0,
-                padding:'9px 16px', color:'rgba(255,255,255,0.3)', fontSize:14,
-              }}>
-                Solo los administradores pueden escribir
-              </div>
-              <button style={{ color:'rgba(255,255,255,0.35)', background:'none', border:'none', padding:6, cursor:'not-allowed', flexShrink:0 }}>
-                <Paperclip size={20} />
-              </button>
-              <div style={{
-                width:38, height:38, borderRadius:'50%', flexShrink:0,
-                background:'#25d366', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
-              }}>🎤</div>
+    /* ---- WHATSAPP PAYMENT CHANNEL ---- */
+    function WhatsAppCh({c}:{c:Chan}) {
+      const groups:{ label:string; evs:StickerEv[] }[]=[]
+      let cur=''
+      for(const e of stickers){
+        const lbl=fmtDateLabel(e.created_at)
+        if(lbl!==cur){ cur=lbl; groups.push({label:lbl,evs:[]}) }
+        groups[groups.length-1].evs.push(e)
+      }
+      return (
+        <div style={{flex:1,display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',background:'#0b141a'}}>
+          {/* Header */}
+          <div style={{background:'#1f2c34',borderBottom:'1px solid rgba(255,255,255,0.05)',padding:'10px 14px',display:'flex',alignItems:'center',gap:11,flexShrink:0,paddingTop:'max(10px, env(safe-area-inset-top))'}}>
+            <button className="ch-back" onClick={()=>setShowSidebar(true)} style={{background:'none',border:'none',color:'#25d366',cursor:'pointer',padding:4,display:'flex',marginRight:2}}>
+              <ChevronLeft size={22}/>
+            </button>
+            <div style={{width:42,height:42,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(37,211,102,0.28)'}}>
+              <img src={APP_ICONS[c.app]} alt={c.app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
             </div>
-          </>
+            <div style={{flex:1}}>
+              <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos {c.app}</div>
+              <div style={{color:'#25d366',fontSize:12}}>Confirmaciones automáticas · {stickers.length} pago{stickers.length!==1?'s':''}</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 48 48" fill="none" opacity="0.4"><circle cx="24" cy="24" r="24" fill="#25d366"/><path d="M34 14H14a2 2 0 00-2 2v20l4-4h18a2 2 0 002-2V16a2 2 0 00-2-2z" fill="white"/></svg>
+          </div>
+          {/* Messages */}
+          <div style={{flex:1,overflowY:'auto',padding:'12px 14px',background:'#0b141a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cpath d='M10 10h20v20H10z' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='0.5'/%3E%3Cpath d='M110 110h20v20H110z' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='0.5'/%3E%3C/svg%3E") repeat'}}>
+            {/* Info badge */}
+            <div style={{textAlign:'center',marginBottom:18}}>
+              <div style={{display:'inline-block',background:'rgba(37,211,102,0.08)',border:'1px solid rgba(37,211,102,0.18)',borderRadius:14,padding:'7px 14px',color:'rgba(255,255,255,0.4)',fontSize:12,maxWidth:300,lineHeight:1.5}}>
+                🔒 Este canal es automático. Un sticker aparece cada vez que alguien confirma su pago.
+              </div>
+            </div>
+            {groups.length===0&&(
+              <div style={{textAlign:'center',color:'rgba(255,255,255,0.22)',marginTop:48,fontSize:14}}>
+                <div style={{fontSize:44,marginBottom:12}}>💸</div>
+                <div>Aún no hay confirmaciones de pago para {c.app}.</div>
+              </div>
+            )}
+            {groups.map(g=>(
+              <div key={g.label}>
+                <div style={{textAlign:'center',margin:'14px 0 8px'}}>
+                  <span style={{background:'rgba(31,44,52,0.88)',color:'rgba(255,255,255,0.45)',fontSize:12,padding:'3px 12px',borderRadius:12}}>{g.label}</span>
+                </div>
+                {g.evs.map(ev=>{
+                  const name=ev.nombre_en_app??'Trabajadora'
+                  const url=STICKER_URLS[ev.sticker_index%STICKER_URLS.length]
+                  const ac=avatarColor(name)
+                  return (
+                    <div key={ev.id} style={{display:'flex',gap:9,marginBottom:14,maxWidth:'78%'}}>
+                      <div style={{width:36,height:36,borderRadius:'50%',flexShrink:0,background:ac,display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:700,fontSize:14,marginTop:2,boxShadow:'0 2px 6px rgba(0,0,0,0.35)'}}>
+                        {initial(name)}
+                      </div>
+                      <div>
+                        <div style={{color:ac,fontSize:13,fontWeight:700,marginBottom:3}}>{name}</div>
+                        <div style={{background:'#1f2c34',borderRadius:'2px 14px 14px 14px',overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.4)'}}>
+                          <div style={{padding:'8px 8px 4px 8px'}}>
+                            <img src={url} alt="sticker" onClick={()=>setLightbox(url)} style={{width:150,height:150,objectFit:'cover',borderRadius:10,display:'block',cursor:'zoom-in',border:'2px solid rgba(37,211,102,0.2)'}}/>
+                          </div>
+                          <div style={{padding:'2px 12px 10px'}}>
+                            <div style={{color:'#25d366',fontSize:14,fontWeight:700}}>✅ Pago recibido</div>
+                            <div style={{color:'rgba(255,255,255,0.38)',fontSize:12,marginTop:2}}>App: {ev.app_name}</div>
+                            <div style={{color:'rgba(255,255,255,0.25)',fontSize:11,textAlign:'right',marginTop:5,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:4}}>
+                              <span>{fmtTime(ev.created_at)}</span>
+                              <svg width="14" height="11" viewBox="0 0 14 11" fill="none"><path d="M1 5.5L4.5 9L13 1" stroke="#25d366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 5.5L9.5 9" stroke="#25d366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+            <div ref={bottomRef}/>
+          </div>
+          {/* Footer */}
+          <div style={{background:'#1f2c34',borderTop:'1px solid rgba(255,255,255,0.05)',padding:'10px 16px',display:'flex',alignItems:'center',gap:8}}>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'#25d366',flexShrink:0}}/>
+            <span style={{color:'rgba(255,255,255,0.3)',fontSize:12}}>Los stickers se envían al confirmar pagos en tu perfil</span>
+          </div>
+        </div>
+      )
+    }
+
+    /* ---- STATES ---- */
+    if(loading||fetching) return (
+      <div style={{minHeight:'100vh',background:'#17212b',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div style={{textAlign:'center'}}>
+          <div style={{width:36,height:36,border:'3px solid rgba(44,165,224,0.2)',borderTopColor:'#2ca5e0',borderRadius:'50%',animation:'spin 0.8s linear infinite',margin:'0 auto 12px'}}/>
+          <p style={{color:'rgba(255,255,255,0.35)',fontSize:14,margin:0}}>Cargando canales...</p>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+      </div>
+    )
+
+    if(approved.length===0){
+      const pending=requests.filter(r=>r.status==='pending').map(r=>r.app_name)
+      return (
+        <div style={{minHeight:'100vh',background:'#17212b',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,padding:24,paddingTop:80}}>
+          <div style={{fontSize:52}}>{pending.length>0?'⏳':'🔒'}</div>
+          <p style={{color:'rgba(255,255,255,0.45)',textAlign:'center',maxWidth:280,margin:0,lineHeight:1.6}}>
+            {pending.length>0?`Tu solicitud para ${pending.join(', ')} está pendiente.`:'No tienes acceso a ningún canal. Agrega una app en tu perfil primero.'}
+          </p>
+        </div>
+      )
+    }
+
+    /* ---- MAIN LAYOUT ---- */
+    return (
+      <div style={{height:'100dvh',display:'flex',overflow:'hidden',background:'#17212b',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
+        <style>{`
+          @keyframes spin{to{transform:rotate(360deg)}}
+          .ch-sidebar{display:flex;flex-direction:column;width:100%;max-width:300px;flex-shrink:0;}
+          .ch-content{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+          .ch-back{display:none!important;}
+          @media(max-width:640px){
+            .ch-sidebar{max-width:100%!important;display:${showSidebar?'flex':'none'}!important;}
+            .ch-content{display:${showSidebar?'none':'flex'}!important;}
+            .ch-back{display:flex!important;}
+          }
+          @media(min-width:641px){
+            .ch-sidebar{display:flex!important;}
+            .ch-content{display:flex!important;}
+          }
+        `}</style>
+
+        {lightbox&&(
+          <div onClick={()=>setLightbox(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.93)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
+            <img src={lightbox} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:'95vw',maxHeight:'92vh',objectFit:'contain',borderRadius:8}}/>
+            <button onClick={()=>setLightbox(null)} style={{position:'absolute',top:16,right:16,width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,0.15)',border:'none',color:'white',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <X size={18}/>
+            </button>
+          </div>
         )}
+
+        <div className="ch-sidebar"><Sidebar/></div>
+        <div className="ch-content">
+          {!ch?(
+            <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',background:'#17212b'}}>
+              <div style={{textAlign:'center',color:'rgba(255,255,255,0.2)'}}>
+                <div style={{fontSize:48,marginBottom:10}}>💬</div>
+                <p style={{margin:0,fontSize:14}}>Selecciona un canal</p>
+              </div>
+            </div>
+          ):ch.type==='canal'?<TelegramCh c={ch}/>:<WhatsAppCh c={ch}/>}
+        </div>
       </div>
     )
   }
