@@ -51,6 +51,10 @@ export default function Canales() {
   const [rxLoad, setRxLoad] = useState<Record<string,boolean>>({})
   const fileRef = useRef<HTMLInputElement>(null)
   const btmRef = useRef<HTMLDivElement>(null)
+    const lbPinchRef = useRef<number|null>(null)
+    const lbDragRef = useRef<{x:number,y:number,px:number,py:number}|null>(null)
+    const [lbScale, setLbScale] = useState(1)
+    const [lbPan, setLbPan] = useState<{x:number,y:number}>({x:0,y:0})
 
   useEffect(()=>{ if(!loading&&!user) navigate('/login') },[loading,user])
   useEffect(()=>{ if(user) loadAccess() },[user])
@@ -77,6 +81,7 @@ export default function Canales() {
     return ()=>clearInterval(t)
   },[activeCh,user])
   useEffect(()=>{ btmRef.current?.scrollIntoView({behavior:'smooth'}) },[msgs,stickers,activeCh])
+  useEffect(()=>{ setLbScale(1); setLbPan({x:0,y:0}) },[lb])
 
   async function loadAccess(){
     setFetching(true)
@@ -440,13 +445,50 @@ export default function Canales() {
 
   /* ── LIGHTBOX ────────────────────────────────────────────────── */
   const Lightbox = lb ? (
-    <div onClick={()=>setLb(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
-      <button onClick={()=>setLb(null)} style={{position:'absolute',top:16,right:16,background:'rgba(255,255,255,0.1)',border:'none',color:'white',cursor:'pointer',borderRadius:'50%',width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center'}}>
-        <X size={18}/>
-      </button>
-      <img src={lb} alt="" style={{maxWidth:'92vw',maxHeight:'88vh',objectFit:'contain',borderRadius:8}} onClick={e=>e.stopPropagation()}/>
-    </div>
-  ) : null
+      <div
+        onClick={()=>setLb(null)}
+        onWheel={(e)=>{
+          const delta=e.deltaY>0?0.85:1.18
+          setLbScale(s=>{ const ns=Math.min(Math.max(s*delta,1),6); if(ns===1) setLbPan({x:0,y:0}); return ns })
+        }}
+        style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:lbScale>1?'grab':'zoom-out',overflow:'hidden',touchAction:'none'}}>
+        <button onClick={()=>setLb(null)} style={{position:'absolute',top:16,right:16,background:'rgba(255,255,255,0.1)',border:'none',color:'white',cursor:'pointer',borderRadius:'50%',width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',zIndex:10}}>
+          <X size={18}/>
+        </button>
+        {lbScale>1&&<span style={{position:'absolute',top:16,left:16,background:'rgba(0,0,0,0.5)',color:'rgba(255,255,255,0.7)',fontSize:12,padding:'4px 10px',borderRadius:20}}>{Math.round(lbScale*100)}%</span>}
+        <img
+          src={lb} alt=""
+          draggable={false}
+          style={{maxWidth:'92vw',maxHeight:'88vh',objectFit:'contain',borderRadius:8,transform:'scale('+lbScale+') translate('+(lbPan.x/lbScale)+'px,'+(lbPan.y/lbScale)+'px)',transformOrigin:'center center',userSelect:'none',cursor:lbScale>1?'grab':'default'}}
+          onClick={e=>e.stopPropagation()}
+          onMouseDown={(e)=>{ e.preventDefault(); if(lbScale>1) lbDragRef.current={x:e.clientX,y:e.clientY,px:lbPan.x,py:lbPan.y} }}
+          onMouseMove={(e)=>{ if(lbDragRef.current) setLbPan({x:lbDragRef.current.px+(e.clientX-lbDragRef.current.x),y:lbDragRef.current.py+(e.clientY-lbDragRef.current.y)}) }}
+          onMouseUp={()=>{ lbDragRef.current=null }}
+          onMouseLeave={()=>{ lbDragRef.current=null }}
+          onTouchStart={(e)=>{
+            e.stopPropagation()
+            if(e.touches.length===2){
+              const dx=e.touches[0].clientX-e.touches[1].clientX; const dy=e.touches[0].clientY-e.touches[1].clientY
+              lbPinchRef.current=Math.sqrt(dx*dx+dy*dy)
+            } else if(e.touches.length===1&&lbScale>1){
+              lbDragRef.current={x:e.touches[0].clientX,y:e.touches[0].clientY,px:lbPan.x,py:lbPan.y}
+            }
+          }}
+          onTouchMove={(e)=>{
+            e.preventDefault(); e.stopPropagation()
+            if(e.touches.length===2&&lbPinchRef.current!==null){
+              const dx=e.touches[0].clientX-e.touches[1].clientX; const dy=e.touches[0].clientY-e.touches[1].clientY
+              const dist=Math.sqrt(dx*dx+dy*dy); const ratio=dist/lbPinchRef.current
+              setLbScale(s=>{ const ns=Math.min(Math.max(s*ratio,1),6); if(ns===1) setLbPan({x:0,y:0}); return ns })
+              lbPinchRef.current=dist
+            } else if(e.touches.length===1&&lbDragRef.current){
+              setLbPan({x:lbDragRef.current.px+(e.touches[0].clientX-lbDragRef.current.x),y:lbDragRef.current.py+(e.touches[0].clientY-lbDragRef.current.y)})
+            }
+          }}
+          onTouchEnd={(e)=>{ e.stopPropagation(); lbPinchRef.current=null; if(e.touches.length===0) lbDragRef.current=null }}
+        />
+      </div>
+    ) : null
 
   /* ── LAYOUT ──────────────────────────────────────────────────── */
   return (
