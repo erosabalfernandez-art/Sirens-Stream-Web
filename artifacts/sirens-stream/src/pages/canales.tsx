@@ -459,6 +459,7 @@ export default function Canales() {
             .ch-sidebar { width: 100% !important; min-width: 100% !important }
             .ch-main { display: none }
             .ch-main.active { display: flex }
+            .ch-sidebar.collapsed { display: none !important }
           }
           * { box-sizing: border-box }
           ::-webkit-scrollbar { width: 4px }
@@ -480,7 +481,7 @@ export default function Canales() {
         `}</style>
       {Lightbox}
       <div style={{display:'flex',height:'100vh',overflow:'hidden',paddingTop:0}}>
-        <div className="ch-sidebar" style={{width:300,minWidth:300,height:'100%',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.05)',display:'flex'}}>
+        <div className={`ch-sidebar${!sidebar?' collapsed':''}`} style={{width:300,minWidth:300,height:'100%',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.05)',display:'flex'}}>
           <Sidebar/>
         </div>
         <div className={`ch-main${activeCh?' active':''}`} style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
