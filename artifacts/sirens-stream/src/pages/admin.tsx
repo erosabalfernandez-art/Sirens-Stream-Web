@@ -889,12 +889,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [{ data: entries }, { data: profiles }, { data: agentProfsAll }] = await Promise.all([
             supabase.from('worker_entries').select('*').order('created_at', { ascending: false }),
             supabase.from('profiles').select('id, email'),
-            supabase.from('profiles').select('agent_name, agent_code, phone').eq('is_agent', true),
+            supabase.from('profiles').select('agent_name, colider_name, agent_code, phone').not('agent_code', 'is', null),
           ])
           const pm = Object.fromEntries(((profiles ?? []) as any[]).map(p => [p.id, p.email]))
           emailMapRef.current = pm
           const am: Record<string,string> = Object.fromEntries(
-            ((agentProfsAll ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
+            ((agentProfsAll ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.colider_name ?? a.agent_code])
           )
           setAgentNameMap(am)
           const pm2: Record<string,string> = Object.fromEntries(
@@ -977,7 +977,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
       }
 
       async function fetchAgents() {
-            const { data } = await supabase.from('profiles').select('id, email, agent_name, agent_code, is_agent, phone').eq('is_agent', true).order('created_at', { ascending: false })
+            const { data } = await supabase.from('profiles').select('id, email, agent_name, colider_name, agent_code, is_agent, phone').not('agent_code', 'is', null).order('created_at', { ascending: false })
             setAgents((data ?? []) as {id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean}[])
             try {
               const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
@@ -2549,7 +2549,7 @@ GRANT ALL ON colider_week_status TO service_role;`}</pre>
                   // Build code→name lookup from agents state
                   const agentCodeToName: Record<string, string> = {}
                   for (const a of agents) {
-                    if (a.agent_code) agentCodeToName[a.agent_code.trim()] = a.agent_name || a.email || a.agent_code
+                    if (a.agent_code) agentCodeToName[a.agent_code.trim()] = a.agent_name || a.colider_name || a.email || a.agent_code
                   }
                   const resolveAgentName = (code: string) => agentCodeToName[code] ?? code
 
