@@ -393,8 +393,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                     </div>
                   )
                 })}
-                      )
-                    })}
                   </div>
                 </div>
               )}
@@ -438,8 +436,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                     </div>
                   )
                 })}
-                      )
-                    })}
                   </div>
                 </div>
               )}
