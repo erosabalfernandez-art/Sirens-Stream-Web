@@ -98,31 +98,46 @@ import { Router } from 'express';
   });
 
   // GET /api/channel-messages?user_id=X
-  // Fetches messages the user is allowed to see (via service role, bypasses RLS).
-  router.get('/channel-messages', async (req, res) => {
-    const user_id = req.query.user_id as string | undefined;
-    if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
-    try {
-      // Get approved apps for this user
-      const accessR = await fetch(
-        sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&status=eq.approved&select=app_name`),
-        { headers: sbH() }
-      );
-      if (!accessR.ok) return res.status(accessR.status).json({ error: await accessR.text() });
-      const approvedApps: { app_name: string }[] = await accessR.json();
-      if (approvedApps.length === 0) return res.json({ messages: [] });
-      const appNames = approvedApps.map(a => a.app_name);
-      const msgsR = await fetch(
-        sbUrl(`channel_messages?app_name=in.(${appNames.map(encodeURIComponent).join(',')})&select=*&order=created_at.desc`),
-        { headers: sbH() }
-      );
-      if (!msgsR.ok) return res.status(msgsR.status).json({ error: await msgsR.text() });
-      const messages = await msgsR.json();
-      return res.json({ messages });
-    } catch (e: unknown) {
-      return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
-    }
-  });
+    // Fetches messages the user is allowed to see (via service role, bypasses RLS).
+    // Admins see ALL messages without needing channel_requests entries.
+    router.get('/channel-messages', async (req, res) => {
+      const user_id = req.query.user_id as string | undefined;
+      if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
+      try {
+        // Check if user is admin — admins see all messages across all channels
+        const profileR = await fetch(
+          sbUrl(`profiles?id=eq.${encodeURIComponent(user_id)}&select=is_admin&limit=1`),
+          { headers: sbH() }
+        );
+        const profiles: { is_admin: boolean }[] = profileR.ok ? await profileR.json() : [];
+        if (profiles[0]?.is_admin === true) {
+          const allMsgsR = await fetch(
+            sbUrl('channel_messages?select=*&order=created_at.desc'),
+            { headers: sbH() }
+          );
+          if (!allMsgsR.ok) return res.status(allMsgsR.status).json({ error: await allMsgsR.text() });
+          return res.json({ messages: await allMsgsR.json() });
+        }
+        // Non-admin: filter by approved channel_requests
+        const accessR = await fetch(
+          sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&status=eq.approved&select=app_name`),
+          { headers: sbH() }
+        );
+        if (!accessR.ok) return res.status(accessR.status).json({ error: await accessR.text() });
+        const approvedApps: { app_name: string }[] = await accessR.json();
+        if (approvedApps.length === 0) return res.json({ messages: [] });
+        const appNames = approvedApps.map(a => a.app_name);
+        const msgsR = await fetch(
+          sbUrl(`channel_messages?app_name=in.(${appNames.map(encodeURIComponent).join(',')})&select=*&order=created_at.desc`),
+          { headers: sbH() }
+        );
+        if (!msgsR.ok) return res.status(msgsR.status).json({ error: await msgsR.text() });
+        const messages = await msgsR.json();
+        return res.json({ messages });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+      }
+    });
 
   
     // POST /api/grant-agent-channels
