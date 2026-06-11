@@ -31,27 +31,27 @@ router.get('/ranking', async (req, res) => {
     }
 
     // 4. Fetch published_salaries since effectiveStart
+    // published_salaries columns: user_id, app_name, semana, usd, diamantes, extras
     const salariesRes = await fetch(
-      sbUrl(`published_salaries?created_at=gte.${encodeURIComponent(effectiveStart.toISOString())}&select=user_id,app_name,usd,apodo`),
+      sbUrl(`published_salaries?created_at=gte.${encodeURIComponent(effectiveStart.toISOString())}&select=user_id,app_name,usd`),
       { headers: sbH() }
     );
     if (!salariesRes.ok) return res.status(500).json({ error: await salariesRes.text() });
-    const salaries = (await salariesRes.json()) as { user_id: string; app_name: string; usd: number | null; apodo?: string }[];
+    const salaries = (await salariesRes.json()) as { user_id: string; app_name: string; usd: number | null }[];
 
     if (salaries.length === 0) {
       return res.json({ ok: true, ranking: [], userRank: null, monthStart: effectiveStart.toISOString(), totalParticipants: 0 });
     }
 
     // 5. Aggregate by user_id tracking per-app totals
-    const userMap: Record<string, { user_id: string; total_usd: number; apps: Record<string, number>; lastApodo: string }> = {};
+    const userMap: Record<string, { user_id: string; total_usd: number; apps: Record<string, number> }> = {};
     for (const s of salaries) {
       const usd = s.usd ?? 0;
       if (!userMap[s.user_id]) {
-        userMap[s.user_id] = { user_id: s.user_id, total_usd: 0, apps: {}, lastApodo: s.apodo ?? '' };
+        userMap[s.user_id] = { user_id: s.user_id, total_usd: 0, apps: {} };
       }
       userMap[s.user_id].total_usd += usd;
       userMap[s.user_id].apps[s.app_name] = (userMap[s.user_id].apps[s.app_name] ?? 0) + usd;
-      if (s.apodo) userMap[s.user_id].lastApodo = s.apodo;
     }
 
     // 6. Fetch worker display names — UUIDs must be quoted in PostgREST in() filters
@@ -64,10 +64,12 @@ router.get('/ranking', async (req, res) => {
     const workers: { user_id: string; nombre_en_app?: string; nombre_real?: string }[] = workerRes.ok
       ? (await workerRes.json()) as { user_id: string; nombre_en_app?: string; nombre_real?: string }[]
       : [];
+
+    // Build name map — prefer nombre_en_app, any app entry works since name is per person
     const nameMap: Record<string, { nombre: string; nombre_real?: string }> = {};
     for (const w of workers) {
-      if (!nameMap[w.user_id] && w.nombre_en_app) {
-        nameMap[w.user_id] = { nombre: w.nombre_en_app, nombre_real: w.nombre_real };
+      if (!nameMap[w.user_id] && (w.nombre_en_app || w.nombre_real)) {
+        nameMap[w.user_id] = { nombre: w.nombre_en_app ?? w.nombre_real ?? '', nombre_real: w.nombre_real };
       }
     }
 
@@ -79,7 +81,7 @@ router.get('/ranking', async (req, res) => {
         return {
           rank: i + 1,
           user_id: entry.user_id,
-          nombre: info?.nombre ?? entry.lastApodo ?? 'Trabajadora',
+          nombre: info?.nombre ?? 'Trabajadora',
           nombre_real: info?.nombre_real ?? null,
           total_usd: Math.round(entry.total_usd * 100) / 100,
           apps: Object.entries(entry.apps)
@@ -91,7 +93,7 @@ router.get('/ranking', async (req, res) => {
     const totalParticipants = ranking.length;
     const top10 = ranking.slice(0, 10);
 
-    // 8. User-specific rank (if logged in)
+    // 8. User-specific rank (if user_id provided)
     let userRank = null;
     if (userId) {
       const found = ranking.find(r => r.user_id === userId);
