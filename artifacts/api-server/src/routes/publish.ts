@@ -74,6 +74,13 @@ import { Router } from 'express';
                     headers: { ...(sbHeaders() as Record<string,string>), Prefer: 'resolution=merge-duplicates,return=minimal' },
                     body: JSON.stringify(rows),
                   });
+                  // Notify each no-cobro worker (fire-and-forget)
+                  dispatchPushIndividual(zeroEarners.map(w => ({
+                    userId: w.user_id,
+                    title: `⚠️ Semana sin cobro — ${app_name}`,
+                    body: `No tienes cobro registrado para la semana ${semana}. Contacta a tu agente si crees que es un error.`,
+                    url: '/salarios',
+                  }))).catch(() => {});
                 } catch { /* best-effort */ }
               });
             }
@@ -106,6 +113,13 @@ import { Router } from 'express';
                       headers: { ...(sbHeaders() as Record<string,string>), Prefer: 'resolution=merge-duplicates,return=minimal' },
                       body: JSON.stringify(rows),
                     });
+                    // Notify each Layla no-cobro worker (fire-and-forget)
+                    dispatchPushIndividual(laylaNoEarners.map(w => ({
+                      userId: w.user_id,
+                      title: '⚠️ Semana sin cobro — Layla',
+                      body: `No tienes cobro registrado para la semana ${semana} en Layla. Contacta a tu agente si crees que es un error.`,
+                      url: '/salarios',
+                    }))).catch(() => {});
                   } catch { /* best-effort */ }
                 });
               }
@@ -233,9 +247,20 @@ import { Router } from 'express';
           return res.status(r.status).json({ error: errText });
         }
 
-        // Agent commission notifications handled via /admin/publish-agent-commission
+        // Notify each resolved agent that their commissions are now available (fire-and-forget)
+          setImmediate(() => {
+            const agentNotifItems = inserts
+              .filter(ins => agentIdMap[ins.agent_name] && Number(ins.total_commission_usd) > 0)
+              .map(ins => ({
+                userId: agentIdMap[ins.agent_name],
+                title: `💰 Tu comisión de ${ins.app_name} está disponible`,
+                body: `Semana ${ins.semana} — ${Number(ins.total_commission_usd).toFixed(2)} USD. Entra a verla.`,
+                url: '/agente',
+              }));
+            if (agentNotifItems.length > 0) dispatchPushIndividual(agentNotifItems).catch(() => {});
+          });
 
-        const agentUserIds = Object.values(agentIdMap).filter(Boolean);
+          const agentUserIds = Object.values(agentIdMap).filter(Boolean);
 
           // Auto-detect agents with zero commission → weekly_no_cobro (fire-and-forget)
           setImmediate(async () => {
@@ -394,21 +419,38 @@ import { Router } from 'express';
         }
       });
 
-    // PATCH /api/toggle-justified — toggle justified flag
-    router.patch('/toggle-justified', async (req, res) => {
-      const { id, justified } = req.body as { id: string; justified: boolean };
-      if (!id) return res.status(400).json({ error: 'id requerido' });
-      try {
-        const r = await fetch(
-          sbUrl(`weekly_no_cobro?id=eq.${encodeURIComponent(id)}`),
-          {
-            method: 'PATCH',
-            headers: sbHeaders('return=minimal') as Record<string, string>,
-            body: JSON.stringify({ justified: !!justified }),
+    // PATCH /api/toggle-justified — toggle justified f    router.patch('/toggle-justified', async (req, res) => {
+        const { id, justified } = req.body as { id: string; justified: boolean };
+        if (!id) return res.status(400).json({ error: 'id requerido' });
+        try {
+          // Fetch entry to get user_id/app_name for notification
+          const ncRes = await fetch(sbUrl(`weekly_no_cobro?id=eq.${encodeURIComponent(id)}&select=user_id,app_name,semana`), { headers: sbHeaders() as Record<string, string> });
+          const ncRows = ncRes.ok ? await ncRes.json() as { user_id: string; app_name: string; semana: string }[] : [];
+          const ncEntry = ncRows[0];
+
+          const r = await fetch(
+            sbUrl(`weekly_no_cobro?id=eq.${encodeURIComponent(id)}`),
+            {
+              method: 'PATCH',
+              headers: sbHeaders('return=minimal') as Record<string, string>,
+              body: JSON.stringify({ justified: !!justified }),
+            }
+          );
+          if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
+          // Notify worker of justification change (fire-and-forget)
+          if (ncEntry?.user_id) {
+            setImmediate(() => {
+              dispatchPushIndividual([{
+                userId: ncEntry.user_id,
+                title: justified ? 'ℹ️ Semana sin cobro justificada' : '⚠️ Semana sin cobro',
+                body: justified
+                  ? `Tu semana sin cobro en ${ncEntry.app_name} (${ncEntry.semana}) fue marcada como justificada por el admin.`
+                  : `Tu semana sin cobro en ${ncEntry.app_name} (${ncEntry.semana}) fue desmarcada.`,
+                url: '/salarios',
+              }]).catch(() => {});
+            });
           }
-        );
-        if (!r.ok) { const e = await r.text(); return res.status(r.status).json({ error: e }); }
-        return res.json({ ok: true });
+          return res.json({ ok: true });
       } catch (e: unknown) {
         return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
       }
