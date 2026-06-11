@@ -117,23 +117,32 @@ import { Router } from 'express'
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
   router.post('/admin/publish-agent-commission', async (req, res) => {
-    const { semana, agent_user_id: rawAgentId, agent_name, commissions } = req.body as { semana: string; agent_user_id: string | null; agent_name: string; commissions: { worker_uid: string | null; worker_name: string; worker_real_name?: string | null; app_name: string; commission_usd: number }[] }
-    if (!semana) { res.status(400).json({ error: 'Campo requerido faltante: semana' }); return }
-    if (!agent_name) { res.status(400).json({ error: 'Campo requerido faltante: agent_name' }); return }
-    if (!Array.isArray(commissions)) { res.status(400).json({ error: 'Campo requerido faltante: commissions (debe ser array)' }); return }
-    // Use synthetic key for agents without a registered profile so PK constraints still work
-    const effectiveId = rawAgentId || `__name__:${agent_name}`
-    try {
-      const existing = await sbGet(`agent_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&agent_user_id=eq.${encodeURIComponent(effectiveId)}&limit=1`)
-      if (existing.length > 0) { res.status(409).json({ error: 'Ya publicado esta semana. Cierra la semana para republicar.' }); return }
-      const rows = commissions.map(c => ({ semana, agent_user_id: effectiveId, agent_name, worker_uid: c.worker_uid ?? null, worker_name: c.worker_name, worker_real_name: c.worker_real_name ?? null, app_name: c.app_name, commission_usd: Number(c.commission_usd) || 0, published_at: new Date().toISOString() }))
-      await sbPost('published_agent_commissions?on_conflict=semana,agent_user_id,app_name,worker_name', rows, 'resolution=merge-duplicates,return=minimal')
-      const total = commissions.reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
-      await sbPost('agent_commission_publish_log?on_conflict=semana,agent_user_id', { semana, agent_user_id: effectiveId, agent_name, total_usd: total, published_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
-      if (rawAgentId && ensureVapid()) setImmediate(() => { dispatchPush([rawAgentId], '💰 Tu comisión está disponible', `Semana ${semana} — $${total.toFixed(2)} USD. Entra a verla.`, '/agente').catch(() => {}) })
-      res.json({ ok: true, total_usd: total })
-    } catch (e) { res.status(500).json({ error: String(e) }) }
-  })
+      const { semana, agent_user_id: rawAgentId, agent_name: rawAgentName, commissions } = req.body as { semana: string; agent_user_id: string | null; agent_name: string; commissions: { worker_uid: string | null; worker_name: string; worker_real_name?: string | null; app_name: string; commission_usd: number }[] }
+      if (!semana) { res.status(400).json({ error: 'Campo requerido faltante: semana' }); return }
+      if (!rawAgentName) { res.status(400).json({ error: 'Campo requerido faltante: agent_name' }); return }
+      if (!Array.isArray(commissions)) { res.status(400).json({ error: 'Campo requerido faltante: commissions (debe ser array)' }); return }
+      // Use synthetic key for agents without a registered profile so PK constraints still work
+      const effectiveId = rawAgentId || `__name__:${rawAgentName}`
+      // Always resolve the real display name from the profile to avoid storing agent codes as names
+      let agent_name = rawAgentName
+      if (rawAgentId) {
+        try {
+          const profData = await sbGet(`profiles?id=eq.${encodeURIComponent(rawAgentId)}&select=agent_name,colider_name&limit=1`)
+          const prof = (profData as any[])[0] as { agent_name?: string | null; colider_name?: string | null } | undefined
+          if (prof?.colider_name || prof?.agent_name) agent_name = (prof.colider_name ?? prof.agent_name)!
+        } catch { /* keep rawAgentName on failure */ }
+      }
+      try {
+        const existing = await sbGet(`agent_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&agent_user_id=eq.${encodeURIComponent(effectiveId)}&limit=1`)
+        if (existing.length > 0) { res.status(409).json({ error: 'Ya publicado esta semana. Cierra la semana para republicar.' }); return }
+        const rows = commissions.map(c => ({ semana, agent_user_id: effectiveId, agent_name, worker_uid: c.worker_uid ?? null, worker_name: c.worker_name, worker_real_name: c.worker_real_name ?? null, app_name: c.app_name, commission_usd: Number(c.commission_usd) || 0, published_at: new Date().toISOString() }))
+        await sbPost('published_agent_commissions?on_conflict=semana,agent_user_id,app_name,worker_name', rows, 'resolution=merge-duplicates,return=minimal')
+        const total = commissions.reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
+        await sbPost('agent_commission_publish_log?on_conflict=semana,agent_user_id', { semana, agent_user_id: effectiveId, agent_name, total_usd: total, published_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
+        if (rawAgentId && ensureVapid()) setImmediate(() => { dispatchPush([rawAgentId], '💰 Tu comisión está disponible', `Semana ${semana} — $${total.toFixed(2)} USD. Entra a verla.`, '/agente').catch(() => {}) })
+        res.json({ ok: true, total_usd: total })
+      } catch (e) { res.status(500).json({ error: String(e) }) }
+    })
   router.post('/admin/publish-agents-to-colider', async (req, res) => {
     const { semana } = req.body as { semana: string }
     if (!semana) { res.status(400).json({ error: 'semana required' }); return }
