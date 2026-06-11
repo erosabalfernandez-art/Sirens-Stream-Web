@@ -235,12 +235,17 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
 
     const workers = persons.filter(p => p.person_type === 'worker')
     const agents  = persons.filter(p => p.person_type === 'agent')
+    const dualUids = new Set(workers.map(w => w.person_uid).filter(uid => agents.some(a => a.person_uid === uid)))
+    const pureWorkers = workers.filter(w => !dualUids.has(w.person_uid))
+    const dualWorkers = workers.filter(w => dualUids.has(w.person_uid))
+    const pureAgents  = agents.filter(a => !dualUids.has(a.person_uid))
+    const dualAgents  = agents.filter(a => dualUids.has(a.person_uid))
     const total = persons.length
     const totalPaid = persons.filter(p => marks[p.key]).length
     const allPaid = total > 0 && totalPaid === total
     const alreadyNotified = !!(weekStatus?.notified && !weekStatus?.admin_closed)
     const notifyLocked = !allPaid || alreadyNotified
-    const listToShow = tab === 'workers' ? workers : agents
+    const listToShow = tab === 'workers' ? pureWorkers : pureAgents
 
     if (loading) return (
       <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
@@ -345,43 +350,99 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
               <p className="text-white/30 text-sm">No hay datos publicados para esta semana.</p>
             </div>
           ) : (
-            <div className="space-y-2 mb-6">
-              {listToShow.map(p => {
-                const paid = marks[p.key] ?? false
-                const tog  = toggling === p.key
-                return (
-                  <div key={p.key} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-purple-500/10'}`}>
-                    <div className="flex items-start gap-3">
-                      <button onClick={() => toggleMark(p)} disabled={tog}
-                        className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${paid ? 'bg-green-500 border-green-500' : 'border-white/20 hover:border-green-400'} disabled:opacity-50`}>
-                        {paid
-                          ? <CheckCircle className="w-4 h-4 text-white" />
-                          : <Circle className={`w-4 h-4 ${tog ? 'text-white/50 animate-pulse' : 'text-white/20'}`} />}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
-                            {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
-                            <p className="text-white/30 text-xs">{p.app}</p>
-                            {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
+            <div className="space-y-4 mb-6">
+              {listToShow.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2 px-1 text-teal-400/60 dark:text-teal-400/60">
+                    {tab === 'workers' ? '👩‍💻 Trabajadora' : '👑 Agente'}
+                  </p>
+                  <div className="space-y-2">
+                    {listToShow.map(p => {
+                      const paid = marks[p.key] ?? false
+                      const tog  = toggling === p.key
+                      return (
+                    <div key={p.key} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-purple-500/10'}`}>
+                      <div className="flex items-start gap-3">
+                        <button onClick={() => toggleMark(p)} disabled={tog}
+                          className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${paid ? 'bg-green-500 border-green-500' : 'border-white/20 hover:border-green-400'} disabled:opacity-50`}>
+                          {paid
+                            ? <CheckCircle className="w-4 h-4 text-white" />
+                            : <Circle className={`w-4 h-4 ${tog ? 'text-white/50 animate-pulse' : 'text-white/20'}`} />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
+                              {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
+                              <p className="text-white/30 text-xs">{p.app}</p>
+                              {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
+                              {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
+                            </div>
                           </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
-                            {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
-                          </div>
+                          {p.phone && (
+                            <a href={`https://wa.me/${cleanNum(p.phone)}`} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
+                              <Phone className="w-3 h-3" /> {p.phone}
+                            </a>
+                          )}
                         </div>
-                        {p.phone && (
-                          <a href={`https://wa.me/${cleanNum(p.phone)}`} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
-                            <Phone className="w-3 h-3" /> {p.phone}
-                          </a>
-                        )}
                       </div>
                     </div>
+                  )
+                })}
+                      )
+                    })}
                   </div>
-                )
-              })}
+                </div>
+              )}
+              {(tab === 'workers' ? dualWorkers : dualAgents).length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2 px-1 text-violet-400/60">🔗 Agente + Trabajadora</p>
+                  <div className="space-y-2">
+                    {(tab === 'workers' ? dualWorkers : dualAgents).map(p => {
+                      const paid = marks[p.key] ?? false
+                      const tog  = toggling === p.key
+                      return (
+                    <div key={p.key} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-purple-500/10'}`}>
+                      <div className="flex items-start gap-3">
+                        <button onClick={() => toggleMark(p)} disabled={tog}
+                          className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${paid ? 'bg-green-500 border-green-500' : 'border-white/20 hover:border-green-400'} disabled:opacity-50`}>
+                          {paid
+                            ? <CheckCircle className="w-4 h-4 text-white" />
+                            : <Circle className={`w-4 h-4 ${tog ? 'text-white/50 animate-pulse' : 'text-white/20'}`} />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
+                              {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
+                              <p className="text-white/30 text-xs">{p.app}</p>
+                              {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
+                              {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
+                            </div>
+                          </div>
+                          {p.phone && (
+                            <a href={`https://wa.me/${cleanNum(p.phone)}`} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
+                              <Phone className="w-3 h-3" /> {p.phone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           </>
