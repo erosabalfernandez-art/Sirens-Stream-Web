@@ -70,6 +70,8 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
       const [laylaPayNotified, setLaylaPayNotified] = useState<Record<string, boolean>>({})
       const [laylaPayNotifying, setLaylaPayNotifying] = useState<Record<string, boolean>>({})
       const [laylaPayNeedSetup, setLaylaPayNeedSetup] = useState(false)
+        const [payNotified, setPayNotified] = useState<Record<string, boolean>>({})
+        const [payNotifying, setPayNotifying] = useState<Record<string, boolean>>({})
         const [agenteInfo, setAgenteInfo] = useState<{ name: string; is_colider: boolean } | null>(null)
         const [agenteChecking, setAgenteChecking] = useState(false)
         const [agenteError, setAgenteError] = useState<string | null>(null)
