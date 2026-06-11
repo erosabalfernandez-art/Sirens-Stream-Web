@@ -419,7 +419,8 @@ import { Router } from 'express';
         }
       });
 
-    // PATCH /api/toggle-justified — toggle justified f    router.patch('/toggle-justified', async (req, res) => {
+    // PATCH /api/toggle-justified — toggle justified flag
+    router.patch('/toggle-justified', async (req, res) => {
         const { id, justified } = req.body as { id: string; justified: boolean };
         if (!id) return res.status(400).json({ error: 'id requerido' });
         try {
