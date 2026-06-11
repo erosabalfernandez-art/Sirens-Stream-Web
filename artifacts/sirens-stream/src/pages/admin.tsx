@@ -1508,7 +1508,23 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
               {tab === 'canales' && (
                 <div style={{minHeight:0}}>
-                  <style>{`@keyframes tgspin{to{transform:rotate(360deg)}} .sec-collapse{transition:all 0.25s ease}`}</style>
+                  <style>{`
+                      @keyframes tgspin{to{transform:rotate(360deg)}}
+                      .sec-collapse{transition:all 0.25s ease}
+                      .tg-msgs-bg {
+                        background-color: #0e1621;
+                        background-image:
+                          radial-gradient(rgba(44,165,224,0.1) 1.5px, transparent 1.5px),
+                          radial-gradient(rgba(44,165,224,0.05) 1px, transparent 1px);
+                        background-size: 28px 28px, 14px 14px;
+                        background-position: 0 0, 7px 7px;
+                      }
+                      .wa-msgs-bg {
+                        background-color: #0b141a;
+                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%2325d366' stroke-width='1.4' opacity='0.08'%3E%3Cpath d='M20,60 C20,35 40,35 40,60 C40,85 20,85 20,60Z'/%3E%3Cpath d='M80,30 C80,5 100,5 100,30 C100,55 80,55 80,30Z'/%3E%3Cpath d='M80,90 C80,65 100,65 100,90 C100,115 80,115 80,90Z'/%3E%3Cpath d='M-5,30 C-5,5 15,5 15,30 C15,55 -5,55 -5,30Z'/%3E%3Cpath d='M30,0 C55,0 55,20 30,20 C5,20 5,0 30,0Z'/%3E%3Cpath d='M90,60 C115,60 115,80 90,80 C65,80 65,60 90,60Z'/%3E%3C/g%3E%3C/svg%3E");
+                        background-size: 120px 120px;
+                      }
+                    `}</style>
 
                   {/* ── App selector ───────────────────────────────────── */}
                   <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
@@ -1564,7 +1580,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                           </div>
                         </div>
                         {/* Messages list */}
-                        <div style={{maxHeight:450,minHeight:120,overflowY:'auto',padding:'12px 10px'}}>
+                        <div className="tg-msgs-bg" style={{maxHeight:450,minHeight:120,overflowY:'auto',padding:'12px 10px'}}>
                           {loadingMsgs ? (
                             <div style={{padding:'40px 0',textAlign:'center'}}>
                               <div style={{width:30,height:30,border:'3px solid rgba(44,165,224,0.2)',borderTopColor:'#2ca5e0',borderRadius:'50%',animation:'tgspin 0.8s linear infinite',margin:'0 auto 10px'}}/>
@@ -1688,7 +1704,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                           </button>
                         </div>
                         {/* Stickers list */}
-                        <div style={{maxHeight:460,minHeight:120,overflowY:'auto',padding:'14px 14px'}}>
+                        <div className="wa-msgs-bg" style={{maxHeight:460,minHeight:120,overflowY:'auto',padding:'14px 14px'}}>
                           {loadingPayStk ? (
                             <div style={{textAlign:'center',padding:'40px 0'}}>
                               <div style={{width:28,height:28,border:'3px solid rgba(37,211,102,0.2)',borderTopColor:'#25d366',borderRadius:'50%',animation:'tgspin 0.8s linear infinite',margin:'0 auto 10px'}}/>
