@@ -249,7 +249,22 @@ import { Router } from 'express'
       ])
       const rm: Record<string, number> = {}
       for (const r of rates) rm[r.id] = r.rate
-      res.json({ published: true, published_at: (log[0] as any).published_at, agents: Object.values(agentMap), exchange_rates: rm })
+      // Resolve display names for all agents using their profiles
+        const allAgentUserIds = Object.values(agentMap).map((a: any) => a.agent_user_id).filter(Boolean) as string[]
+        if (allAgentUserIds.length > 0) {
+          try {
+            const profRes = await sbGet(`profiles?id=in.(${allAgentUserIds.map((id: string) => '"' + id + '"').join(',')})&select=id,agent_name,colider_name`)
+            for (const p of profRes as any[]) {
+              const resolvedName = p.colider_name ?? p.agent_name
+              if (p.id && resolvedName) {
+                for (const ag of Object.values(agentMap) as any[]) {
+                  if (ag.agent_user_id === p.id) ag.agent_name = resolvedName
+                }
+              }
+            }
+          } catch { /* non-critical */ }
+        }
+        res.json({ published: true, published_at: (log[0] as any).published_at, agents: Object.values(agentMap), exchange_rates: rm })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
   export default router
