@@ -1928,7 +1928,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
-                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}{r.app_name}: ${Number(r.usd||0).toFixed(2)}</p>))}
+                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}{r.app_name}{(r.nombre_en_app || r.apodo) ? ` · ${r.nombre_en_app || r.apodo}` : ''}: ${Number(r.usd||0).toFixed(2)}</p>))}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalD.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalD.toFixed(2)}</p>
                                                     {metodoD && <p className="text-xs text-white/20 mt-0.5">{metodoD}{billeteraD ? ' · ' + billeteraD : ''}</p>}
@@ -2067,7 +2067,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
-                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}{r.app_name}: ${Number(r.usd||0).toFixed(2)}</p>))}
+                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}{r.app_name}{(r.nombre_en_app || r.apodo) ? ` · ${r.nombre_en_app || r.apodo}` : ''}: ${Number(r.usd||0).toFixed(2)}</p>))}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalA.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalA.toFixed(2)}</p>
                                                     {metodoA && <p className="text-xs text-white/20 mt-0.5">{metodoA}{billeteraA ? ' · ' + billeteraA : ''}</p>}
