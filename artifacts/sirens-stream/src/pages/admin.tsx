@@ -133,6 +133,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [channelPreview, setChannelPreview] = useState<string | null>(null)
         const [channelUploading, setChannelUploading] = useState(false)
         const [channelPosting, setChannelPosting] = useState(false)
+          const [adminPayStk, setAdminPayStk] = useState<{id:string;user_id:string;app_name:string;nombre_en_app:string|null;sticker_index:number;created_at:string}[]>([])
+          const [loadingPayStk, setLoadingPayStk] = useState(false)
+          const [adminPayApp, setAdminPayApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
           const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean;phone:string|null}[]>([])
@@ -750,7 +753,17 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           setLoadingMsgs(false)
         }
 
-        async function postMessage() {
+        async function fetchAdminPayStk(app: string) {
+            setLoadingPayStk(true)
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string|undefined)??'').replace(/\/$/, '')
+              const r = await fetch(`${apiBase}/api/payment-stickers?app_name=${encodeURIComponent(app)}`)
+              if(r.ok){ const d = await r.json(); setAdminPayStk(d.events??[]) }
+            } catch {}
+            setLoadingPayStk(false)
+          }
+
+          async function postMessage() {
             if (!channelContent.trim() && !channelFile && !channelImage.trim()) return
             setChannelPosting(true)
             try {
@@ -1496,7 +1509,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                   {/* ── App selector ──────────────────────────────────── */}
                   <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
                     {(['Waha','Layla','Howdy'] as const).map(app => (
-                      <button key={app} onClick={() => setChannelApp(app)}
+                      <button key={app} onClick={() => { setChannelApp(app); setChannelContent(''); setChannelFile(null); setChannelPreview(null); setChannelImage(''); fetchChannelMessages(app); if(adminPayApp===app) fetchAdminPayStk(app) }}
                         style={{display:'flex',alignItems:'center',gap:8,padding:'7px 16px',borderRadius:24,border:'none',cursor:'pointer',fontWeight:700,fontSize:14,transition:'all 0.15s',
                           background: channelApp === app ? 'linear-gradient(135deg,#2ca5e0,#1a7fba)' : 'rgba(255,255,255,0.05)',
                           color: channelApp === app ? 'white' : 'rgba(255,255,255,0.4)',
@@ -1604,6 +1617,70 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                             ? <div style={{width:16,height:16,border:'2px solid white',borderTopColor:'transparent',borderRadius:'50%',animation:'tgspin 0.8s linear infinite'}}/>
                             : <Send style={{width:16,height:16,color:'white'}}/>}
                         </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── WhatsApp Pagos ──────────────────────────── */}
+                  <div style={{marginTop:24}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{width:8,height:8,borderRadius:'50%',background:'#25d366'}}/>
+                        <span style={{color:'#25d366',fontWeight:700,fontSize:13}}>💰 Pagos confirmados · WhatsApp</span>
+                      </div>
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                        {(['Waha','Layla','Howdy'] as const).map(app=>(
+                          <button key={app} onClick={()=>{setAdminPayApp(app);fetchAdminPayStk(app)}}
+                            style={{padding:'4px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:12,fontWeight:700,transition:'all 0.15s',background:adminPayApp===app?'#25d366':'rgba(255,255,255,0.06)',color:adminPayApp===app?'white':'rgba(255,255,255,0.4)'}}>
+                            {app}
+                          </button>
+                        ))}
+                        <button onClick={()=>fetchAdminPayStk(adminPayApp)} style={{padding:'4px 10px',borderRadius:20,border:'1px solid rgba(37,211,102,0.25)',background:'transparent',cursor:'pointer',color:'#25d366',fontSize:11,fontWeight:600}}>↻</button>
+                      </div>
+                    </div>
+                    <div style={{background:'#0b141a',borderRadius:14,overflow:'hidden',border:'1px solid rgba(37,211,102,0.12)'}}>
+                      <div style={{background:'#1f2c34',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(0,0,0,0.2)'}}>
+                        <div style={{width:34,height:34,borderRadius:'50%',overflow:'hidden',border:'2px solid rgba(37,211,102,0.4)',flexShrink:0}}>
+                          <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${adminPayApp.toLowerCase()}.jpg`} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                        </div>
+                        <div>
+                          <div style={{color:'white',fontWeight:700,fontSize:14}}>Pagos {adminPayApp}</div>
+                          <div style={{color:'#25d366',fontSize:11}}>{adminPayStk.filter(s=>s.app_name===adminPayApp).length} confirmados</div>
+                        </div>
+                      </div>
+                      <div style={{maxHeight:300,overflowY:'auto',padding:'10px'}}>
+                        {loadingPayStk ? (
+                          <div style={{textAlign:'center',padding:'28px 0'}}><div style={{width:22,height:22,border:'3px solid rgba(37,211,102,0.2)',borderTopColor:'#25d366',borderRadius:'50%',animation:'tgspin 0.8s linear infinite',margin:'0 auto'}}/></div>
+                        ) : adminPayStk.filter(s=>s.app_name===adminPayApp).length===0 ? (
+                          <div style={{textAlign:'center',padding:'36px 0'}}><div style={{fontSize:30,marginBottom:8}}>💰</div><p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>Sin pagos en {adminPayApp} aún</p></div>
+                        ) : (
+                          <div>{[...adminPayStk.filter(s=>s.app_name===adminPayApp)].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).map(stk=>{
+                            const stkUrls = ['https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_0_cat.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_1_man.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_2_pink.jpg'];
+                            const nm = stk.nombre_en_app||'Usuario';
+                            return (
+                              <div key={stk.id} style={{display:'flex',alignItems:'flex-end',gap:7,marginBottom:10}}>
+                                <div style={{width:28,height:28,borderRadius:'50%',background:'#7e57c2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'white',flexShrink:0}}>
+                                  {(nm[0]||'?').toUpperCase()}
+                                </div>
+                                <div style={{background:'#1f2c34',borderRadius:'0 10px 10px 10px',overflow:'hidden',maxWidth:200,boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}>
+                                  <div style={{padding:'4px 10px 2px',display:'flex',gap:8,alignItems:'center'}}>
+                                    <span style={{color:'#25d366',fontSize:11,fontWeight:700,flex:1}}>{nm}</span>
+                                    <span style={{color:'rgba(255,255,255,0.2)',fontSize:10}}>{new Date(stk.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span>
+                                  </div>
+                                  <div style={{position:'relative'}}>
+                                    <img src={stkUrls[stk.sticker_index % stkUrls.length]} alt="" style={{width:136,height:136,objectFit:'cover',display:'block'}}/>
+                                    <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 50%, rgba(0,0,0,0.75))',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:5}}>
+                                      <div style={{textAlign:'center'}}>
+                                        <div style={{color:'#25d366',fontWeight:800,fontSize:11,textShadow:'0 1px 3px rgba(0,0,0,0.7)'}}>💰 PAGO RECIBIDO</div>
+                                        <div style={{color:'rgba(255,255,255,0.7)',fontSize:9}}>✅ Confirmado</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}</div>
+                        )}
                       </div>
                     </div>
                   </div>
