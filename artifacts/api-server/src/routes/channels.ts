@@ -205,7 +205,7 @@ import { Router } from 'express';
         if (!user_id || !app_name)
           return res.status(400).json({ error: 'Missing fields' });
 
-        const h = sbHeaders() as Record<string, string>;
+        const h = sbH();
         const admRes = await fetch(sbUrl('profiles?is_admin=eq.true&select=id'), { headers: h });
         if (admRes.ok) {
           const admins = await admRes.json() as Array<{ id: string }>;
