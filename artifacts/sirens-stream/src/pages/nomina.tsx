@@ -333,6 +333,7 @@ const APP_COLORS = {
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
     const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
+    const [agentIdMap, setAgentIdMap] = useState<Record<string,string>>({})
 
     useEffect(() => {
       if (!open || workers.length > 0) return
@@ -451,6 +452,8 @@ const APP_COLORS = {
         for (const w of workers) {
           const agente = w.agente
           if (!agente) continue
+          // Skip agent's own worker account — no commission for self
+          if (agentIdMap[agente] && w.user_id === agentIdMap[agente]) continue
           const v = values[w.id] ?? { retiradas: '0', comerciales: '0', porcentaje: '0' }
           const commission = calcCommission(v.comerciales, v.porcentaje)
           if (commission <= 0) continue
@@ -896,6 +899,8 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       for (const { worker: w, nomina: nm } of cobradas) {
         const agente = nm.agente ?? ((w as any).agente as string | null)
         if (!agente) continue
+        // Skip agent's own worker account — no commission for self
+        if (agentIdMap[agente] && w.user_id === agentIdMap[agente]) continue
         if (!agentMap[agente]) agentMap[agente] = []
         agentMap[agente].push({ uid: nm.uid, nombre: nm.apodo, salary_usd: nm.usd, commission_usd: nm.comision })
       }
@@ -1063,13 +1068,17 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
       const [{ data: profs }, { data: agentProfsNom }] = await Promise.all([
         supabase.from('profiles').select('id, email'),
-        supabase.from('profiles').select('agent_name, agent_code, phone, telefono').eq('is_agent', true),
+        supabase.from('profiles').select('id, agent_name, agent_code, phone, telefono').eq('is_agent', true),
       ])
       const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
       const am2: Record<string,string> = Object.fromEntries(
         ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
       )
       setAgentNameMap(am2)
+      const idMap2: Record<string,string> = Object.fromEntries(
+        ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code && a.id).map((a: any) => [a.agent_code as string, a.id as string])
+      )
+      setAgentIdMap(idMap2)
       const pm2: Record<string,string> = Object.fromEntries(
         ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code && (a.phone || a.telefono)).map((a: any) => [a.agent_code, String(a.phone || a.telefono)])
       )
