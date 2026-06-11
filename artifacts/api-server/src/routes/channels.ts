@@ -11,22 +11,23 @@ import { Router } from 'express';
     return `${process.env.SUPABASE_URL}/rest/v1/${p}`;
   }
 
+  const ALL_APPS = ['Waha', 'Layla', 'Howdy'];
+
   // GET /api/channel-access?user_id=X
   router.get('/channel-access', async (req, res) => {
     const user_id = req.query.user_id as string | undefined;
     if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
     try {
-      // Check if user is agent or colider — only return admin-granted (approved) channels
-      const profileRes = await fetch(sbUrl(`profiles?id=eq.${encodeURIComponent(user_id)}&select=is_agent,is_colider&limit=1`), { headers: sbH() });
-      const profiles: {is_agent:boolean;is_colider:boolean}[] = profileRes.ok ? await profileRes.json() : [];
+      // Check user role — agents/coliders/admins get auto-access to all channels by role
+      const profileRes = await fetch(sbUrl(`profiles?id=eq.${encodeURIComponent(user_id)}&select=is_admin,is_agent,is_colider&limit=1`), { headers: sbH() });
+      const profiles: {is_admin:boolean;is_agent:boolean;is_colider:boolean}[] = profileRes.ok ? await profileRes.json() : [];
       const p = profiles[0];
-      const isAgentOrColider = p?.is_agent || p?.is_colider;
 
-      if (isAgentOrColider) {
-        // Agents/coliders: only show admin-granted approved channels
-        const r = await fetch(sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&status=eq.approved&select=app_name,status`), { headers: sbH() });
-        if (!r.ok) return res.status(r.status).json({ error: await r.text() });
-        return res.json({ requests: await r.json() });
+      // Admins, agents and coliders always see all channels — no manual grant needed
+      if (p?.is_admin || p?.is_agent || p?.is_colider) {
+        return res.json({
+          requests: ALL_APPS.map(app => ({ app_name: app, status: 'approved' })),
+        });
       }
 
       // Workers: cross-reference with worker_entries so they only see channels
@@ -84,16 +85,22 @@ import { Router } from 'express';
       if (!msgR.ok) return res.status(msgR.status).json({ error: await msgR.text() });
       const [msg] = await msgR.json();
 
-      // Get all approved users (service role — bypasses RLS)
-      const usersR = await fetch(
-        sbUrl(`channel_requests?app_name=eq.${encodeURIComponent(app_name)}&status=eq.approved&select=user_id`),
-        { headers: sbH() }
-      );
+      // Get all users to notify: workers with approved channel_requests + all agents/coliders
+      const [usersR, rolesR] = await Promise.all([
+        fetch(sbUrl(`channel_requests?app_name=eq.${encodeURIComponent(app_name)}&status=eq.approved&select=user_id`), { headers: sbH() }),
+        fetch(sbUrl(`profiles?select=id&or=(is_agent.eq.true,is_colider.eq.true)`), { headers: sbH() }),
+      ]);
       const usersRows: { user_id: string }[] = usersR.ok ? await usersR.json() : [];
-      const ids = usersRows.map((u) => u.user_id).filter(Boolean);
+      const roleRows: { id: string }[] = rolesR.ok ? await rolesR.json() : [];
+      const idsSet = new Set<string>([
+        ...usersRows.map((u) => u.user_id),
+        ...roleRows.map((r) => r.id),
+      ]);
+      // Exclude the sender from notifications
+      if (created_by) idsSet.delete(created_by);
+      const ids = [...idsSet].filter(Boolean);
 
-      // Send push notifications to workers + agents (fire-and-forget)
-      // Send push notifications only to users with approved channel access (fire-and-forget)
+      // Send push notifications to all eligible users (fire-and-forget)
       setImmediate(async () => {
         try {
           const preview = content?.trim().slice(0, 80) ?? '📷 Imagen';
@@ -111,18 +118,19 @@ import { Router } from 'express';
 
   // GET /api/channel-messages?user_id=X
     // Fetches messages the user is allowed to see (via service role, bypasses RLS).
-    // Admins see ALL messages without needing channel_requests entries.
+    // Admins, agents and coliders see ALL messages without needing channel_requests entries.
     router.get('/channel-messages', async (req, res) => {
       const user_id = req.query.user_id as string | undefined;
       if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
       try {
-        // Check if user is admin — admins see all messages across all channels
+        // Check role — admins/agents/coliders see all channel messages automatically
         const profileR = await fetch(
-          sbUrl(`profiles?id=eq.${encodeURIComponent(user_id)}&select=is_admin&limit=1`),
+          sbUrl(`profiles?id=eq.${encodeURIComponent(user_id)}&select=is_admin,is_agent,is_colider&limit=1`),
           { headers: sbH() }
         );
-        const profiles: { is_admin: boolean }[] = profileR.ok ? await profileR.json() : [];
-        if (profiles[0]?.is_admin === true) {
+        const profiles: { is_admin: boolean; is_agent: boolean; is_colider: boolean }[] = profileR.ok ? await profileR.json() : [];
+        const prof = profiles[0];
+        if (prof?.is_admin || prof?.is_agent || prof?.is_colider) {
           const allMsgsR = await fetch(
             sbUrl('channel_messages?select=*&order=created_at.desc'),
             { headers: sbH() }
@@ -130,7 +138,7 @@ import { Router } from 'express';
           if (!allMsgsR.ok) return res.status(allMsgsR.status).json({ error: await allMsgsR.text() });
           return res.json({ messages: await allMsgsR.json() });
         }
-        // Non-admin: filter by approved channel_requests
+        // Workers: filter by approved channel_requests
         const accessR = await fetch(
           sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&status=eq.approved&select=app_name`),
           { headers: sbH() }
@@ -140,7 +148,7 @@ import { Router } from 'express';
         if (approvedApps.length === 0) return res.json({ messages: [] });
         const appNames = approvedApps.map(a => a.app_name);
         const msgsR = await fetch(
-          sbUrl(`channel_messages?app_name=in.(${appNames.map(encodeURIComponent).join(',')})&select=*&order=created_at.desc`),
+          sbUrl(`channel_messages?app_name=in.(${appNames.join(',')})&select=*&order=created_at.desc`),
           { headers: sbH() }
         );
         if (!msgsR.ok) return res.status(msgsR.status).json({ error: await msgsR.text() });
