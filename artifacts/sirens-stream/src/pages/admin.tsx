@@ -1655,7 +1655,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 {(row.colider_paid && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> : <Clock className="w-3.5 h-3.5 text-amber-400/40" />}
                                               </div>
                                               <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
+                                                <p className="text-sm font-bold text-white">{(agentNameMap[row.agent_name] ?? row.agent_name) || '—'}</p>
                                                 <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
                                                 {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20">{agentMetodoMap[row.agent_user_id]}{agentBilleteraMap[row.agent_user_id] ? ' · ' + agentBilleteraMap[row.agent_user_id] : ''}</p>}
                                               </div>
@@ -1689,7 +1689,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     {(coliderPaidD && agentConfirmedD) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
                                                   </div>
                                                   <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-white">{d.agentRow.agent_name || '—'}</p>
+                                                    <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
                                                     {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}{r.app_name}: ${Number(r.usd||0).toFixed(2)}</p>))}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalD.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalD.toFixed(2)}</p>
@@ -1787,7 +1787,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 {(agentAdminPaidIds.has(row.agent_user_id) && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> : <Clock className="w-3.5 h-3.5 text-amber-400/40" />}
                                               </div>
                                               <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-white">{row.agent_name || '—'}</p>
+                                                <p className="text-sm font-bold text-white">{(agentNameMap[row.agent_name] ?? row.agent_name) || '—'}</p>
                                                 <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
                                                 {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20">{agentMetodoMap[row.agent_user_id]}{agentBilleteraMap[row.agent_user_id] ? ' · ' + agentBilleteraMap[row.agent_user_id] : ''}</p>}
                                               </div>
@@ -1828,7 +1828,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     {(adminPaidA && agentConfirmedA) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
                                                   </div>
                                                   <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-white">{d.agentRow.agent_name || '—'}</p>
+                                                    <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
                                                     {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}{r.app_name}: ${Number(r.usd||0).toFixed(2)}</p>))}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalA.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalA.toFixed(2)}</p>
