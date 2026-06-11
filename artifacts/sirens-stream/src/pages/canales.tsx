@@ -51,6 +51,7 @@ export default function Canales() {
   const [rxLoad, setRxLoad] = useState<Record<string,boolean>>({})
   const [msgLoading, setMsgLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const activeChRef = useRef<string|null>(null)
   const btmRef = useRef<HTMLDivElement>(null)
     const lbPinchRef = useRef<number|null>(null)
     const lbDragRef = useRef<{x:number,y:number,px:number,py:number}|null>(null)
@@ -72,6 +73,7 @@ export default function Canales() {
 
   useEffect(()=>{ if(chans.length>0&&!activeCh) setActiveCh(chans[0].id) },[chans.length])
   useEffect(()=>{
+    activeChRef.current = activeCh
     if(!user||!ch) return
     setMsgs([]); setStickers([])
     if(ch.type==='canal') loadMsgs(ch.app); else loadStk(ch.app)
@@ -91,23 +93,23 @@ export default function Canales() {
     setFetching(false)
   }
   async function loadMsgs(app:string, attempt=0){
+      const myChannelId='canal-'+app
       setMsgLoading(true)
       try {
         const r=await fetch(`${API}/api/channel-messages?user_id=${user!.id}`)
         if(!r.ok) throw new Error('not-ok')
         const d=await r.json()
+        if(activeChRef.current!==myChannelId) return
         const sorted:Msg[]=(d.messages??[]).filter((m:Msg)=>m.app_name===app).sort((a:Msg,b:Msg)=>new Date(a.created_at).getTime()-new Date(b.created_at).getTime())
         setMsgs(sorted)
         if(sorted.length>0){
           const ids=sorted.map((m:Msg)=>m.id)
           const rr=await fetch(`${API}/api/channel-reactions-bulk?user_id=${user!.id}&message_ids=${ids.join(',')}`)
-          if(rr.ok){ const dd=await rr.json(); setRx(dd.reactions??{}) }
-        } else if(attempt<3){
-          setTimeout(()=>loadMsgs(app, attempt+1), 4000*(attempt+1))
-          return
+          if(rr.ok&&activeChRef.current===myChannelId){ const dd=await rr.json(); setRx(dd.reactions??{}) }
         }
-      } catch {
-        if(attempt<3){ setTimeout(()=>loadMsgs(app, attempt+1), 4000*(attempt+1)); return }
+      } catch(e:unknown) {
+        if(e instanceof Error&&e.name==='AbortError') return
+        if(attempt<2){ setTimeout(()=>loadMsgs(app, attempt+1), 3000*(attempt+1)); return }
       } finally {
         setMsgLoading(false)
       }
