@@ -17,6 +17,7 @@ import profileRouter from './profile';
 import agentCommissionsAdminRouter from './agent-commissions-admin';
 import customWorkerRatesRouter from './custom-worker-rates';
 import rankingRouter from './ranking';
+import workerEntriesRouter from './worker-entries';
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(profileRouter);
 router.use(agentCommissionsAdminRouter);
 router.use(customWorkerRatesRouter);
 router.use(rankingRouter);
+router.use(workerEntriesRouter);
 
 export default router;
