@@ -95,7 +95,7 @@ import Ranking from "@/pages/ranking";
         <div className="min-h-screen bg-[#07070f] flex flex-col">
           <ScrollToTop />
           <Navbar />
-          <main className="flex-grow flex flex-col pt-14">
+          <main className="flex-grow flex flex-col pt-24 lg:pt-14">
             <Switch>
               <Route path="/perfil"    component={Perfil} />
               <Route path="/salarios"  component={Salarios} />
@@ -118,7 +118,7 @@ import Ranking from "@/pages/ranking";
         <SEOHead />
         <ScrollToTop />
         <Navbar />
-        <main className="flex-grow flex flex-col pt-14">
+        <main className="flex-grow flex flex-col pt-24 lg:pt-14">
           <Switch>
             <Route path="/"                component={Home} />
             <Route path="/ser-streamer"    component={SerStreamer} />
