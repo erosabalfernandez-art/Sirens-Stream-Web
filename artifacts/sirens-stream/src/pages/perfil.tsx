@@ -116,11 +116,18 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
       }
 
       function openAdd() {
-          setEditingId(null); setForm(loadDraft()); setFormError(null)
+          setEditingId(null); setFormError(null)
           setAgenteInfo(null); setAgenteError(null)
-          const draft = loadDraft()
-          if (draft.agente) setTimeout(() => checkAgentCode(draft.agente), 100)
-          setShowForm(true)
+          const isAgent = !!(profile as any)?.agent_code
+          const agentCode = ((profile as any)?.agent_code as string | undefined) ?? ''
+          if (isAgent) {
+            setForm({ ...EMPTY_FORM, agente: agentCode })
+            setTimeout(() => checkAgentCode(agentCode), 100)
+          } else {
+            const draft = loadDraft()
+            setForm(draft)
+            if (draft.agente) setTimeout(() => checkAgentCode(draft.agente), 100)
+          }
         }
 
       function openEdit(entry: WorkerEntry) {
@@ -139,8 +146,11 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
         if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
         if (!form.pais) { setFormError('Selecciona tu país'); return }
         if (!form.metodo_pago) { setFormError('Selecciona un método de pago'); return }
-                if (form.agente && (profile as any)?.agent_code && form.agente.trim().toUpperCase() === ((profile as any).agent_code ?? '').trim().toUpperCase()) {
-          setFormError('No puedes usar tu propio código de agente como referido.'); setSaving(false); return
+        if ((profile as any)?.agent_code) {
+          const ownCode = ((profile as any).agent_code as string).trim().toUpperCase()
+          if (!form.agente || form.agente.trim().toUpperCase() !== ownCode) {
+            setFormError('Como agente debes vincular tu propio código.'); setSaving(false); return
+          }
         }
         setSaving(true); setFormError(null)
         const payload = {
@@ -384,13 +394,23 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                   <Field label={walletLabel || 'Billetera / Dirección de pago'}>
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
-                  <Field label="ID de agente (opcional)">
+                  <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : "ID de agente (opcional)"}>
                       <FInput
                         value={form.agente}
-                        onChange={v => { setForm(f => ({ ...f, agente: v })); setAgenteInfo(null); setAgenteError(null) }}
+                        onChange={v => {
+                          if ((profile as any)?.agent_code) return
+                          setForm(f => ({ ...f, agente: v })); setAgenteInfo(null); setAgenteError(null)
+                        }}
                         onBlur={() => checkAgentCode(form.agente)}
                         placeholder="Código EA-XXXXXXXX de tu agente o co-líder"
+                        style={(profile as any)?.agent_code ? { opacity: 0.65, cursor: 'not-allowed', pointerEvents: 'none' } as React.CSSProperties : undefined}
                       />
+                      {(profile as any)?.agent_code && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-amber-400/80">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <span className="text-xs">Como agente, no recibirás comisión por esta cuenta de trabajadora.</span>
+                        </div>
+                      )}
                       {agenteChecking && (
                         <div className="flex items-center gap-1.5 mt-1.5">
                           <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
