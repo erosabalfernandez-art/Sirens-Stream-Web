@@ -240,6 +240,14 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     const dualWorkers = workers.filter(w => dualUids.has(w.person_uid))
     const pureAgents  = agents.filter(a => !dualUids.has(a.person_uid))
     const dualAgents  = agents.filter(a => dualUids.has(a.person_uid))
+    // Maps for cross-referencing dual entries
+    const dualWorkersByUid = new Map<string, PersonEntry[]>()
+    for (const w of dualWorkers) {
+      if (!dualWorkersByUid.has(w.person_uid)) dualWorkersByUid.set(w.person_uid, [])
+      dualWorkersByUid.get(w.person_uid)!.push(w)
+    }
+    const dualAgentByUid = new Map<string, PersonEntry>()
+    for (const a of dualAgents) dualAgentByUid.set(a.person_uid, a)
     const total = persons.length
     const totalPaid = persons.filter(p => marks[p.key]).length
     const allPaid = total > 0 && totalPaid === total
@@ -372,6 +380,14 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                               <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
                               {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
                               <p className="text-white/30 text-xs">{p.app}</p>
+                              {/* Dual: agent card → show worker app names */}
+                              {tab === 'dual' && p.person_type === 'agent' && dualWorkersByUid.get(p.person_uid)?.map(w => (
+                                <p key={w.key} className="text-violet-300/70 text-xs mt-0.5">🎮 {w.app}: <span className="font-semibold">{w.display_name}</span></p>
+                              ))}
+                              {/* Dual: worker card → show agent name */}
+                              {tab === 'dual' && p.person_type === 'worker' && dualAgentByUid.get(p.person_uid) && (
+                                <p className="text-orange-300/70 text-xs mt-0.5">🧡 Agente: <span className="font-semibold">{dualAgentByUid.get(p.person_uid)!.real_name ?? dualAgentByUid.get(p.person_uid)!.display_name}</span></p>
+                              )}
                               {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
                             </div>
                             <div className="text-right shrink-0">
