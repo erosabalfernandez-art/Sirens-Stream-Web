@@ -393,7 +393,7 @@ export default function Canales() {
             <ChevronLeft size={22}/>
           </button>
           <div style={{width:38,height:38,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(37,211,102,0.4)'}}>
-            <img src={"/images/eclipse-logo-nobg.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            <img src="/images/eclipse-logo-nobg.png" alt="Eclipse Angels" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal de Pagos</div>
