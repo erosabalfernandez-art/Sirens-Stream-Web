@@ -5,9 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { Send, X, ChevronLeft, Image as ImgIcon, CheckCheck, Megaphone, Phone, MoreVertical, Search } from 'lucide-react'
 
 const STICKER_URLS = [
-  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_0_cat.jpg',
-  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_1_man.jpg',
-  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_2_pink.jpg',
+  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_0_money.jpg',
+  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_1_lady.jpg',
+  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_2_cat.jpg',
+  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_3_gold.jpg',
+  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_4_pink.jpg',
+  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_5_man.jpg',
 ]
 const APP_ICONS: Record<string, string> = {
   Waha:  'https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/waha.jpg',
