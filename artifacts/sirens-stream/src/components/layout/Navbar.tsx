@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
     import { useAuth } from "@/contexts/AuthContext";
     import { useShowAgencia } from "@/hooks/useShowAgencia";
     import { useLanguage } from "@/contexts/LanguageContext";
-    import {User, Users, LogOut, Shield, FileSpreadsheet, DollarSign, Radio, Globe, CheckCircle, Zap} from "lucide-react";
+    import {User, Users, LogOut, Shield, FileSpreadsheet, DollarSign, Radio, Globe, CheckCircle, Zap, Trophy} from "lucide-react";
 
     const NAV_LINKS = {
       es: [
@@ -316,6 +316,10 @@ import { Link, useLocation } from "wouter";
                           </Link>
                         </>
                       )}
+                      <Link href="/ranking"
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${location === "/ranking" ? "text-yellow-200 bg-yellow-500/15" : "text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"}`}>
+                        <Trophy className="w-3.5 h-3.5" /> Ranking
+                      </Link>
                       <Link href="/perfil"
                         className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-purple-500/15 border border-purple-500/25 text-white hover:bg-purple-500/25 transition-all">
                         <User className="w-3.5 h-3.5" /> {T.miPerfil}
@@ -424,6 +428,9 @@ import { Link, useLocation } from "wouter";
                         </Link>
                       </>
                     )}
+                    <Link href="/ranking" className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${location === "/ranking" ? "text-yellow-200 bg-yellow-500/20 border border-yellow-500/30" : "text-yellow-400 hover:bg-yellow-500/10"}`}>
+                      <Trophy className="w-3 h-3" /> Ranking
+                    </Link>
                   </>
                 )}
               </div>
