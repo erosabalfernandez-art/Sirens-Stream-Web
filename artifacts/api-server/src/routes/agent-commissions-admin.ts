@@ -155,9 +155,13 @@ import { Router } from 'express'
       try {
         const existing = await sbGet(`agent_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&agent_user_id=eq.${encodeURIComponent(effectiveId)}&limit=1`)
         if (existing.length > 0) { res.status(409).json({ error: 'Ya publicado esta semana. Cierra la semana para republicar.' }); return }
-        const rows = commissions.map(c => ({ semana, agent_user_id: effectiveId, agent_name, worker_uid: c.worker_uid ?? null, worker_name: c.worker_name, worker_real_name: c.worker_real_name ?? null, app_name: c.app_name, commission_usd: Number(c.commission_usd) || 0, published_at: new Date().toISOString() }))
+        // Filter out agent's own worker account — agents never earn commission on themselves
+        const billableCommissions = rawAgentId
+          ? commissions.filter(c => !c.worker_uid || c.worker_uid !== rawAgentId)
+          : commissions
+        const rows = billableCommissions.map(c => ({ semana, agent_user_id: effectiveId, agent_name, worker_uid: c.worker_uid ?? null, worker_name: c.worker_name, worker_real_name: c.worker_real_name ?? null, app_name: c.app_name, commission_usd: Number(c.commission_usd) || 0, published_at: new Date().toISOString() }))
         await sbPost('published_agent_commissions?on_conflict=semana,agent_user_id,app_name,worker_name', rows, 'resolution=merge-duplicates,return=minimal')
-        const total = commissions.reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
+        const total = billableCommissions.reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
         await sbPost('agent_commission_publish_log?on_conflict=semana,agent_user_id', { semana, agent_user_id: effectiveId, agent_name, total_usd: total, published_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
         if (rawAgentId && ensureVapid()) setImmediate(() => { dispatchPush([rawAgentId], '💰 Tu comisión está disponible', `Semana ${semana} — $${total.toFixed(2)} USD. Entra a verla.`, '/agente').catch(() => {}) })
         res.json({ ok: true, total_usd: total })
