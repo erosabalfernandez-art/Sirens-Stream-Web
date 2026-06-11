@@ -189,35 +189,52 @@ import { Router } from 'express'
       const rm: Record<string, number> = {}
       for (const r of rates) rm[r.id] = r.rate
 
-      const workerUids = [...new Set((comms as any[]).filter((c: any) => c.worker_uid).map((c: any) => c.worker_uid as string))]
-      let salaryMap: Record<string, number> = {}
-      let customRateMap: Record<string, { efectivo_rate: number; transferencia_rate: number }> = {}
-      let methodMap: Record<string, string> = {}
+      // Build worker info map via nomina_history (bridges app-internal UIDs to Supabase UUIDs)
+      // worker_uid in published_agent_commissions may be a Waha numeric ID, not a Supabase UUID.
+      // nomina_history.rows_data.cobradas[].nomina.uid → .worker.id (Supabase UUID) is the bridge.
+      const uniqueAppSemanas = [...new Set((comms as any[]).map((c: any) => `${c.app_name}||${c.semana}`))]
+      const workerInfoMap: Record<string, { supaId: string; salary_usd: number; metodo_pago: string }> = {}
 
-      if (workerUids.length > 0) {
-        const semanas = [...new Set((comms as any[]).map((c: any) => c.semana as string))]
-        const uidList = workerUids.map((id: string) => `"${id}"`).join(',')
-        const semList = semanas.map((s: string) => `"${s}"`).join(',')
-        const [salRows, crRows, weRows] = await Promise.all([
-          sbGet(`published_salaries?user_id=in.(${uidList})&semana=in.(${semList})&select=user_id,app_name,semana,usd`).catch(() => [] as any[]),
-          sbGet(`custom_worker_rates?user_id=in.(${uidList})&select=user_id,app_name,efectivo_rate,transferencia_rate`).catch(() => [] as any[]),
-          sbGet(`worker_entries?user_id=in.(${uidList})&select=user_id,app_name,metodo_pago`).catch(() => [] as any[]),
-        ])
-        for (const s of salRows) salaryMap[`${s.user_id}__${s.app_name}__${s.semana}`] = Number(s.usd)
+      await Promise.all(uniqueAppSemanas.map(async (key: string) => {
+        const [appName, semana] = key.split('||')
+        const nhRows = await sbGet(`nomina_history?app_name=eq.${encodeURIComponent(appName)}&semana=eq.${encodeURIComponent(semana)}&select=rows_data`).catch(() => [] as any[])
+        for (const nh of nhRows) {
+          for (const entry of ((nh.rows_data?.cobradas ?? []) as any[])) {
+            const uid = String(entry.nomina?.uid ?? '')
+            const supaId: string = entry.worker?.id ?? ''
+            if (uid && supaId) {
+              workerInfoMap[`${appName}||${uid}`] = {
+                supaId,
+                salary_usd: Number(entry.nomina?.usd ?? 0),
+                metodo_pago: entry.worker?.metodo_pago ?? '',
+              }
+            }
+          }
+        }
+      }))
+
+      // Fetch custom rates using resolved Supabase UUIDs
+      const supaUids = [...new Set(Object.values(workerInfoMap).map(v => v.supaId).filter(Boolean))]
+      let customRateMap: Record<string, { efectivo_rate: number; transferencia_rate: number }> = {}
+      if (supaUids.length > 0) {
+        const uidList = supaUids.map((id: string) => `"${id}"`).join(',')
+        const crRows = await sbGet(`custom_worker_rates?user_id=in.(${uidList})&select=user_id,app_name,efectivo_rate,transferencia_rate`).catch(() => [] as any[])
         for (const cr of crRows) customRateMap[`${cr.user_id}__${cr.app_name}`] = cr
-        for (const w of weRows) methodMap[`${w.user_id}__${w.app_name}`] = w.metodo_pago ?? ''
       }
 
       const enrichedComms = (comms as any[]).map((c: any) => {
-        const sal = c.worker_uid ? (salaryMap[`${c.worker_uid}__${c.app_name}__${c.semana}`] ?? 0) : 0
-        const cr = c.worker_uid ? (customRateMap[`${c.worker_uid}__${c.app_name}`] ?? null) : null
-        const met = c.worker_uid ? (methodMap[`${c.worker_uid}__${c.app_name}`] ?? '') : ''
+        const uid = String(c.worker_uid ?? '')
+        // Support both app-internal UIDs (via nomina_history) and direct Supabase UUIDs
+        const wInfo = uid
+          ? (workerInfoMap[`${c.app_name}||${uid}`] ?? (uid.includes('-') ? { supaId: uid, salary_usd: 0, metodo_pago: '' } : null))
+          : null
+        const cr = wInfo?.supaId ? (customRateMap[`${wInfo.supaId}__${c.app_name}`] ?? null) : null
         return {
           ...c,
-          worker_salary_usd: sal,
+          worker_salary_usd: wInfo?.salary_usd ?? 0,
           custom_efectivo_rate: cr?.efectivo_rate ?? 0,
           custom_transferencia_rate: cr?.transferencia_rate ?? 0,
-          worker_metodo_pago: met,
+          worker_metodo_pago: wInfo?.metodo_pago ?? '',
         }
       })
 
