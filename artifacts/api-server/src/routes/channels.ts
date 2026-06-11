@@ -228,5 +228,55 @@ import { Router } from 'express';
     });
 
   
+  // POST /api/upload-channel-image
+  // Body: { base64: string, mime: string, filename: string }
+  router.post('/upload-channel-image', async (req, res) => {
+    const { base64, mime, filename } = req.body as { base64?: string; mime?: string; filename?: string }
+    if (!base64 || !mime || !filename) {
+      return res.status(400).json({ error: 'base64, mime y filename son requeridos' })
+    }
+    const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!ALLOWED.includes(mime)) {
+      return res.status(400).json({ error: 'Tipo no permitido. Usa JPEG, PNG, GIF o WebP.' })
+    }
+    try {
+      const buffer = Buffer.from(base64, 'base64')
+      if (buffer.length > 15 * 1024 * 1024) {
+        return res.status(400).json({ error: 'Imagen demasiado grande (máx 15MB)' })
+      }
+      const ext = mime.split('/')[1].replace('jpeg', 'jpg')
+      const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const SUPABASE_URL = process.env.SUPABASE_URL ?? ''
+      const BUCKET = 'channel-images'
+      const bucketKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
+      const storageH: Record<string, string> = {
+        apikey: bucketKey,
+        Authorization: `Bearer ${bucketKey}`,
+      }
+      // Ensure bucket exists (ignore 409 if already exists)
+      await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+        method: 'POST',
+        headers: { ...storageH, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true }),
+      }).catch(() => {})
+      // Upload the image
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${safeName}`, {
+        method: 'POST',
+        headers: { ...storageH, 'Content-Type': mime, 'Cache-Control': '3600' },
+        body: buffer,
+      })
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text()
+        req.log.warn({ status: uploadRes.status, errText }, 'Supabase storage upload failed')
+        return res.status(uploadRes.status).json({ error: `Error al subir: ${errText.slice(0, 200)}` })
+      }
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${safeName}`
+      return res.json({ ok: true, url: publicUrl })
+    } catch (e: unknown) {
+      req.log.error({ err: e }, 'upload-channel-image error')
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'error desconocido' })
+    }
+  })
+
   export default router;
   
