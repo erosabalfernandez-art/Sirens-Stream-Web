@@ -387,12 +387,29 @@ import { Router } from 'express';
         body: JSON.stringify({ user_id, app_name, nombre_en_app: nombre_en_app ?? null, sticker_index: idx }),
       });
       if (!r.ok) return res.status(r.status).json({ error: await r.text() });
-      return res.json({ ok: true });
-    } catch (e: unknown) {
-      return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
-    }
-  });
+        // Notify all admins (fire-and-forget)
+        setImmediate(async () => {
+          try {
+            const admRes2 = await fetch(sbUrl('profiles?is_admin=eq.true&select=id'), { headers: sbH() });
+            const admins2: Array<{ id: string }> = admRes2.ok ? await admRes2.json() : [];
+            const adminIds2 = admins2.map((a) => a.id);
+            if (adminIds2.length > 0) {
+              const displayName = nombre_en_app ?? 'Una trabajadora';
+              await dispatchPush(
+                adminIds2,
+                '💸 Pago recibido',
+                `${displayName} marcó que recibió su pago en ${app_name}.`,
+                '/canales'
+              );
+            }
+          } catch { /* fire-and-forget */ }
+        });
+        return res.json({ ok: true });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
+      }
+    });
 
-  
-export default router;
-  
+
+  export default router;
+    
