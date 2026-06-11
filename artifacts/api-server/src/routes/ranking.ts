@@ -54,10 +54,11 @@ router.get('/ranking', async (req, res) => {
       if (s.apodo) userMap[s.user_id].lastApodo = s.apodo;
     }
 
-    // 6. Fetch worker display names
+    // 6. Fetch worker display names — UUIDs must be quoted in PostgREST in() filters
     const userIds = Object.keys(userMap);
+    const uidStr = userIds.map(id => `"${id}"`).join(',');
     const workerRes = await fetch(
-      sbUrl(`worker_entries?user_id=in.(${userIds.join(',')})&select=user_id,nombre_en_app,nombre_real`),
+      sbUrl(`worker_entries?user_id=in.(${uidStr})&select=user_id,nombre_en_app,nombre_real`),
       { headers: sbH() }
     );
     const workers: { user_id: string; nombre_en_app?: string; nombre_real?: string }[] = workerRes.ok
