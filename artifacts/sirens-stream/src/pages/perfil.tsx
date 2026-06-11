@@ -187,21 +187,27 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
         }
         let error: string | null = null
         if (editingId) {
-          const { error: e } = await supabase.from('worker_entries').update(payload).eq('id', editingId)
-          error = e?.message ?? null
+          const res = await fetch(`${API}/api/worker-entries/${editingId}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+          const _d = await res.json()
+          error = res.ok ? null : (_d?.error ?? 'Error al guardar')
         } else {
           if (entries.find(e => e.app_name === form.app_name)) { setFormError('Ya tienes una entrada para esta app.'); setSaving(false); return }
-          const { error: e } = await supabase.from('worker_entries').insert(payload)
-            error = e?.message ?? null
-            if (!e) {
-              if (!profile?.is_agent && !profile?.is_colider) {
-                await supabase.from('channel_requests').upsert(
-                  { user_id: user!.id, app_name: form.app_name, status: 'pending' },
-                  { onConflict: 'user_id,app_name', ignoreDuplicates: true }
-                )
-              }
-            }
+          const res2 = await fetch(`${API}/api/worker-entries`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+          const _d2 = await res2.json()
+          error = res2.ok ? null : (_d2?.error ?? 'Error al guardar')
+          if (res2.ok && !profile?.is_agent && !profile?.is_colider) {
+            await supabase.from('channel_requests').upsert(
+              { user_id: user!.id, app_name: form.app_name, status: 'pending' },
+              { onConflict: 'user_id,app_name', ignoreDuplicates: true }
+            )
           }
+        }
         setSaving(false)
         if (error) { setFormError(error); return }
         if (!editingId) clearDraft()
