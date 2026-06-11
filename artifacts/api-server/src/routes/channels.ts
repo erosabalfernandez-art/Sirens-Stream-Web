@@ -21,12 +21,24 @@ import { Router } from 'express';
       const profiles: {is_agent:boolean;is_colider:boolean}[] = profileRes.ok ? await profileRes.json() : [];
       const p = profiles[0];
       const isAgentOrColider = p?.is_agent || p?.is_colider;
-      const filter = isAgentOrColider
-        ? `channel_requests?user_id=eq.${encodeURIComponent(user_id)}&status=eq.approved&select=app_name,status`
-        : `channel_requests?user_id=eq.${encodeURIComponent(user_id)}&select=app_name,status`;
-      const r = await fetch(sbUrl(filter), { headers: sbH() });
-      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
-      const requests = await r.json();
+
+      if (isAgentOrColider) {
+        // Agents/coliders: only show admin-granted approved channels
+        const r = await fetch(sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&status=eq.approved&select=app_name,status`), { headers: sbH() });
+        if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+        return res.json({ requests: await r.json() });
+      }
+
+      // Workers: cross-reference with worker_entries so they only see channels
+      // for apps they are actually registered on (prevents stale/orphaned approvals)
+      const [crRes, weRes] = await Promise.all([
+        fetch(sbUrl(`channel_requests?user_id=eq.${encodeURIComponent(user_id)}&select=app_name,status`), { headers: sbH() }),
+        fetch(sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(user_id)}&select=app_name`), { headers: sbH() }),
+      ]);
+      const allReqs: { app_name: string; status: string }[] = crRes.ok ? await crRes.json() : [];
+      const workerApps = new Set<string>((weRes.ok ? await weRes.json() : []).map((w: { app_name: string }) => w.app_name));
+      // Only surface requests for apps the worker is currently registered on
+      const requests = allReqs.filter(r => workerApps.has(r.app_name));
       return res.json({ requests });
     } catch (e: unknown) {
       return res.status(500).json({ error: e instanceof Error ? e.message : 'error' });
