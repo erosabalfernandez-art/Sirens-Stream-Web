@@ -136,6 +136,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           const [adminPayStk, setAdminPayStk] = useState<{id:string;user_id:string;app_name:string;nombre_en_app:string|null;sticker_index:number;created_at:string}[]>([])
           const [loadingPayStk, setLoadingPayStk] = useState(false)
           const [adminPayApp, setAdminPayApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
+          const [tgOpen, setTgOpen] = useState(true)
+          const [waOpen, setWaOpen] = useState(true)
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
           const [agents, setAgents] = useState<{id:string;email:string;agent_name:string|null;agent_code:string|null;is_agent:boolean;phone:string|null}[]>([])
@@ -1506,189 +1508,236 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
               {tab === 'canales' && (
                 <div style={{minHeight:0}}>
-                  {/* ── App selector ──────────────────────────────────── */}
-                  <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+                  <style>{`@keyframes tgspin{to{transform:rotate(360deg)}} .sec-collapse{transition:all 0.25s ease}`}</style>
+
+                  {/* ── App selector ───────────────────────────────────── */}
+                  <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
                     {(['Waha','Layla','Howdy'] as const).map(app => (
                       <button key={app} onClick={() => { setChannelApp(app); setChannelContent(''); setChannelFile(null); setChannelPreview(null); setChannelImage(''); fetchChannelMessages(app); if(adminPayApp===app) fetchAdminPayStk(app) }}
-                        style={{display:'flex',alignItems:'center',gap:8,padding:'7px 16px',borderRadius:24,border:'none',cursor:'pointer',fontWeight:700,fontSize:14,transition:'all 0.15s',
-                          background: channelApp === app ? 'linear-gradient(135deg,#2ca5e0,#1a7fba)' : 'rgba(255,255,255,0.05)',
-                          color: channelApp === app ? 'white' : 'rgba(255,255,255,0.4)',
-                          boxShadow: channelApp === app ? '0 2px 10px rgba(44,165,224,0.35)' : 'none'}}>
-                        <span style={{width:22,height:22,borderRadius:'50%',overflow:'hidden',display:'inline-flex',flexShrink:0}}>
-                          <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${app.toLowerCase()}.jpg`} alt={app}
-                            style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                        style={{display:'flex',alignItems:'center',gap:9,padding:'8px 18px',borderRadius:30,border:'none',cursor:'pointer',fontWeight:700,fontSize:14,transition:'all 0.2s',
+                          background: channelApp === app ? 'linear-gradient(135deg,#2ca5e0,#1a7fba)' : 'rgba(255,255,255,0.06)',
+                          color: channelApp === app ? 'white' : 'rgba(255,255,255,0.45)',
+                          boxShadow: channelApp === app ? '0 4px 14px rgba(44,165,224,0.4)' : 'none',
+                          transform: channelApp === app ? 'translateY(-1px)' : 'none'}}>
+                        <span style={{width:24,height:24,borderRadius:'50%',overflow:'hidden',display:'inline-flex',flexShrink:0,boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>
+                          <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${app.toLowerCase()}.jpg`} alt={app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                         </span>
                         {app}
                       </button>
                     ))}
                   </div>
 
-                  {/* ── Telegram-style channel view ───────────────────── */}
-                  <div style={{display:'flex',flexDirection:'column',background:'#17212b',borderRadius:16,overflow:'hidden',border:'1px solid rgba(44,165,224,0.12)',marginBottom:16}}>
-                    {/* Channel header */}
-                    <div style={{background:'#242f3d',padding:'12px 16px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                      <div style={{width:40,height:40,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid #2ca5e0'}}>
-                        <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${channelApp.toLowerCase()}.jpg`} alt={channelApp}
-                          style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  {/* ══ SECCIÓN TELEGRAM ══════════════════════════════════ */}
+                  <div style={{marginBottom:16,borderRadius:18,overflow:'hidden',border:'1px solid rgba(44,165,224,0.18)',boxShadow:'0 2px 20px rgba(0,0,0,0.25)'}}>
+                    {/* Collapse header */}
+                    <button onClick={()=>setTgOpen(o=>!o)}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'14px 18px',background:'rgba(44,165,224,0.1)',border:'none',cursor:'pointer',textAlign:'left',transition:'background 0.2s'}}
+                      onMouseEnter={e=>(e.currentTarget.style.background='rgba(44,165,224,0.16)')}
+                      onMouseLeave={e=>(e.currentTarget.style.background='rgba(44,165,224,0.1)')}>
+                      <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#2ca5e0,#1a7fba)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 8px rgba(44,165,224,0.4)'}}>
+                        <Send style={{width:16,height:16,color:'white'}}/>
                       </div>
                       <div style={{flex:1}}>
-                        <div style={{display:'flex',alignItems:'center',gap:6}}>
-                          <span style={{color:'white',fontWeight:700,fontSize:15}}>Canal {channelApp}</span>
-                          <span style={{background:'#2ca5e0',borderRadius:4,padding:'1px 6px',fontSize:9,color:'white',fontWeight:700,letterSpacing:0.5}}>CANAL</span>
-                        </div>
-                        <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Eclipse Angels Agency · Admin</div>
+                        <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal Telegram — {channelApp}</div>
+                        <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Comunicados oficiales a trabajadoras y agentes</div>
                       </div>
-                    </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{background:'rgba(44,165,224,0.2)',color:'#2ca5e0',fontSize:12,fontWeight:700,padding:'3px 10px',borderRadius:20}}>{channelMessages.length} msgs</span>
+                        <span style={{color:'rgba(255,255,255,0.4)',fontSize:18,transition:'transform 0.25s',display:'inline-block',transform:tgOpen?'rotate(180deg)':'rotate(0deg)'}}>⌄</span>
+                      </div>
+                    </button>
 
-                    {/* Messages */}
-                    <div style={{maxHeight:400,overflowY:'auto',padding:'10px 0'}}>
-                      {loadingMsgs ? (
-                        <div style={{padding:'32px 0',textAlign:'center'}}>
-                          <div style={{width:28,height:28,border:'3px solid rgba(44,165,224,0.2)',borderTopColor:'#2ca5e0',borderRadius:'50%',animation:'tgspin 0.8s linear infinite',margin:'0 auto'}}/>
-                        </div>
-                      ) : channelMessages.length === 0 ? (
-                        <div style={{textAlign:'center',padding:'48px 24px'}}>
-                          <div style={{width:52,height:52,borderRadius:'50%',background:'rgba(44,165,224,0.08)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',fontSize:24}}>📢</div>
-                          <p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>No hay comunicados en {channelApp} aún.</p>
-                        </div>
-                      ) : (
-                        <div>
-                          {channelMessages.map(msg => (
-                            <div key={msg.id} style={{padding:'0 10px 6px'}}>
-                              <div style={{background:'#1a2838',borderRadius:12,overflow:'hidden'}}>
-                                <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px 6px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                                  <div style={{width:26,height:26,borderRadius:'50%',overflow:'hidden',flexShrink:0}}>
-                                    <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${channelApp.toLowerCase()}.jpg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                                  </div>
-                                  <span style={{color:'#2ca5e0',fontWeight:700,fontSize:13,flex:1}}>Canal {channelApp}</span>
-                                  <span style={{color:'rgba(255,255,255,0.2)',fontSize:11}}>
-                                    {new Date(msg.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}
-                                  </span>
-                                  <button onClick={() => deleteMessage(msg.id)}
-                                    style={{background:'none',border:'none',color:'rgba(255,80,80,0.35)',cursor:'pointer',padding:'2px 4px',display:'flex',marginLeft:4}}
-                                    title="Borrar">
-                                    <Trash2 style={{width:13,height:13}}/>
-                                  </button>
-                                </div>
-                                {msg.image_url && <img src={msg.image_url} alt="comunicado" style={{width:'100%',maxHeight:240,objectFit:'cover',display:'block'}}/>}
-                                {msg.content && <div style={{padding:'7px 12px 9px',color:'rgba(255,255,255,0.85)',fontSize:14,lineHeight:1.55,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{msg.content}</div>}
-                              </div>
+                    {/* Telegram body */}
+                    {tgOpen && (
+                      <div style={{background:'#17212b'}}>
+                        {/* Channel header bar */}
+                        <div style={{background:'#242f3d',padding:'12px 16px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                          <div style={{width:42,height:42,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid #2ca5e0',boxShadow:'0 2px 8px rgba(44,165,224,0.3)'}}>
+                            <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${channelApp.toLowerCase()}.jpg`} alt={channelApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{display:'flex',alignItems:'center',gap:7}}>
+                              <span style={{color:'white',fontWeight:700,fontSize:15}}>Canal {channelApp}</span>
+                              <span style={{background:'#2ca5e0',borderRadius:5,padding:'1px 7px',fontSize:9,color:'white',fontWeight:800,letterSpacing:0.5}}>CANAL</span>
                             </div>
-                          ))}
+                            <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Eclipse Angels Agency · Vista Admin</div>
+                          </div>
                         </div>
-                      )}
-                    </div>
-
-                    {/* Compose bar */}
-                    <div style={{background:'#1e2c3a',borderTop:'1px solid rgba(255,255,255,0.05)',padding:'10px 12px'}}>
-                      {channelPreview ? (
-                        <div style={{position:'relative',marginBottom:8,borderRadius:10,overflow:'hidden',border:'1px solid rgba(44,165,224,0.2)'}}>
-                          <img src={channelPreview} alt="preview" style={{width:'100%',maxHeight:140,objectFit:'cover',display:'block'}}/>
-                          <button onClick={() => { setChannelFile(null); setChannelPreview(null) }}
-                            style={{position:'absolute',top:6,right:6,width:26,height:26,background:'rgba(0,0,0,0.65)',border:'none',color:'white',cursor:'pointer',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            <X style={{width:13,height:13}}/>
-                          </button>
+                        {/* Messages list */}
+                        <div style={{maxHeight:450,minHeight:120,overflowY:'auto',padding:'12px 10px'}}>
+                          {loadingMsgs ? (
+                            <div style={{padding:'40px 0',textAlign:'center'}}>
+                              <div style={{width:30,height:30,border:'3px solid rgba(44,165,224,0.2)',borderTopColor:'#2ca5e0',borderRadius:'50%',animation:'tgspin 0.8s linear infinite',margin:'0 auto 10px'}}/>
+                              <p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>Cargando mensajes...</p>
+                            </div>
+                          ) : channelMessages.length === 0 ? (
+                            <div style={{textAlign:'center',padding:'56px 24px'}}>
+                              <div style={{width:58,height:58,borderRadius:'50%',background:'rgba(44,165,224,0.08)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
+                                <span style={{fontSize:28}}>📢</span>
+                              </div>
+                              <p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>Sin publicaciones en {channelApp} aún</p>
+                            </div>
+                          ) : (
+                            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                              {channelMessages.map(msg => (
+                                <div key={msg.id} style={{background:'#1a2838',borderRadius:14,overflow:'hidden',border:'1px solid rgba(44,165,224,0.08)'}}>
+                                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'9px 13px 7px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                                    <div style={{width:27,height:27,borderRadius:'50%',overflow:'hidden',flexShrink:0}}>
+                                      <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${channelApp.toLowerCase()}.jpg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                                    </div>
+                                    <span style={{color:'#2ca5e0',fontWeight:700,fontSize:13,flex:1}}>Canal {channelApp}</span>
+                                    <span style={{color:'rgba(255,255,255,0.22)',fontSize:11}}>{new Date(msg.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span>
+                                    <button onClick={() => deleteMessage(msg.id)} title="Borrar"
+                                      style={{background:'none',border:'none',color:'rgba(255,80,80,0.4)',cursor:'pointer',padding:'2px 5px',display:'flex',marginLeft:4,transition:'color 0.15s'}}
+                                      onMouseEnter={e=>(e.currentTarget.style.color='rgba(255,80,80,0.9)')}
+                                      onMouseLeave={e=>(e.currentTarget.style.color='rgba(255,80,80,0.4)')}>
+                                      <Trash2 style={{width:14,height:14}}/>
+                                    </button>
+                                  </div>
+                                  {msg.image_url && <img src={msg.image_url} alt="" style={{width:'100%',maxHeight:260,objectFit:'cover',display:'block'}}/>}
+                                  {msg.content && <div style={{padding:'9px 13px 11px',color:'rgba(255,255,255,0.85)',fontSize:14,lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{msg.content}</div>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      ) : null}
-                      <div style={{display:'flex',alignItems:'flex-end',gap:8}}>
-                        <label style={{background:'none',border:'none',color:'rgba(255,255,255,0.3)',cursor:'pointer',padding:8,display:'flex',flexShrink:0}}>
-                          <ImagePlus style={{width:20,height:20}}/>
-                          <input type="file" accept="image/*" style={{display:'none'}} onChange={e => {
-                            const f = e.target.files?.[0]
-                            if (!f) return
-                            setChannelFile(f)
-                            const reader = new FileReader()
-                            reader.onload = ev => setChannelPreview(ev.target?.result as string)
-                            reader.readAsDataURL(f)
-                            e.target.value = ''
-                          }} />
-                        </label>
-                        <div style={{flex:1,background:'#17212b',borderRadius:20,padding:'8px 14px',display:'flex',alignItems:'flex-end'}}>
-                          <textarea value={channelContent} onChange={e => setChannelContent(e.target.value)}
-                            onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&(channelContent.trim()||channelFile)){e.preventDefault();postMessage()}}}
-                            placeholder={`Comunicado para ${channelApp}...`} rows={1}
-                            style={{background:'none',border:'none',outline:'none',color:'white',fontSize:14,flex:1,resize:'none',lineHeight:1.4,maxHeight:90,overflowY:'auto',fontFamily:'inherit'}}/>
+                        {/* Compose */}
+                        <div style={{background:'#1e2c3a',borderTop:'1px solid rgba(255,255,255,0.05)',padding:'12px 14px'}}>
+                          {channelPreview && (
+                            <div style={{position:'relative',marginBottom:10,borderRadius:12,overflow:'hidden',border:'1px solid rgba(44,165,224,0.2)'}}>
+                              <img src={channelPreview} alt="preview" style={{width:'100%',maxHeight:160,objectFit:'cover',display:'block'}}/>
+                              <button onClick={()=>{setChannelFile(null);setChannelPreview(null)}}
+                                style={{position:'absolute',top:7,right:7,width:28,height:28,background:'rgba(0,0,0,0.65)',border:'none',color:'white',cursor:'pointer',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                <X style={{width:14,height:14}}/>
+                              </button>
+                            </div>
+                          )}
+                          <div style={{display:'flex',alignItems:'flex-end',gap:10}}>
+                            <label style={{background:'none',border:'none',color:'rgba(255,255,255,0.35)',cursor:'pointer',padding:8,display:'flex',flexShrink:0,transition:'color 0.15s'}}
+                              onMouseEnter={e=>(e.currentTarget.style.color='rgba(255,255,255,0.7)')}
+                              onMouseLeave={e=>(e.currentTarget.style.color='rgba(255,255,255,0.35)')}>
+                              <ImagePlus style={{width:20,height:20}}/>
+                              <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
+                                const f=e.target.files?.[0]; if(!f) return; setChannelFile(f)
+                                const reader=new FileReader(); reader.onload=ev=>setChannelPreview(ev.target?.result as string); reader.readAsDataURL(f); e.target.value=''
+                              }}/>
+                            </label>
+                            <div style={{flex:1,background:'#17212b',borderRadius:22,padding:'10px 16px',display:'flex',alignItems:'flex-end',border:'1px solid rgba(44,165,224,0.1)'}}>
+                              <textarea value={channelContent} onChange={e=>setChannelContent(e.target.value)}
+                                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&(channelContent.trim()||channelFile)){e.preventDefault();postMessage()}}}
+                                placeholder={`Comunicado para ${channelApp}...`} rows={1}
+                                style={{background:'none',border:'none',outline:'none',color:'white',fontSize:14,flex:1,resize:'none',lineHeight:1.5,maxHeight:100,overflowY:'auto',fontFamily:'inherit',padding:0}}/>
+                            </div>
+                            <button onClick={postMessage} disabled={channelPosting||channelUploading||(!channelContent.trim()&&!channelFile&&!channelImage.trim())}
+                              style={{width:44,height:44,borderRadius:'50%',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s',
+                                background:(channelContent.trim()||channelFile||channelImage.trim())?'linear-gradient(135deg,#2ca5e0,#1a7fba)':'rgba(255,255,255,0.07)',
+                                boxShadow:(channelContent.trim()||channelFile||channelImage.trim())?'0 3px 12px rgba(44,165,224,0.4)':'none',
+                                transform:(channelContent.trim()||channelFile||channelImage.trim())?'scale(1.05)':'scale(1)'}}>
+                              {(channelPosting||channelUploading)
+                                ? <div style={{width:17,height:17,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'white',borderRadius:'50%',animation:'tgspin 0.8s linear infinite'}}/>
+                                : <Send style={{width:17,height:17,color:'white'}}/>}
+                            </button>
+                          </div>
                         </div>
-                        <button onClick={postMessage}
-                          disabled={channelPosting||channelUploading||(!channelContent.trim()&&!channelFile&&!channelImage.trim())}
-                          style={{width:40,height:40,borderRadius:'50%',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background 0.2s',
-                            background:(channelContent.trim()||channelFile||channelImage.trim())?'#2ca5e0':'rgba(255,255,255,0.08)'}}>
-                          {(channelPosting||channelUploading)
-                            ? <div style={{width:16,height:16,border:'2px solid white',borderTopColor:'transparent',borderRadius:'50%',animation:'tgspin 0.8s linear infinite'}}/>
-                            : <Send style={{width:16,height:16,color:'white'}}/>}
-                        </button>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* ── WhatsApp Pagos ──────────────────────────── */}
-                  <div style={{marginTop:24}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <div style={{width:8,height:8,borderRadius:'50%',background:'#25d366'}}/>
-                        <span style={{color:'#25d366',fontWeight:700,fontSize:13}}>💰 Pagos confirmados · WhatsApp</span>
+                  {/* ══ SECCIÓN WHATSAPP PAGOS ════════════════════════════ */}
+                  <div style={{borderRadius:18,overflow:'hidden',border:'1px solid rgba(37,211,102,0.18)',boxShadow:'0 2px 20px rgba(0,0,0,0.25)'}}>
+                    {/* Collapse header */}
+                    <button onClick={()=>setWaOpen(o=>!o)}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'14px 18px',background:'rgba(37,211,102,0.08)',border:'none',cursor:'pointer',textAlign:'left',transition:'background 0.2s'}}
+                      onMouseEnter={e=>(e.currentTarget.style.background='rgba(37,211,102,0.14)')}
+                      onMouseLeave={e=>(e.currentTarget.style.background='rgba(37,211,102,0.08)')}>
+                      <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#25d366,#128C7E)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,boxShadow:'0 2px 8px rgba(37,211,102,0.4)',fontSize:18}}>
+                        💰
                       </div>
-                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                        {(['Waha','Layla','Howdy'] as const).map(app=>(
-                          <button key={app} onClick={()=>{setAdminPayApp(app);fetchAdminPayStk(app)}}
-                            style={{padding:'4px 12px',borderRadius:20,border:'none',cursor:'pointer',fontSize:12,fontWeight:700,transition:'all 0.15s',background:adminPayApp===app?'#25d366':'rgba(255,255,255,0.06)',color:adminPayApp===app?'white':'rgba(255,255,255,0.4)'}}>
-                            {app}
+                      <div style={{flex:1}}>
+                        <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos WhatsApp — {adminPayApp}</div>
+                        <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Stickers enviados al confirmar pagos</div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{background:'rgba(37,211,102,0.15)',color:'#25d366',fontSize:12,fontWeight:700,padding:'3px 10px',borderRadius:20}}>{adminPayStk.filter(s=>s.app_name===adminPayApp).length} pagos</span>
+                        <span style={{color:'rgba(255,255,255,0.4)',fontSize:18,transition:'transform 0.25s',display:'inline-block',transform:waOpen?'rotate(180deg)':'rotate(0deg)'}}>⌄</span>
+                      </div>
+                    </button>
+
+                    {/* WhatsApp body */}
+                    {waOpen && (
+                      <div style={{background:'#0b141a'}}>
+                        {/* App sub-selector */}
+                        <div style={{padding:'12px 16px 8px',background:'#111c22',display:'flex',gap:6,flexWrap:'wrap',borderBottom:'1px solid rgba(255,255,255,0.04)',alignItems:'center'}}>
+                          {(['Waha','Layla','Howdy'] as const).map(app=>(
+                            <button key={app} onClick={()=>{setAdminPayApp(app);fetchAdminPayStk(app)}}
+                              style={{display:'flex',alignItems:'center',gap:7,padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:13,fontWeight:700,transition:'all 0.15s',
+                                background:adminPayApp===app?'#25d366':'rgba(255,255,255,0.06)',
+                                color:adminPayApp===app?'white':'rgba(255,255,255,0.4)',
+                                boxShadow:adminPayApp===app?'0 2px 8px rgba(37,211,102,0.35)':'none'}}>
+                              <span style={{width:20,height:20,borderRadius:'50%',overflow:'hidden',display:'inline-flex',flexShrink:0}}>
+                                <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${app.toLowerCase()}.jpg`} alt={app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                              </span>
+                              {app}
+                            </button>
+                          ))}
+                          <button onClick={()=>fetchAdminPayStk(adminPayApp)}
+                            style={{marginLeft:'auto',padding:'5px 12px',borderRadius:20,border:'1px solid rgba(37,211,102,0.3)',background:'transparent',cursor:'pointer',color:'#25d366',fontSize:12,fontWeight:700,transition:'all 0.15s'}}
+                            onMouseEnter={e=>{e.currentTarget.style.background='rgba(37,211,102,0.1)'}}
+                            onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+                            ↻ Refrescar
                           </button>
-                        ))}
-                        <button onClick={()=>fetchAdminPayStk(adminPayApp)} style={{padding:'4px 10px',borderRadius:20,border:'1px solid rgba(37,211,102,0.25)',background:'transparent',cursor:'pointer',color:'#25d366',fontSize:11,fontWeight:600}}>↻</button>
-                      </div>
-                    </div>
-                    <div style={{background:'#0b141a',borderRadius:14,overflow:'hidden',border:'1px solid rgba(37,211,102,0.12)'}}>
-                      <div style={{background:'#1f2c34',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(0,0,0,0.2)'}}>
-                        <div style={{width:34,height:34,borderRadius:'50%',overflow:'hidden',border:'2px solid rgba(37,211,102,0.4)',flexShrink:0}}>
-                          <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${adminPayApp.toLowerCase()}.jpg`} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                         </div>
-                        <div>
-                          <div style={{color:'white',fontWeight:700,fontSize:14}}>Pagos {adminPayApp}</div>
-                          <div style={{color:'#25d366',fontSize:11}}>{adminPayStk.filter(s=>s.app_name===adminPayApp).length} confirmados</div>
-                        </div>
-                      </div>
-                      <div style={{maxHeight:300,overflowY:'auto',padding:'10px'}}>
-                        {loadingPayStk ? (
-                          <div style={{textAlign:'center',padding:'28px 0'}}><div style={{width:22,height:22,border:'3px solid rgba(37,211,102,0.2)',borderTopColor:'#25d366',borderRadius:'50%',animation:'tgspin 0.8s linear infinite',margin:'0 auto'}}/></div>
-                        ) : adminPayStk.filter(s=>s.app_name===adminPayApp).length===0 ? (
-                          <div style={{textAlign:'center',padding:'36px 0'}}><div style={{fontSize:30,marginBottom:8}}>💰</div><p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>Sin pagos en {adminPayApp} aún</p></div>
-                        ) : (
-                          <div>{[...adminPayStk.filter(s=>s.app_name===adminPayApp)].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).map(stk=>{
-                            const stkUrls = ['https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_0_cat.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_1_man.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_2_pink.jpg'];
-                            const nm = stk.nombre_en_app||'Usuario';
-                            return (
-                              <div key={stk.id} style={{display:'flex',alignItems:'flex-end',gap:7,marginBottom:10}}>
-                                <div style={{width:28,height:28,borderRadius:'50%',background:'#7e57c2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'white',flexShrink:0}}>
-                                  {(nm[0]||'?').toUpperCase()}
-                                </div>
-                                <div style={{background:'#1f2c34',borderRadius:'0 10px 10px 10px',overflow:'hidden',maxWidth:200,boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}>
-                                  <div style={{padding:'4px 10px 2px',display:'flex',gap:8,alignItems:'center'}}>
-                                    <span style={{color:'#25d366',fontSize:11,fontWeight:700,flex:1}}>{nm}</span>
-                                    <span style={{color:'rgba(255,255,255,0.2)',fontSize:10}}>{new Date(stk.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span>
-                                  </div>
-                                  <div style={{position:'relative'}}>
-                                    <img src={stkUrls[stk.sticker_index % stkUrls.length]} alt="" style={{width:136,height:136,objectFit:'cover',display:'block'}}/>
-                                    <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 50%, rgba(0,0,0,0.75))',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:5}}>
-                                      <div style={{textAlign:'center'}}>
-                                        <div style={{color:'#25d366',fontWeight:800,fontSize:11,textShadow:'0 1px 3px rgba(0,0,0,0.7)'}}>💰 PAGO RECIBIDO</div>
-                                        <div style={{color:'rgba(255,255,255,0.7)',fontSize:9}}>✅ Confirmado</div>
+                        {/* Stickers list */}
+                        <div style={{maxHeight:460,minHeight:120,overflowY:'auto',padding:'14px 14px'}}>
+                          {loadingPayStk ? (
+                            <div style={{textAlign:'center',padding:'40px 0'}}>
+                              <div style={{width:28,height:28,border:'3px solid rgba(37,211,102,0.2)',borderTopColor:'#25d366',borderRadius:'50%',animation:'tgspin 0.8s linear infinite',margin:'0 auto 10px'}}/>
+                              <p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>Cargando pagos...</p>
+                            </div>
+                          ) : adminPayStk.filter(s=>s.app_name===adminPayApp).length===0 ? (
+                            <div style={{textAlign:'center',padding:'56px 24px'}}>
+                              <div style={{fontSize:42,marginBottom:12}}>💸</div>
+                              <p style={{color:'rgba(255,255,255,0.3)',fontSize:14,margin:0,fontWeight:600}}>Sin pagos confirmados en {adminPayApp}</p>
+                              <p style={{color:'rgba(255,255,255,0.15)',fontSize:12,marginTop:6}}>Aparecerán aquí cuando alguien confirme su pago</p>
+                            </div>
+                          ) : (
+                            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+                              {[...adminPayStk.filter(s=>s.app_name===adminPayApp)].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).map(stk=>{
+                                const stkUrls = ['https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_0_money.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_1_lady.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_2_cat.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_3_gold.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_4_pink.jpg','https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/stickers/sticker_5_man.jpg'];
+                                const nm = stk.nombre_en_app||'Usuario';
+                                const stickerImg = stkUrls[stk.sticker_index % stkUrls.length];
+                                return (
+                                  <div key={stk.id} style={{background:'#1f2c34',borderRadius:14,overflow:'hidden',boxShadow:'0 2px 12px rgba(0,0,0,0.4)',border:'1px solid rgba(37,211,102,0.1)'}}>
+                                    <div style={{padding:'8px 12px 5px',display:'flex',alignItems:'center',gap:8}}>
+                                      <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#7e57c2,#9c27b0)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'white',flexShrink:0}}>
+                                        {(nm[0]||'?').toUpperCase()}
+                                      </div>
+                                      <div style={{flex:1,minWidth:0}}>
+                                        <div style={{color:'#25d366',fontSize:12,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
+                                        <div style={{color:'rgba(255,255,255,0.25)',fontSize:10}}>{new Date(stk.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>
                                       </div>
                                     </div>
+                                    <div style={{position:'relative'}}>
+                                      <img src={stickerImg} alt="Pago recibido" style={{width:'100%',aspectRatio:'1',objectFit:'cover',display:'block'}}/>
+                                    </div>
+                                    <div style={{padding:'6px 12px 8px',textAlign:'center',background:'rgba(0,0,0,0.2)'}}>
+                                      <span style={{color:'rgba(255,255,255,0.3)',fontSize:10}}>{new Date(stk.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'})}</span>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                            )
-                          })}</div>
-                        )}
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
 
 
               {tab === 'pagos' && (
+
 
                   <div className="space-y-5">
                     {/* Header */}
