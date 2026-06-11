@@ -1612,6 +1612,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                   <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-white/5 rounded-2xl animate-pulse" />)}</div>
                                 ) : (
                                   <>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400/60 mb-2 px-1">👩‍💻 Trabajadora</p>
                                     {/* Workers per app */}
                                     {APPS.map(app => {
                                       const appRows = efectivoRows.filter((r: any) => r.app_name === app)
@@ -1646,7 +1647,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     {/* Efectivo agents */}
                                     {agentEfectivo.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">Agentes</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">👑 Agente</p>
                                         <div className="space-y-2">
                                           {agentEfectivo.map((row: any, idx: number) => (
                                             <div key={row.id ?? idx} className="bg-black/30 border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
@@ -1671,7 +1672,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     )}
                                     {dualEfectivo.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">ð Agente + Trabajadora</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">🔗 Agente + Trabajadora</p>
                                         <div className="space-y-2">
                                           {dualEfectivo.map((d, _di) => {
                                             const workerTotalD = d.workerRows.reduce((s:number,r:any)=>s+Number(r.usd||0),0)
@@ -1737,6 +1738,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                   <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-white/5 rounded-2xl animate-pulse" />)}</div>
                                 ) : (
                                   <>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-2 px-1">👩‍💻 Trabajadora</p>
                                     {APPS.map(app => {
                                       const appRows = agenciaRows.filter((r: any) => r.app_name === app)
                                       if (!appRows.length) return null
@@ -1777,7 +1779,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     {/* Agencia agents */}
                                     {agentAgencia.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">Agentes</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">👑 Agente</p>
                                         <div className="space-y-2">
                                           {agentAgencia.map((row: any, idx: number) => (
                                             <div key={row.id ?? idx} className="bg-black/30 border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
@@ -1809,7 +1811,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     )}
                                     {dualAgencia.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">ð Agente + Trabajadora</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">🔗 Agente + Trabajadora</p>
                                         <div className="space-y-2">
                                           {dualAgencia.map((d, _di2) => {
                                             const workerTotalA = d.workerRows.reduce((s:number,r:any)=>s+Number(r.usd||0),0)
