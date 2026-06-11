@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users, Shield } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users, Shield, ImagePlus } from 'lucide-react'
   import { sendPushViaApi } from '@/lib/push'
 import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
@@ -129,6 +129,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [channelMessages, setChannelMessages] = useState<{id:string;app_name:string;content:string|null;image_url:string|null;created_at:string}[]>([])
         const [channelContent, setChannelContent] = useState('')
         const [channelImage, setChannelImage] = useState('')
+        const [channelFile, setChannelFile] = useState<File | null>(null)
+        const [channelPreview, setChannelPreview] = useState<string | null>(null)
+        const [channelUploading, setChannelUploading] = useState(false)
         const [channelPosting, setChannelPosting] = useState(false)
         const [loadingMsgs, setLoadingMsgs] = useState(false)
         const [notifying, setNotifying] = useState<Record<string, boolean>>({})
@@ -748,25 +751,49 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         }
 
         async function postMessage() {
-            if (!channelContent.trim() && !channelImage.trim()) return
+            if (!channelContent.trim() && !channelFile && !channelImage.trim()) return
             setChannelPosting(true)
             try {
               const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              let finalImageUrl: string | null = channelImage.trim() || null
+              // Upload file if one is selected
+              if (channelFile) {
+                setChannelUploading(true)
+                try {
+                  const b64: string = await new Promise((resolve, reject) => {
+                    const reader = new FileReader()
+                    reader.onload = e => resolve((e.target!.result as string).split(',')[1])
+                    reader.onerror = reject
+                    reader.readAsDataURL(channelFile)
+                  })
+                  const uploadRes = await fetch(`${apiBase}/api/upload-channel-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ base64: b64, mime: channelFile.type, filename: channelFile.name }),
+                  })
+                  if (uploadRes.ok) {
+                    const { url } = await uploadRes.json() as { url: string }
+                    finalImageUrl = url
+                  }
+                } catch {}
+                setChannelUploading(false)
+              }
               const res = await fetch(`${apiBase}/api/post-channel-message`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   app_name: channelApp,
                   content: channelContent.trim() || null,
-                  image_url: channelImage.trim() || null,
+                  image_url: finalImageUrl,
                   created_by: user!.id,
                 }),
               })
               if (res.ok) {
-                setChannelContent(''); setChannelImage('')
+                setChannelContent(''); setChannelImage(''); setChannelFile(null); setChannelPreview(null)
                 fetchChannelMessages(channelApp)
               }
             } catch {}
+            setChannelUploading(false)
             setChannelPosting(false)
           }
 
@@ -1486,13 +1513,34 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       placeholder="Escribe el mensaje aquí..."
                       rows={4}
                       className="w-full bg-[#07070f] border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-blue-500/50 resize-none mb-3" />
-                    <input type="url" value={channelImage} onChange={e => setChannelImage(e.target.value)}
-                      placeholder="URL de imagen (opcional)"
-                      className="w-full bg-[#07070f] border border-blue-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-blue-500/50 mb-3" />
-                    <button onClick={postMessage} disabled={channelPosting || (!channelContent.trim() && !channelImage.trim())}
+                    {channelPreview ? (
+                      <div className="relative mb-3 rounded-xl overflow-hidden border border-blue-500/20">
+                        <img src={channelPreview} alt="preview" className="w-full max-h-52 object-cover" />
+                        <button onClick={() => { setChannelFile(null); setChannelPreview(null) }}
+                          className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white/80 hover:bg-black/80 transition-all">
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-white/35 text-xs px-3 py-1.5 border-t border-blue-500/10 truncate">{channelFile?.name}</p>
+                      </div>
+                    ) : (
+                      <label className="flex items-center gap-2 cursor-pointer w-full bg-[#07070f] border border-dashed border-blue-500/20 hover:border-blue-500/50 rounded-xl px-4 py-3 text-sm text-white/40 hover:text-white/60 transition-all mb-3">
+                        <ImagePlus className="w-4 h-4 flex-shrink-0" />
+                        <span>Adjuntar foto (opcional)</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => {
+                          const f = e.target.files?.[0]
+                          if (!f) return
+                          setChannelFile(f)
+                          const reader = new FileReader()
+                          reader.onload = ev => setChannelPreview(ev.target?.result as string)
+                          reader.readAsDataURL(f)
+                          e.target.value = ''
+                        }} />
+                      </label>
+                    )}
+                    <button onClick={postMessage} disabled={channelPosting || channelUploading || (!channelContent.trim() && !channelFile && !channelImage.trim())}
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
-                      {channelPosting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
-                      {channelPosting ? 'Publicando...' : 'Publicar y Notificar'}
+                      {(channelPosting || channelUploading) ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
+                      {channelUploading ? 'Subiendo foto...' : channelPosting ? 'Publicando...' : 'Publicar y Notificar'}
                     </button>
                   </div>
 
