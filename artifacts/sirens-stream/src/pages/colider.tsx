@@ -248,12 +248,47 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     }
     const dualAgentByUid = new Map<string, PersonEntry>()
     for (const a of dualAgents) dualAgentByUid.set(a.person_uid, a)
+    // Combined card per dual person
+    const dualCombined = [...dualUids].map(uid => ({
+      uid,
+      workers: dualWorkersByUid.get(uid) ?? [],
+      agent: dualAgentByUid.get(uid)!,
+    }))
     const total = persons.length
     const totalPaid = persons.filter(p => marks[p.key]).length
     const allPaid = total > 0 && totalPaid === total
     const alreadyNotified = !!(weekStatus?.notified && !weekStatus?.admin_closed)
     const notifyLocked = !allPaid || alreadyNotified
-    const listToShow = tab === 'workers' ? pureWorkers : tab === 'agents' ? pureAgents : [...dualWorkers, ...dualAgents]
+    const listToShow = tab === 'workers' ? pureWorkers : tab === 'agents' ? pureAgents : []
+
+    async function toggleDualMark(uid: string) {
+      const ws = dualWorkersByUid.get(uid) ?? []
+      const ag = dualAgentByUid.get(uid)!
+      const allKeys = [...ws.map(w => w.key), ag.key]
+      const currentlyAllPaid = allKeys.every(k => marks[k] ?? false)
+      const newPaid = !currentlyAllPaid
+      setToggling(uid)
+      const updatedMarks = { ...marks }
+      for (const k of allKeys) updatedMarks[k] = newPaid
+      setMarks(updatedMarks)
+      try {
+        await Promise.all([
+          ...ws.map(w => fetch(`${API}/api/colider/mark`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ semana, person_uid: w.person_uid, person_type: w.person_type, person_name: w.display_name, person_real_name: w.real_name, person_phone: w.phone, person_app: w.app, salary_usd: w.salary_usd, salary_cuba: w.salary_cuba, metodo_pago: w.metodo_pago, paid: newPaid }),
+          })),
+          fetch(`${API}/api/colider/mark`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ semana, person_uid: ag.person_uid, person_type: ag.person_type, person_name: ag.display_name, person_real_name: ag.real_name, person_phone: ag.phone, person_app: ag.app, salary_usd: ag.salary_usd, salary_cuba: ag.salary_cuba, metodo_pago: ag.metodo_pago, paid: newPaid }),
+          }),
+        ])
+        if (newPaid) {
+          const allNowPaid = persons.length > 0 && persons.every(person => updatedMarks[person.key] === true)
+          if (allNowPaid && !(weekStatus?.notified && !weekStatus?.admin_closed)) setTimeout(() => notifyAdmin(), 500)
+        }
+      } catch { setMarks(prev => { const r = { ...prev }; for (const k of allKeys) r[k] = !newPaid; return r }) }
+      setToggling(null)
+    }
 
     if (loading) return (
       <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
@@ -349,66 +384,109 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             <div className="space-y-2 mb-6">
               {[1,2,3].map(i => <div key={i} className="h-20 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
             </div>
-          ) : listToShow.length === 0 ? (
+          ) : (tab === 'dual' ? dualCombined.length === 0 : listToShow.length === 0) ? (
             <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center mb-6">
               <DollarSign className="w-10 h-10 text-white/10 mx-auto mb-3" />
               <p className="text-white/30 text-sm">No hay datos publicados para esta semana.</p>
             </div>
           ) : (
             <div className="space-y-4 mb-6">
-              {listToShow.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2 px-1 text-teal-400/60 dark:text-teal-400/60">
-                    {tab === 'workers' ? '👩‍💻 Trabajadoras' : tab === 'agents' ? '👑 Agentes' : '🔗 Agente + Trabajadora'}
-                  </p>
-                  <div className="space-y-2">
-                    {listToShow.map(p => {
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2 px-1 text-teal-400/60">
+                  {tab === 'workers' ? '👩‍💻 Trabajadoras' : tab === 'agents' ? '👑 Agentes' : '🔗 Agente + Trabajadora'}
+                </p>
+                <div className="space-y-2">
+                  {tab === 'dual' ? (
+                    dualCombined.map(({ uid, workers: ws, agent }) => {
+                      const allKeys = [...ws.map(w => w.key), agent.key]
+                      const paid = allKeys.every(k => marks[k] ?? false)
+                      const tog = toggling === uid
+                      const totalUsd = ws.reduce((s, w) => s + w.salary_usd, 0) + agent.salary_usd
+                      const totalCup = ws.reduce((s, w) => s + w.salary_cuba, 0) + agent.salary_cuba
+                      const agentName = agent.real_name ?? agent.display_name
+                      const phone = ws.find(w => w.phone)?.phone ?? agent.phone
+                      return (
+                        <div key={uid} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-violet-500/15'}`}>
+                          <div className="flex items-start gap-3">
+                            <button onClick={() => toggleDualMark(uid)} disabled={tog}
+                              className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${paid ? 'bg-green-500 border-green-500' : 'border-white/20 hover:border-green-400'} disabled:opacity-50`}>
+                              {paid ? <CheckCircle className="w-4 h-4 text-white" /> : <Circle className={`w-4 h-4 ${tog ? 'text-white/50 animate-pulse' : 'text-white/20'}`} />}
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="font-bold text-sm text-white truncate">{agentName}</p>
+                                  {ws.map(w => (
+                                    <p key={w.key} className="text-violet-300/70 text-xs">🎮 {w.app}: <span className="font-semibold">{w.display_name}</span></p>
+                                  ))}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-green-400 font-bold text-sm">${totalUsd.toFixed(2)}</p>
+                                  {totalCup > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(totalCup)} CUP</p>}
+                                </div>
+                              </div>
+                              <div className="mt-2 space-y-0.5 border-t border-white/5 pt-2">
+                                {ws.map(w => (
+                                  <div key={w.key} className="flex items-center justify-between text-xs text-white/40">
+                                    <span>💰 Salario {w.app}</span>
+                                    <span>${w.salary_usd.toFixed(2)}{w.salary_cuba > 0 ? ` · ${fmtCup(w.salary_cuba)} CUP` : ''}</span>
+                                  </div>
+                                ))}
+                                <div className="flex items-center justify-between text-xs text-white/40">
+                                  <span>🧡 Comisión agente</span>
+                                  <span>${agent.salary_usd.toFixed(2)}{agent.salary_cuba > 0 ? ` · ${fmtCup(agent.salary_cuba)} CUP` : ''}</span>
+                                </div>
+                              </div>
+                              {paid && <p className="text-green-400 text-xs font-bold mt-1.5">✓ Pagado</p>}
+                              {phone && (
+                                <a href={`https://wa.me/${cleanNum(phone)}`} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
+                                  <Phone className="w-3 h-3" /> {phone}
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    listToShow.map(p => {
                       const paid = marks[p.key] ?? false
                       const tog  = toggling === p.key
                       return (
-                    <div key={p.key} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-purple-500/10'}`}>
-                      <div className="flex items-start gap-3">
-                        <button onClick={() => toggleMark(p)} disabled={tog}
-                          className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${paid ? 'bg-green-500 border-green-500' : 'border-white/20 hover:border-green-400'} disabled:opacity-50`}>
-                          {paid
-                            ? <CheckCircle className="w-4 h-4 text-white" />
-                            : <Circle className={`w-4 h-4 ${tog ? 'text-white/50 animate-pulse' : 'text-white/20'}`} />}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
-                              {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
-                              <p className="text-white/30 text-xs">{p.app}</p>
-                              {/* Dual: agent card → show worker app names */}
-                              {tab === 'dual' && p.person_type === 'agent' && dualWorkersByUid.get(p.person_uid)?.map(w => (
-                                <p key={w.key} className="text-violet-300/70 text-xs mt-0.5">🎮 {w.app}: <span className="font-semibold">{w.display_name}</span></p>
-                              ))}
-                              {/* Dual: worker card → show agent name */}
-                              {tab === 'dual' && p.person_type === 'worker' && dualAgentByUid.get(p.person_uid) && (
-                                <p className="text-orange-300/70 text-xs mt-0.5">🧡 Agente: <span className="font-semibold">{dualAgentByUid.get(p.person_uid)!.real_name ?? dualAgentByUid.get(p.person_uid)!.display_name}</span></p>
+                        <div key={p.key} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-purple-500/10'}`}>
+                          <div className="flex items-start gap-3">
+                            <button onClick={() => toggleMark(p)} disabled={tog}
+                              className={`mt-0.5 w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${paid ? 'bg-green-500 border-green-500' : 'border-white/20 hover:border-green-400'} disabled:opacity-50`}>
+                              {paid ? <CheckCircle className="w-4 h-4 text-white" /> : <Circle className={`w-4 h-4 ${tog ? 'text-white/50 animate-pulse' : 'text-white/20'}`} />}
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
+                                  {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
+                                  <p className="text-white/30 text-xs">{p.app}</p>
+                                  {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
+                                  {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
+                                </div>
+                              </div>
+                              {p.phone && (
+                                <a href={`https://wa.me/${cleanNum(p.phone)}`} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
+                                  <Phone className="w-3 h-3" /> {p.phone}
+                                </a>
                               )}
-                              {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
-                              {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
                             </div>
                           </div>
-                          {p.phone && (
-                            <a href={`https://wa.me/${cleanNum(p.phone)}`} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 mt-2 text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 hover:border-green-500/40 px-2.5 py-1.5 rounded-lg transition-colors">
-                              <Phone className="w-3 h-3" /> {p.phone}
-                            </a>
-                          )}
                         </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                  </div>
+                      )
+                    })
+                  )}
                 </div>
-              )}
+              </div>
 
             </div>
           )}
