@@ -203,6 +203,10 @@ import React, { useState, useEffect } from 'react'
           semana,
           app_name: appName,
         })
+        try {
+          const _apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+          await fetch(`${_apiUrl}/api/payment-sticker`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: profile!.id, app_name: appName, nombre_en_app: (profile as any)?.agent_name ?? (profile as any)?.email ?? '', sticker_index: 0 }) })
+        } catch {}
         setAgentConfirmed(prev => new Set([...prev, commId]))
         setAgentConfirming(null)
       }
