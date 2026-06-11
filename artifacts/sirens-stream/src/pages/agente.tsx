@@ -666,15 +666,42 @@ import React, { useState, useEffect } from 'react'
                             </button>
                             {expanded.has(sem) && (
                               <div className="border-t border-purple-500/10 px-5 py-4 space-y-2">
-                                {rows.map((row, i) => (
-                                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
-                                    <div className="min-w-0">
-                                      <span className="text-white/70 text-sm block truncate">{row.worker_name}</span>
-                                      <span className="text-white/30 text-xs">{row.app_name}</span>
+                                {rows.map((row, i) => {
+                                  const workerSalUsd = Number(row.worker_salary_usd ?? 0)
+                                  const met = row.worker_metodo_pago ?? ''
+                                  const isCuban = met.includes('Cuba')
+                                  const isEfectivo = met.includes('Efectivo')
+                                  const customEf = Number(row.custom_efectivo_rate ?? 0)
+                                  const customTr = Number(row.custom_transferencia_rate ?? 0)
+                                  const globalEf = exchangeRates['efectivo_worker'] ?? 0
+                                  const globalTr = exchangeRates['transferencia_worker'] ?? 0
+                                  const efRate = customEf > 0 ? customEf : globalEf
+                                  const trRate = customTr > 0 ? customTr : globalTr
+                                  const workerRate = isEfectivo ? efRate : trRate
+                                  const hasExclusive = customEf > 0 || customTr > 0
+                                  const cupAmount = isCuban && workerRate > 0 && workerSalUsd > 0 ? workerSalUsd * workerRate : 0
+                                  return (
+                                    <div key={i} className="py-2 border-b border-white/5 last:border-0">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <span className="text-white/70 text-sm block truncate">{row.worker_name}</span>
+                                          <span className="text-white/30 text-xs">{row.app_name}{isCuban && workerRate > 0 ? ` · ${workerRate.toLocaleString('es-ES')} CUP/USD${hasExclusive ? ' ✦' : ''}` : ''}</span>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                          <span className="text-green-400 font-bold text-sm block">${Number(row.commission_usd).toFixed(2)} <span className="text-white/30 font-normal text-xs">comisión</span></span>
+                                          {cupAmount > 0 && (
+                                            <span className={`font-bold text-xs block mt-0.5 ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>
+                                              {cupAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
+                                            </span>
+                                          )}
+                                          {isCuban && workerRate <= 0 && (
+                                            <span className="text-white/20 text-xs block mt-0.5">⏳ tasa pendiente</span>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                    <span className="text-green-400 font-bold text-sm shrink-0">${Number(row.commission_usd).toFixed(2)}</span>
-                                  </div>
-                                ))}
+                                  )
+                                })}
                               </div>
                             )}
                           </div>
