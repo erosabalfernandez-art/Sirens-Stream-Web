@@ -1553,12 +1553,24 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
                     {/* The 3 bars — always visible */}
                     {(() => {
-                      const efectivoRows = (pagosData as any[]).filter((r: any) => (r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
-                      const agenciaRows = (pagosData as any[]).filter((r: any) => !(r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
                       const allAgents = [...agentPayData.confirmed, ...agentPayData.pending]
                       const agentConfirmedIds = new Set(agentPayData.confirmed.map((r: any) => r.id))
-                      const agentEfectivo = allAgents.filter((a: any) => !agentMetodoMap[a.agent_user_id] || (agentMetodoMap[a.agent_user_id] ?? '').toLowerCase().includes('efectivo'))
-                      const agentAgencia = allAgents.filter((a: any) => agentMetodoMap[a.agent_user_id] && !(agentMetodoMap[a.agent_user_id] ?? '').toLowerCase().includes('efectivo'))
+                      const agentUserIdSet = new Set(allAgents.filter((a:any) => a.agent_user_id).map((a:any) => a.agent_user_id as string))
+                      const dualUserIds = new Set((pagosData as any[]).filter((r:any) => agentUserIdSet.has(r.user_id)).map((r:any) => r.user_id as string))
+                      const dualAgents = allAgents.filter((a:any) => dualUserIds.has(a.agent_user_id))
+                      const normalAgents = allAgents.filter((a:any) => !dualUserIds.has(a.agent_user_id))
+                      const normalWorkerRows = (pagosData as any[]).filter((r:any) => !dualUserIds.has(r.user_id))
+                      const dualWorkerRowsAll = (pagosData as any[]).filter((r:any) => dualUserIds.has(r.user_id))
+                      const efectivoRows = normalWorkerRows.filter((r: any) => (r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
+                      const agenciaRows = normalWorkerRows.filter((r: any) => !(r.metodo_pago ?? '').toLowerCase().includes('efectivo'))
+                      const agentEfectivo = normalAgents.filter((a: any) => !agentMetodoMap[a.agent_user_id] || (agentMetodoMap[a.agent_user_id] ?? '').toLowerCase().includes('efectivo'))
+                      const agentAgencia = normalAgents.filter((a: any) => agentMetodoMap[a.agent_user_id] && !(agentMetodoMap[a.agent_user_id] ?? '').toLowerCase().includes('efectivo'))
+                      const dualCardsMap: Record<string,{agentRow:any;workerRows:any[];isEfectivo:boolean}> = {}
+                      for (const ag of dualAgents) { const uid = ag.agent_user_id as string; const metodo = (agentMetodoMap[uid] ?? dualWorkerRowsAll.find((r:any)=>r.user_id===uid)?.metodo_pago ?? '').toLowerCase(); if (!dualCardsMap[uid]) dualCardsMap[uid] = { agentRow: ag, workerRows: [], isEfectivo: !metodo || metodo.includes('efectivo') } }
+                      for (const r of dualWorkerRowsAll) { if (dualCardsMap[r.user_id as string]) dualCardsMap[r.user_id as string].workerRows.push(r) }
+                      const dualCards = Object.values(dualCardsMap)
+                      const dualEfectivo = dualCards.filter(d => d.isEfectivo)
+                      const dualAgencia = dualCards.filter(d => !d.isEfectivo)
                       // Progress: Efectivo (colider)
                       const coliderWorkerDone = efectivoRows.filter((r: any) => r.colider_paid && r.confirmed).length
                       const coliderAgentDone = agentEfectivo.filter((a: any) => a.colider_paid === true && agentConfirmedIds.has(a.id)).length
@@ -1654,6 +1666,43 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               </div>
                                             </div>
                                           ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {dualEfectivo.length > 0 && (
+                                      <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">ð Agente + Trabajadora</p>
+                                        <div className="space-y-2">
+                                          {dualEfectivo.map((d, _di) => {
+                                            const workerTotalD = d.workerRows.reduce((s:number,r:any)=>s+Number(r.usd||0),0)
+                                            const agentTotalD = Number(d.agentRow.total_commission_usd||0)
+                                            const totalD = workerTotalD + agentTotalD
+                                            const coliderPaidD = d.agentRow.colider_paid === true
+                                            const agentConfirmedD = agentConfirmedIds.has(d.agentRow.id)
+                                            const metodoD = agentMetodoMap[d.agent_user_id] ?? d.workerRows[0]?.metodo_pago ?? ''
+                                            const billeteraD = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
+                                            return (
+                                              <div key={d.agent_user_id} className="bg-black/30 border border-violet-500/25 rounded-2xl px-4 py-3">
+                                                <div className="flex items-start gap-3">
+                                                  <div className="w-7 h-7 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                                                    {(coliderPaidD && agentConfirmedD) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-white">{d.agentRow.agent_name || '—'}</p>
+                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}{r.app_name}: ${Number(r.usd||0).toFixed(2)}</p>))}
+                                                    <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalD.toFixed(2)}</p>
+                                                    <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalD.toFixed(2)}</p>
+                                                    {metodoD && <p className="text-xs text-white/20 mt-0.5">{metodoD}{billeteraD ? ' · ' + billeteraD : ''}</p>}
+                                                  </div>
+                                                  <div className="flex flex-col items-end gap-1 shrink-0">
+                                                    {coliderPaidD && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
+                                                    {!coliderPaidD && <span className="text-[10px] text-white/20">Sin marcar</span>}
+                                                    {agentConfirmedD ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          })}
                                         </div>
                                       </div>
                                     )}
@@ -1755,6 +1804,48 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               </div>
                                             </div>
                                           ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {dualAgencia.length > 0 && (
+                                      <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">ð Agente + Trabajadora</p>
+                                        <div className="space-y-2">
+                                          {dualAgencia.map((d, _di2) => {
+                                            const workerTotalA = d.workerRows.reduce((s:number,r:any)=>s+Number(r.usd||0),0)
+                                            const agentTotalA = Number(d.agentRow.total_commission_usd||0)
+                                            const totalA = workerTotalA + agentTotalA
+                                            const agentConfirmedA = agentConfirmedIds.has(d.agentRow.id)
+                                            const adminPaidA = agentAdminPaidIds.has(d.agent_user_id)
+                                            const metodoA = agentMetodoMap[d.agent_user_id] ?? d.workerRows[0]?.metodo_pago ?? ''
+                                            const billeteraA = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
+                                            return (
+                                              <div key={d.agent_user_id} className="bg-black/30 border border-violet-500/25 rounded-2xl px-4 py-3">
+                                                <div className="flex items-start gap-3">
+                                                  <div className="w-7 h-7 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                                                    {(adminPaidA && agentConfirmedA) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-white">{d.agentRow.agent_name || '—'}</p>
+                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}{r.app_name}: ${Number(r.usd||0).toFixed(2)}</p>))}
+                                                    <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalA.toFixed(2)}</p>
+                                                    <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalA.toFixed(2)}</p>
+                                                    {metodoA && <p className="text-xs text-white/20 mt-0.5">{metodoA}{billeteraA ? ' · ' + billeteraA : ''}</p>}
+                                                  </div>
+                                                  <div className="flex flex-col items-end gap-1 shrink-0">
+                                                    {agentConfirmedA ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
+                                                    <button onClick={() => toggleAgentAdminPaid(d.agent_user_id, d.agentRow.app_name, d.agentRow.semana)} disabled={!d.agent_user_id || togglingAgentAdminPaid === d.agent_user_id} className={`flex items-center gap-1 transition-all ${!d.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
+                                                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${adminPaidA ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
+                                                        {adminPaidA && <Check className="w-2.5 h-2.5 text-white" />}
+                                                        {togglingAgentAdminPaid === d.agent_user_id && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
+                                                      </div>
+                                                      <span className={`text-[10px] font-medium ${adminPaidA ? 'text-purple-300' : 'text-white/30'}`}>{adminPaidA ? 'Pagado ✓' : 'Marcar'}</span>
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          })}
                                         </div>
                                       </div>
                                     )}
