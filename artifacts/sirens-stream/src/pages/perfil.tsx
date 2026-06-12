@@ -167,7 +167,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
       async function handleSave() {
         if (!form.app_name) { setFormError('Selecciona una aplicaciÃ³n'); return }
         if (!form.pais) { setFormError('Selecciona tu paÃ­s'); return }
-        if (!form.metodo_pago) { setFormError('Selecciona un mÃ©todo de pago'); return }
+        if (!form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_colider) { setFormError('Selecciona un método de pago'); return }
         if ((profile as any)?.agent_code) {
           const ownCode = ((profile as any).agent_code as string).trim().toUpperCase()
           if (!form.agente || form.agente.trim().toUpperCase() !== ownCode) {
@@ -414,16 +414,20 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                       <FInput value={form.telefono} onChange={v => setForm(f => ({ ...f, telefono: v }))} placeholder="NÃºmero" className="flex-1" />
                     </div>
                   </Field>
-                  <Field label="MÃ©todo de pago *">
+                  {!(profile as any)?.agent_code && !profile?.is_colider && (
+                    <>
+                  <Field label="Método de pago *">
                     <select value={form.metodo_pago} onChange={e => setForm(f => ({ ...f, metodo_pago: e.target.value, billetera: '' }))} disabled={!form.pais}
                       className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50 disabled:opacity-40">
-                      <option value="">{form.pais ? 'Seleccionar...' : 'Primero selecciona tu paÃ­s'}</option>
+                      <option value="">{form.pais ? 'Seleccionar...' : 'Primero selecciona tu país'}</option>
                       {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </Field>
-                  <Field label={walletLabel || 'Billetera / DirecciÃ³n de pago'}>
+                  <Field label={walletLabel || 'Billetera / Dirección de pago'}>
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
+                    </>
+                  )}
                   <Field label={(profile as any)?.agent_code ? "Tu cÃ³digo de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
                       <FInput
                         value={form.agente}
