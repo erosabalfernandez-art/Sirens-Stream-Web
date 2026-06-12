@@ -61,13 +61,18 @@ import { Router } from 'express';
 
       // Fetch the current entry to check agente
       const currentR = await fetch(
-        sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}&select=agente&limit=1`),
+        sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}&select=agente,id_aplicacion&limit=1`),
         { headers: sbH() }
       );
-      const current = await currentR.json() as { agente: string | null }[];
+      const current = await currentR.json() as { agente: string | null; id_aplicacion: string | null }[];
       if (!current.length) return res.status(404).json({ error: 'Entrada no encontrada' });
 
       const currentAgente = current[0].agente;
+
+        // Lock: id_aplicacion cannot be changed once set
+        if (current[0].id_aplicacion) {
+          payload.id_aplicacion = current[0].id_aplicacion;
+        }
 
       if (currentAgente !== null && currentAgente !== undefined && currentAgente !== '') {
         // Lock: force the existing agente, ignore any incoming agente change
