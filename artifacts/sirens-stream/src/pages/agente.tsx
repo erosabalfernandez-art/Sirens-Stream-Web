@@ -100,6 +100,11 @@ import React, { useState, useEffect } from 'react'
         fetchWorkers()
         fetchExchangeRates()
       }
+      // Restore saved payment method from localStorage
+      if (profile?.id) {
+        const saved = localStorage.getItem(`apm_${profile.id}`)
+        if (saved === 'efectivo' || saved === 'transferencia') setAgentPayMethod(saved)
+      }
     }, [profile])
 
   // Auto-generate agent_code if not set yet (handles coliders and new agents)
@@ -211,9 +216,13 @@ import React, { useState, useEffect } from 'react'
         setAgentConfirming(null)
       }
 
-      function selectPayMethod(method: 'efectivo' | 'transferencia') {
+      async function selectPayMethod(method: 'efectivo' | 'transferencia') {
         setAgentPayMethod(method)
         if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
+        const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
+        if (profile?.id) {
+          await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
+        }
       }
 
 
@@ -539,8 +548,8 @@ import React, { useState, useEffect } from 'react'
                   </div>
                 </div>
 
-                {/* Payment method selector — only when there are published commissions */}
-                {publishedComms.length > 0 && (
+                {/* Payment method selector — always visible */}
+                {(
                   <div className="mb-4">
                     {!agentPayMethod ? (
                       <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-5 mb-3">
