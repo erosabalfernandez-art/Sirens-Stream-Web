@@ -244,6 +244,7 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
       if (loading) return <div className="min-h-screen bg-[#07070f] flex items-center justify-center"><div className="text-white/40 animate-pulse">{T.loading}</div></div>
 
       const lockedAgente = entries.find(e => e.agente)?.agente ?? null
+        const lockedIdApp = !!(editingId && entries.find(e => e.id === editingId)?.id_aplicacion)
 
         return (
         <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
@@ -398,8 +399,14 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
                   <Field label="Nombre en la aplicaciÃ³n">
                     <FInput value={form.nombre_en_app} onChange={v => setForm(f => ({ ...f, nombre_en_app: v }))} placeholder="Nickname en la app" />
                   </Field>
-                  <Field label="ID en la aplicaciÃ³n">
-                    <FInput value={form.id_aplicacion} onChange={v => setForm(f => ({ ...f, id_aplicacion: v }))} placeholder="ID de tu cuenta" />
+                  <Field label="ID en la aplicación">
+                    <FInput value={form.id_aplicacion} onChange={v => { if (lockedIdApp) return; setForm(f => ({ ...f, id_aplicacion: v })) }} placeholder="ID de tu cuenta" style={lockedIdApp ? { opacity: 0.65, cursor: 'not-allowed', pointerEvents: 'none' } : undefined} />
+                    {lockedIdApp && (
+                      <div className="flex items-center gap-1.5 mt-1.5 text-amber-400/70">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <span className="text-xs">El ID no se puede cambiar una vez guardado</span>
+                      </div>
+                    )}
                   </Field>
                   <Field label="PaÃ­s *">
                     <select value={form.pais} onChange={e => setForm(f => ({ ...f, pais: e.target.value, metodo_pago: '', billetera: '' }))}
