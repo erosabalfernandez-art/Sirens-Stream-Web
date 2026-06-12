@@ -17,13 +17,13 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
   /**
    * Ensures this device has a valid, synced push subscription in Supabase.
    * Compares the browser endpoint with DB — only re-registers if they differ.
-   * Skipped if the user manually unsubscribed.
+   * Skipped if THIS user manually unsubscribed on this device.
    */
   function silentPushRefresh(userId: string) {
     if (!('Notification' in window)) return
     if (Notification.permission !== 'granted') return
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-    if (wasManuallyUnsubscribed()) return
+    if (wasManuallyUnsubscribed(userId)) return   // per-user check
 
     checkPushEndpointInDB(userId)
       .then(alreadySynced => {
@@ -145,4 +145,3 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
     if (!ctx) throw new Error('useAuth must be used inside AuthProvider')
     return ctx
   }
-  
