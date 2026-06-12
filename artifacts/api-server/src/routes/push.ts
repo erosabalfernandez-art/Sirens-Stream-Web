@@ -18,7 +18,9 @@ import { Router } from 'express';
           return;
         }
         try {
-          const r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
+          // ?on_conflict=user_id is required for PostgREST to resolve the upsert
+          // correctly when a row for this user_id already exists.
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?on_conflict=user_id`, {
             method: 'POST',
             headers: {
               apikey: SERVICE_KEY,
@@ -113,4 +115,3 @@ import { Router } from 'express';
       });
 
       export default router;
-    
