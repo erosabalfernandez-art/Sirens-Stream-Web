@@ -107,10 +107,10 @@ import { useState, useEffect, useRef } from "react";
       ["✅", "Toca Agregar", "¡Ya tendrás el ícono en tu pantalla!"],
     ];
     const androidSteps = [
-      ["🌐", "Abre en Chrome", "Funciona mejor en Chrome para Android"],
-      ["⋮", "Menú de opciones", "Toca los 3 puntos arriba a la derecha"],
-      ["➕", "\"Añadir a pantalla\"", "Selecciona \"Añadir a pantalla de inicio\""],
-      ["✅", "Toca Añadir", "¡Ya tendrás el ícono en tu pantalla!"],
+      ["🦊", "Abre en Firefox", "Descarga Firefox gratis — es la opción recomendada para recibir notificaciones en Cuba y cualquier país sin depender de Google"],
+      ["⋮", "Menú de opciones", "Toca los 3 puntos en la esquina inferior derecha de Firefox"],
+      ["➕", "\"Instalar\"", "Selecciona \"Instalar\" o \"Añadir a pantalla de inicio\""],
+      ["✅", "Toca Instalar", "¡Listo! Recibirás notificaciones aunque el navegador esté cerrado, incluso en Cuba"],
     ];
     const steps = ios ? iosSteps : androidSteps;
 
@@ -182,7 +182,7 @@ import { useState, useEffect, useRef } from "react";
               {installed && (
                 <div style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)", borderRadius: 12, padding: "10px 14px", marginBottom: 18 }}>
                   <p style={{ color: "#c4b5fd", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-                    💡 Para reinstalar: primero elimina el ícono de tu pantalla de inicio, luego sigue los pasos abajo.
+                    💡 Para reinstalar: elimina el ícono actual de tu pantalla de inicio, luego abre la página en Firefox y sigue los pasos para volver a instalarla y recibir notificaciones correctamente.
                   </p>
                 </div>
               )}
