@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
     import { Plus, Pencil, Trash2, LogOut, ChevronDown, ChevronUp, AlertTriangle, X, Check, Copy } from 'lucide-react'
-import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
+import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
 
     const APPS = ['Waha', 'Layla', 'Howdy']
 
