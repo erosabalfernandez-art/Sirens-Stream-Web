@@ -206,6 +206,12 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                 { user_id: user!.id, app_name: form.app_name, status: 'pending' },
                 { onConflict: 'user_id,app_name', ignoreDuplicates: true }
               )
+              // Notify admins of new pending channel request (fire-and-forget)
+              fetch(`${API}/api/channel-request-submitted`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user!.id, app_name: form.app_name }),
+              }).catch(() => {})
             }
           }
         setSaving(false)
