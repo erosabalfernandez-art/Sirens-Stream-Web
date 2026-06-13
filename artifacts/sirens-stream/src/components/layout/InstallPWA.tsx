@@ -219,7 +219,21 @@ import { useState, useEffect, useRef } from "react";
                     </ol>
                   </div>
                 )}
-            </div>
+
+                {ios && (
+                  <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 12, padding: "12px 14px", marginTop: 14 }}>
+                    <p style={{ color: "#60a5fa", fontSize: 12, fontWeight: 700, margin: "0 0 8px 0" }}>
+                      🍎 En iPhone — Sin pasos extra
+                    </p>
+                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, margin: "0 0 6px 0", lineHeight: 1.5 }}>
+                      iPhone gestiona las notificaciones a nivel del sistema. Cuando vuelves a conectarte, llegan solas sin abrir la app.
+                    </p>
+                    <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, margin: "4px 0 0 0" }}>
+                      ⚠️ Requiere iOS 16.4 o más reciente · Solo llega la última notificación si estuviste sin internet.
+                    </p>
+                  </div>
+                )}
+              </div>
           </div>
         )}
       </>
