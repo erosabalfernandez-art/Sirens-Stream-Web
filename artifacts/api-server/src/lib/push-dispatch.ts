@@ -25,7 +25,27 @@ import webPush, { PushSubscriptionJSON } from 'web-push';
       return { apikey: key, Authorization: `Bearer ${key}` };
     }
 
-    export async function deleteSubscription(userId: string) {
+
+      async function writeInApp(title: string, body: string): Promise<void> {
+        try {
+          const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+          await fetch(
+            (process.env.SUPABASE_URL ?? '') + '/rest/v1/channel_messages',
+            {
+              method: 'POST',
+              headers: {
+                apikey: supaKey,
+                Authorization: 'Bearer ' + supaKey,
+                'Content-Type': 'application/json',
+                Prefer: 'return=minimal',
+              },
+              body: JSON.stringify({ app_name: 'sistema', content: title + ' — ' + body }),
+            }
+          );
+        } catch { /* fire-and-forget */ }
+      }
+
+      export async function deleteSubscription(userId: string) {
       try {
         await fetch(
           sbUrl(`push_subscriptions?user_id=eq.${encodeURIComponent(userId)}`),
