@@ -62,7 +62,8 @@ import webPush, { PushSubscriptionJSON } from 'web-push';
       try {
         await webPush.sendNotification(
           subscription as Parameters<typeof webPush.sendNotification>[0],
-          payload
+          payload,
+          { TTL: 604800 } // 1 semana — guardado por el servicio push si el dispositivo está sin internet
         );
         return 'sent';
       } catch (err: unknown) {
