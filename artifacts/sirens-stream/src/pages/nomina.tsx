@@ -1477,7 +1477,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                                 <div className="flex items-center gap-2">
                                   <p className="font-bold text-base leading-tight">{n.apodo}</p>
                                   {(w.metodo_pago ?? '').toLowerCase().includes('efectivo')
-                                  {(w.metodo_pago ?? '').toLowerCase().includes('efectivo')
                                       ? (coliderMarks.has(w.user_id)
                                           ? <span title="Pagado por cólider ✓" className="text-xs bg-teal-500/15 border border-teal-500/30 text-teal-300 px-1.5 py-0.5 rounded-full font-bold select-none shrink-0">✓ Cólider</span>
                                           : <span title="Pendiente de pago por cólider" className="text-xs bg-amber-500/8 border border-amber-500/20 text-amber-400/70 px-1.5 py-0.5 rounded-full font-medium select-none shrink-0">⏳ Cólider</span>
