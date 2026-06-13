@@ -14,6 +14,8 @@ import { logger } from './logger';
     /** Formats the Telegram notification message */
     function buildTelegramText(title: string, body?: string): string {
       return body ? `${title}\n\n${body}` : title;
+    }
+
 
     export async function sendTelegramMessage(chatId: string | number, text: string): Promise<boolean> {
       if (!BOT_TOKEN) return false;
