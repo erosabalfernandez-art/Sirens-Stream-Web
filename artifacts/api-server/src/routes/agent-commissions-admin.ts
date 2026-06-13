@@ -163,7 +163,7 @@ import { Router } from 'express'
         await sbPost('published_agent_commissions?on_conflict=semana,agent_user_id,app_name,worker_name', rows, 'resolution=merge-duplicates,return=minimal')
         const total = billableCommissions.reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
         await sbPost('agent_commission_publish_log?on_conflict=semana,agent_user_id', { semana, agent_user_id: effectiveId, agent_name, total_usd: total, published_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
-        if (rawAgentId && ensureVapid()) setImmediate(() => { dispatchPush([rawAgentId], '💰 Tu comisión está disponible', `Semana ${semana} — $${total.toFixed(2)} USD. Entra a verla.`, '/agente').catch(() => {}) })
+        if (rawAgentId && ensureVapid()) setImmediate(() => { dispatchPush([rawAgentId], '💰 Tu comisión está disponible', `Tu comisión de la semana ${semana} ha sido publicada: ${total.toFixed(2)} USD.`, '/agente').catch(() => {}) })
         res.json({ ok: true, total_usd: total })
       } catch (e) { res.status(500).json({ error: String(e) }) }
     })
@@ -174,7 +174,7 @@ import { Router } from 'express'
       await sbPost('colider_commission_publish_log?on_conflict=semana', { semana, published_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
       const coliders = await sbGet('profiles?is_colider=eq.true&select=id')
       const ids = (coliders as any[]).map((c: any) => c.id as string)
-      if (ids.length > 0 && ensureVapid()) setImmediate(() => { dispatchPush(ids, '💰 Comisiones de agentes disponibles', `Semana ${semana} — Entra a tu panel para ver los montos.`, '/colider').catch(() => {}) })
+      if (ids.length > 0 && ensureVapid()) setImmediate(() => { dispatchPush(ids, '💰 Comisiones publicadas', `Las comisiones de agentes de la semana ${semana} ya están disponibles en tu panel.`, '/colider').catch(() => {}) })
       res.json({ ok: true })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
