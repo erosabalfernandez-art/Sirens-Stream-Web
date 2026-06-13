@@ -200,8 +200,25 @@ import { useState, useEffect, useRef } from "react";
               </ol>
 
               <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 22, textAlign: "center" }}>
-                Una vez instalada con Firefox recibirás notificaciones aunque el navegador esté cerrado, incluso en Cuba
-              </p>
+                  Una vez instalada con Firefox recibirás notificaciones aunque el navegador esté cerrado, incluso en Cuba
+                </p>
+
+                {!ios && (
+                  <div style={{ background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.25)", borderRadius: 12, padding: "12px 14px", marginTop: 14 }}>
+                    <p style={{ color: "#fbbf24", fontSize: 12, fontWeight: 700, margin: "0 0 8px 0" }}>
+                      🔋 Paso extra importante — Batería
+                    </p>
+                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, margin: "0 0 6px 0", lineHeight: 1.5 }}>
+                      Android apaga Firefox en segundo plano y bloquea las notificaciones. Hazlo una sola vez:
+                    </p>
+                    <ol style={{ margin: 0, padding: "0 0 0 16px", color: "rgba(255,255,255,0.6)", fontSize: 11, lineHeight: 1.9 }}>
+                      <li>⚙️ Ajustes del teléfono</li>
+                      <li>📱 Aplicaciones → Firefox</li>
+                      <li>🔋 Batería</li>
+                      <li>✅ Elige <strong style={{ color: "#fbbf24" }}>"Sin restricciones"</strong></li>
+                    </ol>
+                  </div>
+                )}
             </div>
           </div>
         )}
