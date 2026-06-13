@@ -556,42 +556,85 @@ import { useLanguage } from "@/contexts/LanguageContext";
           </>
         );
       }
-        /* ── Zoomable Image (pinch + wheel) ── */
+        /* ── Zoomable Image (pinch + wheel + pan) ── */
     function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       const [scale, setScale] = useState(1)
+      const [pos, setPos] = useState({ x: 0, y: 0 })
       const wrapRef = useRef<HTMLDivElement>(null)
       const lastPinchDist = useRef<number | null>(null)
+      const dragStart = useRef<{ tx: number; ty: number; px: number; py: number } | null>(null)
+      const lastTap = useRef<number>(0)
+      const scaleRef = useRef(1)
+      scaleRef.current = scale
+
       useEffect(() => {
         const el = wrapRef.current
         if (!el) return
         const onWheel = (e: WheelEvent) => {
           e.preventDefault()
-          setScale(s => Math.min(Math.max(1, s - e.deltaY * 0.003), 6))
+          setScale(s => {
+            const next = Math.min(Math.max(1, s - e.deltaY * 0.003), 6)
+            if (next === 1) setPos({ x: 0, y: 0 })
+            return next
+          })
         }
         el.addEventListener('wheel', onWheel, { passive: false })
         return () => el.removeEventListener('wheel', onWheel)
       }, [])
+
+      function onTouchStart(e: React.TouchEvent) {
+        if (e.touches.length === 1) {
+          const now = Date.now()
+          if (now - lastTap.current < 280) { setScale(1); setPos({ x: 0, y: 0 }) }
+          lastTap.current = now
+          dragStart.current = { tx: e.touches[0].clientX, ty: e.touches[0].clientY, px: pos.x, py: pos.y }
+        }
+      }
+
       function onTouchMove(e: React.TouchEvent) {
+        e.stopPropagation()
         if (e.touches.length === 2) {
           const dx = e.touches[0].clientX - e.touches[1].clientX
           const dy = e.touches[0].clientY - e.touches[1].clientY
           const dist = Math.sqrt(dx * dx + dy * dy)
           if (lastPinchDist.current !== null) {
-            setScale(s => Math.min(Math.max(1, s * (dist / lastPinchDist.current!)), 6))
+            const ratio = dist / lastPinchDist.current
+            setScale(s => Math.min(Math.max(1, s * ratio), 6))
           }
           lastPinchDist.current = dist
+          dragStart.current = null
+        } else if (e.touches.length === 1 && dragStart.current && scaleRef.current > 1) {
+          const dx = e.touches[0].clientX - dragStart.current.tx
+          const dy = e.touches[0].clientY - dragStart.current.ty
+          setPos({ x: dragStart.current.px + dx, y: dragStart.current.py + dy })
         }
       }
+
       function onTouchEnd() { lastPinchDist.current = null }
-      function onDblClick() { setScale(1) }
+
+      function onMouseDown(e: React.MouseEvent) {
+        if (scaleRef.current > 1) dragStart.current = { tx: e.clientX, ty: e.clientY, px: pos.x, py: pos.y }
+      }
+      function onMouseMove(e: React.MouseEvent) {
+        if (dragStart.current && scaleRef.current > 1 && e.buttons === 1)
+          setPos({ x: dragStart.current.px + e.clientX - dragStart.current.tx, y: dragStart.current.py + e.clientY - dragStart.current.ty })
+      }
+      function onMouseUp() { dragStart.current = null }
+
       return (
-        <div ref={wrapRef} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onDoubleClick={onDblClick}
+        <div ref={wrapRef}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
           onClick={e => e.stopPropagation()}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'none', cursor: scale > 1 ? 'zoom-out' : 'zoom-in', position: 'relative' }}>
-          <img src={src} alt={alt}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'none', overflow: 'hidden', cursor: scale > 1 ? 'grab' : 'zoom-in', position: 'relative', width: '100%' }}>
+          <img src={src} alt={alt} draggable={false}
             style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
-              transform: `scale(${scale})`, transition: scale === 1 ? 'transform 0.2s ease' : 'none', userSelect: 'none', pointerEvents: 'none' }} />
-          {scale > 1 && <div style={{ position: 'absolute', bottom: -28, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>{typeof window !== 'undefined' && localStorage.getItem('ea_lang') === 'pt' ? 'Duplo toque/clique para redefinir' : 'Doble toque/clic para restablecer'} · {Math.round(scale * 100)}%</div>}
+              transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`, transition: scale === 1 ? 'transform 0.25s ease' : 'none', userSelect: 'none', pointerEvents: 'none', display: 'block' }} />
+          {scale > 1 && <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '11px', pointerEvents: 'none', textShadow: '0 1px 4px #000' }}>Doble toque para restablecer · {Math.round(scale * 100)}%</div>}
         </div>
       )
     }
