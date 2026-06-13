@@ -106,7 +106,7 @@ import { Router } from 'express';
         try {
           const preview = content?.trim().slice(0, 80) ?? '📷 Imagen';
           if (ids.length > 0) {
-            await dispatchPush(ids, `📢 Nuevo comunicado — ${app_name}`, preview, '/canales');
+            await dispatchPush(ids, `📢 Nuevo comunicado — ${app_name}`, `Se ha publicado un nuevo comunicado en el canal ${app_name}.`, '/canales');
           }
         } catch {}
       });
