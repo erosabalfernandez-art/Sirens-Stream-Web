@@ -107,10 +107,10 @@ import { useState, useEffect, useRef } from "react";
       ["✅", "Toca Agregar", "¡Ya tendrás el ícono en tu pantalla!"],
     ];
     const androidSteps = [
-      ["🦊", "Abre en Firefox", "Descarga Firefox gratis — es la opción recomendada para recibir notificaciones en Cuba y cualquier país sin depender de Google"],
-      ["⋮", "Menú de opciones", "Toca los 3 puntos en la esquina inferior derecha de Firefox"],
-      ["➕", "\"Instalar\"", "Selecciona \"Instalar\" o \"Añadir a pantalla de inicio\""],
-      ["✅", "Toca Instalar", "¡Listo! Recibirás notificaciones aunque el navegador esté cerrado, incluso en Cuba"],
+      ["🦊", "Abre en Firefox", "Descarga Firefox gratis y abre la página en Firefox — recomendado para recibir notificaciones"],
+      ["⋮", "3 puntitos arriba a la derecha", "Toca los 3 puntos en la esquina superior derecha de Firefox"],
+      ["➕", "Toca \"MÁS\"", "En el menú que se abre, busca y toca \"MÁS\""],
+      ["🏠", "\"Añadir a pantalla de inicio\"", "Selecciona esa opción y acepta todo lo que te pida — ¡listo!"],
     ];
     const steps = ios ? iosSteps : androidSteps;
 
