@@ -18,6 +18,7 @@ import agentCommissionsAdminRouter from './agent-commissions-admin';
 import customWorkerRatesRouter from './custom-worker-rates';
 import rankingRouter from './ranking';
 import workerEntriesRouter from './worker-entries';
+import inAppNotificationsRouter from './in-app-notifications';
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(agentCommissionsAdminRouter);
 router.use(customWorkerRatesRouter);
 router.use(rankingRouter);
 router.use(workerEntriesRouter);
+router.use(inAppNotificationsRouter);
 
 export default router;
