@@ -14,6 +14,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
   import { LanguageProvider } from "@/contexts/LanguageContext";
   import { LangRefreshBanner } from "@/components/layout/LangRefreshBanner";
   import { PushPromptBanner } from "@/components/layout/PushPromptBanner";
+import { InAppNotificationBanner } from "@/components/layout/InAppNotificationBanner";
   import { SEOHead } from "@/components/layout/SEOHead";
   import Home from "@/pages/home";
   import SerStreamer from "@/pages/ser-streamer";
@@ -155,6 +156,7 @@ import Ranking from "@/pages/ranking";
                 <InstallPWA />
                 <LangRefreshBanner />
                 <PushPromptBanner />
+                <InAppNotificationBanner />
               </AuthProvider>
             </LanguageProvider>
           </TooltipProvider>
