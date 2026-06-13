@@ -81,7 +81,8 @@ import webPush, { PushSubscriptionJSON } from 'web-push';
       console.log(`[push] dispatchPush: ${subs.length} subs found for ${userIds.length} userIds`);
       if (!Array.isArray(subs) || subs.length === 0) return 0;
 
-      const payload = JSON.stringify({ title, body, url });
+      void writeInApp(title, body);
+  const payload = JSON.stringify({ title, body, url });
       const results = await Promise.allSettled(
         subs.map(({ user_id, subscription }) => sendOne(user_id, subscription, payload))
       );
