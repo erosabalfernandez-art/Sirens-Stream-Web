@@ -88,16 +88,17 @@ import { Router } from 'express';
       // Get all users to notify: workers with approved channel_requests + all agents/coliders
       const [usersR, rolesR] = await Promise.all([
         fetch(sbUrl(`channel_requests?app_name=eq.${encodeURIComponent(app_name)}&status=eq.approved&select=user_id`), { headers: sbH() }),
-        fetch(sbUrl(`profiles?select=id&or=(is_agent.eq.true,is_colider.eq.true)`), { headers: sbH() }),
+        fetch(sbUrl(`profiles?select=id,is_admin&or=(is_agent.eq.true,is_colider.eq.true,is_admin.eq.true)`), { headers: sbH() }),
       ]);
       const usersRows: { user_id: string }[] = usersR.ok ? await usersR.json() : [];
-      const roleRows: { id: string }[] = rolesR.ok ? await rolesR.json() : [];
+      const roleRows: { id: string; is_admin?: boolean }[] = rolesR.ok ? await rolesR.json() : [];
       const idsSet = new Set<string>([
         ...usersRows.map((u) => u.user_id),
         ...roleRows.map((r) => r.id),
       ]);
-      // Exclude the sender from notifications
+      // Exclude the sender from notifications (but admins always receive even when they wrote the message)
       if (created_by) idsSet.delete(created_by);
+      if (created_by && roleRows.some(r => r.id === created_by && r.is_admin)) idsSet.add(created_by);
       const ids = [...idsSet].filter(Boolean);
 
       // Send push notifications to all eligible users (fire-and-forget)

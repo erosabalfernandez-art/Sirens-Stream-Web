@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Bell, X, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { subscribeToPush, checkPushEndpointInDB, wasManuallyUnsubscribed } from '@/lib/push';
 
 const SEEN_KEY = 'ea_inapp_last_seen';
 
@@ -53,7 +54,22 @@ export function InAppNotificationBanner() {
       void registerPeriodicSync();
     }, []);
 
-    useEffect(() => { void fetchNotifs(); }, [fetchNotifs]);
+    // Auto-resubscribe silently when subscription is stale/expired (fixes inactivity push failure)
+      useEffect(() => {
+        if (!user?.id) return;
+        async function autoResubscribe() {
+          if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+          if (Notification.permission !== 'granted') return;
+          if (wasManuallyUnsubscribed(user!.id)) return;
+          try {
+            const synced = await checkPushEndpointInDB(user!.id);
+            if (!synced) await subscribeToPush(user!.id);
+          } catch { /* silent */ }
+        }
+        void autoResubscribe();
+      }, [user?.id]);
+
+      useEffect(() => { void fetchNotifs(); }, [fetchNotifs]);
 
   useEffect(() => {
     if (!user) return;
