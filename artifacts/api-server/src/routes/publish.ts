@@ -510,7 +510,7 @@ import { Router } from 'express';
               await dispatchPushIndividual([{
                 userId: profs[0].id,
                 title: '✅ Pago confirmado',
-                body: `Se ha confirmado un pago de la semana ${semana} en ${app_name}.`,
+                body: 'Se ha confirmado un pago. Entra a la web para verlo.',
                 url: '/agente',
               }]);
             } catch { /* fire-and-forget */ }
