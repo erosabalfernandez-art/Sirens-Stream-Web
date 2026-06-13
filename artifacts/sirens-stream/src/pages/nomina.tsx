@@ -676,6 +676,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const fileRef = useRef<HTMLInputElement>(null)
   const [paidMarks, setPaidMarks] = useState<Set<string>>(new Set())
   const [togglingPaid, setTogglingPaid] = useState<string | null>(null)
+  const [coliderMarks, setColiderMarks] = useState<Set<string>>(new Set())
 
   // Filter states
   const [fPais, setFPais] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_pais`) ?? '' } catch { return '' } })
@@ -805,11 +806,16 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     } catch {}
   }, [fPais, fPago, fEmail, fBilletera, fAgente, fNombreReal, fNombreApp, fIdApp, fTelefono, fSortDir, app])
 
-  // Load paidMarks from Supabase when semana/app loads
+  // Load paidMarks + coliderMarks from Supabase when semana/app loads
   useEffect(() => {
-    if (!semana || !app) { setPaidMarks(new Set()); return }
-    supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', semana)
-      .then(({ data }) => { if (data) setPaidMarks(new Set(data.map((r: { uid: string }) => r.uid))) })
+    if (!semana || !app) { setPaidMarks(new Set()); setColiderMarks(new Set()); return }
+    Promise.all([
+      supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', semana),
+      supabase.from('colider_marks').select('person_uid').eq('semana', semana).eq('person_app', app).eq('paid', true),
+    ]).then(([adminRes, coliderRes]) => {
+      if (adminRes.data) setPaidMarks(new Set(adminRes.data.map((r: { uid: string }) => r.uid)))
+      if (coliderRes.data) setColiderMarks(new Set(coliderRes.data.map((r: { person_uid: string }) => r.person_uid)))
+    })
   }, [semana, app])
 
   // ▶ FIX: Persist aiSummary to localStorage once Groq async response arrives
@@ -1417,6 +1423,39 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                       </div>
                     </div>
 
+                    {/* Payment progress bars */}
+                    {cobradas.length > 0 && (() => {
+                      const efWorkers = cobradas.filter(({ worker: w }) => (w.metodo_pago ?? '').toLowerCase().includes('efectivo'))
+                      const agWorkers = cobradas.filter(({ worker: w }) => !(w.metodo_pago ?? '').toLowerCase().includes('efectivo'))
+                      const efPaid = efWorkers.filter(({ worker: w }) => coliderMarks.has(w.user_id)).length
+                      const agPaid = agWorkers.filter(({ worker: w }) => paidMarks.has(w.user_id)).length
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2">
+                          {efWorkers.length > 0 && (
+                            <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-teal-300 uppercase tracking-wider">💵 Cólider — efectivo</span>
+                                <span className="text-xs font-bold text-teal-400">{efPaid}/{efWorkers.length}</span>
+                              </div>
+                              <div className="w-full bg-white/8 rounded-full h-2 overflow-hidden">
+                                <div className="bg-teal-400 h-2 rounded-full transition-all duration-500" style={{ width: `${efWorkers.length > 0 ? Math.round((efPaid/efWorkers.length)*100) : 0}%` }} />
+                              </div>
+                            </div>
+                          )}
+                          {agWorkers.length > 0 && (
+                            <div className="bg-[#0d0d1e] border border-green-500/15 rounded-2xl p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-green-300 uppercase tracking-wider">🏦 Agencia — transferencias</span>
+                                <span className="text-xs font-bold text-green-400">{agPaid}/{agWorkers.length}</span>
+                              </div>
+                              <div className="w-full bg-white/8 rounded-full h-2 overflow-hidden">
+                                <div className="bg-green-400 h-2 rounded-full transition-all duration-500" style={{ width: `${agWorkers.length > 0 ? Math.round((agPaid/agWorkers.length)*100) : 0}%` }} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                     {cobradasFiltered.length === 0 && cobradas.length > 0 && <Empty msg="No hay resultados con los filtros aplicados." />}
                     {cobradas.length === 0 && <Empty msg="Ninguna chica cobró o no se encontraron coincidencias." />}
                     {cobradasFiltered.map(({ worker: w, nomina: n }, _cfIdx) => {
@@ -1430,7 +1469,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                       return (<>
                         {_showPureHdr&&<p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/50 pb-2">👩 Trabajadoras</p>}
                         {_showDualHdr&&<p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/50 pb-2 pt-3">🔗 Agente + Trabajadora</p>}
-                        <div key={n.uid} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
+                        <div key={n.uid} className={`bg-[#0d0d1e] border rounded-2xl overflow-hidden ${ (w.metodo_pago ?? '').toLowerCase().includes('efectivo') ? (coliderMarks.has(w.user_id) ? 'border-teal-500/30' : 'border-amber-500/15') : 'border-purple-500/10' }`}>
                           <div className="px-5 py-4 flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3 min-w-0">
                               <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-300 font-extrabold text-sm shrink-0">W</div>
@@ -1438,7 +1477,11 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                                 <div className="flex items-center gap-2">
                                   <p className="font-bold text-base leading-tight">{n.apodo}</p>
                                   {(w.metodo_pago ?? '').toLowerCase().includes('efectivo')
-                                      ? <span title="cobra en efectivo — pago del colíder" className="text-xs bg-teal-500/8 border border-teal-500/20 text-teal-400/50 px-1.5 py-0.5 rounded-full font-medium select-none shrink-0">💵</span>
+                                  {(w.metodo_pago ?? '').toLowerCase().includes('efectivo')
+                                      ? (coliderMarks.has(w.user_id)
+                                          ? <span title="Pagado por cólider ✓" className="text-xs bg-teal-500/15 border border-teal-500/30 text-teal-300 px-1.5 py-0.5 rounded-full font-bold select-none shrink-0">✓ Cólider</span>
+                                          : <span title="Pendiente de pago por cólider" className="text-xs bg-amber-500/8 border border-amber-500/20 text-amber-400/70 px-1.5 py-0.5 rounded-full font-medium select-none shrink-0">⏳ Cólider</span>
+                                        )
                                       : <button
                                           onClick={() => togglePaid(n.uid)}
                                           disabled={togglingPaid === n.uid}
