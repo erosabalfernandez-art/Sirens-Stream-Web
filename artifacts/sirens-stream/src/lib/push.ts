@@ -106,8 +106,16 @@ export async function subscribeToPush(userId: string): Promise<'granted' | 'deni
       console.error("Failed to save push subscription:", await saveRes.text());
       return 'error';
     }
-    return 'granted';
-  } catch (e) {
+    // Store user_id in SW (needed for pushsubscriptionchange auto-renewal)
+      // Register Background Sync so device wakes SW when internet returns.
+      try {
+        const swReg = await navigator.serviceWorker.ready;
+        swReg.active?.postMessage({ type: 'STORE_USER_ID', userId });
+        await (swReg as any).sync.register('ea-reconnect-check');
+      } catch { /* Background Sync not supported on all browsers */ }
+
+      return 'granted';
+    } catch (e) {
     console.error("Push registration failed:", e);
     if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return 'denied';
     return 'error';

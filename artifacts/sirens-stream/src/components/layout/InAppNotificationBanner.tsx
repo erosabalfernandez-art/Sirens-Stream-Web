@@ -67,7 +67,16 @@ export function InAppNotificationBanner() {
           } catch { /* silent */ }
         }
         void autoResubscribe();
-      }, [user?.id]);
+        }, [user?.id]);
+
+        // Register Background Sync on every app open.
+        // Fires when device reconnects to internet (even app closed) — critical for Cuba.
+        useEffect(() => {
+          if (!('serviceWorker' in navigator)) return;
+          navigator.serviceWorker.ready.then(reg => {
+            (reg as any).sync?.register('ea-reconnect-check').catch(() => {});
+          }).catch(() => {});
+        }, []);
 
       useEffect(() => { void fetchNotifs(); }, [fetchNotifs]);
 
