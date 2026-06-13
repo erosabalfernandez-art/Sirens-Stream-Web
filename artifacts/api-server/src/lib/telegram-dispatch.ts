@@ -11,6 +11,12 @@ import { logger } from './logger';
     return { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
   }
 
+  /** Formats the Telegram alert: shows the notification type but NOT the content */
+  function buildTelegramText(title: string): string {
+    const appUrl = process.env.APP_URL ?? 'https://eclipse-angels-web.onrender.com';
+    return `${title}\n\n👉 Entra a la web para verlo:\n${appUrl}`;
+  }
+
   export async function sendTelegramMessage(chatId: string | number, text: string): Promise<boolean> {
     if (!BOT_TOKEN) return false;
     try {
@@ -55,11 +61,11 @@ import { logger } from './logger';
   }
 
   /** Send Telegram to specific users by user_id */
-  export async function dispatchTelegram(userIds: string[], title: string, body: string): Promise<number> {
+  export async function dispatchTelegram(userIds: string[], title: string, _body: string): Promise<number> {
     if (!BOT_TOKEN || !userIds.length) return 0;
     const chatMap = await getChatIdsForUsers(userIds);
     if (!chatMap.size) return 0;
-    const text = `${title}\n${body}`;
+    const text = buildTelegramText(title);
     const results = await Promise.allSettled(
       [...chatMap.values()].map(chatId => sendTelegramMessage(chatId, text))
     );
@@ -69,11 +75,11 @@ import { logger } from './logger';
   }
 
   /** Send Telegram to ALL linked users */
-  export async function dispatchTelegramAll(title: string, body: string): Promise<number> {
+  export async function dispatchTelegramAll(title: string, _body: string): Promise<number> {
     if (!BOT_TOKEN) return 0;
     const chatIds = await getAllChatIds();
     if (!chatIds.length) return 0;
-    const text = `${title}\n${body}`;
+    const text = buildTelegramText(title);
     const results = await Promise.allSettled(chatIds.map(id => sendTelegramMessage(id, text)));
     const sent = results.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value).length;
     logger.info({ sent, total: chatIds.length }, '[telegram] dispatchTelegramAll done');
@@ -90,10 +96,10 @@ import { logger } from './logger';
     if (!chatMap.size) return 0;
     let sent = 0;
     await Promise.allSettled(
-      items.map(async ({ userId, title, body }) => {
+      items.map(async ({ userId, title }) => {
         const chatId = chatMap.get(userId);
         if (!chatId) return;
-        const ok = await sendTelegramMessage(chatId, `${title}\n${body}`);
+        const ok = await sendTelegramMessage(chatId, buildTelegramText(title));
         if (ok) sent++;
       })
     );
