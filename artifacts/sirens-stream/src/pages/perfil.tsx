@@ -270,7 +270,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
             </div>
 
 
-            <PushNotificationCard userId={user?.id ?? ''} lang={lang} />
+            <TelegramLinkCard userId={user?.id ?? ''} lang={lang} />
 
 
             <div className="mb-6">
