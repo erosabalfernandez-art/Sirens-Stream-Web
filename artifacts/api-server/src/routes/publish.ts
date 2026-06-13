@@ -166,7 +166,7 @@ import { Router } from 'express';
             if (ids.length > 0) {
               await dispatchPush(ids,
                 `💰 Nómina publicada — ${app_name}`,
-                `Se han procesado ${valid.length} salario${valid.length !== 1 ? 's' : ''} para la semana ${semana}.`,
+                `Los salarios de la semana ${semana} han sido publicados.`,
                 '/nomina'
               );
             }
@@ -492,7 +492,7 @@ import { Router } from 'express';
               await dispatchPushIndividual([{
                 userId: profs[0].id,
                 title: '✅ Pago confirmado',
-                body: `Se ha confirmado el cobro de la semana ${semana} en ${app_name}.`,
+                body: `Se ha confirmado un pago de la semana ${semana} en ${app_name}.`,
                 url: '/agente',
               }]);
             } catch { /* fire-and-forget */ }
