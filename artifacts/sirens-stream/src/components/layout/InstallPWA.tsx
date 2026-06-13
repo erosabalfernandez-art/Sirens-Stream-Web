@@ -67,7 +67,7 @@ import { useState, useEffect, useRef } from "react";
       const onMove = (ev: PointerEvent) => {
         const dx = ev.clientX - startClientX;
         const dy = ev.clientY - startClientY;
-        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+        if (Math.abs(dx) > 12 || Math.abs(dy) > 12) moved = true;
         if (!moved) return;
         const newPos = clampPos(startX + dx, startY + dy, btnW, btnH);
         posRef.current = newPos;
@@ -200,7 +200,7 @@ import { useState, useEffect, useRef } from "react";
               </ol>
 
               <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 22, textAlign: "center" }}>
-                Una vez instalada podrás activar notificaciones push desde tu perfil
+                Una vez instalada con Firefox recibirás notificaciones aunque el navegador esté cerrado, incluso en Cuba
               </p>
             </div>
           </div>
