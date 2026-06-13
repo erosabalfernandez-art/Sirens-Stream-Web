@@ -145,9 +145,7 @@ import { Router } from 'express';
           const notifItems = valid.map(insert => ({
             userId: insert.user_id,
             title: `💰 Tu salario de ${insert.app_name} está listo`,
-                        body: insert.app_name === 'Layla'
-              ? `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} USD`
-              : `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} · ${Number(insert.diamantes).toLocaleString('es-ES')} 💎`,
+                        body: `Tu pago de la semana ${insert.semana} ya está disponible.`,
             url: '/salarios',
           }));
           dispatchPushIndividual(notifItems).catch(() => {});
@@ -254,7 +252,7 @@ import { Router } from 'express';
               .map(ins => ({
                 userId: agentIdMap[ins.agent_name],
                 title: `💰 Tu comisión de ${ins.app_name} está disponible`,
-                body: `Semana ${ins.semana} — ${Number(ins.total_commission_usd).toFixed(2)} USD. Entra a verla.`,
+                body: `Tu comisión de la semana ${ins.semana} ha sido publicada.`,
                 url: '/agente',
               }));
             if (agentNotifItems.length > 0) dispatchPushIndividual(agentNotifItems).catch(() => {});
@@ -311,14 +309,34 @@ import { Router } from 'express';
         })
       ))
       res.json({ ok: true, updated: records.length })
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'unknown error'
-      res.status(500).json({ error: msg })
-    }
-  })
+        // Notify workers that their CUP salary is ready (fire-and-forget)
+        setImmediate(async () => {
+          try {
+            const userIds = Object.keys(cups);
+            if (!userIds.length) return;
+            const salRes = await fetch(
+              sbUrl(`published_salaries?semana=eq.${encodeURIComponent(semana)}&user_id=in.(${userIds.map((id: string) => '"' + id + '"').join(',')})&select=user_id,app_name`),
+              { headers: sbHeaders() as Record<string, string> }
+            );
+            if (!salRes.ok) return;
+            const salRows = (await salRes.json()) as { user_id: string; app_name: string }[];
+            if (!salRows.length) return;
+            await dispatchPushIndividual(salRows.map(r => ({
+              userId: r.user_id,
+              title: `💰 Tu salario de ${r.app_name} está listo`,
+              body: `Tu pago de la semana ${semana} ya está disponible.`,
+              url: '/salarios',
+            })));
+          } catch { /* best-effort */ }
+        });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'unknown error'
+        res.status(500).json({ error: msg })
+      }
+    })
 
 
-    // GET /api/no-cobro — admin: all no-cobro entries enriched with worker + agent data
+      // GET /api/no-cobro — admin: all no-cobro entries enriched with worker + agent data
       router.get('/no-cobro', async (req, res) => {
         try {
           const h = sbHeaders() as Record<string, string>;
