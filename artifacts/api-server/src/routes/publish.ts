@@ -309,7 +309,27 @@ import { Router } from 'express';
         })
       ))
       res.json({ ok: true, updated: records.length })
-        // Notify workers that their CUP salary is ready (fire-and-forget)
+      // Notify workers that their CUP salary is now ready (fire-and-forget)
+        setImmediate(async () => {
+          try {
+            const userIds = Object.keys(cups);
+            if (!userIds.length) return;
+            const salRes = await fetch(
+              sbUrl(`published_salaries?semana=eq.${encodeURIComponent(semana)}&user_id=in.(${userIds.map((id: string) => '"' + id + '"').join(',')})&select=user_id,app_name`),
+              { headers: sbHeaders() as Record<string, string> }
+            );
+            if (!salRes.ok) return;
+            const salRows = (await salRes.json()) as { user_id: string; app_name: string }[];
+            if (!salRows.length) return;
+            await dispatchPushIndividual(salRows.map(r => ({
+              userId: r.user_id,
+              title: `💰 Tu salario de ${r.app_name} está listo`,
+              body: 'Entra a la web para ver tu pago.',
+              url: '/salarios',
+            })));
+          } catch { /* best-effort */ }
+        });
+          // Notify workers that their CUP salary is ready (fire-and-forget)
         setImmediate(async () => {
           try {
             const userIds = Object.keys(cups);
@@ -463,8 +483,8 @@ import { Router } from 'express';
                 userId: ncEntry.user_id,
                 title: justified ? 'ℹ️ Ausencia de cobro justificada' : '⚠️ Sin cobro registrado',
                 body: justified
-                  ? `Tu semana sin cobro en ${ncEntry.app_name} (${ncEntry.semana}) fue marcada como justificada por el admin.`
-                  : `Tu semana sin cobro en ${ncEntry.app_name} (${ncEntry.semana}) fue desmarcada.`,
+                  ? 'El estado de tu cobro ha sido actualizado. Entra a la web para verlo.'
+                  : 'El estado de tu cobro ha cambiado. Entra a la web para verlo.',
                 url: '/salarios',
               }]).catch(() => {});
             });
