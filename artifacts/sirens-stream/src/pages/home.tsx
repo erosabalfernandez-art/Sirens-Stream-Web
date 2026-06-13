@@ -235,7 +235,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
         {/* ── HERO SLIDER ── */}
         <section className="relative flex items-center overflow-hidden" style={{ minHeight: "60vh" }}>
           {/* Animated background image */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence initial={false} mode="wait">
               <motion.div
                 key={current + "-bg-img"}
                 initial={{ opacity: 0 }}
@@ -252,7 +252,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
               />
             </AnimatePresence>
             {/* Animated glow overlay */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence initial={false} mode="wait">
               <motion.div
                 key={current + "-bg"}
                 initial={{ opacity: 0 }}
@@ -273,7 +273,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
           <div className="relative z-10 max-w-7xl mx-auto px-5 py-14 w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               {/* Left: text */}
-              <AnimatePresence mode="wait" custom={direction}>
+              <AnimatePresence initial={false} mode="wait" custom={direction}>
                 <motion.div
                   key={current + "-text"}
                   custom={direction}
@@ -316,7 +316,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
               </AnimatePresence>
 
               {/* Right: animated cards column */}
-              <AnimatePresence mode="wait" custom={direction}>
+              <AnimatePresence initial={false} mode="wait" custom={direction}>
                 <motion.div
                   key={current + "-cards"}
                   custom={direction}
