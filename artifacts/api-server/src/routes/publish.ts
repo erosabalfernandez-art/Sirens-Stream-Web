@@ -77,8 +77,8 @@ import { Router } from 'express';
                   // Notify each no-cobro worker (fire-and-forget)
                   dispatchPushIndividual(zeroEarners.map(w => ({
                     userId: w.user_id,
-                    title: `⚠️ Semana sin cobro — ${app_name}`,
-                    body: `No tienes cobro registrado para la semana ${semana}. Contacta a tu agente si crees que es un error.`,
+                    title: `⚠️ Sin cobro registrado — ${app_name}`,
+                    body: `No se registró ningún cobro para la semana ${semana}. Si crees que es un error, comunícate con tu agente.`,
                     url: '/salarios',
                   }))).catch(() => {});
                 } catch { /* best-effort */ }
@@ -116,8 +116,8 @@ import { Router } from 'express';
                     // Notify each Layla no-cobro worker (fire-and-forget)
                     dispatchPushIndividual(laylaNoEarners.map(w => ({
                       userId: w.user_id,
-                      title: '⚠️ Semana sin cobro — Layla',
-                      body: `No tienes cobro registrado para la semana ${semana} en Layla. Contacta a tu agente si crees que es un error.`,
+                      title: '⚠️ Sin cobro registrado — Layla',
+                      body: `No se registró ningún cobro para la semana ${semana} en Layla. Si crees que es un error, comunícate con tu agente.`,
                       url: '/salarios',
                     }))).catch(() => {});
                   } catch { /* best-effort */ }
@@ -144,7 +144,7 @@ import { Router } from 'express';
         setImmediate(() => {
           const notifItems = valid.map(insert => ({
             userId: insert.user_id,
-            title: `💰 Tu salario de ${insert.app_name} está disponible`,
+            title: `💰 Tu salario de ${insert.app_name} está listo`,
                         body: insert.app_name === 'Layla'
               ? `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} USD`
               : `Semana ${insert.semana} — ${Number(insert.usd).toFixed(2)} · ${Number(insert.diamantes).toLocaleString('es-ES')} 💎`,
@@ -165,8 +165,8 @@ import { Router } from 'express';
             const ids = [...new Set([...agents.map(a => a.id), ...coliders.map(c => c.id)])];
             if (ids.length > 0) {
               await dispatchPush(ids,
-                `💰 Nómina de ${app_name} publicada`,
-                `Semana ${semana} · ${valid.length} trabajadora${valid.length !== 1 ? 's' : ''}. Entra a revisar.`,
+                `💰 Nómina publicada — ${app_name}`,
+                `Se han procesado ${valid.length} salario${valid.length !== 1 ? 's' : ''} para la semana ${semana}.`,
                 '/nomina'
               );
             }
@@ -443,7 +443,7 @@ import { Router } from 'express';
             setImmediate(() => {
               dispatchPushIndividual([{
                 userId: ncEntry.user_id,
-                title: justified ? 'ℹ️ Semana sin cobro justificada' : '⚠️ Semana sin cobro',
+                title: justified ? 'ℹ️ Ausencia de cobro justificada' : '⚠️ Sin cobro registrado',
                 body: justified
                   ? `Tu semana sin cobro en ${ncEntry.app_name} (${ncEntry.semana}) fue marcada como justificada por el admin.`
                   : `Tu semana sin cobro en ${ncEntry.app_name} (${ncEntry.semana}) fue desmarcada.`,
@@ -492,7 +492,7 @@ import { Router } from 'express';
               await dispatchPushIndividual([{
                 userId: profs[0].id,
                 title: '✅ Pago confirmado',
-                body: `Una trabajadora confirmó recibir su pago de la semana ${semana} (${app_name}).`,
+                body: `Se ha confirmado el cobro de la semana ${semana} en ${app_name}.`,
                 url: '/agente',
               }]);
             } catch { /* fire-and-forget */ }
