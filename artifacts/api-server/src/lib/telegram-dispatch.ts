@@ -99,7 +99,7 @@ import { logger } from './logger';
       items.map(async ({ userId, title }) => {
         const chatId = chatMap.get(userId);
         if (!chatId) return;
-        const ok = await sendTelegramMessage(chatId, buildTelegramText(title));
+        const ok = await sendTelegramMessage(chatId, buildTelegramText(title, body));
         if (ok) sent++;
       })
     );
