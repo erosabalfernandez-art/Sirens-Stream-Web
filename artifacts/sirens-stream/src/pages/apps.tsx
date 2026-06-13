@@ -275,6 +275,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
       /* ── Layla Guide Modal ── */
       function LaylaGuideModal({ onClose }: { onClose: () => void }) {
         const [imgExpanded, setImgExpanded] = useState<number | null>(null);
+        const { lang } = useLanguage();
         return (
           <>
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm" onClick={onClose}>
@@ -419,6 +420,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
       function HowdyGuideModal({ onClose }: { onClose: () => void }) {
         const [imgExpanded, setImgExpanded] = useState<number | null>(null);
         const [codeCopied, setCodeCopied] = useState(false);
+        const { lang } = useLanguage();
         const copyCode = () => { navigator.clipboard.writeText("R3DKXB5"); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 2000); };
         const guideImgs = [
           { src: "/images/howdy-guide-1.jpg", label: "Verificación — Inicio de sesión" },
