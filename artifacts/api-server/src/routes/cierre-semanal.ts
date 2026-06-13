@@ -339,9 +339,9 @@ import { dispatchPush } from '../lib/push-dispatch';
                 const coliderIds = coliders.map((r: any) => r.id as string).filter(Boolean);
                 const semLabel = latestSemana ?? '';
                 const notifs: Promise<any>[] = [];
-                if (workerIds.length > 0) notifs.push(dispatchPush(workerIds, '🔒 Semana cerrada', `Semana ${semLabel} cerrada. Tu historial de pagos está guardado en /salarios.`, '/salarios'));
-                if (agentIds.length  > 0) notifs.push(dispatchPush(agentIds,  '🔒 Semana cerrada', `Semana ${semLabel} cerrada. El ciclo se ha reiniciado.`, '/agente'));
-                if (coliderIds.length > 0) notifs.push(dispatchPush(coliderIds, '🔒 Semana cerrada', `El admin cerró la semana ${semLabel}. El ciclo se reinicia.`, '/colider'));
+                if (workerIds.length > 0) notifs.push(dispatchPush(workerIds, '🔒 Cierre de semana', `La semana ${semLabel} ha sido cerrada. Tu historial de pagos está disponible en la sección Salarios.`, '/salarios'));
+                if (agentIds.length  > 0) notifs.push(dispatchPush(agentIds,  '🔒 Cierre de semana', `La semana ${semLabel} ha concluido. El nuevo ciclo de trabajo ha comenzado.`, '/agente'));
+                if (coliderIds.length > 0) notifs.push(dispatchPush(coliderIds, '🔒 Cierre de semana', `La semana ${semLabel} ha sido cerrada por el administrador. El nuevo ciclo está activo.`, '/colider'));
                 await Promise.all(notifs);
               } catch { /* ignore push errors */ }
             });
