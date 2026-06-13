@@ -378,6 +378,8 @@ import { dispatchPush } from '../lib/push-dispatch';
       ['agent_payment_confirmations',   'id=gte.00000000-0000-0000-0000-000000000000'],
       ['direct_payment_notifications',  'id=gte.00000000-0000-0000-0000-000000000000'],
       ['nomina_history',                'id=gte.00000000-0000-0000-0000-000000000000'],
+      ['channel_messages',             'id=gte.00000000-0000-0000-0000-000000000000'],
+      ['payment_sticker_events',        'id=gte.00000000-0000-0000-0000-000000000000'],
     ]
 
     const results: Record<string, string> = {}
