@@ -340,11 +340,11 @@ const APP_COLORS = {
       setLoadingWorkers(true)
       Promise.all([
         supabase.from('worker_entries').select('*').eq('app_name', 'Layla'),
-        supabase.from('profiles').select('agent_name, agent_code').eq('is_agent', true),
+        supabase.from('profiles').select('agent_name, colider_name, agent_code').or('is_agent.eq.true,is_colider.eq.true'),
       ]).then(([{ data: workerData }, { data: agentData }]) => {
         setWorkers((workerData ?? []) as WorkerEntry[])
         const am: Record<string,string> = Object.fromEntries(
-          ((agentData ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
+          ((agentData ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.colider_name ?? a.agent_code])
         )
         setAgentNameMap(am)
         // Sync semana from localStorage (set by Waha upload, cleared by cierre semanal)
@@ -1075,11 +1075,11 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
       const [{ data: profs }, { data: agentProfsNom }] = await Promise.all([
         supabase.from('profiles').select('id, email'),
-        supabase.from('profiles').select('id, agent_name, agent_code, phone, telefono').eq('is_agent', true),
+        supabase.from('profiles').select('id, agent_name, colider_name, agent_code, phone, telefono').or('is_agent.eq.true,is_colider.eq.true'),
       ])
       const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
       const am2: Record<string,string> = Object.fromEntries(
-        ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.agent_code])
+        ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.colider_name ?? a.agent_code])
       )
       setAgentNameMap(am2)
       const idMap2: Record<string,string> = Object.fromEntries(
