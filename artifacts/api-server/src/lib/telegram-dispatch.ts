@@ -13,8 +13,8 @@ import { logger } from './logger';
 
     /** Formats the Telegram notification message */
     function buildTelegramText(title: string, body?: string): string {
-      const appUrl = process.env.APP_URL ?? 'https://eclipse-angels-web.onrender.com';
-      const base = body ? `${title}\n\n${body}` : title;
+      return body ? `${title}\n\n${body}` : title;
+    }\n\n${body}` : title;
       return `${base}\n\n👉 ${appUrl}`;
     }
 
