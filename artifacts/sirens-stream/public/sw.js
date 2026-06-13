@@ -1,59 +1,114 @@
-const CACHE_NAME = 'eclipse-angels-v4';
-const SHELL_ASSETS = ['/index.html'];
+const CACHE_NAME = 'eclipse-angels-v5';
+  const SHELL_ASSETS = ['/index.html'];
+  const API_BASE = 'https://eclipse-angels-web-api.onrender.com';
 
-self.addEventListener('install', (event) => {
-  // Pre-cache the app shell so offline navigation works
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_ASSETS))
-  );
-  // Do NOT call self.skipWaiting() here — let the app show an update banner
-  // and decide when to apply the new version gracefully
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-
-// Listen for SKIP_WAITING message from the React app
-// This is triggered when the user clicks "Actualizar" in the update banner
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+  // ── Cache helpers for tracking last-seen notification timestamp ───────────────
+  async function getLastSeen() {
+    try {
+      const cache = await caches.open('ea-notif-meta');
+      const r = await cache.match('/ea-last-seen');
+      return r ? await r.text() : '';
+    } catch { return ''; }
   }
-});
+  async function setLastSeen(iso) {
+    try {
+      const cache = await caches.open('ea-notif-meta');
+      await cache.put('/ea-last-seen', new Response(iso));
+    } catch { /* ignore */ }
+  }
 
-// Network-first for navigation; fall back to cached index.html for offline SPA support
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => caches.match('/index.html'))
+  // ── Check server for new notifications and show them ────────────────────────
+  async function checkAndShowNotifications() {
+    try {
+      const since = await getLastSeen();
+      const qs = since ? ('?since=' + encodeURIComponent(since)) : '';
+      const res = await fetch(API_BASE + '/api/in-app-notifications' + qs, { credentials: 'omit' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const notifs = data.notifications || [];
+      if (!notifs.length) return;
+
+      for (const notif of notifs) {
+        await self.registration.showNotification('📢 Eclipse Angels Agency', {
+          body: notif.content,
+          icon: '/images/eclipse-angels-logo.png',
+          badge: '/images/eclipse-angels-logo.png',
+          vibrate: [200, 100, 200],
+          tag: 'ea-notif-' + notif.id,       // deduplicate: same id = replace, not duplicate
+          renotify: false,
+          data: { url: '/' },
+        });
+      }
+      await setLastSeen(new Date().toISOString());
+    } catch { /* ignore network errors */ }
+  }
+
+  // ── Install ───────────────────────────────────────────────────────────────────
+  self.addEventListener('install', (event) => {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_ASSETS))
     );
-  }
-  // Let all other requests pass through normally (images, JS, CSS served by CDN/render)
-});
+  });
 
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const options = {
-    body: data.body || 'Tienes una nueva notificación.',
-    icon: '/images/eclipse-angels-logo.png',
-    badge: '/images/eclipse-angels-logo.png',
-    data: { url: data.url || '/salarios' },
-    vibrate: [200, 100, 200],
-  };
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Eclipse Angels Agency', options)
-  );
-});
+  // ── Activate ──────────────────────────────────────────────────────────────────
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(
+      caches.keys().then(keys =>
+        Promise.all(keys.filter(k => k !== CACHE_NAME && k !== 'ea-notif-meta').map(k => caches.delete(k)))
+      )
+    );
+    self.clients.claim();
+  });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url || '/';
-  event.waitUntil(clients.openWindow(url));
-});
+  // ── Messages from the React app ───────────────────────────────────────────────
+  self.addEventListener('message', (event) => {
+    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  });
+
+  // ── Fetch (SPA offline fallback) ──────────────────────────────────────────────
+  self.addEventListener('fetch', (event) => {
+    if (event.request.mode === 'navigate') {
+      event.respondWith(
+        fetch(event.request).catch(() => caches.match('/index.html'))
+      );
+    }
+  });
+
+  // ── Web Push (FCM / APNs / Mozilla) ──────────────────────────────────────────
+  // Works for: iPhone PWA (Apple), Firefox Android (Mozilla), Chrome outside Cuba (Google)
+  self.addEventListener('push', (event) => {
+    const data = event.data ? event.data.json() : {};
+    const options = {
+      body: data.body || 'Tienes una nueva notificación.',
+      icon: '/images/eclipse-angels-logo.png',
+      badge: '/images/eclipse-angels-logo.png',
+      data: { url: data.url || '/' },
+      vibrate: [200, 100, 200],
+    };
+    event.waitUntil(
+      Promise.all([
+        self.registration.showNotification(data.title || 'Eclipse Angels Agency', options),
+        setLastSeen(new Date().toISOString()), // mark as seen so periodic sync skips these
+      ])
+    );
+  });
+
+  // ── Periodic Background Sync ─────────────────────────────────────────────────
+  // Wakes up the SW periodically (every ~1h) to check for new notifications.
+  // Works WITHOUT Google FCM — the SW fetches directly from our server.
+  // Supported: Chrome 80+ (installed PWA), Firefox 79+, Safari (iOS via background tasks)
+  // For Cuba Android users: works if installed as PWA + using Firefox (Mozilla scheduler)
+  // For Cuba iOS users: works natively via Apple's background task scheduler
+  self.addEventListener('periodicsync', (event) => {
+    if (event.tag === 'ea-check-notifs') {
+      event.waitUntil(checkAndShowNotifications());
+    }
+  });
+
+  // ── Notification click ────────────────────────────────────────────────────────
+  self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = event.notification.data?.url || '/';
+    event.waitUntil(clients.openWindow(url));
+  });
+  

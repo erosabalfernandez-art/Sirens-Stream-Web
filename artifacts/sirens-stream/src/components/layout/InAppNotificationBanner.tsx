@@ -34,7 +34,26 @@ export function InAppNotificationBanner() {
     } catch { /**/ }
   }, [user]);
 
-  useEffect(() => { void fetchNotifs(); }, [fetchNotifs]);
+
+    // Register Periodic Background Sync (works for installed PWAs without FCM)
+    useEffect(() => {
+      async function registerPeriodicSync() {
+        if (!('serviceWorker' in navigator)) return;
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          if (!('periodicSync' in reg)) return;
+          // @ts-expect-error periodicSync not yet in TS lib
+          const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+          if (status.state === 'granted') {
+            // @ts-expect-error periodicSync not yet in TS lib
+            await reg.periodicSync.register('ea-check-notifs', { minInterval: 60 * 60 * 1000 });
+          }
+        } catch { /* browser doesn't support */ }
+      }
+      void registerPeriodicSync();
+    }, []);
+
+    useEffect(() => { void fetchNotifs(); }, [fetchNotifs]);
 
   useEffect(() => {
     if (!user) return;
