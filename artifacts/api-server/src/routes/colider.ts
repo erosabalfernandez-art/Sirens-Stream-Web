@@ -403,7 +403,7 @@ import { Router } from 'express'
     const { semana } = req.body as { semana: string }
     if (!semana) { res.status(400).json({ error: 'semana required' }); return }
     try {
-      await sbDel('colider_marks', `semana=eq.${encodeURIComponent(semana)}`)
+      // NOTE: colider_marks are intentionally preserved — they are the payment history.
       // DELETE + INSERT because colider_week_status may not have a unique constraint on semana
       await sbDel('colider_week_status', `semana=eq.${encodeURIComponent(semana)}`)
       await sbPost('colider_week_status', {
