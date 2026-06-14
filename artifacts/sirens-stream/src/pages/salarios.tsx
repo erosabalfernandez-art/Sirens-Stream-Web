@@ -75,18 +75,18 @@ import { useState, useEffect } from 'react'
     }
 
     async function fetchWorkerInfo() {
-        const [entriesRes, ratesRes] = await Promise.all([
+        const _apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/,'')
+        const [entriesRes, myRatesRes] = await Promise.all([
           supabase.from('worker_entries').select('app_name, metodo_pago').eq('user_id', user!.id),
-          supabase.from('exchange_rates').select('id, rate'),
+          fetch(`${_apiBase}/api/worker/my-rates?user_id=${encodeURIComponent(user!.id)}`).then(r => r.json()).catch(() => ({ custom: {}, global: {} })),
         ])
         const methods: Record<string,string> = {}
         for (const e of (entriesRes.data ?? []) as {app_name:string;metodo_pago:string|null}[]) {
           methods[e.app_name] = e.metodo_pago ?? ''
         }
         setWorkerPayMethods(methods)
-        const r: Record<string,number> = {}
-        for (const row of (ratesRes.data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
-        setExchangeRates(r)
+        setExchangeRates((myRatesRes as any).global ?? {})
+        setMyCustomRates((myRatesRes as any).custom ?? {})
       }
 
       async function confirmPayment(salaryId: string, appName: string, semana: string) {
