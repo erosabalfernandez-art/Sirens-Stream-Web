@@ -1796,9 +1796,14 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         if (ratesRes.setup_needed) { setSetupNeeded(true); setLoadingCustom(false); return }
         const workers = (workersRes.data ?? []) as {user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null}[]
         setAllWorkers(workers)
-        setCustomRates(ratesRes.rates ?? [])
+        // Only keep rates that are actually active (non-zero) — filters out ghost records
+        // from deleted users and rows left over from a previous cierre with rate=0
+        const activeRates = ((ratesRes.rates ?? []) as CustomWorkerRate[]).filter(
+          r => r.efectivo_rate > 0 || r.transferencia_rate > 0
+        )
+        setCustomRates(activeRates)
         const inputs: Record<string,{ef:string,tr:string}> = {}
-        for (const r of (ratesRes.rates ?? []) as CustomWorkerRate[]) {
+        for (const r of activeRates) {
           const k = r.user_id + '::' + r.app_name
           inputs[k] = { ef: r.efectivo_rate > 0 ? String(r.efectivo_rate) : '', tr: r.transferencia_rate > 0 ? String(r.transferencia_rate) : '' }
         }
