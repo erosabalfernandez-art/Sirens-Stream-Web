@@ -513,7 +513,14 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-green-400 font-bold text-sm">${(p.salary_usd ?? 0).toFixed(2)}</p>
-                                  {p.salary_cuba > 0 && <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>}
+                                  {p.salary_cuba > 0 && (
+                                    <>
+                                      <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>
+                                      {(weekRates[p.person_type === 'agent' ? 'efectivo_agent' : 'efectivo_worker'] ?? 0) > 0 && (
+                                        <p className="text-white/20 text-xs">💱 1 USD = {(weekRates[p.person_type === 'agent' ? 'efectivo_agent' : 'efectivo_worker'] ?? 0).toLocaleString('es-ES')} CUP</p>
+                                      )}
+                                    </>
+                                  )}
                                 </div>
                               </div>
                               {p.phone && (
