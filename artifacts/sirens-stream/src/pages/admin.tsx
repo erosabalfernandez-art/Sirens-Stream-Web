@@ -255,18 +255,18 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           async function fetchPagosData(app: string) {
           try { localStorage.setItem('ea_pagos_app', app) } catch {}
           setPagosLoading(true); setPagosNeedSetup(false)
-          const { data: semanaData, error: semErr } = await supabase
-            .from('published_salaries').select('semana').eq('app_name', app)
-            .order('semana', { ascending: false }).limit(1).maybeSingle()
-          if (semErr || !semanaData) { setPagosData([]); setPagosSemana(''); setPagosLoading(false); return }
-          const semana = semanaData.semana
+          const _apiBasePc = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+          // Use API server (service role) to bypass RLS on published_salaries and admin_paid_marks
+          const salApiRes = await fetch(`${_apiBasePc}/api/admin/pagos-salaries/single?app=${encodeURIComponent(app)}`, { credentials: 'include' }).catch(() => null)
+          if (!salApiRes?.ok) { setPagosData([]); setPagosSemana(''); setPagosLoading(false); return }
+          const salApiData = await salApiRes.json() as { semana: string | null; salaries: any[]; adminPaidUids: string[] }
+          if (!salApiData.semana || !salApiData.salaries || salApiData.salaries.length === 0) { setPagosData([]); setPagosSemana(salApiData.semana ?? ''); setPagosLoading(false); return }
+          const semana = salApiData.semana
+          const salaries = salApiData.salaries
+          const apiAdminPaidUids = salApiData.adminPaidUids ?? []
           setPagosSemana(semana)
-          const { data: salaries } = await supabase.from('published_salaries')
-            .select('*').eq('app_name', app).eq('semana', semana)
-          if (!salaries || salaries.length === 0) { setPagosData([]); setPagosLoading(false); return }
           const userIds = (salaries as any[]).map((s: any) => s.user_id)
           const salaryIds = (salaries as any[]).map((s: any) => s.id)
-          const _apiBasePc = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
           const [{ data: profiles }, { data: workers }, _confResPc] = await Promise.all([
             supabase.from('profiles').select('id, email').in('id', userIds),
             supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, id_aplicacion, metodo_pago, billetera, agente').eq('app_name', app).in('user_id', userIds),
@@ -299,7 +299,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           for (const m of (colMarks ?? []) as any[]) _coliderMarkMap[(m as any).person_uid] = (m as any).paid
           const _rateMap: Record<string, number> = {}
           for (const r of (exRates ?? []) as any[]) _rateMap[(r as any).id] = (r as any).rate
-          const mergedFull = merged.map((row: any) => {
+          const _adminPaidSet = new Set(apiAdminPaidUids)
+          const mergedWithAdmin = merged.map((row: any) => {
             const colider_paid = (row.user_id in _coliderMarkMap) ? _coliderMarkMap[row.user_id] : null
             const mp = (row.metodo_pago ?? '').toLowerCase()
             let cup_amount: number | null = null
@@ -307,12 +308,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               const rate = mp.includes('efectivo') ? (_rateMap['efectivo_worker'] ?? 0) : (_rateMap['transferencia_worker'] ?? 0)
               if (rate > 0) cup_amount = row.usd * rate
             }
-            return { ...row, colider_paid, cup_amount }
+            return { ...row, colider_paid, cup_amount, admin_paid: _adminPaidSet.has(row.id_aplicacion ?? '') }
           })
-          // Fetch admin paid marks
-          const { data: _adminMarks } = await supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', semana)
-          const _adminPaidSet = new Set(((_adminMarks ?? []) as {uid:string}[]).map((r: {uid:string}) => r.uid))
-          const mergedWithAdmin = mergedFull.map((row: any) => ({ ...row, admin_paid: _adminPaidSet.has(row.id_aplicacion ?? '') }))
           setPagosData(mergedWithAdmin); setPagosLoading(false)
           fetchAgentPayData()
         }
@@ -320,38 +317,23 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
           async function fetchAllPagosData() {
             setPagosLoading(true); setPagosNeedSetup(false)
-            const APPS = ['Waha', 'Layla', 'Howdy'] as const
-            // 1. Get latest semana per app
-            const semanaResults = await Promise.all(
-              APPS.map(app => supabase.from('published_salaries').select('semana').eq('app_name', app)
-                .order('semana', { ascending: false }).limit(1).maybeSingle())
-            )
-            // 2. Collect (app, semana) pairs that have data
-            const appSemanas: {app: string; semana: string}[] = []
-            APPS.forEach((app, i) => {
-              if (semanaResults[i].data?.semana) appSemanas.push({ app, semana: semanaResults[i].data!.semana })
-            })
-            if (appSemanas.length === 0) {
+            const _apiBaseAll = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+            // Use API server (service role) to bypass RLS on published_salaries
+            const salApiRes = await fetch(`${_apiBaseAll}/api/admin/pagos-salaries?apps=Waha,Layla,Howdy`, { credentials: 'include' }).catch(() => null)
+            if (!salApiRes?.ok) { setPagosData([]); setPagosSemana(''); setPagosLoading(false); fetchAgentPayData(); return }
+            const salApiData = await salApiRes.json() as { appSemanas: {app:string;semana:string}[]; salaries: any[]; adminPaidUids: string[] }
+            const appSemanas = salApiData.appSemanas ?? []
+            const allSalaries: any[] = salApiData.salaries ?? []
+            const apiAdminPaidUids: string[] = salApiData.adminPaidUids ?? []
+            if (appSemanas.length === 0 || allSalaries.length === 0) {
               setPagosData([]); setPagosSemana(''); setPagosLoading(false)
               fetchAgentPayData(); return
             }
             const mostRecentSemana = appSemanas.map(x => x.semana).sort().reverse()[0]
             setPagosSemana(mostRecentSemana)
-            // 3. Fetch salaries for each app
-            const salaryResults = await Promise.all(
-              appSemanas.map(({app, semana}) => supabase.from('published_salaries').select('*').eq('app_name', app).eq('semana', semana))
-            )
-            // 4. Flatten all salaries with app_name tag
-            const allSalaries: any[] = []
-            appSemanas.forEach(({app, semana}, i) => {
-              const rows = (salaryResults[i].data ?? []) as any[]
-              rows.forEach(r => allSalaries.push({ ...r, _app: app, _semana: semana }))
-            })
-            if (allSalaries.length === 0) { setPagosData([]); setPagosLoading(false); fetchAgentPayData(); return }
             // 5. Collect ids for batch queries
             const userIds = [...new Set(allSalaries.map(s => s.user_id))] as string[]
             const salaryIds = allSalaries.map(s => s.id) as string[]
-            const _apiBaseAll = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
             const [{ data: profiles }, { data: workers }, _confResAll, { data: exRates }] = await Promise.all([
               supabase.from('profiles').select('id, email').in('id', userIds),
               supabase.from('worker_entries').select('user_id, app_name, nombre_real, nombre_en_app, id_aplicacion, metodo_pago, billetera, agente'),
@@ -369,7 +351,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             for (const r of (exRates ?? []) as any[]) rateMap[(r as any).id] = (r as any).rate
             // 7. Enrich salaries
             const merged = allSalaries.map(s => {
-              const w = workerMap[`${s.user_id}_${s._app}`] ?? workerMap[Object.keys(workerMap).find(k => k.startsWith(s.user_id)) ?? ''] ?? {}
+              const app = s._app ?? s.app_name
+              const w = workerMap[`${s.user_id}_${app}`] ?? workerMap[Object.keys(workerMap).find(k => k.startsWith(s.user_id)) ?? ''] ?? {}
               const confAt = confMap[s.id]
               const mp = (w.metodo_pago ?? '').toLowerCase()
               let cup_amount: number | null = null
@@ -378,7 +361,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 if (rate > 0) cup_amount = Number(s.usd) * rate
               }
               return {
-                salary_id: s.id, user_id: s.user_id, app_name: s._app, semana: s._semana, usd: Number(s.usd),
+                salary_id: s.id, user_id: s.user_id, app_name: app, semana: s._semana ?? s.semana, usd: Number(s.usd),
                 apodo: (s.extras?.Apodo ?? s.extras?.apodo ?? s.extras?.Nick ?? w.nombre_en_app ?? '—') as string,
                 nombre_real: w.nombre_real ?? null, nombre_en_app: w.nombre_en_app ?? null,
                 email: profileMap[s.user_id] ?? '—',
@@ -392,13 +375,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             const { data: colMarks } = await supabase.from('colider_marks').select('person_uid, paid, person_app').eq('person_type', 'worker').in('person_uid', userIds)
             const coliderMarkMap: Record<string,boolean> = {}
             for (const m of (colMarks ?? []) as any[]) coliderMarkMap[(m as any).person_uid] = (m as any).paid
-            // 9. Fetch admin_paid_marks for all id_aplicacion values
-            const allIdAplicacion = merged.map(r => r.id_aplicacion).filter(Boolean) as string[]
-            const { data: adminMarks } = allIdAplicacion.length > 0
-              ? await supabase.from('admin_paid_marks').select('uid').in('uid', allIdAplicacion)
-              : { data: [] }
-            const adminPaidSet = new Set(((adminMarks ?? []) as any[]).map((r: any) => r.uid))
-            // 10. Apply colider marks + admin marks
+            // 9. Apply colider marks + admin marks (from API response)
+            const adminPaidSet = new Set(apiAdminPaidUids)
             const final = merged.map(row => ({
               ...row,
               colider_paid: (row.user_id in coliderMarkMap) ? coliderMarkMap[row.user_id] : null,

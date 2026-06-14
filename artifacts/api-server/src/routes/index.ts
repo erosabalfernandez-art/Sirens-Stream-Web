@@ -22,6 +22,7 @@ import { Router, type IRouter } from 'express';
   import telegramRouter from './telegram';
 import adminPaidMarksRouter from './admin-paid-marks';
 import paymentConfirmationsRouter from './payment-confirmations';
+import adminPagosRouter from './admin-pagos';
 
   const router: IRouter = Router();
 
@@ -48,6 +49,7 @@ import paymentConfirmationsRouter from './payment-confirmations';
   router.use(telegramRouter);
   router.use(adminPaidMarksRouter);
   router.use(paymentConfirmationsRouter);
+  router.use(adminPagosRouter);
 
   export default router;
   
