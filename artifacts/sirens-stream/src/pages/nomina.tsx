@@ -894,6 +894,8 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         if (!r.ok) { alert(`❌ Error al publicar salarios:\n${result.error ?? r.status}`); setPublishing(false); return }
         setPublishedOk(true)
         try { const _pls = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}'); if (_pls[app]) { _pls[app].publishedOk = true; localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_pls)) } } catch {}
+        // Stage agent commissions for admin review (fire-and-forget, no push to agents)
+          publishAgentCommissions().catch(() => {})
         await Promise.all(cobradas.map(async ({ worker: w }) => {
           const { data: recs } = await supabase.from('published_salaries').select('id').eq('user_id', w.user_id).order('created_at', { ascending: false })
           if (recs && recs.length > 10) {

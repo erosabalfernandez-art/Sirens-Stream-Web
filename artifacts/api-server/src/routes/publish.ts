@@ -245,18 +245,6 @@ import { Router } from 'express';
           return res.status(r.status).json({ error: errText });
         }
 
-        // Notify each resolved agent that their commissions are now available (fire-and-forget)
-          setImmediate(() => {
-            const agentNotifItems = inserts
-              .filter(ins => agentIdMap[ins.agent_name] && Number(ins.total_commission_usd) > 0)
-              .map(ins => ({
-                userId: agentIdMap[ins.agent_name],
-                title: `💰 Tu comisión de ${ins.app_name} está disponible`,
-                body: `Tu comisión de la semana ${ins.semana} ha sido publicada.`,
-                url: '/agente',
-              }));
-            if (agentNotifItems.length > 0) dispatchPushIndividual(agentNotifItems).catch(() => {});
-          });
 
           const agentUserIds = Object.values(agentIdMap).filter(Boolean);
 
