@@ -548,6 +548,23 @@ import React, { useState, useEffect } from 'react'
                   </div>
                 </div>
 
+                {/* Tipo de cambio informativo — visible cuando hay comisiones publicadas */}
+                {(() => {
+                  const ef = exchangeRates['efectivo_agent'] ?? 0
+                  const tr = exchangeRates['transferencia_agent'] ?? 0
+                  const displayRate = ef > 0 ? ef : tr
+                  if (displayRate === 0 || publishedComms.length === 0) return null
+                  return (
+                    <div className="bg-purple-500/6 border border-purple-500/15 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3">
+                      <span className="text-xl shrink-0">💱</span>
+                      <div>
+                        <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-0.5">Tipo de cambio esta semana</p>
+                        <p className="text-white/80 text-sm">1 USD = <span className="text-amber-300 font-extrabold">{displayRate.toLocaleString('es-ES')} CUP</span></p>
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/* Payment method selector — always visible */}
                 {(
                   <div className="mb-4">
