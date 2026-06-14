@@ -326,6 +326,45 @@ import { dispatchPush } from '../lib/push-dispatch';
               }).catch(() => Promise.resolve(new Response()))
             );
 
+            // Reset custom_worker_rates to 0 — per-worker CUP rates hidden after cierre
+            cleanupOps.push(
+              fetch(sbUrl('custom_worker_rates?efectivo_rate=gte.0'), {
+                method: 'PATCH',
+                headers: { ...sbH(), Prefer: 'return=minimal' },
+                body: JSON.stringify({ efectivo_rate: 0, transferencia_rate: 0, updated_at: new Date().toISOString() }),
+              }).catch(() => Promise.resolve(new Response()))
+            );
+
+            // Clear baked-in CUP rates from published_salaries.extras for the closed semana.
+            // salarios.tsx checks storedRate (extras.cup_*_rate) first — must clear on cierre
+            // so Cuba workers stop seeing CUP until admin re-publishes rates for the new week.
+            cleanupOps.push(
+              (async () => {
+                try {
+                  const cupSalsRes = await fetch(
+                    sbUrl(`published_salaries?semana=eq.${encodeURIComponent(latestSemana)}&select=id,extras`),
+                    { headers: sbH() }
+                  );
+                  if (!cupSalsRes.ok) return;
+                  const cupSals = await cupSalsRes.json() as Array<{ id: string; extras: Record<string, unknown> | null }>;
+                  const toUpdate = cupSals.filter(s =>
+                    s.extras && (
+                      (typeof s.extras.cup_efectivo_rate === 'number' && (s.extras.cup_efectivo_rate as number) > 0) ||
+                      (typeof s.extras.cup_transferencia_rate === 'number' && (s.extras.cup_transferencia_rate as number) > 0)
+                    )
+                  );
+                  await Promise.all(toUpdate.map(s => {
+                    const { cup_efectivo_rate: _a, cup_transferencia_rate: _b, ...rest } = s.extras ?? {};
+                    return fetch(sbUrl(`published_salaries?id=eq.${s.id}`), {
+                      method: 'PATCH',
+                      headers: { ...sbH(), Prefer: 'return=minimal' },
+                      body: JSON.stringify({ extras: Object.keys(rest).length ? rest : null }),
+                    });
+                  }));
+                } catch { /* best-effort — never block cierre for rate cleanup */ }
+              })()
+            );
+
 
             await Promise.all(cleanupOps);
 
