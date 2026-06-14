@@ -16,6 +16,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     real_name: string | null
     phone: string | null
     app: string
+    apps: string[]
     salary_usd: number
     salary_cuba: number
     metodo_pago: string | null
@@ -130,25 +131,38 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
 
         const rm: Record<string, number> = listR.exchange_rates ?? {}
         const entries: PersonEntry[] = []
+        const workerMap = new Map<string, PersonEntry>()
 
         for (const s of (listR.workers ?? [])) {
           const met = s.metodo_pago ?? ''
-          if (met !== 'Efectivo (Cuba)') continue // colider solo ve efectivo cuba
+          if (met !== 'Efectivo (Cuba)') continue
           const customRate = Number(s.custom_efectivo_rate ?? 0)
           const rate = customRate > 0 ? customRate : (rm['efectivo_worker'] ?? 0)
-          entries.push({
-            key: `${s.user_id}__${s.app_name}`,
-            person_uid: s.user_id,
-            person_type: 'worker',
-            display_name: s.nombre_en_app ?? s.user_id,
-            real_name: s.nombre_real ?? null,
-            phone: s.telefono ?? null,
-            app: s.app_name,
-            salary_usd: Number(s.usd) || 0,
-            salary_cuba: rate > 0 ? (Number(s.usd) || 0) * rate : 0,
-            metodo_pago: met || null,
-          })
+          const addUsd = Number(s.usd) || 0
+          const addCup = rate > 0 ? addUsd * rate : 0
+          if (workerMap.has(s.user_id)) {
+            // Merge into existing entry
+            const ex = workerMap.get(s.user_id)!
+            ex.salary_usd += addUsd
+            ex.salary_cuba += addCup
+            if (!ex.apps.includes(s.app_name)) ex.apps.push(s.app_name)
+          } else {
+            workerMap.set(s.user_id, {
+              key: s.user_id,
+              person_uid: s.user_id,
+              person_type: 'worker',
+              display_name: s.nombre_en_app ?? s.user_id,
+              real_name: s.nombre_real ?? null,
+              phone: s.telefono ?? null,
+              app: s.app_name,
+              apps: [s.app_name],
+              salary_usd: addUsd,
+              salary_cuba: addCup,
+              metodo_pago: met || null,
+            })
+          }
         }
+        entries.push(...workerMap.values())
 
         // Agents: from published_agent_commissions (admin must publish to colider first)
         const efRate = (agentPub.exchange_rates?.['efectivo_agent'] ?? rm['efectivo_agent']) ?? 0
@@ -164,6 +178,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             real_name: ag.agent_name,
             phone: null,
             app: '',
+            apps: [],
             salary_usd: usd,
             salary_cuba: efRate > 0 ? usd * efRate : 0,
             metodo_pago: 'Efectivo (Cuba)',
@@ -183,32 +198,38 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     }
 
     async function toggleMark(p: PersonEntry) {
-        const k = p.key
-        const newPaid = !marks[k]
-        setToggling(k)
-        const updatedMarks = { ...marks, [k]: newPaid }
+    async function toggleMark(p: PersonEntry) {
+        const allApps = p.apps.length > 0 ? p.apps : (p.app ? [p.app] : [''])
+        const currentlyPaid = allApps.every(a => marks[`${p.person_uid}__${a}`] ?? false)
+        const newPaid = !currentlyPaid
+        setToggling(p.key)
+        const updatedMarks = { ...marks }
+        for (const a of allApps) updatedMarks[`${p.person_uid}__${a}`] = newPaid
         setMarks(() => updatedMarks)
         try {
-          await fetch(`${API}/api/colider/mark`, {
+          await Promise.all(allApps.map(appName => fetch(`${API}/api/colider/mark`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               semana, person_uid: p.person_uid, person_type: p.person_type,
               person_name: p.display_name, person_real_name: p.real_name,
-              person_phone: p.phone, person_app: p.app,
+              person_phone: p.phone, person_app: appName,
               salary_usd: p.salary_usd, salary_cuba: p.salary_cuba,
               metodo_pago: p.metodo_pago, paid: newPaid,
-            })
-          })
+            }),
+          })))
           // Auto-notificar al admin cuando el último pago queda marcado
           if (newPaid) {
-            const allNowPaid = persons.length > 0 && persons.every(person => updatedMarks[person.key] === true)
+            const allNowPaid = persons.length > 0 && persons.every(person => {
+              const pa = person.apps.length > 0 ? person.apps : (person.app ? [person.app] : [''])
+              return pa.every(a => updatedMarks[`${person.person_uid}__${a}`] ?? false)
+            })
             const notYetNotified = !(weekStatus?.notified && !weekStatus?.admin_closed)
             if (allNowPaid && notYetNotified) {
               setTimeout(() => notifyAdmin(), 500)
             }
           }
-        } catch { setMarks(prev => ({ ...prev, [k]: !newPaid })) }
+        } catch { setMarks(prev => { const r = { ...prev }; for (const a of allApps) r[`${p.person_uid}__${a}`] = !newPaid; return r }) }
         setToggling(null)
       }
 
@@ -256,7 +277,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     }))
     const total = persons.length
     const totalPaid = persons.filter(p => marks[p.key]).length
-    const allPaid = total > 0 && totalPaid === total
+    const totalPaid = persons.filter(p => { const pa = p.apps.length > 0 ? p.apps : (p.app ? [p.app] : ['']); return pa.every(a => marks[`${p.person_uid}__${a}`] ?? false) }).length
     const alreadyNotified = !!(weekStatus?.notified && !weekStatus?.admin_closed)
     const notifyLocked = !allPaid || alreadyNotified
     const listToShow = tab === 'workers' ? pureWorkers : tab === 'agents' ? pureAgents : []
@@ -451,7 +472,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                     })
                   ) : (
                     listToShow.map(p => {
-                      const paid = marks[p.key] ?? false
+                      const paid = (p.apps.length > 0 ? p.apps : (p.app ? [p.app] : [''])).every(a => marks[`${p.person_uid}__${a}`] ?? false)
                       const tog  = toggling === p.key
                       return (
                         <div key={p.key} className={`bg-[#0d0d1e] border rounded-2xl p-4 transition-all ${paid ? 'border-green-500/30 bg-green-500/5' : 'border-purple-500/10'}`}>
@@ -465,7 +486,11 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                                 <div className="min-w-0">
                                   <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
                                   {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
-                                  <p className="text-white/30 text-xs">{p.app}</p>
+                                  {p.apps.length > 1 ? (
+                                      <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                                        {p.apps.map(a => <span key={a} className="text-xs bg-purple-500/10 text-purple-300/60 px-1.5 py-0.5 rounded-full border border-purple-500/15">{a}</span>)}
+                                      </div>
+                                    ) : <p className="text-white/30 text-xs">{p.app}</p>}
                                   {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
                                 </div>
                                 <div className="text-right shrink-0">
