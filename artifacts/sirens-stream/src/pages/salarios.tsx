@@ -224,6 +224,9 @@ import { useState, useEffect } from 'react'
       setTimeout(() => win.print(), 400)
     }
 
+    const activeSalaries = salaries.filter(s => activeNominas.has(s.semana))
+    const historySalaries = salaries.filter(s => !activeNominas.has(s.semana))
+    const activeApps = [...new Set(activeSalaries.map(s => s.app_name))]
     const apps = [...new Set(salaries.map(s => s.app_name))]
 
     if (loading) return (
