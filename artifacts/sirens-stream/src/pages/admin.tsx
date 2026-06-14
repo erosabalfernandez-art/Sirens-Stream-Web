@@ -464,11 +464,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             let _agentMetodoMapLocal: Record<string, string> = {}
             let _agentAdminPaidSet = new Set<string>()
             if (_agentUids.length > 0) {
-              const [{ data: _agColMarks }, { data: _agWorkers }, { data: _agAdminMarks }] = await Promise.all([
+              const [{ data: _agColMarks }, { data: _agWorkerMarks }, { data: _agWorkers }, { data: _agAdminMarks }] = await Promise.all([
                 supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'agent').in('person_uid', _agentUids),
+                supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'worker').in('person_uid', _agentUids),
                 supabase.from('worker_entries').select('user_id, metodo_pago, billetera').in('user_id', _agentUids),
                 supabase.from('admin_paid_marks').select('uid').eq('semana', semana).in('uid', _agentUids.map((u: string) => 'agent_' + u)),
               ])
+              // Worker-type marks first (fallback for dual workers), then agent-type overrides
+              for (const m of (_agWorkerMarks ?? []) as any[]) _agentColiderMap[(m as any).person_uid] = (m as any).paid
               for (const m of (_agColMarks ?? []) as any[]) _agentColiderMap[(m as any).person_uid] = (m as any).paid
               const _agentBilleteraMapLocal: Record<string, string> = {}
               for (const w of (_agWorkers ?? []) as any[]) {
