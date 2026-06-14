@@ -21,6 +21,7 @@ import { Router, type IRouter } from 'express';
   import inAppNotificationsRouter from './in-app-notifications';
   import telegramRouter from './telegram';
 import adminPaidMarksRouter from './admin-paid-marks';
+import paymentConfirmationsRouter from './payment-confirmations';
 
   const router: IRouter = Router();
 
@@ -46,6 +47,7 @@ import adminPaidMarksRouter from './admin-paid-marks';
   router.use(inAppNotificationsRouter);
   router.use(telegramRouter);
   router.use(adminPaidMarksRouter);
+  router.use(paymentConfirmationsRouter);
 
   export default router;
   
