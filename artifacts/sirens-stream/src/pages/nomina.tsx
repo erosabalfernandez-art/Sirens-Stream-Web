@@ -1432,7 +1432,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                       const agWorkers = cobradas.filter(({ worker: w }) => !(w.metodo_pago ?? '').toLowerCase().includes('efectivo'))
                       const efPaid = efWorkers.filter(({ worker: w }) => coliderMarks.has(w.user_id)).length
                       const agPaid = agWorkers.filter(({ worker: w, nomina: n }) => paidMarks.has(n.uid)).length
-                      return (
+                      return (<>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-white/30 font-medium">Estado de pagos esta semana</span>
                           <button onClick={() => refreshMarks()} disabled={refreshingMarks}
@@ -1465,7 +1465,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                             </div>
                           )}
                         </div>
-                      )
+                      </>)
                     })()}
                     {cobradasFiltered.length === 0 && cobradas.length > 0 && <Empty msg="No hay resultados con los filtros aplicados." />}
                     {cobradas.length === 0 && <Empty msg="Ninguna chica cobró o no se encontraron coincidencias." />}
