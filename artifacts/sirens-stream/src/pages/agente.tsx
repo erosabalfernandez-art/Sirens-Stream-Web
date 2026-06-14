@@ -533,7 +533,10 @@ import React, { useState, useEffect } from 'react'
                   <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-4 text-center">
                     <p className="text-2xl font-extrabold text-green-400">${pubTotalUSD.toFixed(2)} <span className="text-sm font-bold">USD</span></p>
                     {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && pubTotalUSD > 0
-                      ? <p className="text-sm font-bold text-amber-300 mt-0.5">{(pubTotalUSD * (exchangeRates[`${agentPayMethod}_agent`] ?? 0)).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP</p>
+                      ? <>
+                          <p className="text-sm font-bold text-amber-300 mt-0.5">{(pubTotalUSD * (exchangeRates[`${agentPayMethod}_agent`] ?? 0)).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP</p>
+                          <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {(exchangeRates[`${agentPayMethod}_agent`] ?? 0).toLocaleString('es-ES')} CUP</p>
+                        </>
                       : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
                     }
                     <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Total publicado</p>
@@ -683,7 +686,10 @@ import React, { useState, useEffect } from 'react'
                                 <div className="text-right shrink-0">
                                   <p className="text-green-400 font-extrabold text-base">${semUsd.toFixed(2)} <span className="text-sm">USD</span></p>
                                   {rate > 0
-                                    ? <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-400' : 'text-blue-400'}`}>{(semUsd * rate).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP</p>
+                                    ? <>
+                                        <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-400' : 'text-blue-400'}`}>{(semUsd * rate).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP</p>
+                                        <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {rate.toLocaleString('es-ES')} CUP</p>
+                                      </>
                                     : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
                                   }
                                 </div>
