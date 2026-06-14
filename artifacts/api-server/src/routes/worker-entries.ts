@@ -39,7 +39,7 @@ import { Router } from 'express';
         const [crRes, grRes] = await Promise.all([
           fetch(sbUrl(`custom_worker_rates?user_id=eq.${encodeURIComponent(user_id)}&select=app_name,efectivo_rate,transferencia_rate`), { headers: sbH() })
             .then(r => r.ok ? r.json() : []).catch(() => []),
-          fetch(sbUrl('exchange_rates?select=id,rate'), { headers: sbH() })
+          fetch(sbUrl('exchange_rates?select=id,rate,updated_at'), { headers: sbH() })
             .then(r => r.ok ? r.json() : []).catch(() => []),
         ])
         const custom: Record<string, {efectivo_rate: number; transferencia_rate: number}> = {}
