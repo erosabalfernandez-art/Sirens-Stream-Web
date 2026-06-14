@@ -291,7 +291,7 @@ import { Router } from 'express'
         if (payMethod !== null && payMethod !== 'Efectivo (Cuba)') continue
         const key = c.agent_user_id ?? c.agent_name
         if (!agentMap[key]) agentMap[key] = { agent_user_id: c.agent_user_id, agent_name: c.agent_name, total_usd: 0, workers: [] }
-        agentMap[key].total_usd += Number(c.commission_usd) || 0
+        agentMap[key].total_usd = parseFloat((agentMap[key].total_usd + (Number(c.commission_usd) || 0)).toFixed(2))
         agentMap[key].workers.push({ worker_name: c.worker_name, app_name: c.app_name, commission_usd: c.commission_usd })
       }
       const [rates] = await Promise.all([
