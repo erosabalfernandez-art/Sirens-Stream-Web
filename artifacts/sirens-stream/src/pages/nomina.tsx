@@ -811,12 +811,12 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const refreshMarks = useCallback(async () => {
     if (!semana || !app) { setPaidMarks(new Set()); setColiderMarks(new Set()); return }
     setRefreshingMarks(true)
-    const _apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+    const _apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
     const [adminRes, marksJson] = await Promise.all([
-      supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', semana),
+      fetch(`${_apiBase}/api/admin-paid-marks?app_name=${encodeURIComponent(app)}&semana=${encodeURIComponent(semana)}`).then(r => r.json()).catch(() => ({ uids: [] })),
       fetch(`${_apiBase}/api/colider/marks?semana=${encodeURIComponent(semana)}`).then(r => r.json()).catch(() => ({ marks: [] })),
     ])
-    if (adminRes.data) setPaidMarks(new Set(adminRes.data.map((r: { uid: string }) => r.uid)))
+    setPaidMarks(new Set<string>((adminRes.uids ?? []) as string[]))
     setColiderMarks(new Set<string>(
       ((marksJson.marks ?? []) as any[]).filter((m: any) => m.paid && m.person_app === app).map((m: any) => m.person_uid as string)
     ))
@@ -1150,25 +1150,34 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   }
 
   async function loadPaidMarks(a: string, week: string) {
-    const { data } = await supabase.from('admin_paid_marks').select('uid').eq('app_name', a).eq('semana', week)
-    setPaidMarks(new Set(((data ?? []) as {uid:string}[]).map((r: any) => r.uid)))
+    const _apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    const res = await fetch(`${_apiUrl}/api/admin-paid-marks?app_name=${encodeURIComponent(a)}&semana=${encodeURIComponent(week)}`).then(r => r.json()).catch(() => ({ uids: [] }))
+    setPaidMarks(new Set<string>((res.uids ?? []) as string[]))
   }
 
   async function togglePaid(uid: string) {
     setTogglingPaid(uid)
-    if (paidMarks.has(uid)) {
-      await supabase.from('admin_paid_marks').delete().eq('app_name', app).eq('semana', semana).eq('uid', uid)
-      setPaidMarks(prev => { const s = new Set(prev); s.delete(uid); return s })
-    } else {
-      await supabase.from('admin_paid_marks').insert({ app_name: app, semana, uid })
-      setPaidMarks(prev => new Set([...prev, uid]))
-      try {
-        const _apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-        const matched = (cobradas as any[]).find((c: any) => c?.nomina?.uid === uid || c?.worker?.id === uid)
-        const nombre = matched ? (matched?.nomina?.apodo ?? matched?.worker?.profile_email ?? uid) : uid
-        await fetch(`${_apiUrl}/api/payment-sticker`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: uid, app_name: app, nombre_en_app: nombre, sticker_index: 0 }) })
-      } catch {}
-    }
+    const _apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    const isNowPaid = !paidMarks.has(uid)
+    try {
+      const r = await fetch(`${_apiUrl}/api/admin-paid-marks/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app_name: app, semana, uid, paid: isNowPaid }),
+      })
+      if (r.ok) {
+        if (isNowPaid) {
+          setPaidMarks(prev => new Set([...prev, uid]))
+          try {
+            const matched = (cobradas as any[]).find((c: any) => c?.nomina?.uid === uid || c?.worker?.id === uid)
+            const nombre = matched ? (matched?.nomina?.apodo ?? matched?.worker?.profile_email ?? uid) : uid
+            await fetch(`${_apiUrl}/api/payment-sticker`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: uid, app_name: app, nombre_en_app: nombre, sticker_index: 0 }) })
+          } catch {}
+        } else {
+          setPaidMarks(prev => { const s = new Set(prev); s.delete(uid); return s })
+        }
+      }
+    } catch {}
     setTogglingPaid(null)
   }
 
@@ -1702,148 +1711,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
   // ── Colider Admin Section ──────────────────────────────────────────────────
 
-  function UnifiedPaymentsView({ exchangeRates }: { exchangeRates: Record<string,number> }) {
-    const [semana, setUPSemana] = React.useState(() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })
-    const [workers, setWorkers] = React.useState<any[]>([])
-    const [coliderMarks, setUPColiderMarks] = React.useState<Set<string>>(new Set())
-    const [adminMarks, setAdminMarks] = React.useState<Set<string>>(new Set())
-    const [agentNameMap, setUPAgentMap] = React.useState<Record<string,string>>({})
-    const [loading, setLoading] = React.useState(false)
-    const [open, setOpen] = React.useState(true)
-
-    const load = React.useCallback(async () => {
-      const sem = (() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })()
-      if (!sem) return
-      setUPSemana(sem)
-      setLoading(true)
-      const _ab = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
-      const [salRes, entRes, agRes, marksJson, adminRes] = await Promise.all([
-        supabase.from('published_salaries').select('user_id,app_name,usd,diamantes').eq('semana', sem),
-        supabase.from('worker_entries').select('user_id,nombre_real,nombre_en_app,id_aplicacion,metodo_pago,billetera,agente'),
-        supabase.from('profiles').select('id,agent_name,colider_name,agent_code').or('is_agent.eq.true,is_colider.eq.true'),
-        fetch(`${_ab}/api/colider/marks?semana=${encodeURIComponent(sem)}`).then(r=>r.json()).catch(()=>({marks:[]})),
-        supabase.from('admin_paid_marks').select('uid,app_name').eq('semana', sem),
-      ])
-      const am: Record<string,string> = {}
-      for (const a of (agRes.data ?? []) as any[]) { if (a.agent_code) am[a.agent_code] = a.agent_name ?? a.colider_name ?? a.agent_code }
-      setUPAgentMap(am)
-      const entMap = new Map<string,any>()
-      for (const e of (entRes.data ?? []) as any[]) { if (!entMap.has(e.user_id)) entMap.set(e.user_id, e) }
-      const byUser = new Map<string,any>()
-      for (const s of (salRes.data ?? []) as any[]) {
-        const ent = entMap.get(s.user_id); if (!ent) continue
-        if (!byUser.has(s.user_id)) byUser.set(s.user_id, { ...ent, apps: [], total_usd: 0, total_dias: 0 })
-        const w = byUser.get(s.user_id)!
-        w.apps.push({ app: s.app_name, usd: s.usd, diamantes: s.diamantes })
-        w.total_usd += s.usd; w.total_dias += s.diamantes
-      }
-      setWorkers(Array.from(byUser.values()).sort((a,b) => b.total_usd - a.total_usd))
-      setUPColiderMarks(new Set<string>(((marksJson.marks ?? []) as any[]).filter((m:any)=>m.paid).map((m:any)=>m.person_uid as string)))
-      setAdminMarks(new Set<string>((adminRes.data ?? []).map((r:any)=>r.uid as string)))
-      setLoading(false)
-    }, [])
-
-    React.useEffect(() => { load() }, [load])
-
-    const efWorkers = workers.filter(w => (w.metodo_pago ?? '').toLowerCase().includes('efectivo'))
-    const agWorkers = workers.filter(w => !(w.metodo_pago ?? '').toLowerCase().includes('efectivo'))
-    const efPaid = efWorkers.filter(w => coliderMarks.has(w.user_id)).length
-    const agPaid = agWorkers.filter(w => adminMarks.has(w.id_aplicacion)).length
-    const efRate = exchangeRates['efectivo_worker'] ?? 350
-    const agRate = exchangeRates['transferencia_worker'] ?? 350
-
-    return (
-      <div className="bg-[#07070f] border border-purple-500/15 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 flex items-center justify-between cursor-pointer select-none" onClick={() => setOpen(!open)}>
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-sm font-bold text-white">💳 Vista Unificada de Pagos</span>
-            {semana && <span className="text-xs text-purple-400/70 bg-purple-500/10 px-2 py-0.5 rounded-full shrink-0">{semana}</span>}
-            {workers.length > 0 && <span className="text-xs text-white/30 shrink-0">{workers.length} trabajadoras</span>}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={e => { e.stopPropagation(); load() }} disabled={loading}
-              className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-40 px-2 py-1 rounded-lg hover:bg-purple-500/10">
-              <svg className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-              Actualizar
-            </button>
-            {open ? <ChevronUp className="w-4 h-4 text-white/40" /> : <ChevronDown className="w-4 h-4 text-white/40" />}
-          </div>
-        </div>
-        {open && (
-          <div className="px-5 pb-5 space-y-3">
-            {workers.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-1">
-                {efWorkers.length > 0 && (
-                  <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-teal-300 uppercase tracking-wider">💵 Cólider — efectivo</span>
-                      <span className="text-xs font-bold text-teal-400">{efPaid}/{efWorkers.length}</span>
-                    </div>
-                    <div className="w-full bg-white/8 rounded-full h-2 overflow-hidden">
-                      <div className="bg-teal-400 h-2 rounded-full transition-all duration-500" style={{ width: `${efWorkers.length > 0 ? Math.round((efPaid/efWorkers.length)*100) : 0}%` }} />
-                    </div>
-                  </div>
-                )}
-                {agWorkers.length > 0 && (
-                  <div className="bg-[#0d0d1e] border border-green-500/15 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-green-300 uppercase tracking-wider">🏦 Agencia — transferencias</span>
-                      <span className="text-xs font-bold text-green-400">{agPaid}/{agWorkers.length}</span>
-                    </div>
-                    <div className="w-full bg-white/8 rounded-full h-2 overflow-hidden">
-                      <div className="bg-green-400 h-2 rounded-full transition-all duration-500" style={{ width: `${agWorkers.length > 0 ? Math.round((agPaid/agWorkers.length)*100) : 0}%` }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {loading && <div className="text-center py-8 text-white/30 text-sm">Cargando...</div>}
-            {!loading && workers.length === 0 && <div className="text-center py-8 text-white/25 text-sm">No hay nóminas publicadas para la semana activa.</div>}
-            {workers.map(w => {
-              const isEf = (w.metodo_pago ?? '').toLowerCase().includes('efectivo')
-              const paid = isEf ? coliderMarks.has(w.user_id) : adminMarks.has(w.id_aplicacion)
-              const rate = isEf ? efRate : agRate
-              const cup = Math.round(w.total_usd * rate)
-              const agName = agentNameMap[w.agente ?? ''] ?? w.agente
-              return (
-                <div key={w.user_id} className={`bg-[#0d0d1e] border rounded-2xl p-4 ${isEf ? (paid ? 'border-teal-500/30' : 'border-amber-500/15') : (paid ? 'border-green-500/30' : 'border-purple-500/10')}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-bold text-sm">{w.nombre_en_app}</p>
-                        {w.nombre_real && <p className="text-white/40 text-xs">{w.nombre_real}</p>}
-                        {isEf
-                          ? (paid ? <span className="text-xs bg-teal-500/15 border border-teal-500/30 text-teal-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">✓ Cólider</span>
-                                  : <span className="text-xs bg-amber-500/8 border border-amber-500/20 text-amber-400/70 px-1.5 py-0.5 rounded-full shrink-0">⏳ Cólider</span>)
-                          : (paid ? <span className="text-xs bg-green-500/15 border border-green-500/30 text-green-300 px-1.5 py-0.5 rounded-full font-bold shrink-0">✓ Pagado</span>
-                                  : <span className="text-xs bg-purple-500/8 border border-purple-500/20 text-purple-400/60 px-1.5 py-0.5 rounded-full shrink-0">⏳ Pendiente</span>)
-                        }
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {(w.apps as any[]).map((a: any) => (
-                          <span key={a.app} className="text-xs bg-purple-500/8 text-purple-300/70 px-2 py-0.5 rounded-full border border-purple-500/15">{a.app} · ${a.usd.toFixed(2)}</span>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        {agName && <p className="text-white/25 text-xs">Agente: {agName}</p>}
-                        {w.billetera && <p className="text-white/20 text-xs truncate max-w-[120px]" title={w.billetera}>{w.billetera}</p>}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-extrabold text-white text-lg leading-none">${w.total_usd.toFixed(2)}</p>
-                      {cup > 0 && <p className="text-white/30 text-xs mt-0.5">{cup.toLocaleString()} CUP</p>}
-                      <p className="text-white/25 text-xs mt-0.5">{w.metodo_pago}</p>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   
   export default function Nomina() {
   const { user, profile, loading } = useAuth()
@@ -2265,7 +2132,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           />
         ) : (
           <div className="space-y-3">
-            <UnifiedPaymentsView exchangeRates={nominaRates} />
             <AppNominaSection app="Waha"  reloadKey={reloadKeys.Waha}  exchangeRates={nominaRates} />
             <LaylaManualSection exchangeRates={nominaRates} />
             <AppNominaSection app="Howdy" reloadKey={reloadKeys.Howdy} exchangeRates={nominaRates} />

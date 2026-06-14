@@ -198,7 +198,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     }
 
     async function toggleMark(p: PersonEntry) {
-    async function toggleMark(p: PersonEntry) {
         const allApps = p.apps.length > 0 ? p.apps : (p.app ? [p.app] : [''])
         const currentlyPaid = allApps.every(a => marks[`${p.person_uid}__${a}`] ?? false)
         const newPaid = !currentlyPaid
