@@ -259,11 +259,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           // Use API server (service role) to bypass RLS on published_salaries and admin_paid_marks
           const salApiRes = await fetch(`${_apiBasePc}/api/admin/pagos-salaries/single?app=${encodeURIComponent(app)}`, { credentials: 'include' }).catch(() => null)
           if (!salApiRes?.ok) { setPagosData([]); setPagosSemana(''); setPagosLoading(false); return }
-          const salApiData = await salApiRes.json() as { semana: string | null; salaries: any[]; adminPaidUids: string[] }
+          const salApiData = await salApiRes.json() as { semana: string | null; salaries: any[]; adminPaidUids: string[]; coliderPaidUids: string[] }
           if (!salApiData.semana || !salApiData.salaries || salApiData.salaries.length === 0) { setPagosData([]); setPagosSemana(salApiData.semana ?? ''); setPagosLoading(false); return }
           const semana = salApiData.semana
           const salaries = salApiData.salaries
           const apiAdminPaidUids = salApiData.adminPaidUids ?? []
+          const apiColiderPaidUids: string[] = salApiData.coliderPaidUids ?? []
           setPagosSemana(semana)
           const userIds = (salaries as any[]).map((s: any) => s.user_id)
           const salaryIds = (salaries as any[]).map((s: any) => s.id)
@@ -290,18 +291,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               id_aplicacion: w.id_aplicacion ?? null,
             }
           })
-          // Enrich with colider_marks and exchange_rates
-          const [{ data: colMarks }, { data: exRates }] = await Promise.all([
-            supabase.from('colider_marks').select('person_uid, paid').eq('semana', semana).eq('person_type', 'worker').eq('person_app', app).in('person_uid', userIds),
-            supabase.from('exchange_rates').select('id, rate'),
-          ])
-          const _coliderMarkMap: Record<string, boolean> = {}
-          for (const m of (colMarks ?? []) as any[]) _coliderMarkMap[(m as any).person_uid] = (m as any).paid
+          // Fetch exchange_rates (colider_marks now come from service-role API)
+          const { data: exRates } = await supabase.from('exchange_rates').select('id, rate')
           const _rateMap: Record<string, number> = {}
           for (const r of (exRates ?? []) as any[]) _rateMap[(r as any).id] = (r as any).rate
           const _adminPaidSet = new Set(apiAdminPaidUids)
+          const _coliderPaidSet = new Set(apiColiderPaidUids)
           const mergedWithAdmin = merged.map((row: any) => {
-            const colider_paid = (row.user_id in _coliderMarkMap) ? _coliderMarkMap[row.user_id] : null
+            const colider_paid = _coliderPaidSet.has(row.user_id) ? true : (_coliderPaidSet.size > 0 ? false : null)
             const mp = (row.metodo_pago ?? '').toLowerCase()
             let cup_amount: number | null = null
             if (mp.includes('cuba')) {
@@ -321,10 +318,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             // Use API server (service role) to bypass RLS on published_salaries
             const salApiRes = await fetch(`${_apiBaseAll}/api/admin/pagos-salaries?apps=Waha,Layla,Howdy`, { credentials: 'include' }).catch(() => null)
             if (!salApiRes?.ok) { setPagosData([]); setPagosSemana(''); setPagosLoading(false); fetchAgentPayData(); return }
-            const salApiData = await salApiRes.json() as { appSemanas: {app:string;semana:string}[]; salaries: any[]; adminPaidUids: string[] }
+            const salApiData = await salApiRes.json() as { appSemanas: {app:string;semana:string}[]; salaries: any[]; adminPaidUids: string[]; coliderPaidUids: string[] }
             const appSemanas = salApiData.appSemanas ?? []
             const allSalaries: any[] = salApiData.salaries ?? []
             const apiAdminPaidUids: string[] = salApiData.adminPaidUids ?? []
+            const apiColiderPaidUids: string[] = salApiData.coliderPaidUids ?? []
             if (appSemanas.length === 0 || allSalaries.length === 0) {
               setPagosData([]); setPagosSemana(''); setPagosLoading(false)
               fetchAgentPayData(); return
@@ -371,15 +369,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 colider_paid: null as boolean | null, cup_amount,
               }
             })
-            // 8. Batch-fetch colider_marks for all workers
-            const { data: colMarks } = await supabase.from('colider_marks').select('person_uid, paid, person_app').eq('person_type', 'worker').in('person_uid', userIds)
-            const coliderMarkMap: Record<string,boolean> = {}
-            for (const m of (colMarks ?? []) as any[]) coliderMarkMap[(m as any).person_uid] = (m as any).paid
-            // 9. Apply colider marks + admin marks (from API response)
+            // 8. Apply colider marks + admin marks — both from service-role API (bypasses RLS)
+            const coliderPaidSet = new Set(apiColiderPaidUids)
             const adminPaidSet = new Set(apiAdminPaidUids)
             const final = merged.map(row => ({
               ...row,
-              colider_paid: (row.user_id in coliderMarkMap) ? coliderMarkMap[row.user_id] : null,
+              colider_paid: coliderPaidSet.has(row.user_id) ? true : (coliderPaidSet.size > 0 ? false : null),
               admin_paid: adminPaidSet.has(row.id_aplicacion ?? ''),
             }))
             setPagosData(final)
