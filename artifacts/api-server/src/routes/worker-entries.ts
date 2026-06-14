@@ -11,6 +11,24 @@ import { Router } from 'express';
   }
 
   /**
+   * GET /api/admin/all-workers
+   * Returns all worker_entries (for admin use - bypasses RLS via service role)
+   */
+  router.get('/admin/all-workers', async (req, res) => {
+    try {
+      const r = await fetch(
+        sbUrl('worker_entries?select=user_id,app_name,nombre_en_app,nombre_real,metodo_pago&order=nombre_en_app.asc'),
+        { headers: sbH() }
+      );
+      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+      const data = await r.json();
+      return res.json({ workers: data ?? [] });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? 'Error interno' });
+    }
+  });
+
+  /**
    * POST /api/worker-entries
    * Body: same fields as worker_entries table
    * Enforces: agente cannot differ from any existing agente for same user
