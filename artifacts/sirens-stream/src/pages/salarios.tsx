@@ -395,9 +395,12 @@ import { useState, useEffect } from 'react'
                                     </div>
                                   )}
                                   {isCubanPay && cupRate > 0 && (
-                                    <p className="text-amber-300 font-bold text-sm mt-0.5">
-                                      {(Number(s.usd) * cupRate).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-xs font-semibold">CUP</span>
-                                    </p>
+                                    <>
+                                      <p className="text-amber-300 font-bold text-sm mt-0.5">
+                                        {(Number(s.usd) * cupRate).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-xs font-semibold">CUP</span>
+                                      </p>
+                                      <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {cupRate.toLocaleString('es-ES')} CUP</p>
+                                    </>
                                   )}
                                   {isCubanPay && cupRate <= 0 && (
                                     <p className="text-white/25 text-xs mt-0.5">⏳ Cambio pendiente</p>
