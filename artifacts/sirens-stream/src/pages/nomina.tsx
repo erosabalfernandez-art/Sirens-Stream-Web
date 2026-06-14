@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
   import { useLocation } from 'wouter'
   import { useAuth } from '@/contexts/AuthContext'
   import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
@@ -677,6 +677,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [paidMarks, setPaidMarks] = useState<Set<string>>(new Set())
   const [togglingPaid, setTogglingPaid] = useState<string | null>(null)
   const [coliderMarks, setColiderMarks] = useState<Set<string>>(new Set())
+  const [refreshingMarks, setRefreshingMarks] = useState(false)
 
   // Filter states
   const [fPais, setFPais] = useState(() => { try { return localStorage.getItem(`ea_nf_${app}_pais`) ?? '' } catch { return '' } })
@@ -806,17 +807,19 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     } catch {}
   }, [fPais, fPago, fEmail, fBilletera, fAgente, fNombreReal, fNombreApp, fIdApp, fTelefono, fSortDir, app])
 
-  // Load paidMarks + coliderMarks from Supabase when semana/app loads
-  useEffect(() => {
+  // Load paidMarks + coliderMarks — callable for manual refresh
+  const refreshMarks = useCallback(async () => {
     if (!semana || !app) { setPaidMarks(new Set()); setColiderMarks(new Set()); return }
-    Promise.all([
+    setRefreshingMarks(true)
+    const [adminRes, coliderRes] = await Promise.all([
       supabase.from('admin_paid_marks').select('uid').eq('app_name', app).eq('semana', semana),
       supabase.from('colider_marks').select('person_uid').eq('semana', semana).eq('person_app', app).eq('paid', true),
-    ]).then(([adminRes, coliderRes]) => {
-      if (adminRes.data) setPaidMarks(new Set(adminRes.data.map((r: { uid: string }) => r.uid)))
-      if (coliderRes.data) setColiderMarks(new Set(coliderRes.data.map((r: { person_uid: string }) => r.person_uid)))
-    })
+    ])
+    if (adminRes.data) setPaidMarks(new Set(adminRes.data.map((r: { uid: string }) => r.uid)))
+    if (coliderRes.data) setColiderMarks(new Set(coliderRes.data.map((r: { person_uid: string }) => r.person_uid)))
+    setRefreshingMarks(false)
   }, [semana, app])
+  useEffect(() => { refreshMarks() }, [refreshMarks])
 
   // ▶ FIX: Persist aiSummary to localStorage once Groq async response arrives
   useEffect(() => {
@@ -1428,8 +1431,16 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                       const efWorkers = cobradas.filter(({ worker: w }) => (w.metodo_pago ?? '').toLowerCase().includes('efectivo'))
                       const agWorkers = cobradas.filter(({ worker: w }) => !(w.metodo_pago ?? '').toLowerCase().includes('efectivo'))
                       const efPaid = efWorkers.filter(({ worker: w }) => coliderMarks.has(w.user_id)).length
-                      const agPaid = agWorkers.filter(({ worker: w }) => paidMarks.has(w.user_id)).length
+                      const agPaid = agWorkers.filter(({ worker: w, nomina: n }) => paidMarks.has(n.uid)).length
                       return (
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-white/30 font-medium">Estado de pagos esta semana</span>
+                          <button onClick={() => refreshMarks()} disabled={refreshingMarks}
+                            className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50">
+                            <svg className={`w-3 h-3 ${refreshingMarks ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            {refreshingMarks ? 'Actualizando…' : 'Actualizar'}
+                          </button>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2">
                           {efWorkers.length > 0 && (
                             <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl p-4">
