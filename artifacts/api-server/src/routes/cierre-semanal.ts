@@ -373,7 +373,7 @@ import { dispatchPush } from '../lib/push-dispatch';
               try {
                 const workerIds = [...new Set(allSalaries.filter((s: any) => s.semana === latestSemana).map((s: any) => s.user_id as string))];
                 const agentIds  = [...new Set(allCommissions.filter((c: any) => c.semana === latestSemana && c.agent_user_id).map((c: any) => c.agent_user_id as string))];
-                const colRes = await fetch(sbUrl('profiles?role=eq.colider&select=id'), { headers: sbH() });
+                const colRes = await fetch(sbUrl('profiles?is_colider=eq.true&select=id'), { headers: sbH() });
                 const coliders: any[] = colRes.ok ? await colRes.json() : [];
                 const coliderIds = coliders.map((r: any) => r.id as string).filter(Boolean);
                 const semLabel = latestSemana ?? '';
