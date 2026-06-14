@@ -75,12 +75,17 @@ import { Router } from 'express'
         user_id, app_name, nombre_en_app: nombre_en_app ?? null,
         efectivo_rate: ef, transferencia_rate: tr, updated_at: new Date().toISOString(),
       }, 'resolution=merge-duplicates,return=minimal')
-      // Update published_salaries.extras for all existing records of this worker
-      const salaries = await sbGet(`published_salaries?user_id=eq.${encodeURIComponent(user_id)}&app_name=eq.${encodeURIComponent(app_name)}&select=id,extras`)
-      await Promise.all(salaries.map((s: any) =>
-        sbPatch(`published_salaries?id=eq.${s.id}`, { extras: { ...(s.extras ?? {}), cup_efectivo_rate: ef, cup_transferencia_rate: tr } })
-      ))
-      // Notify the worker (fire-and-forget)
+      // Update published_salaries.extras only for the CURRENT active semana (not all historical records)
+        const activeNomina = await sbGet(`nomina_history?app_name=eq.${encodeURIComponent(app_name)}&published=eq.true&select=semana&order=created_at.desc&limit=1`).catch(() => [])
+        const activeSemana = (activeNomina[0] as any)?.semana as string | undefined
+        const salarFilter = activeSemana
+          ? `published_salaries?user_id=eq.${encodeURIComponent(user_id)}&app_name=eq.${encodeURIComponent(app_name)}&semana=eq.${encodeURIComponent(activeSemana)}&select=id,extras`
+          : `published_salaries?user_id=eq.${encodeURIComponent(user_id)}&app_name=eq.${encodeURIComponent(app_name)}&order=created_at.desc&limit=10&select=id,extras`
+        const salaries = await sbGet(salarFilter)
+        await Promise.all(salaries.map((s: any) =>
+          sbPatch(`published_salaries?id=eq.${s.id}`, { extras: { ...(s.extras ?? {}), cup_efectivo_rate: ef, cup_transferencia_rate: tr } })
+        ))
+        // Notify the worker (fire-and-forget)
       if (ef > 0 || tr > 0) {
         setImmediate(() => {
           dispatchPushIndividual([{ userId: user_id, title: '💱 Cambio personalizado actualizado', body: 'Tu tipo de cambio exclusivo ha sido actualizado. Entra a ver tu salario.', url: '/salarios' }]).catch(() => {})
