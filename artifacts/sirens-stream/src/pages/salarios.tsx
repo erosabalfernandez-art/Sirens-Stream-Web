@@ -47,6 +47,7 @@ import { useState, useEffect } from 'react'
     const [confirming, setConfirming] = useState<string | null>(null)
       const [workerPayMethods, setWorkerPayMethods] = useState<Record<string,string>>({})
       const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
+        const [myCustomRates, setMyCustomRates] = useState<Record<string,{efectivo_rate:number;transferencia_rate:number}>>({})
       const [activeNominas, setActiveNominas] = useState<Set<string>>(new Set())
       const [historyOpen, setHistoryOpen] = useState(false)
 
@@ -339,8 +340,10 @@ import { useState, useEffect } from 'react'
                         const metodo = workerPayMethods[s.app_name] ?? ''
                         const isCubanPay = metodo === 'Efectivo (Cuba)' || metodo === 'Transferencia Bancaria (Cuba)'
                         const rateKey = metodo === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
+                        const appCustom = myCustomRates[s.app_name]
+                        const customCupRate = isCubanPay ? (metodo === 'Efectivo (Cuba)' ? (appCustom?.efectivo_rate ?? 0) : (appCustom?.transferencia_rate ?? 0)) : 0
                         const storedRate = metodo === 'Efectivo (Cuba)' ? (s.extras?.cup_efectivo_rate as number | undefined) : (s.extras?.cup_transferencia_rate as number | undefined)
-                          const cupRate = isCubanPay ? ((storedRate && storedRate > 0) ? storedRate : (exchangeRates[rateKey] ?? 0)) : 0
+                          const cupRate = isCubanPay ? (customCupRate > 0 ? customCupRate : ((storedRate && storedRate > 0) ? storedRate : (exchangeRates[rateKey] ?? 0))) : 0
                         const cupTotal = Number(s.usd) * cupRate
                         return (
                           <div key={s.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
