@@ -47,18 +47,20 @@ import { useState, useEffect } from 'react'
     const [confirming, setConfirming] = useState<string | null>(null)
       const [workerPayMethods, setWorkerPayMethods] = useState<Record<string,string>>({})
       const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
+      const [activeNominas, setActiveNominas] = useState<Set<string>>(new Set())
+      const [historyOpen, setHistoryOpen] = useState(false)
 
     useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
     useEffect(() => { if (user) { fetchSalaries(); fetchConfirmed(); fetchWorkerInfo() } }, [user])
 
     async function fetchSalaries() {
       setFetching(true)
-      const { data } = await supabase
-        .from('published_salaries')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false })
-      setSalaries((data as PublishedSalary[]) ?? [])
+      const [salRes, nominaRes] = await Promise.all([
+        supabase.from('published_salaries').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
+        supabase.from('nomina_history').select('semana').eq('published', true),
+      ])
+      setSalaries((salRes.data as PublishedSalary[]) ?? [])
+      setActiveNominas(new Set(((nominaRes.data ?? []) as {semana:string}[]).map(h => h.semana)))
       setFetching(false)
     }
 
@@ -111,7 +113,10 @@ import { useState, useEffect } from 'react'
 
     function exportSalaryPDF() {
       if (salaries.length === 0) return
-      const apps = [...new Set(salaries.map(s => s.app_name))]
+      const activeSalaries = salaries.filter(s => activeNominas.has(s.semana))
+    const historySalaries = salaries.filter(s => !activeNominas.has(s.semana))
+    const activeApps = [...new Set(activeSalaries.map(s => s.app_name))]
+        const apps = [...new Set(salaries.map(s => s.app_name))]
       const totalUSD = salaries.reduce((sum, s) => sum + Number(s.usd), 0)
       const now = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
 
@@ -258,7 +263,7 @@ import { useState, useEffect } from 'react'
             <div className="space-y-3">
               {[1,2,3].map(i => <div key={i} className="h-24 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
             </div>
-          ) : salaries.length === 0 ? (
+          ) : (activeSalaries.length === 0 && historySalaries.length === 0) ? (
             <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-16 text-center">
               <DollarSign className="w-12 h-12 text-white/10 mx-auto mb-4" />
               <p className="text-white/40 text-sm">{T.empty1}</p>
@@ -268,7 +273,7 @@ import { useState, useEffect } from 'react'
             <div className="space-y-6">
               {/* CUP summary banner - only show when Cuban pay method & rate set */}
               {(() => {
-                const cupApps = apps.filter(app => {
+                const cupApps = activeApps.filter(app => {
                   const m = workerPayMethods[app] ?? ''
                   const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
                   const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
@@ -284,7 +289,7 @@ import { useState, useEffect } from 'react'
                         const m = workerPayMethods[app] ?? ''
                         const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
                         const rate = exchangeRates[rk] ?? 0
-                        const totalUsd = salaries.filter(s => s.app_name === app).reduce((sum, s) => sum + Number(s.usd), 0)
+                        const totalUsd = activeSalaries.filter(s => s.app_name === app).reduce((sum, s) => sum + Number(s.usd), 0)
                         const cup = totalUsd * rate
                         grandTotal += cup
                         return (
@@ -307,8 +312,17 @@ import { useState, useEffect } from 'react'
                   </div>
                 )
               })()}
-              {apps.map(app => {
-                const appSalaries = salaries.filter(s => s.app_name === app)
+              {activeSalaries.length === 0 && historySalaries.length > 0 && (
+                  <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-8 text-center mb-2">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-lg">🔒</span>
+                    </div>
+                    <p className="text-white/50 text-sm font-medium">Semana cerrada</p>
+                    <p className="text-white/25 text-xs mt-1">Los pagos se procesaron. Consulta el historial abajo.</p>
+                  </div>
+                )}
+                {activeApps.map(app => {
+                const appSalaries = activeSalaries.filter(s => s.app_name === app)
                 return (
                   <div key={app}>
                     <h2 className="text-sm font-bold text-white/40 uppercase tracking-wider mb-3 px-1">{app}</h2>
@@ -443,6 +457,37 @@ import { useState, useEffect } from 'react'
                   </div>
                 )
               })}
+              {historySalaries.length > 0 && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setHistoryOpen(h => !h)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white/4 hover:bg-white/6 border border-white/8 rounded-xl text-white/50 text-xs font-semibold uppercase tracking-wider transition-colors"
+                  >
+                    <span>Semanas anteriores ({historySalaries.length})</span>
+                    {historyOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {historyOpen && (
+                    <div className="mt-3 space-y-2 opacity-60">
+                      {[...new Set(historySalaries.map(s => s.app_name))].map(app => (
+                        <div key={app}>
+                          <p className="text-white/30 text-xs font-bold uppercase tracking-wider mb-1 px-1">{app}</p>
+                          <div className="space-y-2">
+                            {historySalaries.filter(s => s.app_name === app).map(s => (
+                              <div key={s.id} className="bg-[#0d0d1e] border border-white/5 rounded-xl px-4 py-3 flex items-center justify-between">
+                                <div>
+                                  <span className="text-white/40 text-xs font-semibold">Semana {s.semana}</span>
+                                  <span className="text-white/20 text-xs ml-2">{new Date(s.created_at).toLocaleDateString('es-ES', {day:'2-digit',month:'short',year:'numeric'})}</span>
+                                </div>
+                                <span className="text-white/40 text-sm font-bold">{Number(s.usd).toLocaleString('es-ES', {minimumFractionDigits:2})} USD</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
