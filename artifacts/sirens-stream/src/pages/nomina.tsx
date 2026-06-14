@@ -1790,11 +1790,11 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       setSetupNeeded(false)
       try {
         const [workersRes, ratesRes] = await Promise.all([
-          supabase.from('worker_entries').select('user_id,app_name,nombre_en_app,nombre_real,metodo_pago').order('nombre_en_app'),
+          fetch(API_URL + '/api/admin/all-workers').then(r => r.json()).catch(() => ({ workers: [] })),
           fetch(API_URL + '/api/admin/custom-worker-rates').then(r => r.json()).catch(() => ({ rates: [], setup_needed: true }))
         ])
         if (ratesRes.setup_needed) { setSetupNeeded(true); setLoadingCustom(false); return }
-        const workers = (workersRes.data ?? []) as {user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null}[]
+        const workers = (workersRes.workers ?? []) as {user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null}[]
         setAllWorkers(workers)
         // Only keep rates that are actually active (non-zero) — filters out ghost records
         // from deleted users and rows left over from a previous cierre with rate=0
