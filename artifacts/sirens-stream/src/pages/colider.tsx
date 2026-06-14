@@ -275,7 +275,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
       agent: dualAgentByUid.get(uid)!,
     }))
     const total = persons.length
-    const totalPaid = persons.filter(p => marks[p.key]).length
     const totalPaid = persons.filter(p => { const pa = p.apps.length > 0 ? p.apps : (p.app ? [p.app] : ['']); return pa.every(a => marks[`${p.person_uid}__${a}`] ?? false) }).length
     const alreadyNotified = !!(weekStatus?.notified && !weekStatus?.admin_closed)
     const notifyLocked = !allPaid || alreadyNotified
