@@ -29,7 +29,31 @@ import { Router } from 'express';
   });
 
   /**
-     * GET /api/active-semanas
+     * GET /api/worker/my-rates?user_id=X
+     * Returns custom cup rates + global exchange_rates for the given worker (service role, bypasses RLS)
+     */
+    router.get('/worker/my-rates', async (req, res) => {
+      const { user_id } = req.query as { user_id?: string }
+      if (!user_id) return res.status(400).json({ error: 'user_id required' })
+      try {
+        const [crRes, grRes] = await Promise.all([
+          fetch(sbUrl(`custom_worker_rates?user_id=eq.${encodeURIComponent(user_id)}&select=app_name,efectivo_rate,transferencia_rate`), { headers: sbH() })
+            .then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(sbUrl('exchange_rates?select=id,rate'), { headers: sbH() })
+            .then(r => r.ok ? r.json() : []).catch(() => []),
+        ])
+        const custom: Record<string, {efectivo_rate: number; transferencia_rate: number}> = {}
+        for (const c of (crRes as any[])) custom[c.app_name] = { efectivo_rate: Number(c.efectivo_rate) || 0, transferencia_rate: Number(c.transferencia_rate) || 0 }
+        const global: Record<string, number> = {}
+        for (const g of (grRes as any[])) global[g.id] = Number(g.rate) || 0
+        return res.json({ custom, global })
+      } catch (err: any) {
+        return res.status(500).json({ error: err?.message ?? 'Error interno' })
+      }
+    })
+
+    /**
+       * GET /api/active-semanas
      * Returns semanas where nomina_history.published = true (service role, bypasses RLS)
      * Workers/coliders/agents use this to know which weeks are still open for confirmation.
      */
