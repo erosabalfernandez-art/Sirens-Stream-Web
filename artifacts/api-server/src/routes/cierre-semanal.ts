@@ -326,12 +326,12 @@ import { dispatchPush } from '../lib/push-dispatch';
               }).catch(() => Promise.resolve(new Response()))
             );
 
-            // Reset custom_worker_rates to 0 — per-worker CUP rates hidden after cierre
+            // Delete all custom_worker_rates on cierre — removes per-worker assignments entirely
+            // (ghost records from deleted users and stale rate=0 rows are fully cleaned up)
             cleanupOps.push(
-              fetch(sbUrl('custom_worker_rates?efectivo_rate=gte.0'), {
-                method: 'PATCH',
+              fetch(sbUrl('custom_worker_rates?id=gte.00000000-0000-0000-0000-000000000000'), {
+                method: 'DELETE',
                 headers: { ...sbH(), Prefer: 'return=minimal' },
-                body: JSON.stringify({ efectivo_rate: 0, transferencia_rate: 0, updated_at: new Date().toISOString() }),
               }).catch(() => Promise.resolve(new Response()))
             );
 
