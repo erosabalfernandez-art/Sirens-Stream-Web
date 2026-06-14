@@ -153,7 +153,10 @@ import { Router } from 'express'
             ...agentData.map((r: any) => r.semana as string),
           ])].sort((a, b) => b.localeCompare(a))
 
-          res.json({ weeks: allWeeks, agent_code: agentCode })
+          // Only show weeks where nomina is still published/open
+          const pubNominas = await sbGet('nomina_history?published=eq.true&select=semana').catch(() => [])
+          const pubSemanas = new Set(pubNominas.map((r: any) => r.semana as string))
+          res.json({ weeks: allWeeks.filter((w: string) => pubSemanas.has(w)), agent_code: agentCode })
           return
         }
         // Colider exists but has no agent_code yet
@@ -170,7 +173,10 @@ import { Router } from 'express'
         ...salaryData.map((r: any) => r.semana as string),
         ...agentData.map((r: any) => r.semana as string),
       ])].sort((a, b) => b.localeCompare(a))
-      res.json({ weeks: allWeeks })
+      // Only show weeks where nomina is still published/open
+      const pubNominasAdmin = await sbGet('nomina_history?published=eq.true&select=semana').catch(() => [])
+      const pubSemanasAdmin = new Set(pubNominasAdmin.map((r: any) => r.semana as string))
+      res.json({ weeks: allWeeks.filter((w: string) => pubSemanasAdmin.has(w)) })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
 
