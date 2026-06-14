@@ -47,6 +47,7 @@ import { useState, useEffect } from 'react'
     const [confirming, setConfirming] = useState<string | null>(null)
       const [workerPayMethods, setWorkerPayMethods] = useState<Record<string,string>>({})
       const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
+          const [exchangeRatesUpdatedAt, setExchangeRatesUpdatedAt] = useState<Record<string,string>>({})
         const [myCustomRates, setMyCustomRates] = useState<Record<string,{efectivo_rate:number;transferencia_rate:number}>>({})
       const [activeNominas, setActiveNominas] = useState<Set<string>>(new Set())
       const [historyOpen, setHistoryOpen] = useState(false)
@@ -282,7 +283,10 @@ import { useState, useEffect } from 'react'
                   const m = workerPayMethods[app] ?? ''
                   const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
                   const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                  return isCuban && (exchangeRates[rk] ?? 0) > 0
+                  const rateUpdAt = exchangeRatesUpdatedAt[rk]
+                    const appLatest = activeSalaries.filter(s => s.app_name === app).map(s => s.created_at).sort().pop()
+                    const rateIsCurrent = (exchangeRates[rk] ?? 0) > 0 && rateUpdAt != null && (appLatest == null || new Date(rateUpdAt) > new Date(appLatest))
+                    return isCuban && rateIsCurrent
                 })
                 if (cupApps.length === 0) return null
                 let grandTotal = 0
@@ -343,7 +347,10 @@ import { useState, useEffect } from 'react'
                         const appCustom = myCustomRates[s.app_name]
                         const customCupRate = isCubanPay ? (metodo === 'Efectivo (Cuba)' ? (appCustom?.efectivo_rate ?? 0) : (appCustom?.transferencia_rate ?? 0)) : 0
                         const storedRate = metodo === 'Efectivo (Cuba)' ? (s.extras?.cup_efectivo_rate as number | undefined) : (s.extras?.cup_transferencia_rate as number | undefined)
-                          const cupRate = isCubanPay ? (customCupRate > 0 ? customCupRate : ((storedRate && storedRate > 0) ? storedRate : (exchangeRates[rateKey] ?? 0))) : 0
+                          const rateUpdAtCard = exchangeRatesUpdatedAt[rateKey]
+                          const liveRateIsCurrent = rateUpdAtCard != null && new Date(rateUpdAtCard) > new Date(s.created_at)
+                          const liveRate = liveRateIsCurrent ? (exchangeRates[rateKey] ?? 0) : 0
+                          const cupRate = isCubanPay ? (customCupRate > 0 ? customCupRate : ((storedRate && storedRate > 0) ? storedRate : liveRate)) : 0
                         const cupTotal = Number(s.usd) * cupRate
                         return (
                           <div key={s.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">

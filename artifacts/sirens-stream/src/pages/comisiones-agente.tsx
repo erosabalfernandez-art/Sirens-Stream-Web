@@ -25,6 +25,7 @@ import { useState, useEffect } from 'react'
     const [publishingColider, setPublishingColider] = useState(false)
     const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set())
     const [messages, setMessages] = useState<Record<string, string>>({})
+      const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({})
 
   // Persist semana selection
   useEffect(() => { try { if (semana) localStorage.setItem('ea_com_semana', semana) } catch {} }, [semana])
@@ -94,6 +95,11 @@ import { useState, useEffect } from 'react'
     }
 
     async function publishAgent(ag: AgentRef) {
+      const workerRatesPublished = (exchangeRates['efectivo_worker'] ?? 0) > 0 || (exchangeRates['transferencia_worker'] ?? 0) > 0
+      if (!workerRatesPublished) {
+        setMessages(m => ({ ...m, [ag.agent_name]: '⚠️ Publica el Tipo de Cambio Cuba en la sección Nómina antes de publicar comisiones a agentes.' }))
+        return
+      }
       const agId = ag.agent_user_id ?? ag.agent_name
       const commissions = []
       for (const app of ag.apps) {
@@ -156,6 +162,16 @@ import { useState, useEffect } from 'react'
 
           {messages['_load'] && <p className="text-xs font-semibold text-red-400 mb-3">{messages['_load']}</p>}
 
+            {agents.length > 0 && (exchangeRates['efectivo_worker'] ?? 0) <= 0 && (exchangeRates['transferencia_worker'] ?? 0) <= 0 && (
+              <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
+                <span className="text-amber-400 text-xl shrink-0">⚠️</span>
+                <div>
+                  <p className="text-amber-300 text-sm font-bold mb-1">Cambio Cuba no publicado</p>
+                  <p className="text-white/40 text-xs leading-relaxed">Para publicar comisiones a los agentes primero debes publicar el Tipo de Cambio Cuba en la sección Nómina.</p>
+                </div>
+              </div>
+            )}
+
           {agents.length > 0 && (
             <div className="mb-4 bg-[#0d0d1e] border border-amber-500/10 rounded-xl px-4 py-3">
               <div className="flex items-center justify-between mb-1.5">
@@ -206,7 +222,15 @@ import { useState, useEffect } from 'react'
                         <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0"><Users className="w-4 h-4 text-amber-400" /></div>
                         <div className="min-w-0">
                           <p className="font-bold text-sm text-white truncate">{ag.agent_name}</p>
-                          <p className="text-white/40 text-xs">{ag.locked ? '🔒 Publicado esta semana' : `Total: $${total.toFixed(2)} USD`}</p>
+                          <p className="text-white/40 text-xs">
+                            {ag.locked ? '🔒 Publicado esta semana' : (
+                              <>
+                                Total: <span className="text-green-400 font-bold">${total.toFixed(2)} USD</span>
+                                {(exchangeRates['efectivo_agent'] ?? 0) > 0 && <span className="text-amber-400 ml-2">· {(total * (exchangeRates['efectivo_agent'] ?? 0)).toLocaleString('es-ES', {maximumFractionDigits:0})} CUP ef.</span>}
+                                {(exchangeRates['transferencia_agent'] ?? 0) > 0 && (exchangeRates['efectivo_agent'] ?? 0) <= 0 && <span className="text-blue-400 ml-2">· {(total * (exchangeRates['transferencia_agent'] ?? 0)).toLocaleString('es-ES', {maximumFractionDigits:0})} CUP tr.</span>}
+                              </>
+                            )}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">

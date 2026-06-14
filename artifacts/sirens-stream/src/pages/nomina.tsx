@@ -1293,11 +1293,11 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                   </span>
                 )}
                 <button
-                  onClick={async () => { await publicarSalarios(true); await publishAgentCommissions() }}
-                  disabled={publishing || publishingAgents || cobradas.length === 0}
+                  onClick={async () => { await publicarSalarios(true) }}
+                  disabled={publishing || cobradas.length === 0}
                   className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
-                  {(publishing || publishingAgents) ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                  {(publishing || publishingAgents) ? 'Publicando...' : '🚀 Publicar'}
+                  {publishing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                  {publishing ? 'Publicando...' : '📋 Publicar Nómina'}
                 </button>
                 <button onClick={exportarPDF}
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg">
