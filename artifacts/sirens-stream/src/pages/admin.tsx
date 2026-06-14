@@ -266,15 +266,16 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           if (!salaries || salaries.length === 0) { setPagosData([]); setPagosLoading(false); return }
           const userIds = (salaries as any[]).map((s: any) => s.user_id)
           const salaryIds = (salaries as any[]).map((s: any) => s.id)
-          const [{ data: profiles }, { data: workers }, { data: confirmations, error: confErr }] = await Promise.all([
+          const _apiBasePc = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+          const [{ data: profiles }, { data: workers }, _confResPc] = await Promise.all([
             supabase.from('profiles').select('id, email').in('id', userIds),
             supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, id_aplicacion, metodo_pago, billetera, agente').eq('app_name', app).in('user_id', userIds),
-            supabase.from('payment_confirmations').select('salary_id, confirmed_at').in('salary_id', salaryIds),
+            salaryIds.length > 0 ? fetch(`${_apiBasePc}/api/payment-confirmations?salary_ids=${salaryIds.join(',')}`, { credentials: 'include' }).then(r => r.ok ? r.json() : { confirmations: [] }).catch(() => ({ confirmations: [] })) : Promise.resolve({ confirmations: [] }),
           ])
-          if (confErr?.code === '42P01') { setPagosNeedSetup(true); setPagosLoading(false); return }
+          const confirmations = (_confResPc as any)?.confirmations ?? []
           const profileMap: Record<string,string> = Object.fromEntries(((profiles ?? []) as any[]).map((p: any) => [p.id, p.email]))
           const workerMap: Record<string,any> = Object.fromEntries(((workers ?? []) as any[]).map((w: any) => [w.user_id, w]))
-          const confMap: Record<string,string> = Object.fromEntries(((confirmations ?? []) as any[]).map((c: any) => [c.salary_id, c.confirmed_at]))
+          const confMap: Record<string,string> = Object.fromEntries((confirmations as any[]).map((c: any) => [c.salary_id, c.confirmed_at]))
           const merged = (salaries as any[]).map((s: any) => {
             const w = workerMap[s.user_id] ?? {}
             const confAt = confMap[s.id]
@@ -350,19 +351,20 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             // 5. Collect ids for batch queries
             const userIds = [...new Set(allSalaries.map(s => s.user_id))] as string[]
             const salaryIds = allSalaries.map(s => s.id) as string[]
-            const [{ data: profiles }, { data: workers }, { data: confirmations, error: confErr }, { data: exRates }] = await Promise.all([
+            const _apiBaseAll = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+            const [{ data: profiles }, { data: workers }, _confResAll, { data: exRates }] = await Promise.all([
               supabase.from('profiles').select('id, email').in('id', userIds),
               supabase.from('worker_entries').select('user_id, app_name, nombre_real, nombre_en_app, id_aplicacion, metodo_pago, billetera, agente'),
-              supabase.from('payment_confirmations').select('salary_id, confirmed_at').in('salary_id', salaryIds),
+              salaryIds.length > 0 ? fetch(`${_apiBaseAll}/api/payment-confirmations?salary_ids=${salaryIds.join(',')}`, { credentials: 'include' }).then(r => r.ok ? r.json() : { confirmations: [] }).catch(() => ({ confirmations: [] })) : Promise.resolve({ confirmations: [] }),
               supabase.from('exchange_rates').select('id, rate'),
             ])
-            if (confErr?.code === '42P01') { setPagosNeedSetup(true); setPagosLoading(false); fetchAgentPayData(); return }
             // 6. Build lookup maps
             const profileMap: Record<string,string> = Object.fromEntries(((profiles ?? []) as any[]).map((p: any) => [p.id, p.email]))
             // worker map keyed by user_id+app_name
             const workerMap: Record<string,any> = {}
             for (const w of (workers ?? []) as any[]) workerMap[`${w.user_id}_${w.app_name}`] = w
-            const confMap: Record<string,string> = Object.fromEntries(((confirmations ?? []) as any[]).map((c: any) => [c.salary_id, c.confirmed_at]))
+            const confirmationsAll = (_confResAll as any)?.confirmations ?? []
+            const confMap: Record<string,string> = Object.fromEntries((confirmationsAll as any[]).map((c: any) => [c.salary_id, c.confirmed_at]))
             const rateMap: Record<string,number> = {}
             for (const r of (exRates ?? []) as any[]) rateMap[(r as any).id] = (r as any).rate
             // 7. Enrich salaries
