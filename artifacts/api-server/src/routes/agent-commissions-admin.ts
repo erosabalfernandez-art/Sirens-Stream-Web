@@ -37,12 +37,13 @@ import { Router } from 'express'
     const { semana } = req.query as { semana?: string }
     if (!semana) { res.status(400).json({ error: 'semana required' }); return }
     try {
-      const [agentComms, laylaRows, published, publishLog, coliderLog] = await Promise.all([
+      const [agentComms, laylaRows, published, publishLog, coliderLog, exchangeRatesRows] = await Promise.all([
         sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`),
         sbGet(`published_salaries?semana=eq.${encodeURIComponent(semana)}&app_name=eq.Layla&select=user_id,extras`),
         sbGet(`published_agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`),
         sbGet(`agent_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&select=*`),
         sbGet(`colider_commission_publish_log?semana=eq.${encodeURIComponent(semana)}&limit=1`),
+          sbGet(`exchange_rates?select=id,rate,updated_at`),
       ])
       const laylaMonedas: Record<string, number> = {}
       for (const w of laylaRows) laylaMonedas[w.user_id] = Number((w.extras as any)?.monedas_comerciales ?? 0)
@@ -133,7 +134,9 @@ import { Router } from 'express'
         }
 
       const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : lockedAgents.has(`__name__:${a.agent_name}`), apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
-      res.json({ semana, agents, colider_published: coliderLog.length > 0, colider_published_at: (coliderLog[0] as any)?.published_at ?? null })
+      const exchange_rates: Record<string, number> = {}
+        for (const r of (exchangeRatesRows as any[])) exchange_rates[r.id] = Number(r.rate) || 0
+        res.json({ semana, agents, colider_published: coliderLog.length > 0, colider_published_at: (coliderLog[0] as any)?.published_at ?? null, exchange_rates })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
   router.post('/admin/publish-agent-commission', async (req, res) => {
