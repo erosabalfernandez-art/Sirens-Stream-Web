@@ -29,7 +29,26 @@ import { Router } from 'express';
   });
 
   /**
-   * POST /api/worker-entries
+     * GET /api/active-semanas
+     * Returns semanas where nomina_history.published = true (service role, bypasses RLS)
+     * Workers/coliders/agents use this to know which weeks are still open for confirmation.
+     */
+    router.get('/active-semanas', async (req, res) => {
+      try {
+        const r = await fetch(
+          sbUrl('nomina_history?published=eq.true&select=semana'),
+          { headers: sbH() }
+        );
+        if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+        const data = await r.json() as { semana: string }[];
+        return res.json({ semanas: data.map((d: { semana: string }) => d.semana) });
+      } catch (err: any) {
+        return res.status(500).json({ error: err?.message ?? 'Error interno' });
+      }
+    });
+
+    /**
+     * POST /api/worker-entries
    * Body: same fields as worker_entries table
    * Enforces: agente cannot differ from any existing agente for same user
    */
