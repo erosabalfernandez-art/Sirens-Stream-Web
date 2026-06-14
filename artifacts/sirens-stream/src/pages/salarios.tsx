@@ -55,12 +55,13 @@ import { useState, useEffect } from 'react'
 
     async function fetchSalaries() {
       setFetching(true)
-      const [salRes, nominaRes] = await Promise.all([
+      const _apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/,'')
+      const [salRes, activeRes] = await Promise.all([
         supabase.from('published_salaries').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
-        supabase.from('nomina_history').select('semana').eq('published', true),
+        fetch(_apiBase + '/api/active-semanas').then(r => r.json()).catch(() => ({ semanas: [] })),
       ])
       setSalaries((salRes.data as PublishedSalary[]) ?? [])
-      setActiveNominas(new Set(((nominaRes.data ?? []) as {semana:string}[]).map(h => h.semana)))
+      setActiveNominas(new Set((activeRes.semanas ?? []) as string[]))
       setFetching(false)
     }
 
