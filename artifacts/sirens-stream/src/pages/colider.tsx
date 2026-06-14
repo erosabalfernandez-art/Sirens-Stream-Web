@@ -48,6 +48,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     const [weeks, setWeeks] = useState<string[]>([])
     const [semana, setSemana] = useState('')
     const [persons, setPersons] = useState<PersonEntry[]>([])
+    const [weekRates, setWeekRates] = useState<Record<string, number>>({})
     const [marks, setMarks] = useState<Record<string, boolean>>({})
     const [weekStatus, setWeekStatus] = useState<{ notified: boolean; admin_closed: boolean } | null>(null)
     const [loadingData, setLoadingData] = useState(false)
@@ -130,6 +131,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
         ])
 
         const rm: Record<string, number> = listR.exchange_rates ?? {}
+        setWeekRates(rm)
         const entries: PersonEntry[] = []
         const workerMap = new Map<string, PersonEntry>()
 
@@ -387,6 +389,23 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
               </div>
             </div>
           )}
+
+          {/* Tipo de cambio informativo — visible para el colider cuando hay personas activas */}
+          {(() => {
+            const ef = weekRates['efectivo_worker'] ?? 0
+            const ag = weekRates['efectivo_agent'] ?? 0
+            const displayRate = ef > 0 ? ef : ag
+            if (displayRate === 0 || persons.length === 0) return null
+            return (
+              <div className="bg-purple-500/6 border border-purple-500/15 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3">
+                <span className="text-xl shrink-0">💱</span>
+                <div>
+                  <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-0.5">Tipo de cambio esta semana</p>
+                  <p className="text-white/80 text-sm">1 USD = <span className="text-amber-300 font-extrabold">{displayRate.toLocaleString('es-ES')} CUP</span></p>
+                </div>
+              </div>
+            )
+          })()}
 
           <div className="flex gap-2 mb-4 flex-wrap">
             <button onClick={() => setTab('workers')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'workers' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>👩 Trabajadoras ({pureWorkers.length})</button>
