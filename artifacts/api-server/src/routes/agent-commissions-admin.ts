@@ -221,6 +221,31 @@ import { Router } from 'express'
         } catch {}
       }
 
+      // Second fallback: find commissions by worker UIDs belonging to this agent.
+      // Handles the case where the commission was published under the agent's in-app name
+      // (e.g. "Sheila" in Waha) instead of their registered Supabase name/code.
+      if (comms.length === 0) {
+        try {
+          const profRows2 = await sbGet(`profiles?id=eq.${encodeURIComponent(agent_id as string)}&select=agent_code&limit=1`)
+          const agentCode2 = (profRows2 as any[])[0]?.agent_code as string | undefined
+          if (agentCode2) {
+            const workerRows = await sbGet(
+              `worker_entries?agente=eq.${encodeURIComponent(agentCode2)}&id_aplicacion=not.is.null&select=id_aplicacion,app_name,metodo_pago`
+            )
+            const appUids = (workerRows as any[]).filter((w: any) => w.id_aplicacion).map((w: any) => w.id_aplicacion as string)
+            if (appUids.length > 0) {
+              const uidList = appUids.map((id: string) => `"${id}"`).join(',')
+              const byWorker = await sbGet(
+                `published_agent_commissions?worker_uid=in.(${uidList})&select=*&order=semana.desc,published_at.desc`
+              )
+              if ((byWorker as any[]).length > 0) {
+                comms = byWorker
+              }
+            }
+          }
+        } catch {}
+      }
+
       // Build worker info map via nomina_history (bridges app-internal UIDs to Supabase UUIDs)
       const uniqueAppSemanas = [...new Set(comms.map((c: any) => `${c.app_name}||${c.semana}`))]
       const workerInfoMap: Record<string, { supaId: string; salary_usd: number; metodo_pago: string }> = {}
