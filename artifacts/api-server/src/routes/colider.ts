@@ -156,7 +156,11 @@ import { Router } from 'express'
           // Only show weeks where nomina is still published/open
           const pubNominas = await sbGet('nomina_history?published=eq.true&select=semana').catch(() => [])
           const pubSemanas = new Set(pubNominas.map((r: any) => r.semana as string))
-          res.json({ weeks: allWeeks.filter((w: string) => pubSemanas.has(w)), agent_code: agentCode })
+          // If no workers directly linked to colider code, fall back to ALL published weeks
+          const weeksToReturn = allWeeks.length > 0
+            ? allWeeks.filter((w: string) => pubSemanas.has(w))
+            : [...pubSemanas].sort((a, b) => b.localeCompare(a))
+          res.json({ weeks: weeksToReturn, agent_code: agentCode })
           return
         }
         // Colider exists but has no agent_code yet
@@ -202,7 +206,8 @@ import { Router } from 'express'
       // Fetch salaries filtered by this colider's workers
       let salaries: any[]
       if (agentCode && workerUids.length === 0) {
-        salaries = [] // no workers linked, but agents may still exist — continue
+        // No workers directly linked to colider code — show ALL published salaries for this week
+        salaries = await sbGet(`published_salaries?semana=eq.${encodeURIComponent(semana)}&select=*`)
       } else if (agentCode && workerUids.length > 0) {
         salaries = await sbGet(
           `published_salaries?semana=eq.${encodeURIComponent(semana)}&user_id=in.(${workerUids.map(id => '"' + id + '"').join(',')})&select=*`
