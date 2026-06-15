@@ -30,6 +30,7 @@ import React, { useState, useEffect } from 'react'
     nombre: string
     apps: string[]
     appNameMap: Record<string, string>
+    idMap: Record<string, string>
     totalComm: number
     isActive: boolean
   }
@@ -416,10 +417,11 @@ import React, { useState, useEffect } from 'react'
       const map = new Map<string, WorkerCard>()
       for (const w of workerEntries) {
         const key = w.user_id
-        if (!map.has(key)) map.set(key, { key, nombre: w.nombre_en_app || w.nombre_real || w.user_id.slice(0, 8), apps: [], appNameMap: {}, totalComm: 0, isActive: false })
+        if (!map.has(key)) map.set(key, { key, nombre: w.nombre_en_app || w.nombre_real || w.user_id.slice(0, 8), apps: [], appNameMap: {}, idMap: {}, totalComm: 0, isActive: false })
         const card = map.get(key)!
         if (!card.apps.includes(w.app_name)) card.apps.push(w.app_name)
         card.appNameMap[w.app_name] = w.nombre_en_app || ''
+        card.idMap[w.app_name] = (w as any).id_aplicacion ?? ''
       }
       for (const c of commissions) {
         for (const w of (c.workers_data ?? [])) {
@@ -999,11 +1001,13 @@ import React, { useState, useEffect } from 'react'
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-sm text-white truncate">{w.nombre}</p>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                {w.apps.map(a => (
-                                  <span key={a} className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-medium">{a}</span>
-                                ))}
-                              </div>
+                              {w.apps.map(a => {
+                                const nameInApp = (w as any).appNameMap?.[a] || w.nombre
+                                const idApp = (w as any).idMap?.[a] || ''
+                                return (
+                                  <p key={a} className="text-white/40 text-xs mt-0.5">🎮 {a}: <span className="text-white/60 font-medium">{nameInApp}</span>{idApp ? <span className="ml-1.5 text-white/25 font-mono text-[10px]">· ID: {idApp}</span> : null}</p>
+                                )
+                              })}
                             </div>
                           </div>
                         </div>
@@ -1022,7 +1026,7 @@ import React, { useState, useEffect } from 'react'
                                 <p className="text-white/40 text-xs">👤 Nombre real: <span className="text-white/75 font-medium">{nombreReal}</span></p>
                               )}
                               {entries.map(entry => (
-                                <p key={entry.app_name} className="text-white/40 text-xs">🎮 {entry.app_name}: <span className="text-white/75 font-medium">{entry.nombre_en_app || '—'}</span></p>
+                                <p key={entry.app_name} className="text-white/40 text-xs">🎮 {entry.app_name}: <span className="text-white/75 font-medium">{entry.nombre_en_app || '—'}</span>{entry.id_aplicacion ? <span className="ml-1.5 text-white/25 font-mono text-[10px]">· ID: {entry.id_aplicacion}</span> : null}</p>
                               ))}
                               {waNum && waNum.length >= 7 && (
                                 <a href={`https://wa.me/${waNum}`} target="_blank" rel="noopener noreferrer"
