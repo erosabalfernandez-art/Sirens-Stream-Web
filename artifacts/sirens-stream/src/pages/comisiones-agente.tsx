@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { DollarSign, Lock, CheckCircle, ChevronDown, ChevronUp, Calculator, Users, Send } from 'lucide-react'
+  import { supabase } from '@/lib/supabase'
 
   const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
 
@@ -43,8 +44,15 @@ import { useState, useEffect } from 'react'
   }, [profile])
 
     useEffect(() => { if (!loading && !profile?.is_admin) navigate('/') }, [loading, profile])
-    useEffect(() => { if (profile?.is_admin) fetchWeeks() }, [profile])
+    useEffect(() => { if (profile?.is_admin) { fetchWeeks(); fetchExchangeRates() } }, [profile])
     useEffect(() => { if (semana) loadData() }, [semana])
+
+    async function fetchExchangeRates() {
+      const ratesRes = await supabase.from('exchange_rates').select('id, rate')
+      const r: Record<string, number> = {}
+      for (const row of (ratesRes.data ?? []) as { id: string; rate: number }[]) r[row.id] = row.rate
+      setExchangeRates(r)
+    }
 
     async function fetchWeeks() {
       try {
