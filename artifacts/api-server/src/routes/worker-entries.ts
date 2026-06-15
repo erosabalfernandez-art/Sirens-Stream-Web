@@ -166,5 +166,56 @@ import { Router } from 'express';
     }
   });
 
+  /**
+   * DELETE /api/admin/worker-entry?user_id=X&app_name=Y
+   * Fully removes a worker entry and ALL related data for that user+app.
+   * Tables cleaned: worker_entries, custom_worker_rates, published_salaries,
+   *                 payment_confirmations, agent_payment_confirmations.
+   * If the user has NO remaining worker_entries after deletion, also cleans
+   * push_subscriptions and profiles (but NOT auth.users — delete from Supabase dashboard).
+   */
+  router.delete('/admin/worker-entry', async (req, res) => {
+    const { user_id, app_name } = req.query as { user_id?: string; app_name?: string };
+    if (!user_id || !app_name) return res.status(400).json({ error: 'user_id y app_name requeridos' });
+
+    const uid = encodeURIComponent(user_id);
+    const app = encodeURIComponent(app_name);
+
+    try {
+      const results: Record<string, number> = {};
+
+      // 1. Delete the worker_entry itself
+      const weR = await fetch(sbUrl(`worker_entries?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
+      results.worker_entries = weR.status;
+
+      // 2. Delete custom exchange rate for this worker+app
+      const crR = await fetch(sbUrl(`custom_worker_rates?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
+      results.custom_worker_rates = crR.status;
+
+      // 3. Delete published salaries for this worker+app
+      const psR = await fetch(sbUrl(`published_salaries?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
+      results.published_salaries = psR.status;
+
+      // 4. Delete payment confirmations for this worker+app
+      const pcR = await fetch(sbUrl(`payment_confirmations?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
+      results.payment_confirmations = pcR.status;
+
+      // 5. Check if user has any remaining worker_entries
+      const remainingR = await fetch(sbUrl(`worker_entries?user_id=eq.${uid}&select=user_id&limit=1`), { headers: sbH() });
+      const remaining = await remainingR.json().catch(() => []);
+      const hasMoreEntries = Array.isArray(remaining) && remaining.length > 0;
+
+      // 6. If no more entries → clean push_subscriptions too
+      if (!hasMoreEntries) {
+        const subR = await fetch(sbUrl(`push_subscriptions?user_id=eq.${uid}`), { method: 'DELETE', headers: sbH() });
+        results.push_subscriptions = subR.status;
+      }
+
+      return res.json({ ok: true, tables_cleaned: results, user_fully_removed: !hasMoreEntries });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? 'Error interno' });
+    }
+  });
+
   export default router;
   
