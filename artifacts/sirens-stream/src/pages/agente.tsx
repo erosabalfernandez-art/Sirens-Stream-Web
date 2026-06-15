@@ -1004,13 +1004,33 @@ import React, { useState, useEffect } from 'react'
                               </div>
                             </div>
                           </div>
-                          {w.totalComm > 0 && (
-                            <div className="text-right shrink-0">
-                              <p className="text-green-400 font-extrabold text-sm">${fmt(w.totalComm)}</p>
-                              <p className="text-white/25 text-xs">comisión total</p>
-                            </div>
-                          )}
                         </div>
+                        {/* Contacto: nombre real, nombre en app, WhatsApp */}
+                        {(() => {
+                          const entry = workerEntries.find(we => we.user_id === w.key)
+                          if (!entry) return null
+                          const nombreReal = entry.nombre_real
+                          const nombreApp = entry.nombre_en_app
+                          const tel = (entry as any).telefono
+                          const codigo = (entry as any).codigo_pais ?? ''
+                          const waNum = tel ? `${codigo}${tel}`.replace(/\D/g, '') : null
+                          return (
+                            <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
+                              {nombreReal && (
+                                <p className="text-white/40 text-xs">👤 Nombre real: <span className="text-white/75 font-medium">{nombreReal}</span></p>
+                              )}
+                              {nombreApp && (
+                                <p className="text-white/40 text-xs">📱 En app: <span className="text-white/75 font-medium">{nombreApp}</span></p>
+                              )}
+                              {waNum && waNum.length >= 7 && (
+                                <a href={`https://wa.me/${waNum}`} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-xs bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1 rounded-full hover:bg-green-500/20 transition-colors font-semibold mt-0.5">
+                                  📞 WhatsApp
+                                </a>
+                              )}
+                            </div>
+                          )
+                        })()}
                         {/* Payment method indicator per Cuban-payment app (live data only, no stale salary) */}
                         {cupRows.map(({ app, isEfectivo, globalRate }) => (
                           <div key={app} className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between gap-3">
