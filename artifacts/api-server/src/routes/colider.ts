@@ -163,9 +163,23 @@ import { Router } from 'express'
           res.json({ weeks: weeksToReturn, agent_code: agentCode })
           return
         }
-        // Colider exists but has no agent_code yet
-        res.json({ weeks: [], agent_code: null, error: 'Este colider no tiene código de agente asignado. Contacta al admin.' })
-        return
+        // Colider exists but has no agent_code yet — fall back to all published weeks
+          try {
+            const pubNominas2 = await sbGet('nomina_history?published=eq.true&select=semana').catch(() => [])
+            const [salData2, agData2] = await Promise.all([
+              sbGet('published_salaries?select=semana&order=semana.desc&limit=50').catch(() => []),
+              sbGet(`agent_commissions?agent_user_id=eq.${encodeURIComponent(coliderUserId)}&select=semana&order=semana.desc&limit=50`).catch(() => []),
+            ])
+            const pubSet2 = new Set(pubNominas2.map((r: any) => r.semana as string))
+            const allW2 = [...new Set<string>([...salData2.map((r: any) => r.semana as string), ...agData2.map((r: any) => r.semana as string)])]
+              .filter((w: string) => pubSet2.has(w))
+              .sort((a, b) => b.localeCompare(a))
+            const finalW = allW2.length > 0 ? allW2 : [...pubSet2].sort((a, b) => b.localeCompare(a))
+            res.json({ weeks: finalW, agent_code: null })
+          } catch {
+            res.json({ weeks: [], agent_code: null })
+          }
+          return
       }
 
       // Admin / unscoped fallback
