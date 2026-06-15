@@ -1751,7 +1751,12 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       for (const row of (data ?? []) as {id:string;rate:number}[]) { r[row.id] = row.rate }
       setNominaRates(r)
     })
-    const clearHandler = () => { setNominaRates({}) }
+    const clearHandler = () => {
+      setNominaRates({})
+      // Also wipe the exclusive-rate UI so admin doesn't see stale rates from the closed semana
+      setCustomRates([])
+      setCustomInputs({})
+    }
     window.addEventListener('ea_rates_cleared', clearHandler)
     return () => window.removeEventListener('ea_rates_cleared', clearHandler)
   }, [])
