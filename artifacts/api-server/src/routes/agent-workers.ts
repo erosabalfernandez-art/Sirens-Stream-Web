@@ -66,7 +66,7 @@ import { Router } from 'express';
       // Busca por agent_code O agent_name (para datos legacy guardados con nombre)
       const agOrFilter = agentIdentifiers.map(v => `agente.eq.${encodeURIComponent(v)}`).join(',');
       const workersRes = await fetch(
-        sbUrl(`worker_entries?or=(${agOrFilter})&select=id,user_id,app_name,nombre_real,nombre_en_app,id_aplicacion,pais,metodo_pago,agente,created_at&order=created_at.desc`),
+        sbUrl(`worker_entries?or=(${agOrFilter})&select=id,user_id,app_name,nombre_real,nombre_en_app,telefono,codigo_pais,id_aplicacion,pais,metodo_pago,agente,created_at&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!workersRes.ok) return res.status(workersRes.status).json({ error: await workersRes.text() });
