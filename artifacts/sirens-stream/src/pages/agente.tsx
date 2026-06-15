@@ -1001,13 +1001,6 @@ import React, { useState, useEffect } from 'react'
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-sm text-white truncate">{w.nombre}</p>
-                              {w.apps.map(a => {
-                                const nameInApp = (w as any).appNameMap?.[a] || w.nombre
-                                const idApp = (w as any).idMap?.[a] || ''
-                                return (
-                                  <p key={a} className="text-white/40 text-xs mt-0.5">🎮 {a}: <span className="text-white/60 font-medium">{nameInApp}</span>{idApp ? <span className="ml-1.5 text-white/25 font-mono text-[10px]">· ID: {idApp}</span> : null}</p>
-                                )
-                              })}
                             </div>
                           </div>
                         </div>
