@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, ChevronDown, ChevronUp, Bell, BellOff, Users, BarChart3, Copy, Check, TrendingUp, Star, Calendar, CheckCircle2, MessageSquare, AlertTriangle, FileDown } from 'lucide-react'
+  import { DollarSign, ChevronDown, ChevronUp, Users, Copy, Check, CheckCircle2, MessageSquare, AlertTriangle, FileDown } from 'lucide-react'
   import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
   interface AgentCommission {
@@ -76,7 +76,7 @@ import React, { useState, useEffect } from 'react'
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [filterApp, setFilterApp] = useState(() => { try { return localStorage.getItem('ea_agent_filterapp') ?? '' } catch { return '' } })
 
-  const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'rendimiento'|'nocobro'>(() => { try { return (localStorage.getItem('ea_agent_tab') as any) || 'comisiones' } catch { return 'comisiones' } })
+  const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'nocobro'>(() => { try { const s = localStorage.getItem('ea_agent_tab'); return (s === 'comisiones' || s === 'trabajadoras' || s === 'nocobro' ? s : 'comisiones') } catch { return 'comisiones' } })
   const [workerAppFilter, setWorkerAppFilter] = useState(() => { try { return localStorage.getItem('ea_agent_workerapp') ?? '' } catch { return '' } })
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
@@ -440,20 +440,16 @@ import React, { useState, useEffect } from 'react'
       return { methodMap }
     }, [workerEntries])
 
-    const appStats = React.useMemo(() => {
-      const stats = new Map<string, { totalComm: number; weekCount: number; bestWeek: number; workerCount: number; weeks: {semana: string; comm: number}[] }>()
-      for (const c of commissions) {
-        if (!stats.has(c.app_name)) stats.set(c.app_name, { totalComm: 0, weekCount: 0, bestWeek: 0, workerCount: 0, weeks: [] })
-        const s = stats.get(c.app_name)!
-        s.totalComm += c.total_commission_usd || 0
-        s.weekCount++
-        if ((c.total_commission_usd || 0) > s.bestWeek) s.bestWeek = c.total_commission_usd || 0
-        const wc = new Set((c.workers_data ?? []).map(w => w.uid)).size
-        if (wc > s.workerCount) s.workerCount = wc
-        s.weeks.push({ semana: c.semana, comm: c.total_commission_usd || 0 })
+    // Latest salary per worker name (from published commissions, most recent semana first)
+    const latestWorkerSalaryMap = React.useMemo(() => {
+      const map = new Map<string, any>()
+      const sorted = [...publishedComms].sort((a: any, b: any) => String(b.semana).localeCompare(String(a.semana)))
+      for (const row of sorted) {
+        const name = String((row as any).worker_name ?? '')
+        if (name && !map.has(name)) map.set(name, row)
       }
-      return stats
-    }, [commissions])
+      return map
+    }, [publishedComms])
 
     if (loading || profile === undefined) return (
       <div className="min-h-screen bg-[#07070f] flex items-center justify-center">
@@ -465,12 +461,14 @@ import React, { useState, useEffect } from 'react'
     const agentCode = localAgentCode || ((profile as any).agent_code as string | undefined)
     const commApps = [...new Set(commissions.map(c => c.app_name))]
     const allApps = [...new Set([...workerEntries.map(w => w.app_name), ...commApps])]
-    const filtered = commissions.filter(c => !filterApp || c.app_name === filterApp)
-    const totalUSD = commissions.reduce((s, c) => s + (c.total_commission_usd || 0), 0)
     const pubTotalUSD = publishedComms.reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
     const pubSemanas = [...new Set(publishedComms.map(c => c.semana))]
     const pubApps = [...new Set(publishedComms.map(c => c.app_name as string))]
     const visibleWorkers = workerAppFilter ? (workersByApp.get(workerAppFilter) ?? []) : allWorkerCards
+    // Esta semana
+    const latestSemana = pubSemanas.length > 0 ? [...pubSemanas].sort((a, b) => b.localeCompare(a))[0] : null
+    const thisWeekRows = latestSemana ? (publishedComms as any[]).filter((c: any) => c.semana === latestSemana) : []
+    const thisWeekAgentUSD = thisWeekRows.reduce((s: number, c: any) => s + (Number(c.commission_usd) || 0), 0)
 
     return (
       <div className="min-h-screen bg-[#07070f] text-white pt-20 pb-16">
@@ -485,7 +483,7 @@ import React, { useState, useEffect } from 'react'
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <h1 className="text-2xl font-extrabold">
-                  {mainTab === 'comisiones' ? 'Mis Comisiones' : mainTab === 'trabajadoras' ? 'Mis Trabajadoras' : 'Rendimiento'}
+                  {mainTab === 'comisiones' ? 'Mis Comisiones' : mainTab === 'trabajadoras' ? 'Mis Trabajadoras' : 'Sin Cobrar'}
                 </h1>
                 {profile.agent_name && <p className="text-white/40 text-sm mt-0.5">Agente: {profile.agent_name}</p>}
               </div>
@@ -547,10 +545,6 @@ import React, { useState, useEffect } from 'react'
               <Users className="w-3.5 h-3.5" /> Trabajadoras
               {allWorkerCards.length > 0 && <span className="text-[11px] bg-white/10 rounded-full px-1.5 py-0.5 leading-none">{allWorkerCards.length}</span>}
             </button>
-            <button onClick={() => setMainTab('rendimiento')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === 'rendimiento' ? 'bg-green-700 text-white' : 'text-white/40 hover:text-white'}`}>
-              <BarChart3 className="w-3.5 h-3.5" /> Rendimiento
-            </button>
             <button onClick={() => setMainTab('nocobro')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === 'nocobro' ? 'bg-rose-700 text-white' : 'text-white/40 hover:text-white'}`}>
                 <AlertTriangle className="w-3.5 h-3.5" /> Sin Cobrar
@@ -561,9 +555,59 @@ import React, { useState, useEffect } from 'react'
           {/* ====== COMISIONES TAB ====== */}
             {mainTab === 'comisiones' && (
               <>
+                {/* ESTA SEMANA — hero prominente */}
+                {!pubCommsLoading && latestSemana && (
+                  <div className="bg-gradient-to-br from-amber-600/25 via-amber-500/10 to-transparent border border-amber-500/35 rounded-3xl p-6 mb-5">
+                    <p className="text-amber-400/70 text-xs font-extrabold uppercase tracking-widest mb-1">Semana {latestSemana}</p>
+                    <p className="text-white/40 text-sm mb-3">Lo que ganaste esta semana de tus trabajadoras</p>
+                    <div className="flex items-end gap-2 mb-2">
+                      <p className="text-5xl font-black text-white leading-none">${thisWeekAgentUSD.toFixed(2)}</p>
+                      <p className="text-amber-400 font-extrabold text-xl mb-1">USD</p>
+                    </div>
+                    {agentPayMethod && (exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0 && thisWeekAgentUSD > 0 && (
+                      <p className={`text-2xl font-extrabold mb-1 ${agentPayMethod === 'efectivo' ? 'text-amber-400' : 'text-blue-400'}`}>
+                        {(thisWeekAgentUSD * (exchangeRates[`${agentPayMethod}_agent`] ?? 0)).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
+                        <span className="text-sm font-bold text-white/25 ml-2">{agentPayMethod === 'efectivo' ? 'efectivo' : 'transferencia'}</span>
+                      </p>
+                    )}
+                    {thisWeekRows.length > 0 && (
+                      <div className="border-t border-amber-500/20 pt-4 mt-3 space-y-2">
+                        <p className="text-white/35 text-xs font-bold uppercase tracking-wider mb-2">Desglose por trabajadora</p>
+                        {thisWeekRows.map((row: any, i: number) => {
+                          const commUsd = Number(row.commission_usd) || 0
+                          const rate = agentPayMethod ? (exchangeRates[`${agentPayMethod}_agent`] ?? 0) : 0
+                          return (
+                            <div key={i} className="flex items-center justify-between">
+                              <span className="text-white/55 text-sm truncate max-w-[55%]">
+                                {row.worker_name}
+                                <span className="text-white/25 text-xs ml-1">· {row.app_name}</span>
+                              </span>
+                              <div className="text-right shrink-0">
+                                <span className="text-green-400 font-bold text-sm">${commUsd.toFixed(2)}</span>
+                                {rate > 0 && commUsd > 0 && (
+                                  <span className={`text-xs font-semibold ml-2 ${agentPayMethod === 'efectivo' ? 'text-amber-400/70' : 'text-blue-400/70'}`}>
+                                    {(commUsd * rate).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!pubCommsLoading && !latestSemana && (
+                  <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-3xl p-6 mb-5 text-center">
+                    <DollarSign className="w-8 h-8 text-amber-500/30 mx-auto mb-2" />
+                    <p className="text-white/35 text-sm font-semibold">Sin comisiones publicadas esta semana</p>
+                    <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
+                  </div>
+                )}
+
                 {/* Stats grid */}
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-white/40 text-xs font-bold uppercase tracking-wider">Resumen</p>
+                  <p className="text-white/40 text-xs font-bold uppercase tracking-wider">Resumen acumulado</p>
                   {commissions.length > 0 && (
                     <button
                       onClick={exportCommissionPDF}
@@ -899,6 +943,53 @@ import React, { useState, useEffect } from 'react'
                             }
                           </div>
                         ))}
+                        {/* Salario de esta trabajadora esta semana (desde publishedComms) */}
+                        {(() => {
+                          const salRow = latestWorkerSalaryMap.get(w.nombre)
+                          if (!salRow || !latestSemana) return null
+                          const salUsd = Number((salRow as any).worker_salary_usd ?? 0)
+                          const commUsd = Number((salRow as any).commission_usd ?? 0)
+                          if (salUsd <= 0 && commUsd <= 0) return null
+                          const met = String((salRow as any).worker_metodo_pago ?? '').toLowerCase()
+                          const isCuban = met.includes('cuba')
+                          const isEfec = met.includes('efectivo')
+                          const customEf = Number((salRow as any).custom_efectivo_rate ?? 0)
+                          const customTr = Number((salRow as any).custom_transferencia_rate ?? 0)
+                          const globalEf = exchangeRates['efectivo_worker'] ?? 0
+                          const globalTr = exchangeRates['transferencia_worker'] ?? 0
+                          const efRate = customEf > 0 ? customEf : globalEf
+                          const trRate = customTr > 0 ? customTr : globalTr
+                          const workerRate = isEfec ? efRate : trRate
+                          const cupAmount = isCuban && salUsd > 0 && workerRate > 0 ? salUsd * workerRate : 0
+                          const agentRate = agentPayMethod ? (exchangeRates[`${agentPayMethod}_agent`] ?? 0) : 0
+                          return (
+                            <div className="mt-3 pt-3 border-t border-white/8">
+                              <p className="text-white/25 text-xs font-bold uppercase tracking-wider mb-2">Semana {latestSemana}</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="bg-black/25 rounded-xl px-3 py-2.5">
+                                  <p className="text-white/35 text-[11px] mb-0.5">Salario trabajadora</p>
+                                  <p className="text-purple-300 font-extrabold text-base leading-tight">${salUsd.toFixed(2)} <span className="text-[11px] font-bold text-purple-400/40">USD</span></p>
+                                  {cupAmount > 0 && (
+                                    <p className={`text-sm font-bold mt-0.5 ${isEfec ? 'text-amber-400' : 'text-blue-400'}`}>
+                                      {cupAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
+                                      <span className="text-[10px] font-normal text-white/20 ml-1">{isEfec ? 'ef.' : 'tr.'}</span>
+                                    </p>
+                                  )}
+                                  {isCuban && workerRate <= 0 && <p className="text-white/20 text-[10px] mt-0.5">⏳ tasa pendiente</p>}
+                                </div>
+                                <div className="bg-black/25 border border-amber-500/20 rounded-xl px-3 py-2.5">
+                                  <p className="text-amber-400/55 text-[11px] mb-0.5">Tu comisión</p>
+                                  <p className="text-amber-400 font-extrabold text-base leading-tight">${commUsd.toFixed(2)} <span className="text-[11px] font-bold text-amber-400/40">USD</span></p>
+                                  {agentRate > 0 && commUsd > 0 && (
+                                    <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-300' : 'text-blue-300'}`}>
+                                      {(commUsd * agentRate).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </div>
                     )
                   })}
@@ -906,96 +997,6 @@ import React, { useState, useEffect } from 'react'
               )}
             </>
           )}
-
-          {/* ====== RENDIMIENTO TAB ====== */}
-          {mainTab === 'rendimiento' && (
-            <>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-[#0d0d1e] border border-green-500/20 rounded-2xl p-5 text-center">
-                  <p className="text-3xl font-extrabold text-green-400">${fmt(totalUSD)}</p>
-                  <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Total comisiones</p>
-                </div>
-                <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl p-5 text-center">
-                  <p className="text-3xl font-extrabold text-purple-400">{allWorkerCards.length}</p>
-                  <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Trabajadoras totales</p>
-                </div>
-              </div>
-
-              {commissions.length === 0 ? (
-                <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
-                  <BarChart3 className="w-8 h-8 text-white/15 mx-auto mb-3" />
-                  <p className="text-white/35 text-sm">Aún no hay datos de rendimiento.</p>
-                  <p className="text-white/20 text-xs mt-2">Aparecerán cuando se publiquen comisiones.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-white/30">Rendimiento por app</p>
-                  {[...appStats.entries()].map(([app, s]) => {
-                    const avgPerWeek = s.weekCount > 0 ? s.totalComm / s.weekCount : 0
-                    const recentWeeks = [...s.weeks].sort((a, b) => b.semana.localeCompare(a.semana)).slice(0, 4)
-                    return (
-                      <div key={app} className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-5">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400 font-extrabold text-lg">{app[0]}</div>
-                            <div>
-                              <p className="font-extrabold text-lg">{app}</p>
-                              <p className="text-white/35 text-xs">{s.workerCount} activas · {s.weekCount} semanas</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-green-400 font-extrabold text-xl">${fmt(s.totalComm)}</p>
-                            <p className="text-white/30 text-xs">total acumulado</p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3 mb-4">
-                          <div className="bg-black/20 rounded-xl p-3 text-center">
-                            <TrendingUp className="w-3.5 h-3.5 text-blue-400 mx-auto mb-1" />
-                            <p className="text-white font-extrabold text-sm">${fmt(avgPerWeek)}</p>
-                            <p className="text-white/30 text-xs">prom/semana</p>
-                          </div>
-                          <div className="bg-black/20 rounded-xl p-3 text-center">
-                            <Star className="w-3.5 h-3.5 text-yellow-400 mx-auto mb-1" />
-                            <p className="text-white font-extrabold text-sm">${fmt(s.bestWeek)}</p>
-                            <p className="text-white/30 text-xs">mejor semana</p>
-                          </div>
-                          <div className="bg-black/20 rounded-xl p-3 text-center">
-                            <Users className="w-3.5 h-3.5 text-purple-400 mx-auto mb-1" />
-                            <p className="text-white font-extrabold text-sm">{s.workerCount}</p>
-                            <p className="text-white/30 text-xs">activas</p>
-                          </div>
-                        </div>
-
-                        {recentWeeks.length > 0 && (
-                          <div>
-                            <p className="text-xs text-white/25 mb-2.5 flex items-center gap-1.5">
-                              <Calendar className="w-3 h-3" /> Últimas semanas
-                            </p>
-                            <div className="space-y-2">
-                              {recentWeeks.map(w => {
-                                const pct = s.bestWeek > 0 ? (w.comm / s.bestWeek) * 100 : 0
-                                return (
-                                  <div key={w.semana} className="flex items-center gap-3">
-                                    <span className="text-white/40 text-xs w-24 shrink-0">{w.semana}</span>
-                                    <div className="flex-1 bg-white/5 rounded-full h-1.5 overflow-hidden">
-                                      <div className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                                    </div>
-                                    <span className="text-amber-400 font-bold text-xs w-16 text-right shrink-0">${fmt(w.comm)}</span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
-
 
             {/* ====== SIN COBRAR TAB ====== */}
             {mainTab === 'nocobro' && (
