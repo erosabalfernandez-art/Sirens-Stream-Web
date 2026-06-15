@@ -59,10 +59,14 @@ import { Router } from 'express';
 
       // Workers store the agent_code (e.g. EA-3ASQB6DY) in the agente field, not the agent_name
       const agentCode = profile.agent_code ?? '';
-      if (!agentCode) return res.json([]);
+      const agentName = profile.agent_name ?? '';
+      const agentIdentifiers = [agentCode, agentName].filter(Boolean);
+      if (agentIdentifiers.length === 0) return res.json([]);
 
+      // Busca por agent_code O agent_name (para datos legacy guardados con nombre)
+      const agOrFilter = agentIdentifiers.map(v => `agente.eq.${encodeURIComponent(v)}`).join(',');
       const workersRes = await fetch(
-        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(agentCode)}&select=id,user_id,app_name,nombre_real,nombre_en_app,id_aplicacion,pais,metodo_pago,agente,created_at&order=created_at.desc`),
+        sbUrl(`worker_entries?or=(${agOrFilter})&select=id,user_id,app_name,nombre_real,nombre_en_app,id_aplicacion,pais,metodo_pago,agente,created_at&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!workersRes.ok) return res.status(workersRes.status).json({ error: await workersRes.text() });
@@ -90,9 +94,12 @@ import { Router } from 'express';
       if (!profile?.is_agent && !profile?.is_colider) return res.json({ entries: [] });
 
       const agentCodeForNoCobro = profile.agent_code ?? '';
-      if (!agentCodeForNoCobro) return res.json({ entries: [] });
+      const agentNameForNoCobro = profile.agent_name ?? '';
+      const ncIdentifiers = [agentCodeForNoCobro, agentNameForNoCobro].filter(Boolean);
+      if (ncIdentifiers.length === 0) return res.json({ entries: [] });
+      const ncOrFilter = ncIdentifiers.map(v => `agente.eq.${encodeURIComponent(v)}`).join(',');
       const workersRes = await fetch(
-        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(agentCodeForNoCobro)}&select=user_id&order=created_at.desc`),
+        sbUrl(`worker_entries?or=(${ncOrFilter})&select=user_id&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       const workers = await workersRes.json() as { user_id: string }[];
