@@ -62,7 +62,7 @@ import { Router } from 'express';
       if (!agentCode) return res.json([]);
 
       const workersRes = await fetch(
-        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(agentCode)}&select=id,user_id,app_name,nombre_real,nombre_en_app,pais,metodo_pago,agente,created_at&order=created_at.desc`),
+        sbUrl(`worker_entries?agente=eq.${encodeURIComponent(agentCode)}&select=id,user_id,app_name,nombre_real,nombre_en_app,id_aplicacion,pais,metodo_pago,agente,created_at&order=created_at.desc`),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!workersRes.ok) return res.status(workersRes.status).json({ error: await workersRes.text() });
