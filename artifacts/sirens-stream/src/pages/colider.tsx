@@ -17,6 +17,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     phone: string | null
     app: string
     apps: string[]
+    appNameMap: Record<string, string>
     salary_usd: number
     salary_cuba: number
     metodo_pago: string | null
@@ -148,6 +149,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             ex.salary_usd += addUsd
             ex.salary_cuba += addCup
             if (!ex.apps.includes(s.app_name)) ex.apps.push(s.app_name)
+            ex.appNameMap[s.app_name] = s.nombre_en_app ?? ''
           } else {
             workerMap.set(s.user_id, {
               key: s.user_id,
@@ -158,6 +160,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
               phone: s.telefono ? `${s.codigo_pais ?? ''}${s.telefono}`.replace(/\D/g, '') : null,
               app: s.app_name,
               apps: [s.app_name],
+              appNameMap: { [s.app_name]: s.nombre_en_app ?? '' },
               salary_usd: addUsd,
               salary_cuba: addCup,
               metodo_pago: met || null,
@@ -181,6 +184,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             phone: null,
             app: '',
             apps: [],
+            appNameMap: {},
             salary_usd: usd,
             salary_cuba: efRate > 0 ? usd * efRate : 0,
             metodo_pago: 'Efectivo (Cuba)',
@@ -487,12 +491,12 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                   <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
-                                  {p.real_name && <p className="text-white/40 text-xs">📱 En app: {p.display_name}</p>}
-                                  {p.apps.length > 1 ? (
-                                      <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                                        {p.apps.map(a => <span key={a} className="text-xs bg-purple-500/10 text-purple-300/60 px-1.5 py-0.5 rounded-full border border-purple-500/15">{a}</span>)}
-                                      </div>
-                                    ) : <p className="text-white/30 text-xs">{p.app}</p>}
+                                  {p.apps.map(a => {
+                                    const nameInApp = p.appNameMap?.[a] || p.display_name
+                                    return (
+                                      <p key={a} className="text-white/40 text-xs">🎮 {a}: <span className="text-white/60 font-medium">{nameInApp}</span></p>
+                                    )
+                                  })}
                                   {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
                                 </div>
                                 <div className="text-right shrink-0">
