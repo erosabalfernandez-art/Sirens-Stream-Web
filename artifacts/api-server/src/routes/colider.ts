@@ -234,7 +234,7 @@ import { Router } from 'express'
       let workers: any[] = []
       if (uids.length > 0) {
         workers = await sbGet(
-          `worker_entries?user_id=in.(${uids.map(id => '"' + id + '"').join(',')})&select=user_id,app_name,nombre_real,nombre_en_app,telefono,metodo_pago,agente`
+          `worker_entries?user_id=in.(${uids.map(id => '"' + id + '"').join(',')})&select=user_id,app_name,nombre_real,nombre_en_app,telefono,codigo_pais,metodo_pago,agente`
         )
       }
       const wm: Record<string,any> = {}
