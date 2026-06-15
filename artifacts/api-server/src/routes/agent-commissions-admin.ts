@@ -390,12 +390,13 @@ import { Router } from 'express'
         const allAgentUserIds = Object.values(agentMap).map((a: any) => a.agent_user_id).filter(Boolean) as string[]
         if (allAgentUserIds.length > 0) {
           try {
-            const profRes = await sbGet(`profiles?id=in.(${allAgentUserIds.map((id: string) => '"' + id + '"').join(',')})&select=id,agent_name,colider_name`)
+            const profRes = await sbGet(`profiles?id=in.(${allAgentUserIds.map((id: string) => '"' + id + '"').join(',')})&select=id,agent_name,colider_name,phone`)
             for (const p of profRes as any[]) {
               const resolvedName = p.colider_name ?? p.agent_name
-              if (p.id && resolvedName) {
-                for (const ag of Object.values(agentMap) as any[]) {
-                  if (ag.agent_user_id === p.id) ag.agent_name = resolvedName
+              for (const ag of Object.values(agentMap) as any[]) {
+                if (ag.agent_user_id === p.id) {
+                  if (resolvedName) ag.agent_name = resolvedName
+                  if (p.phone) ag.phone = p.phone
                 }
               }
             }
