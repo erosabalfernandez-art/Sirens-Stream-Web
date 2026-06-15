@@ -18,6 +18,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     app: string
     apps: string[]
     appNameMap: Record<string, string>
+    idMap: Record<string, string>
     salary_usd: number
     salary_cuba: number
     metodo_pago: string | null
@@ -150,6 +151,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             ex.salary_cuba += addCup
             if (!ex.apps.includes(s.app_name)) ex.apps.push(s.app_name)
             ex.appNameMap[s.app_name] = s.nombre_en_app ?? ''
+            ex.idMap[s.app_name] = s.id_aplicacion ?? ''
           } else {
             workerMap.set(s.user_id, {
               key: s.user_id,
@@ -161,6 +163,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
               app: s.app_name,
               apps: [s.app_name],
               appNameMap: { [s.app_name]: s.nombre_en_app ?? '' },
+              idMap: { [s.app_name]: s.id_aplicacion ?? '' },
               salary_usd: addUsd,
               salary_cuba: addCup,
               metodo_pago: met || null,
@@ -185,6 +188,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             app: '',
             apps: [],
             appNameMap: {},
+            idMap: {},
             salary_usd: usd,
             salary_cuba: efRate > 0 ? usd * efRate : 0,
             metodo_pago: 'Efectivo (Cuba)',
@@ -494,7 +498,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                                   {p.apps.map(a => {
                                     const nameInApp = p.appNameMap?.[a] || p.display_name
                                     return (
-                                      <p key={a} className="text-white/40 text-xs">🎮 {a}: <span className="text-white/60 font-medium">{nameInApp}</span></p>
+                                      <p key={a} className="text-white/40 text-xs">🎮 {a}: <span className="text-white/60 font-medium">{nameInApp}</span>{p.idMap?.[a] ? <span className="ml-1.5 text-white/25 font-mono text-[10px]">· ID: {p.idMap[a]}</span> : null}</p>
                                     )
                                   })}
                                   {paid && <p className="text-green-400 text-xs font-bold mt-0.5">✓ Pagado</p>}
