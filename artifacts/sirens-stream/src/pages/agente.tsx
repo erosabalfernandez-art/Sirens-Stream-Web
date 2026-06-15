@@ -410,28 +410,17 @@ import React, { useState, useEffect } from 'react'
       return map
     }, [allWorkerCards])
 
-    // Map: user_id → (app_name → metodo_pago) from workerEntries
-    // Map: "worker_name__app_name" → { salUsd, customEf, customTr } from most-recent publishedComms
+    // Map: user_id → (app_name → metodo_pago) from workerEntries (current, never stale)
+    // Only uses live workerEntries — never pulls historical salary/rates from publishedComms,
+    // so the trabajadoras tab stays clean between semana publishes.
     const workerCupMap = React.useMemo(() => {
       const methodMap = new Map<string, Map<string, string>>()
       for (const we of workerEntries) {
         if (!methodMap.has(we.user_id)) methodMap.set(we.user_id, new Map())
         methodMap.get(we.user_id)!.set(we.app_name, we.metodo_pago ?? '')
       }
-      const salaryMap = new Map<string, { salUsd: number; customEf: number; customTr: number }>()
-      const sorted = [...publishedComms].sort((a, b) => (b.semana ?? '').localeCompare(a.semana ?? ''))
-      for (const c of sorted) {
-        const nameKey = `${c.worker_name}__${c.app_name}`
-        if (!salaryMap.has(nameKey)) {
-          salaryMap.set(nameKey, {
-            salUsd: Number(c.worker_salary_usd ?? 0),
-            customEf: Number(c.custom_efectivo_rate ?? 0),
-            customTr: Number(c.custom_transferencia_rate ?? 0),
-          })
-        }
-      }
-      return { methodMap, salaryMap }
-    }, [workerEntries, publishedComms])
+      return { methodMap }
+    }, [workerEntries])
 
     const appStats = React.useMemo(() => {
       const stats = new Map<string, { totalComm: number; weekCount: number; bestWeek: number; workerCount: number; weeks: {semana: string; comm: number}[] }>()
@@ -832,26 +821,20 @@ import React, { useState, useEffect } from 'react'
               ) : (
                 <div className="space-y-2">
                   {visibleWorkers.map((w) => {
-                    // Compute CUP rows for each app that uses a Cuban payment method
+                    // Show payment method indicator using only current live data (workerEntries + global rates).
+                    // Never use publishedComms salary/custom-rates here — those are semana-specific and
+                    // would show stale amounts from a closed semana before the new one is published.
                     const cupRows = w.apps.map(app => {
                       const metodo = workerCupMap.methodMap.get(w.key)?.get(app) ?? ''
                       const metLow = metodo.toLowerCase()
                       const isCuban = metLow.includes('cuba')
                       if (!isCuban) return null
                       const isEfectivo = metLow.includes('efectivo')
-                      const sal = workerCupMap.salaryMap.get(`${w.nombre}__${app}`)
-                      const customEf = sal?.customEf ?? 0
-                      const customTr = sal?.customTr ?? 0
-                      const globalEf = exchangeRates['efectivo_worker'] ?? 0
-                      const globalTr = exchangeRates['transferencia_worker'] ?? 0
-                      const efRate = customEf > 0 ? customEf : globalEf
-                      const trRate = customTr > 0 ? customTr : globalTr
-                      const rate = isEfectivo ? efRate : trRate
-                      const salUsd = sal?.salUsd ?? 0
-                      const cup = salUsd > 0 && rate > 0 ? salUsd * rate : 0
-                      const hasExclusive = customEf > 0 || customTr > 0
-                      return { app, isEfectivo, rate, salUsd, cup, hasExclusive }
-                    }).filter(Boolean) as { app: string; isEfectivo: boolean; rate: number; salUsd: number; cup: number; hasExclusive: boolean }[]
+                      const globalRate = isEfectivo
+                        ? (exchangeRates['efectivo_worker'] ?? 0)
+                        : (exchangeRates['transferencia_worker'] ?? 0)
+                      return { app, isEfectivo, globalRate }
+                    }).filter(Boolean) as { app: string; isEfectivo: boolean; globalRate: number }[]
 
                     return (
                       <div key={w.key} className="bg-[#0d0d1e] border border-purple-500/10 rounded-xl px-5 py-3.5">
@@ -879,32 +862,19 @@ import React, { useState, useEffect } from 'react'
                             </div>
                           )}
                         </div>
-                        {/* CUP breakdown per Cuban-payment app */}
-                        {cupRows.map(({ app, isEfectivo, rate, salUsd, cup, hasExclusive }) => (
+                        {/* Payment method indicator per Cuban-payment app (live data only, no stale salary) */}
+                        {cupRows.map(({ app, isEfectivo, globalRate }) => (
                           <div key={app} className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="text-xs shrink-0">{isEfectivo ? '💵' : '🏦'}</span>
                               <span className={`text-xs font-medium truncate ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>
                                 {app} · {isEfectivo ? 'Efectivo Cuba' : 'Transf. Cuba'}
                               </span>
-                              {hasExclusive && (
-                                <span className="text-[10px] text-amber-300 font-bold bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full shrink-0">✦ exclusivo</span>
-                              )}
                             </div>
-                            {cup > 0 ? (
-                              <div className="text-right shrink-0">
-                                <p className={`font-extrabold text-sm ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>
-                                  {cup.toLocaleString('es-ES', { maximumFractionDigits: 0 })} <span className="text-xs font-semibold opacity-70">CUP</span>
-                                </p>
-                                <p className="text-white/20 text-[10px]">
-                                  ${salUsd.toFixed(2)} USD · {rate.toLocaleString('es-ES')} CUP/USD
-                                </p>
-                              </div>
-                            ) : rate > 0 ? (
-                              <p className="text-white/25 text-xs shrink-0">{rate.toLocaleString('es-ES')} CUP/USD</p>
-                            ) : (
-                              <p className="text-white/20 text-xs shrink-0">⏳ Tasa pendiente</p>
-                            )}
+                            {globalRate > 0
+                              ? <p className={`text-xs font-semibold shrink-0 ${isEfectivo ? 'text-amber-400/60' : 'text-blue-400/60'}`}>{globalRate.toLocaleString('es-ES')} CUP/USD</p>
+                              : <p className="text-white/20 text-xs shrink-0">⏳ Tasa pendiente</p>
+                            }
                           </div>
                         ))}
                       </div>
