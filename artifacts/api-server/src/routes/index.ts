@@ -23,6 +23,7 @@ import { Router, type IRouter } from 'express';
 import adminPaidMarksRouter from './admin-paid-marks';
 import paymentConfirmationsRouter from './payment-confirmations';
 import adminPagosRouter from './admin-pagos';
+import paymentMethodLockRouter from './payment-method-lock';
 
   const router: IRouter = Router();
 
@@ -50,6 +51,7 @@ import adminPagosRouter from './admin-pagos';
   router.use(adminPaidMarksRouter);
   router.use(paymentConfirmationsRouter);
   router.use(adminPagosRouter);
+  router.use(paymentMethodLockRouter);
 
   export default router;
   

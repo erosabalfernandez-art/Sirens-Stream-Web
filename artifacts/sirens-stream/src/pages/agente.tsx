@@ -79,6 +79,7 @@ import React, { useState, useEffect } from 'react'
   const [workerAppFilter, setWorkerAppFilter] = useState(() => { try { return localStorage.getItem('ea_agent_workerapp') ?? '' } catch { return '' } })
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
+  const [payMethodLocked, setPayMethodLocked] = useState(false)
       const [agentConfirmed, setAgentConfirmed] = useState<Set<string>>(new Set())
       const [agentConfirming, setAgentConfirming] = useState<string | null>(null)
     const [noCobro, setNoCobro] = useState<NoCobro[]>([])
@@ -104,6 +105,12 @@ import React, { useState, useEffect } from 'react'
       if (profile?.id) {
         const saved = localStorage.getItem(`apm_${profile.id}`)
         if (saved === 'efectivo' || saved === 'transferencia') setAgentPayMethod(saved)
+        // Fetch payment method lock status
+        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+        fetch(`${apiBase}/api/payment-method-lock?user_id=${encodeURIComponent(profile.id)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then((d: any) => { if (d) setPayMethodLocked(d.locked === true) })
+          .catch(() => {})
       }
     }, [profile])
 
@@ -222,6 +229,14 @@ import React, { useState, useEffect } from 'react'
         const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
         if (profile?.id) {
           await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
+          // Lock payment method — can only change again after cierre semanal
+          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+          fetch(`${apiBase}/api/payment-method-lock`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: profile.id }),
+          }).then(r => r.ok ? r.json() : null)
+            .then(() => setPayMethodLocked(true))
+            .catch(() => {})
         }
       }
 
@@ -572,6 +587,15 @@ import React, { useState, useEffect } from 'react'
                 {(
                   <div className="mb-4">
                     {!agentPayMethod ? (
+                      payMethodLocked ? (
+                        <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-5 mb-3 flex items-center gap-3">
+                          <span className="text-2xl shrink-0">🔒</span>
+                          <div>
+                            <p className="text-amber-300 text-sm font-bold">Método de pago bloqueado</p>
+                            <p className="text-white/35 text-xs mt-0.5">Ya elegiste tu método esta semana. Podrás cambiarlo cuando el admin cierre la semana.</p>
+                          </div>
+                        </div>
+                      ) : (
                       <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-5 mb-3">
                         <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">💱 Elige tu método de cobro</p>
                         <p className="text-white/40 text-xs mb-4">Selecciona cómo recibirás tus comisiones. Solo puedes elegir uno.</p>
@@ -590,6 +614,7 @@ import React, { useState, useEffect } from 'react'
                           </button>
                         </div>
                       </div>
+                      )
                     ) : (
                       <div className={`bg-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-500/8 border border-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-500/20 rounded-2xl p-4 mb-3`}>
                         <div className="flex items-center justify-between mb-3">
@@ -604,10 +629,14 @@ import React, { useState, useEffect } from 'react'
                               )}
                             </div>
                           </div>
+                          {payMethodLocked ? (
+                            <span className="text-amber-400/50 text-xs px-2 py-1 rounded-lg border border-amber-500/20">🔒 bloqueado</span>
+                          ) : (
                           <button onClick={() => setAgentPayMethod(null)}
                             className="text-white/30 hover:text-white/60 text-xs transition-colors px-2 py-1 rounded-lg border border-white/10">
                             Cambiar
                           </button>
+                          )}
                         </div>
                         {/* Per-app breakdown from published commissions */}
                         {pubApps.length > 0 && (

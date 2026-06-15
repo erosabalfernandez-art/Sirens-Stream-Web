@@ -2283,7 +2283,16 @@ CREATE TABLE IF NOT EXISTS colider_week_status (
 ALTER TABLE colider_marks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE colider_week_status ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON colider_marks TO service_role;
-GRANT ALL ON colider_week_status TO service_role;`}</pre>
+GRANT ALL ON colider_week_status TO service_role;
+
+-- Bloqueo semanal de método de pago (trabajadoras, agentes, coliders)
+CREATE TABLE IF NOT EXISTS payment_method_locks (
+  user_id text PRIMARY KEY,
+  locked boolean DEFAULT false,
+  locked_at timestamptz DEFAULT now()
+);
+ALTER TABLE payment_method_locks ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                           <p className="text-white/30 text-xs mt-2">Luego recarga esta página.</p>
                         </div>
                       )}

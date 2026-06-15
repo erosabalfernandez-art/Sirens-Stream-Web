@@ -335,6 +335,15 @@ import { dispatchPush } from '../lib/push-dispatch';
               }).catch(() => Promise.resolve(new Response()))
             );
 
+            // Unlock payment method for all users — they can choose again next week
+            cleanupOps.push(
+              fetch(sbUrl('payment_method_locks?locked=eq.true'), {
+                method: 'PATCH',
+                headers: { ...sbH(), Prefer: 'return=minimal' },
+                body: JSON.stringify({ locked: false }),
+              }).catch(() => Promise.resolve(new Response()))
+            );
+
             // Clear baked-in CUP rates from published_salaries.extras for the closed semana.
             // salarios.tsx checks storedRate (extras.cup_*_rate) first — must clear on cierre
             // so Cuba workers stop seeing CUP until admin re-publishes rates for the new week.

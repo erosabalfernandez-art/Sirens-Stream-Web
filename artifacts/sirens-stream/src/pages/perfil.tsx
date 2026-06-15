@@ -75,9 +75,18 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         const [agenteInfo, setAgenteInfo] = useState<{ name: string; is_colider: boolean } | null>(null)
         const [agenteChecking, setAgenteChecking] = useState(false)
         const [agenteError, setAgenteError] = useState<string | null>(null)
+      const [payMethodLocked, setPayMethodLocked] = useState(false)
 
       useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
       useEffect(() => { if (user) { fetchEntries(); fetchLaylaPayStatus() } }, [user])
+      useEffect(() => {
+        if (!user) return
+        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+        fetch(`${apiBase}/api/payment-method-lock?user_id=${encodeURIComponent(user.id)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then((d: any) => { if (d) setPayMethodLocked(d.locked === true) })
+          .catch(() => {})
+      }, [user?.id])
 
 
         // Persist draft in localStorage — data survives navigation/background
@@ -146,7 +155,13 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
           } else {
             const draft = loadDraft()
             const _initAgente = lockedAgente ?? draft.agente
-            setForm({ ...draft, agente: _initAgente })
+            let initForm = { ...draft, agente: _initAgente }
+            // If locked and no method in draft, inherit from existing entry so new apps share method
+            if (payMethodLocked && !initForm.metodo_pago) {
+              const existing = entries.find(e => e.metodo_pago)
+              if (existing) { initForm = { ...initForm, metodo_pago: existing.metodo_pago ?? '', billetera: existing.billetera ?? '' } }
+            }
+            setForm(initForm)
             if (_initAgente) setTimeout(() => checkAgentCode(_initAgente), 100)
           }
           setShowForm(true)
@@ -167,7 +182,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
       async function handleSave() {
         if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
         if (!form.pais) { setFormError('Selecciona tu país'); return }
-        if (!form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_colider) { setFormError('Selecciona un método de pago'); return }
+        if (!form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider) { setFormError('Selecciona un método de pago'); return }
         if ((profile as any)?.agent_code) {
           const ownCode = ((profile as any).agent_code as string).trim().toUpperCase()
           if (!form.agente || form.agente.trim().toUpperCase() !== ownCode) {
@@ -218,6 +233,15 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         if (error) { setFormError(error); return }
         if (!editingId) clearDraft()
         setShowForm(false); fetchEntries()
+        // Lock payment method after saving (workers only — agents/coliders lock via agente.tsx)
+        if (form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider) {
+          fetch(`${API}/api/payment-method-lock`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: user!.id }),
+          }).then(r => r.ok ? r.json() : null)
+            .then(() => setPayMethodLocked(true))
+            .catch(() => {})
+        }
       }
 
       async function handleDelete(id: string) { await supabase.from('worker_entries').delete().eq('id', id); fetchEntries() }
@@ -427,10 +451,20 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                       <FInput value={form.telefono} onChange={v => setForm(f => ({ ...f, telefono: v }))} placeholder="Número" className="flex-1" />
                     </div>
                   </Field>
-                  {!(profile as any)?.agent_code && !profile?.is_colider && (
+                  {!(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider && (
                     <>
+                    {payMethodLocked && form.metodo_pago ? (
+                      <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl px-3 py-3 flex items-center gap-2.5">
+                        <span className="text-base shrink-0">🔒</span>
+                        <div>
+                          <p className="text-amber-300 text-xs font-bold">Método de pago bloqueado esta semana</p>
+                          <p className="text-white/40 text-xs mt-0.5">{form.metodo_pago}{form.billetera ? ` · ${form.billetera}` : ''}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
                   <Field label="Método de pago *">
-                    <select value={form.metodo_pago} onChange={e => setForm(f => ({ ...f, metodo_pago: e.target.value, billetera: '' }))} disabled={!form.pais}
+                    <select value={form.metodo_pago} onChange={e => setForm(f => ({ ...f, metodo_pago: e.target.value, billetera: '' }))} disabled={!form.pais || payMethodLocked}
                       className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50 disabled:opacity-40">
                       <option value="">{form.pais ? 'Seleccionar...' : 'Primero selecciona tu país'}</option>
                       {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
@@ -439,6 +473,8 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                   <Field label={walletLabel || 'Billetera / Dirección de pago'}>
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
+                      </>
+                    )}
                     </>
                   )}
                   <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
