@@ -277,8 +277,18 @@ import { useState, useEffect } from 'react'
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Tipo de cambio informativo — visible para todas las cuentas cuando hay nómina activa */}
+              {/* Tipo de cambio informativo — oculto para trabajadoras con tasa exclusiva asignada */}
               {(() => {
+                // Si cualquier app cubana activa tiene tasa exclusiva → no mostrar el cambio global
+                const hasExclusiveRate = activeApps.some(app => {
+                  const m = workerPayMethods[app] ?? ''
+                  const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
+                  if (!isCuban) return false
+                  const appCustom = myCustomRates[app]
+                  const cRate = m === 'Efectivo (Cuba)' ? (appCustom?.efectivo_rate ?? 0) : (appCustom?.transferencia_rate ?? 0)
+                  return cRate > 0
+                })
+                if (hasExclusiveRate) return null
                 const ef = exchangeRates['efectivo_worker'] ?? 0
                 const tr = exchangeRates['transferencia_worker'] ?? 0
                 const displayRate = ef > 0 ? ef : tr
@@ -294,16 +304,20 @@ import { useState, useEffect } from 'react'
                 )
               })()}
 
-              {/* CUP summary banner - only show when Cuban pay method & rate set */}
+              {/* CUP summary banner — tasa exclusiva tiene prioridad sobre global; ✦ indica tasa personalizada */}
               {(() => {
                 const cupApps = activeApps.filter(app => {
                   const m = workerPayMethods[app] ?? ''
                   const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
+                  if (!isCuban) return false
+                  const appCustom = myCustomRates[app]
+                  const cRate = m === 'Efectivo (Cuba)' ? (appCustom?.efectivo_rate ?? 0) : (appCustom?.transferencia_rate ?? 0)
+                  if (cRate > 0) return true // tasa exclusiva siempre se muestra
                   const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
                   const rateUpdAt = exchangeRatesUpdatedAt[rk]
-                    const appLatest = activeSalaries.filter(s => s.app_name === app).map(s => s.created_at).sort().pop()
-                    const rateIsCurrent = (exchangeRates[rk] ?? 0) > 0 && rateUpdAt != null && (appLatest == null || new Date(rateUpdAt) > new Date(appLatest))
-                    return isCuban && rateIsCurrent
+                  const appLatest = activeSalaries.filter(s => s.app_name === app).map(s => s.created_at).sort().pop()
+                  const rateIsCurrent = (exchangeRates[rk] ?? 0) > 0 && rateUpdAt != null && (appLatest == null || new Date(rateUpdAt) > new Date(appLatest))
+                  return rateIsCurrent
                 })
                 if (cupApps.length === 0) return null
                 let grandTotal = 0
@@ -314,7 +328,10 @@ import { useState, useEffect } from 'react'
                       {cupApps.map(app => {
                         const m = workerPayMethods[app] ?? ''
                         const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                        const rate = exchangeRates[rk] ?? 0
+                        const appCustom = myCustomRates[app]
+                        const cRate = m === 'Efectivo (Cuba)' ? (appCustom?.efectivo_rate ?? 0) : (appCustom?.transferencia_rate ?? 0)
+                        const rate = cRate > 0 ? cRate : (exchangeRates[rk] ?? 0)
+                        const isExclusive = cRate > 0
                         const totalUsd = activeSalaries.filter(s => s.app_name === app).reduce((sum, s) => sum + Number(s.usd), 0)
                         const cup = totalUsd * rate
                         grandTotal += cup
@@ -322,7 +339,7 @@ import { useState, useEffect } from 'react'
                           <div key={app} className="flex items-center justify-between py-1">
                             <div>
                               <span className="text-white/80 text-sm font-bold">{app}</span>
-                              <span className="text-white/30 text-xs ml-2">{m.includes('Efectivo') ? '💵 Efectivo' : '🏦 Transferencia'} · 1 USD = {rate.toLocaleString('es-ES')} CUP</span>
+                              <span className="text-white/30 text-xs ml-2">{m.includes('Efectivo') ? '💵 Efectivo' : '🏦 Transferencia'} · 1 USD = {rate.toLocaleString('es-ES')} CUP{isExclusive ? ' ✦' : ''}</span>
                             </div>
                             <p className="text-amber-300 font-extrabold text-base">{cup.toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-xs font-semibold">CUP</span></p>
                           </div>

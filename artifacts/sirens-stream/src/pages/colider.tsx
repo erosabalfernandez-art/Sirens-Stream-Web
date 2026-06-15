@@ -516,9 +516,11 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                                   {p.salary_cuba > 0 && (
                                     <>
                                       <p className="text-amber-400 text-xs font-bold">{fmtCup(p.salary_cuba)} CUP</p>
-                                      {(weekRates[p.person_type === 'agent' ? 'efectivo_agent' : 'efectivo_worker'] ?? 0) > 0 && (
-                                        <p className="text-white/20 text-xs">💱 1 USD = {(weekRates[p.person_type === 'agent' ? 'efectivo_agent' : 'efectivo_worker'] ?? 0).toLocaleString('es-ES')} CUP</p>
-                                      )}
+                                      {(() => {
+                                        // Derivar la tasa efectiva desde salary_cuba/salary_usd — refleja tasa exclusiva si la hay
+                                        const derivedRate = p.salary_usd > 0 ? Math.round(p.salary_cuba / p.salary_usd) : (weekRates[p.person_type === 'agent' ? 'efectivo_agent' : 'efectivo_worker'] ?? 0)
+                                        return derivedRate > 0 ? <p className="text-white/20 text-xs">💱 1 USD = {derivedRate.toLocaleString('es-ES')} CUP</p> : null
+                                      })()}
                                     </>
                                   )}
                                 </div>
