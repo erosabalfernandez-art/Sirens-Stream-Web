@@ -1025,7 +1025,7 @@ import React, { useState, useEffect } from 'react'
                               {waNum && waNum.length >= 7 && (
                                 <a href={`https://wa.me/${waNum}`} target="_blank" rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 text-xs bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1 rounded-full hover:bg-green-500/20 transition-colors font-semibold mt-0.5">
-                                  📞 WhatsApp
+                                  📞 {tel}
                                 </a>
                               )}
                             </div>
