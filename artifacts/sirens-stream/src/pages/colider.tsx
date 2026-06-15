@@ -503,7 +503,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                   <p className="font-bold text-sm text-white truncate">{p.real_name ?? p.display_name}</p>
-                                  {p.real_name && p.real_name !== p.display_name && <p className="text-white/40 text-xs">{p.display_name}</p>}
+                                  {p.real_name && <p className="text-white/40 text-xs">📱 En app: {p.display_name}</p>}
                                   {p.apps.length > 1 ? (
                                       <div className="flex items-center gap-1 flex-wrap mt-0.5">
                                         {p.apps.map(a => <span key={a} className="text-xs bg-purple-500/10 text-purple-300/60 px-1.5 py-0.5 rounded-full border border-purple-500/15">{a}</span>)}
