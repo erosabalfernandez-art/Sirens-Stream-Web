@@ -118,6 +118,7 @@ import React, { useState, useEffect } from 'react'
         fetchPublishedCommissions()
         fetchWorkers()
         fetchExchangeRates()
+        fetchWorkerSalaries()
       }
       // Restore saved payment method from localStorage
       if (profile?.id) {
@@ -1000,9 +1001,6 @@ import React, { useState, useEffect } from 'react'
                                 {w.apps.map(a => (
                                   <span key={a} className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-medium">{a}</span>
                                 ))}
-                                {!w.isActive && (
-                                  <span className="text-xs bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-medium">Sin comisiones aún</span>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -1028,49 +1026,37 @@ import React, { useState, useEffect } from 'react'
                             }
                           </div>
                         ))}
-                        {/* Salario de esta trabajadora esta semana (desde publishedComms) */}
+                        {/* Salario de esta trabajadora (desde published_salaries por user_id) */}
                         {(() => {
-                          const salRow = latestWorkerSalaryMap.get(w.nombre)
-                          if (!salRow || !latestSemana) return null
-                          const salUsd = Number((salRow as any).worker_salary_usd ?? 0)
-                          const commUsd = Number((salRow as any).commission_usd ?? 0)
-                          if (salUsd <= 0 && commUsd <= 0) return null
-                          const met = String((salRow as any).worker_metodo_pago ?? '').toLowerCase()
+                          const wSals = (workerSalaries as any[]).filter(s => s.user_id === w.key)
+                          if (wSals.length === 0) return null
+                          const latestSal = wSals.sort((a: any, b: any) => String(b.semana).localeCompare(String(a.semana)))[0]
+                          const salUsd = Number(latestSal.usd ?? 0)
+                          if (salUsd <= 0) return null
+                          const met = String(latestSal.metodo_pago ?? '').toLowerCase()
                           const isCuban = met.includes('cuba')
                           const isEfec = met.includes('efectivo')
-                          const customEf = Number((salRow as any).custom_efectivo_rate ?? 0)
-                          const customTr = Number((salRow as any).custom_transferencia_rate ?? 0)
-                          const globalEf = exchangeRates['efectivo_worker'] ?? 0
-                          const globalTr = exchangeRates['transferencia_worker'] ?? 0
+                          const customEf = Number(latestSal.custom_efectivo_rate ?? 0)
+                          const customTr = Number(latestSal.custom_transferencia_rate ?? 0)
+                          const globalEf = workerExchangeRates['efectivo_worker'] ?? exchangeRates['efectivo_worker'] ?? 0
+                          const globalTr = workerExchangeRates['transferencia_worker'] ?? exchangeRates['transferencia_worker'] ?? 0
                           const efRate = customEf > 0 ? customEf : globalEf
                           const trRate = customTr > 0 ? customTr : globalTr
                           const workerRate = isEfec ? efRate : trRate
                           const cupAmount = isCuban && salUsd > 0 && workerRate > 0 ? salUsd * workerRate : 0
-                          const agentRate = agentPayMethod ? (exchangeRates[`${agentPayMethod}_agent`] ?? 0) : 0
                           return (
                             <div className="mt-3 pt-3 border-t border-white/8">
-                              <p className="text-white/25 text-xs font-bold uppercase tracking-wider mb-2">Semana {latestSemana}</p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-black/25 rounded-xl px-3 py-2.5">
-                                  <p className="text-white/35 text-[11px] mb-0.5">Salario trabajadora</p>
-                                  <p className="text-purple-300 font-extrabold text-base leading-tight">${salUsd.toFixed(2)} <span className="text-[11px] font-bold text-purple-400/40">USD</span></p>
-                                  {cupAmount > 0 && (
-                                    <p className={`text-sm font-bold mt-0.5 ${isEfec ? 'text-amber-400' : 'text-blue-400'}`}>
-                                      {cupAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
-                                      <span className="text-[10px] font-normal text-white/20 ml-1">{isEfec ? 'ef.' : 'tr.'}</span>
-                                    </p>
-                                  )}
-                                  {isCuban && workerRate <= 0 && <p className="text-white/20 text-[10px] mt-0.5">⏳ tasa pendiente</p>}
-                                </div>
-                                <div className="bg-black/25 border border-amber-500/20 rounded-xl px-3 py-2.5">
-                                  <p className="text-amber-400/55 text-[11px] mb-0.5">Tu comisión</p>
-                                  <p className="text-amber-400 font-extrabold text-base leading-tight">${commUsd.toFixed(2)} <span className="text-[11px] font-bold text-amber-400/40">USD</span></p>
-                                  {agentRate > 0 && commUsd > 0 && (
-                                    <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-300' : 'text-blue-300'}`}>
-                                      {(commUsd * agentRate).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
-                                    </p>
-                                  )}
-                                </div>
+                              <p className="text-white/25 text-xs font-bold uppercase tracking-wider mb-2">Semana {latestSal.semana}</p>
+                              <div className="bg-black/25 rounded-xl px-3 py-2.5">
+                                <p className="text-white/35 text-[11px] mb-0.5">Salario trabajadora</p>
+                                <p className="text-purple-300 font-extrabold text-base leading-tight">${salUsd.toFixed(2)} <span className="text-[11px] font-bold text-purple-400/40">USD</span></p>
+                                {cupAmount > 0 && (
+                                  <p className={`text-sm font-bold mt-0.5 ${isEfec ? 'text-amber-400' : 'text-blue-400'}`}>
+                                    {cupAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP
+                                    <span className="text-[10px] font-normal text-white/20 ml-1">{isEfec ? 'ef.' : 'tr.'}</span>
+                                  </p>
+                                )}
+                                {isCuban && workerRate <= 0 && <p className="text-white/20 text-[10px] mt-0.5">⏳ tasa pendiente</p>}
                               </div>
                             </div>
                           )
