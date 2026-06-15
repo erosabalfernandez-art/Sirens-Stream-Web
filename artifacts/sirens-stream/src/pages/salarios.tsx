@@ -47,7 +47,6 @@ import { useState, useEffect } from 'react'
     const [confirming, setConfirming] = useState<string | null>(null)
       const [workerPayMethods, setWorkerPayMethods] = useState<Record<string,string>>({})
       const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
-          const [exchangeRatesUpdatedAt, setExchangeRatesUpdatedAt] = useState<Record<string,string>>({})
         const [myCustomRates, setMyCustomRates] = useState<Record<string,{efectivo_rate:number;transferencia_rate:number}>>({})
       const [activeNominas, setActiveNominas] = useState<Set<string>>(new Set())
       const [historyOpen, setHistoryOpen] = useState(false)
@@ -314,10 +313,9 @@ import { useState, useEffect } from 'react'
                   const cRate = m === 'Efectivo (Cuba)' ? (appCustom?.efectivo_rate ?? 0) : (appCustom?.transferencia_rate ?? 0)
                   if (cRate > 0) return true // tasa exclusiva siempre se muestra
                   const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                  const rateUpdAt = exchangeRatesUpdatedAt[rk]
-                  const appLatest = activeSalaries.filter(s => s.app_name === app).map(s => s.created_at).sort().pop()
-                  const rateIsCurrent = (exchangeRates[rk] ?? 0) > 0 && rateUpdAt != null && (appLatest == null || new Date(rateUpdAt) > new Date(appLatest))
-                  return rateIsCurrent
+                  // Use live rate directly — cierre resets exchange_rates to 0 in DB,
+                  // so after cierre the API returns 0 and nothing leaks to the worker.
+                  return (exchangeRates[rk] ?? 0) > 0
                 })
                 if (cupApps.length === 0) return null
                 let grandTotal = 0
@@ -381,9 +379,9 @@ import { useState, useEffect } from 'react'
                         const appCustom = myCustomRates[s.app_name]
                         const customCupRate = isCubanPay ? (metodo === 'Efectivo (Cuba)' ? (appCustom?.efectivo_rate ?? 0) : (appCustom?.transferencia_rate ?? 0)) : 0
                         const storedRate = metodo === 'Efectivo (Cuba)' ? (s.extras?.cup_efectivo_rate as number | undefined) : (s.extras?.cup_transferencia_rate as number | undefined)
-                          const rateUpdAtCard = exchangeRatesUpdatedAt[rateKey]
-                          const liveRateIsCurrent = rateUpdAtCard != null && new Date(rateUpdAtCard) > new Date(s.created_at)
-                          const liveRate = liveRateIsCurrent ? (exchangeRates[rateKey] ?? 0) : 0
+                          // Live rate: use directly — cierre resets exchange_rates to 0 in DB
+                          // so fetching after cierre returns 0, preventing stale CUP display.
+                          const liveRate = exchangeRates[rateKey] ?? 0
                           const cupRate = isCubanPay ? (customCupRate > 0 ? customCupRate : ((storedRate && storedRate > 0) ? storedRate : liveRate)) : 0
                         const cupTotal = Number(s.usd) * cupRate
                         return (
