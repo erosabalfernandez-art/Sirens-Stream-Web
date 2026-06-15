@@ -132,5 +132,55 @@ import { Router } from 'express';
     }
   });
 
-  export default router;
+
+    // GET /api/agent/worker-salaries?agent_id=UUID
+    // Returns workers' published salaries (USD only) linked to this agent via worker_entries.agente
+    router.get('/agent/worker-salaries', async (req, res) => {
+      const agentId = (req.query.agent_id as string) || '';
+      if (!agentId) return res.status(400).json({ error: 'Missing agent_id' });
+      try {
+        const profileRes = await fetch(
+          sbUrl(`profiles?id=eq.${encodeURIComponent(agentId)}&select=id,agent_name,agent_code,is_agent&limit=1`),
+          { headers: sbHeaders() as Record<string, string> }
+        );
+        const profiles = (await profileRes.json()) as { id: string; agent_name: string | null; agent_code: string | null; is_agent: boolean }[];
+        const profile = profiles[0];
+        if (!profile?.is_agent) return res.json({ salaries: [] });
+
+        const identifiers = [profile.agent_code, profile.agent_name].filter((v): v is string => !!v);
+        if (identifiers.length === 0) return res.json({ salaries: [] });
+
+        const inClause = identifiers.map(id => `"${id}"`).join(',');
+        const workersRes = await fetch(
+          sbUrl(`worker_entries?agente=in.(${inClause})&select=user_id,app_name,nombre_en_app,nombre_real`),
+          { headers: sbHeaders() as Record<string, string> }
+        );
+        const workers = (await workersRes.json()) as { user_id: string; app_name: string; nombre_en_app: string | null; nombre_real: string | null }[];
+        if (!Array.isArray(workers) || workers.length === 0) return res.json({ salaries: [] });
+
+        const uids = [...new Set(workers.map(w => w.user_id))];
+        const workerMap: Record<string, { nombre_en_app: string | null; nombre_real: string | null }> = {};
+        for (const w of workers) workerMap[`${w.user_id}__${w.app_name}`] = { nombre_en_app: w.nombre_en_app, nombre_real: w.nombre_real };
+
+        const salariesRes = await fetch(
+          sbUrl(`published_salaries?user_id=in.(${uids.map(id => `"${id}"`).join(',')})&select=user_id,app_name,semana,usd,created_at&order=created_at.desc`),
+          { headers: sbHeaders() as Record<string, string> }
+        );
+        const salaries = (await salariesRes.json()) as { user_id: string; app_name: string; semana: string; usd: number; created_at: string }[];
+        if (!Array.isArray(salaries)) return res.json({ salaries: [] });
+
+        const enriched = salaries.map(s => ({
+          ...s,
+          nombre_en_app: workerMap[`${s.user_id}__${s.app_name}`]?.nombre_en_app ?? null,
+          nombre_real: workerMap[`${s.user_id}__${s.app_name}`]?.nombre_real ?? null,
+        }));
+
+        return res.json({ salaries: enriched });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'unknown';
+        return res.status(500).json({ error: msg });
+      }
+    });
+
+    export default router;
   
