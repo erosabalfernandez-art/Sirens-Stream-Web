@@ -133,8 +133,9 @@ import { Router } from 'express';
   });
 
 
+
     // GET /api/agent/worker-salaries?agent_id=UUID
-    // Returns workers' published salaries (USD only) linked to this agent via worker_entries.agente
+    // Returns workers' published salaries with metodo_pago, custom exchange rates, global exchange rates
     router.get('/agent/worker-salaries', async (req, res) => {
       const agentId = (req.query.agent_id as string) || '';
       if (!agentId) return res.status(400).json({ error: 'Missing agent_id' });
@@ -145,37 +146,65 @@ import { Router } from 'express';
         );
         const profiles = (await profileRes.json()) as { id: string; agent_name: string | null; agent_code: string | null; is_agent: boolean }[];
         const profile = profiles[0];
-        if (!profile?.is_agent) return res.json({ salaries: [] });
+        if (!profile?.is_agent) return res.json({ salaries: [], exchange_rates: {} });
 
         const identifiers = [profile.agent_code, profile.agent_name].filter((v): v is string => !!v);
-        if (identifiers.length === 0) return res.json({ salaries: [] });
+        if (identifiers.length === 0) return res.json({ salaries: [], exchange_rates: {} });
 
+        // Fetch workers with metodo_pago
         const inClause = identifiers.map(id => `"${id}"`).join(',');
         const workersRes = await fetch(
-          sbUrl(`worker_entries?agente=in.(${inClause})&select=user_id,app_name,nombre_en_app,nombre_real`),
+          sbUrl(`worker_entries?agente=in.(${inClause})&select=user_id,app_name,nombre_en_app,nombre_real,metodo_pago`),
           { headers: sbHeaders() as Record<string, string> }
         );
-        const workers = (await workersRes.json()) as { user_id: string; app_name: string; nombre_en_app: string | null; nombre_real: string | null }[];
-        if (!Array.isArray(workers) || workers.length === 0) return res.json({ salaries: [] });
+        const workers = (await workersRes.json()) as { user_id: string; app_name: string; nombre_en_app: string | null; nombre_real: string | null; metodo_pago: string | null }[];
+        if (!Array.isArray(workers) || workers.length === 0) return res.json({ salaries: [], exchange_rates: {} });
 
         const uids = [...new Set(workers.map(w => w.user_id))];
-        const workerMap: Record<string, { nombre_en_app: string | null; nombre_real: string | null }> = {};
-        for (const w of workers) workerMap[`${w.user_id}__${w.app_name}`] = { nombre_en_app: w.nombre_en_app, nombre_real: w.nombre_real };
+        const workerMap: Record<string, { nombre_en_app: string | null; nombre_real: string | null; metodo_pago: string | null }> = {};
+        for (const w of workers) workerMap[`${w.user_id}__${w.app_name}`] = { nombre_en_app: w.nombre_en_app, nombre_real: w.nombre_real, metodo_pago: w.metodo_pago };
 
-        const salariesRes = await fetch(
-          sbUrl(`published_salaries?user_id=in.(${uids.map(id => `"${id}"`).join(',')})&select=user_id,app_name,semana,usd,created_at&order=created_at.desc`),
-          { headers: sbHeaders() as Record<string, string> }
-        );
+        const uidList = uids.map(id => `"${id}"`).join(',');
+
+        // Fetch published salaries + custom per-worker rates + global exchange rates in parallel
+        const [salariesRes, customRatesRes, exchangeRatesRes] = await Promise.all([
+          fetch(sbUrl(`published_salaries?user_id=in.(${uidList})&select=user_id,app_name,semana,usd,created_at&order=created_at.desc`), { headers: sbHeaders() as Record<string, string> }),
+          fetch(sbUrl(`custom_worker_rates?user_id=in.(${uidList})&select=user_id,app_name,efectivo_rate,transferencia_rate`), { headers: sbHeaders() as Record<string, string> }).catch(() => null),
+          fetch(sbUrl('exchange_rates?select=id,rate'), { headers: sbHeaders() as Record<string, string> }).catch(() => null),
+        ]);
+
         const salaries = (await salariesRes.json()) as { user_id: string; app_name: string; semana: string; usd: number; created_at: string }[];
-        if (!Array.isArray(salaries)) return res.json({ salaries: [] });
+        if (!Array.isArray(salaries)) return res.json({ salaries: [], exchange_rates: {} });
 
-        const enriched = salaries.map(s => ({
-          ...s,
-          nombre_en_app: workerMap[`${s.user_id}__${s.app_name}`]?.nombre_en_app ?? null,
-          nombre_real: workerMap[`${s.user_id}__${s.app_name}`]?.nombre_real ?? null,
-        }));
+        // Build custom rates map (per-worker exclusive rates)
+        const customRateMap: Record<string, { efectivo_rate: number; transferencia_rate: number }> = {};
+        if (customRatesRes && customRatesRes.ok) {
+          const crRows = await customRatesRes.json().catch(() => []) as { user_id: string; app_name: string; efectivo_rate: number; transferencia_rate: number }[];
+          if (Array.isArray(crRows)) for (const c of crRows) customRateMap[`${c.user_id}__${c.app_name}`] = { efectivo_rate: Number(c.efectivo_rate) || 0, transferencia_rate: Number(c.transferencia_rate) || 0 };
+        }
 
-        return res.json({ salaries: enriched });
+        // Build global exchange rates map
+        const exchangeRates: Record<string, number> = {};
+        if (exchangeRatesRes && exchangeRatesRes.ok) {
+          const erRows = await exchangeRatesRes.json().catch(() => []) as { id: string; rate: number }[];
+          if (Array.isArray(erRows)) for (const r of erRows) exchangeRates[r.id] = Number(r.rate) || 0;
+        }
+
+        // Enrich each salary row with worker info + rates
+        const enriched = salaries.map(s => {
+          const wInfo = workerMap[`${s.user_id}__${s.app_name}`] ?? {};
+          const cr = customRateMap[`${s.user_id}__${s.app_name}`] ?? { efectivo_rate: 0, transferencia_rate: 0 };
+          return {
+            ...s,
+            nombre_en_app: wInfo.nombre_en_app ?? null,
+            nombre_real: wInfo.nombre_real ?? null,
+            metodo_pago: wInfo.metodo_pago ?? null,
+            custom_efectivo_rate: cr.efectivo_rate,
+            custom_transferencia_rate: cr.transferencia_rate,
+          };
+        });
+
+        return res.json({ salaries: enriched, exchange_rates: exchangeRates });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'unknown';
         return res.status(500).json({ error: msg });
@@ -183,4 +212,4 @@ import { Router } from 'express';
     });
 
     export default router;
-  
+    
