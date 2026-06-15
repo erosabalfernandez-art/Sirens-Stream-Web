@@ -239,23 +239,37 @@ import { Router } from 'express'
         })
 
       // Agent commissions for this colider
-      // Layla publishes with agent_name = agent_code; Waha/Howdy resolves agent_user_id
-      let agents: any[] = []
-      if (agentCode) {
-        const [byName, byUserId] = await Promise.all([
-          sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_name=eq.${encodeURIComponent(agentCode)}&select=*`).catch(() => []),
-          colider_user_id ? sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_user_id=eq.${encodeURIComponent(colider_user_id)}&select=*`).catch(() => []) : Promise.resolve([]),
-        ])
-        const seen = new Set<string>()
-        agents = [...byName, ...byUserId].filter((a: any) => {
-          const key = `${a.agent_name}__${a.app_name}`
-          if (seen.has(key)) return false
-          seen.add(key)
-          return true
-        })
-      } else {
-        try { agents = await sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`) } catch {}
-      }
+        // Derive agent codes from the salary data workers (their 'agente' field)
+        // then look up agent_commissions by those codes AND by resolved agent_user_ids
+        let agents: any[] = []
+        {
+          const agenteCodesFromWorkers = [...new Set<string>(enriched.map((s: any) => s.agente as string).filter(Boolean))]
+          const codesToSearch = agentCode
+            ? [...new Set([...agenteCodesFromWorkers, agentCode])]
+            : agenteCodesFromWorkers
+          if (codesToSearch.length > 0) {
+            // Resolve agent_user_ids for these codes via profiles
+            const agProfiles: any[] = await sbGet(
+              `profiles?agent_code=in.(${codesToSearch.map((c: string) => `"${c}"`).join(',')})&select=id,agent_code&is_agent=eq.true`
+            ).catch(() => [])
+            const agentUidsByCode: string[] = agProfiles.map((p: any) => p.id as string)
+            const [byCode, byUserId] = await Promise.all([
+              sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_name=in.(${codesToSearch.map((c: string) => `"${c}"`).join(',')})&select=*`).catch(() => []),
+              agentUidsByCode.length > 0
+                ? sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&agent_user_id=in.(${agentUidsByCode.map((id: string) => `"${id}"`).join(',')})&select=*`).catch(() => [])
+                : Promise.resolve([]),
+            ])
+            const seen = new Set<string>()
+            agents = [...byCode, ...byUserId].filter((a: any) => {
+              const key = `${a.agent_name ?? ''}__${a.app_name ?? ''}`
+              if (seen.has(key)) return false
+              seen.add(key)
+              return true
+            })
+          } else {
+            try { agents = await sbGet(`agent_commissions?semana=eq.${encodeURIComponent(semana)}&select=*`) } catch {}
+          }
+        }
 
       // Published agent commissions for colider view (queried by separate dedicated endpoint — kept minimal here)
       const publishedAgents: { published: boolean; agents: any[]; exchange_rates: Record<string,number> } = { published: false, agents: [], exchange_rates: {} }
