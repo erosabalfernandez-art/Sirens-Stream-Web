@@ -29,6 +29,7 @@ import React, { useState, useEffect } from 'react'
     key: string
     nombre: string
     apps: string[]
+    appNameMap: Record<string, string>
     totalComm: number
     isActive: boolean
   }
@@ -415,9 +416,10 @@ import React, { useState, useEffect } from 'react'
       const map = new Map<string, WorkerCard>()
       for (const w of workerEntries) {
         const key = w.user_id
-        if (!map.has(key)) map.set(key, { key, nombre: w.nombre_en_app || w.nombre_real || w.user_id.slice(0, 8), apps: [], totalComm: 0, isActive: false })
+        if (!map.has(key)) map.set(key, { key, nombre: w.nombre_en_app || w.nombre_real || w.user_id.slice(0, 8), apps: [], appNameMap: {}, totalComm: 0, isActive: false })
         const card = map.get(key)!
         if (!card.apps.includes(w.app_name)) card.apps.push(w.app_name)
+        card.appNameMap[w.app_name] = w.nombre_en_app || ''
       }
       for (const c of commissions) {
         for (const w of (c.workers_data ?? [])) {
@@ -1007,21 +1009,21 @@ import React, { useState, useEffect } from 'react'
                         </div>
                         {/* Contacto: nombre real, nombre en app, WhatsApp */}
                         {(() => {
-                          const entry = workerEntries.find(we => we.user_id === w.key)
-                          if (!entry) return null
-                          const nombreReal = entry.nombre_real
-                          const nombreApp = entry.nombre_en_app
-                          const tel = (entry as any).telefono
-                          const codigo = (entry as any).codigo_pais ?? ''
+                          const entries = workerEntries.filter(we => we.user_id === w.key)
+                          if (entries.length === 0) return null
+                          const firstEntry = entries[0]
+                          const nombreReal = firstEntry.nombre_real
+                          const tel = (firstEntry as any).telefono
+                          const codigo = (firstEntry as any).codigo_pais ?? ''
                           const waNum = tel ? `${codigo}${tel}`.replace(/\D/g, '') : null
                           return (
                             <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
                               {nombreReal && (
                                 <p className="text-white/40 text-xs">👤 Nombre real: <span className="text-white/75 font-medium">{nombreReal}</span></p>
                               )}
-                              {nombreApp && (
-                                <p className="text-white/40 text-xs">📱 En app: <span className="text-white/75 font-medium">{nombreApp}</span></p>
-                              )}
+                              {entries.map(entry => (
+                                <p key={entry.app_name} className="text-white/40 text-xs">🎮 {entry.app_name}: <span className="text-white/75 font-medium">{entry.nombre_en_app || '—'}</span></p>
+                              ))}
                               {waNum && waNum.length >= 7 && (
                                 <a href={`https://wa.me/${waNum}`} target="_blank" rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 text-xs bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1 rounded-full hover:bg-green-500/20 transition-colors font-semibold mt-0.5">
