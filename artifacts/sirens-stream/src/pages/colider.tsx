@@ -155,7 +155,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
               person_type: 'worker',
               display_name: s.nombre_en_app ?? s.user_id,
               real_name: s.nombre_real ?? null,
-              phone: s.telefono ?? null,
+              phone: s.telefono ? `${s.codigo_pais ?? ''}${s.telefono}`.replace(/\D/g, '') : null,
               app: s.app_name,
               apps: [s.app_name],
               salary_usd: addUsd,
