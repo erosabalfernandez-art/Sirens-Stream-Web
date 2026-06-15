@@ -48,6 +48,17 @@ import React, { useState, useEffect } from 'react'
       codigo_pais_worker?: string | null
     }
 
+
+    interface WorkerSalary {
+      user_id: string
+      app_name: string
+      semana: string
+      usd: number
+      nombre_en_app: string | null
+      nombre_real: string | null
+      created_at: string
+    }
+  
     function fmt(n: number) { return Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 
   function CopyCode({ code }: { code: string }) {
@@ -88,6 +99,8 @@ import React, { useState, useEffect } from 'react'
     const [publishedComms, setPublishedComms] = useState<any[]>([])
     const [pubCommsLoading, setPubCommsLoading] = useState(true)
   const [localAgentCode, setLocalAgentCode] = useState<string | null>(null)
+    const [workerSalaries, setWorkerSalaries] = useState<WorkerSalary[]>([])
+    const [workerSalariesLoading, setWorkerSalariesLoading] = useState(false)
 
   // Persist tab and filter selections
   useEffect(() => { try { localStorage.setItem('ea_agent_tab', mainTab) } catch {} }, [mainTab])
@@ -199,7 +212,22 @@ import React, { useState, useEffect } from 'react'
         setNoCobroLoading(false)
       }
 
-      async function fetchAgentConfirmed() {
+
+      async function fetchWorkerSalaries() {
+        if (!profile?.id) return
+        setWorkerSalariesLoading(true)
+        try {
+          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(//$/, '')
+          const res = await fetch(`${apiBase}/api/agent/worker-salaries?agent_id=${profile.id}`)
+          if (res.ok) {
+            const d = await res.json() as { salaries: WorkerSalary[] }
+            setWorkerSalaries(d.salaries ?? [])
+          }
+        } catch {}
+        setWorkerSalariesLoading(false)
+      }
+
+        async function fetchAgentConfirmed() {
         const { data } = await supabase
           .from('agent_payment_confirmations')
           .select('commission_id')
@@ -766,11 +794,43 @@ import React, { useState, useEffect } from 'react'
                 {pubCommsLoading ? (
                   <div className="text-white/30 text-sm text-center py-12 animate-pulse">Cargando comisiones...</div>
                 ) : publishedComms.length === 0 ? (
-                  <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
-                    <DollarSign className="w-8 h-8 text-white/15 mx-auto mb-3" />
-                    <p className="text-white/35 text-sm font-semibold">Comisión pendiente</p>
-                    <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
-                  </div>
+                    <>
+                      {workerSalariesLoading ? (
+                        <div className="text-white/30 text-sm text-center py-12 animate-pulse">Cargando salarios...</div>
+                      ) : workerSalaries.length > 0 ? (
+                        <div className="space-y-3">
+                          <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">💰 Salarios de tus trabajadoras</p>
+                          {[...new Set(workerSalaries.map(s => s.semana))].sort((a, b) => b.localeCompare(a)).map(semana => {
+                            const semRows = workerSalaries.filter(s => s.semana === semana)
+                            return (
+                              <div key={semana} className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl overflow-hidden">
+                                <div className="px-5 py-3 border-b border-purple-500/10 flex items-center justify-between">
+                                  <span className="text-white/50 text-xs font-bold uppercase tracking-wider">Semana {semana}</span>
+                                  <span className="text-white/25 text-xs">{semRows.length} trabajadora{semRows.length !== 1 ? 's' : ''}</span>
+                                </div>
+                                <div className="divide-y divide-white/5">
+                                  {semRows.map((s, i) => (
+                                    <div key={i} className="px-5 py-3 flex items-center justify-between">
+                                      <div>
+                                        <p className="text-white/75 text-sm font-semibold">{s.nombre_en_app ?? s.nombre_real ?? '—'}</p>
+                                        <p className="text-white/30 text-xs">{s.app_name}</p>
+                                      </div>
+                                      <p className="text-green-400 font-extrabold text-base">${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })} <span className="text-green-400/60 text-sm font-bold">USD</span></p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                          <DollarSign className="w-8 h-8 text-white/15 mx-auto mb-3" />
+                          <p className="text-white/35 text-sm font-semibold">Comisión pendiente</p>
+                          <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
+                        </div>
+                      )}
+                    </>
                 ) : (() => {
                   const bySemana: Record<string, any[]> = {}
                   for (const c of publishedComms) { if (!bySemana[c.semana]) bySemana[c.semana] = []; bySemana[c.semana].push(c) }
