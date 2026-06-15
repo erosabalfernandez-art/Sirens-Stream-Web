@@ -977,9 +977,8 @@ import React, { useState, useEffect } from 'react'
               ) : (
                 <div className="space-y-2">
                   {visibleWorkers.map((w) => {
-                    // Show payment method indicator using only current live data (workerEntries + global rates).
-                    // Never use publishedComms salary/custom-rates here — those are semana-specific and
-                    // would show stale amounts from a closed semana before the new one is published.
+                    // Show payment method indicator using current live data (workerEntries + rates).
+                    // Custom exclusive rates from workerSalaries take priority over global rates.
                     const cupRows = w.apps.map(app => {
                       const metodo = workerCupMap.methodMap.get(w.key)?.get(app) ?? ''
                       const metLow = metodo.toLowerCase()
@@ -989,8 +988,17 @@ import React, { useState, useEffect } from 'react'
                       const globalRate = isEfectivo
                         ? (exchangeRates['efectivo_worker'] ?? 0)
                         : (exchangeRates['transferencia_worker'] ?? 0)
-                      return { app, isEfectivo, globalRate }
-                    }).filter(Boolean) as { app: string; isEfectivo: boolean; globalRate: number }[]
+                      // Check if this worker has an exclusive custom rate assigned
+                      const workerSal = (workerSalaries as any[])
+                        .filter(s => s.user_id === w.key && s.app_name === app)
+                        .sort((a: any, b: any) => String(b.semana).localeCompare(String(a.semana)))[0]
+                      const customEf = Number(workerSal?.custom_efectivo_rate ?? 0)
+                      const customTr = Number(workerSal?.custom_transferencia_rate ?? 0)
+                      const customRate = isEfectivo ? customEf : customTr
+                      const displayRate = customRate > 0 ? customRate : globalRate
+                      const isExclusive = customRate > 0
+                      return { app, isEfectivo, globalRate, displayRate, isExclusive }
+                    }).filter(Boolean) as { app: string; isEfectivo: boolean; globalRate: number; displayRate: number; isExclusive: boolean }[]
 
                     return (
                       <div key={w.key} className="bg-[#0d0d1e] border border-purple-500/10 rounded-xl px-5 py-3.5">
@@ -1031,16 +1039,17 @@ import React, { useState, useEffect } from 'react'
                           )
                         })()}
                         {/* Payment method indicator per Cuban-payment app (live data only, no stale salary) */}
-                        {cupRows.map(({ app, isEfectivo, globalRate }) => (
+                        {cupRows.map(({ app, isEfectivo, displayRate, isExclusive }) => (
                           <div key={app} className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="text-xs shrink-0">{isEfectivo ? '💵' : '🏦'}</span>
                               <span className={`text-xs font-medium truncate ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>
                                 {app} · {isEfectivo ? 'Efectivo Cuba' : 'Transf. Cuba'}
+                                {isExclusive && <span className="ml-1 text-emerald-400/70 text-[10px]">✦</span>}
                               </span>
                             </div>
-                            {globalRate > 0
-                              ? <p className={`text-xs font-semibold shrink-0 ${isEfectivo ? 'text-amber-400/60' : 'text-blue-400/60'}`}>{globalRate.toLocaleString('es-ES')} CUP/USD</p>
+                            {displayRate > 0
+                              ? <p className={`text-xs font-semibold shrink-0 ${isEfectivo ? 'text-amber-400/60' : 'text-blue-400/60'}`}>{displayRate.toLocaleString('es-ES')} CUP/USD</p>
                               : <p className="text-white/20 text-xs shrink-0">⏳ Tasa pendiente</p>
                             }
                           </div>
