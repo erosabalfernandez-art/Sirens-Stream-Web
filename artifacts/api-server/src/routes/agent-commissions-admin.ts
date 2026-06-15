@@ -185,17 +185,44 @@ import { Router } from 'express'
     const { agent_id } = req.query as { agent_id?: string }
     if (!agent_id) { res.status(400).json({ error: 'agent_id required' }); return }
     try {
-      const [comms, rates] = await Promise.all([
+      const [commsMain, rates] = await Promise.all([
         sbGet(`published_agent_commissions?agent_user_id=eq.${encodeURIComponent(agent_id)}&select=*&order=semana.desc,published_at.desc`),
         sbGet('exchange_rates?select=id,rate'),
       ])
       const rm: Record<string, number> = {}
       for (const r of rates) rm[r.id] = r.rate
 
+      let comms: any[] = commsMain
+      // Fallback: commissions may be stored under __name__:agent_code if the agent had no profile UUID at publish time
+      if (comms.length === 0) {
+        try {
+          const profRows = await sbGet(`profiles?id=eq.${encodeURIComponent(agent_id)}&select=agent_code,agent_name&limit=1`)
+          const prof = (profRows as any[])[0]
+          if (prof?.agent_code) {
+            const synKey = `__name__:${prof.agent_code}`
+            const fallback = await sbGet(`published_agent_commissions?agent_user_id=eq.${encodeURIComponent(synKey)}&select=*&order=semana.desc,published_at.desc`)
+            if ((fallback as any[]).length > 0) {
+              comms = fallback
+              // Background: fix stored agent_user_id to real UUID so future queries work
+              setImmediate(async () => {
+                try {
+                  await fetch(`${SB}/rest/v1/published_agent_commissions?agent_user_id=eq.${encodeURIComponent(synKey)}`, {
+                    method: 'PATCH', headers: { ...h(), Prefer: 'return=minimal' },
+                    body: JSON.stringify({ agent_user_id: agent_id }),
+                  })
+                  await fetch(`${SB}/rest/v1/agent_commission_publish_log?agent_user_id=eq.${encodeURIComponent(synKey)}`, {
+                    method: 'PATCH', headers: { ...h(), Prefer: 'return=minimal' },
+                    body: JSON.stringify({ agent_user_id: agent_id }),
+                  })
+                } catch {}
+              })
+            }
+          }
+        } catch {}
+      }
+
       // Build worker info map via nomina_history (bridges app-internal UIDs to Supabase UUIDs)
-      // worker_uid in published_agent_commissions may be a Waha numeric ID, not a Supabase UUID.
-      // nomina_history.rows_data.cobradas[].nomina.uid → .worker.id (Supabase UUID) is the bridge.
-      const uniqueAppSemanas = [...new Set((comms as any[]).map((c: any) => `${c.app_name}||${c.semana}`))]
+      const uniqueAppSemanas = [...new Set(comms.map((c: any) => `${c.app_name}||${c.semana}`))]
       const workerInfoMap: Record<string, { supaId: string; salary_usd: number; metodo_pago: string }> = {}
 
       await Promise.all(uniqueAppSemanas.map(async (key: string) => {
@@ -211,12 +238,47 @@ import { Router } from 'express'
                 salary_usd: Number(entry.nomina?.usd ?? 0),
                 metodo_pago: entry.worker?.metodo_pago ?? '',
               }
+              // Also register by supaId so UUID-keyed lookups work
+              if (!workerInfoMap[`${appName}||${supaId}`]) {
+                workerInfoMap[`${appName}||${supaId}`] = workerInfoMap[`${appName}||${uid}`]
+              }
             }
           }
         }
       }))
 
-      // Fetch custom rates using resolved Supabase UUIDs
+      // For workers whose worker_uid is a Supabase UUID and not yet in workerInfoMap,
+      // look up salary from published_salaries and metodo_pago from worker_entries
+      const uuidMissing = comms
+        .filter((c: any) => {
+          const uid = String(c.worker_uid ?? '')
+          return uid.includes('-') && !workerInfoMap[`${c.app_name}||${uid}`]
+        })
+        .map((c: any) => ({ uid: c.worker_uid as string, app: c.app_name as string, semana: c.semana as string }))
+
+      if (uuidMissing.length > 0) {
+        const uidSet = [...new Set(uuidMissing.map(u => u.uid))]
+        const uidList = uidSet.map((id: string) => `"${id}"`).join(',')
+        const semanaSet = [...new Set(uuidMissing.map(u => u.semana))]
+        const semanaList = semanaSet.map((s: string) => `"${s}"`).join(',')
+        const [salRows, weRows] = await Promise.all([
+          sbGet(`published_salaries?user_id=in.(${uidList})&semana=in.(${semanaList})&select=user_id,app_name,semana,usd`).catch(() => [] as any[]),
+          sbGet(`worker_entries?user_id=in.(${uidList})&select=user_id,app_name,metodo_pago`).catch(() => [] as any[]),
+        ])
+        const salMap: Record<string, number> = {}
+        for (const s of salRows) salMap[`${s.user_id}__${s.app_name}__${s.semana}`] = Number(s.usd) || 0
+        const weMap: Record<string, string> = {}
+        for (const we of weRows) weMap[`${we.user_id}__${we.app_name}`] = we.metodo_pago ?? ''
+        for (const { uid, app, semana } of uuidMissing) {
+          workerInfoMap[`${app}||${uid}`] = {
+            supaId: uid,
+            salary_usd: salMap[`${uid}__${app}__${semana}`] ?? 0,
+            metodo_pago: weMap[`${uid}__${app}`] ?? '',
+          }
+        }
+      }
+
+      // Fetch custom rates using all resolved Supabase UUIDs
       const supaUids = [...new Set(Object.values(workerInfoMap).map(v => v.supaId).filter(Boolean))]
       let customRateMap: Record<string, { efectivo_rate: number; transferencia_rate: number }> = {}
       if (supaUids.length > 0) {
@@ -225,12 +287,9 @@ import { Router } from 'express'
         for (const cr of crRows) customRateMap[`${cr.user_id}__${cr.app_name}`] = cr
       }
 
-      const enrichedComms = (comms as any[]).map((c: any) => {
+      const enrichedComms = comms.map((c: any) => {
         const uid = String(c.worker_uid ?? '')
-        // Support both app-internal UIDs (via nomina_history) and direct Supabase UUIDs
-        const wInfo = uid
-          ? (workerInfoMap[`${c.app_name}||${uid}`] ?? (uid.includes('-') ? { supaId: uid, salary_usd: 0, metodo_pago: '' } : null))
-          : null
+        const wInfo = uid ? (workerInfoMap[`${c.app_name}||${uid}`] ?? null) : null
         const cr = wInfo?.supaId ? (customRateMap[`${wInfo.supaId}__${c.app_name}`] ?? null) : null
         return {
           ...c,
