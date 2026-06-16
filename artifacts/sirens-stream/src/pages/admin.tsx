@@ -1881,41 +1881,49 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               const allApps = workerAppsMap[row.user_id] ?? []
                                               const isEf = (row.metodo_pago ?? '').toLowerCase().includes('efectivo')
                                               const usedRate = row.has_custom ? (isEf ? row.custom_ef_rate : row.custom_tr_rate) : (isEf ? row.global_ef_rate : row.global_tr_rate)
+                                              const initials = (row.apodo || row.nombre_en_app || row.nombre_real || '?')[0].toUpperCase()
+                                              const fullyDone = row.colider_paid && row.confirmed
                                               return (
-                                              <div key={row.salary_id} className="bg-black/30 border border-teal-500/15 rounded-2xl px-4 py-3 flex items-start gap-3">
-                                                <div className="w-7 h-7 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                                                  {(row.colider_paid && row.confirmed) ? <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" /> : <Clock className="w-3.5 h-3.5 text-teal-400/40" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                  <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
-                                                    {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-xs text-white/35">{row.nombre_real}</p>}
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{row.has_custom ? '★ Exclusivo' : 'Global'}</span>
+                                              <div key={row.salary_id} className={`rounded-2xl overflow-hidden border transition-all ${fullyDone ? 'border-teal-500/30 bg-gradient-to-br from-teal-950/50 to-black/50' : 'border-white/8 bg-gradient-to-br from-white/3 to-black/40'}`}>
+                                                {/* Top row */}
+                                                <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${fullyDone ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' : 'bg-white/6 text-white/50 border border-white/10'}`}>
+                                                    {initials}
                                                   </div>
-                                                  {allApps.length > 0 && (
-                                                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                                      <p className="text-sm font-bold text-white leading-tight">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                                      {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-[11px] text-white/35 leading-tight">{row.nombre_real}</p>}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1 mt-1.5">
                                                       {allApps.map((a:any) => (
-                                                        <span key={a.app_name} className="text-[10px] text-white/30">
-                                                          <span className="text-teal-400/60">{a.app_name}</span>{a.nombre_en_app ? ` ${a.nombre_en_app}` : ''}{a.id_aplicacion ? <span className="text-white/20"> #{a.id_aplicacion}</span> : ''}
+                                                        <span key={a.app_name} className="inline-flex items-center gap-1 bg-teal-500/8 border border-teal-500/15 rounded-lg px-2 py-0.5">
+                                                          <span className="text-[10px] text-teal-400/80 font-semibold">{a.app_name}</span>
+                                                          {a.nombre_en_app && <span className="text-[10px] text-white/45">{a.nombre_en_app}</span>}
+                                                          {a.id_aplicacion && <span className="text-[10px] text-white/25 font-mono">#{a.id_aplicacion}</span>}
                                                         </span>
                                                       ))}
                                                     </div>
-                                                  )}
-                                                  <p className="text-xs text-white/30 truncate mt-0.5">{row.email} · <span className="text-teal-400">${row.usd.toFixed(2)}</span></p>
-                                                  {row.metodo_pago && <p className="text-xs text-white/20">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
-                                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                                                    {row.global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{row.global_ef_rate}</span></p>}
-                                                    {row.global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{row.global_tr_rate}</span></p>}
-                                                    {row.has_custom && row.custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{row.custom_ef_rate}</span></p>}
-                                                    {row.has_custom && row.custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{row.custom_tr_rate}</span></p>}
                                                   </div>
-                                                  {row.cup_amount && <p className="text-xs text-amber-300/60 font-bold mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP {usedRate ? <span className="text-amber-300/35 font-normal">× {usedRate}</span> : ''}</p>}
+                                                  <div className="text-right shrink-0">
+                                                    <p className="text-base font-bold text-teal-300 leading-tight">${row.usd.toFixed(2)}</p>
+                                                    {row.cup_amount ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(row.cup_amount).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
+                                                  </div>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                                  {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
-                                                  {row.colider_paid === false && <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full">Sin pagar</span>}
-                                                  {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-[10px] text-white/20">Sin marcar</span>}
-                                                  {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
+                                                {/* Bottom strip */}
+                                                <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
+                                                      {row.has_custom ? '★ Excl' : 'Global'}{usedRate ? ` ×${usedRate}` : ''}
+                                                    </span>
+                                                    {row.metodo_pago && <span className="text-[10px] text-white/30 truncate">{row.metodo_pago}</span>}
+                                                  </div>
+                                                  <div className="flex items-center gap-1.5 shrink-0">
+                                                    {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span>}
+                                                    {row.colider_paid === false && <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full whitespace-nowrap">Sin pagar</span>}
+                                                    {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
+                                                    {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                  </div>
                                                 </div>
                                               </div>
                                               )
@@ -1929,25 +1937,55 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                       <div>
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">👑 Agente</p>
                                         <div className="space-y-2">
-                                          {agentEfectivo.map((row: any, idx: number) => (
-                                            <div key={row.id ?? idx} className="bg-black/30 border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
-                                              <div className="w-7 h-7 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                                                {(row.colider_paid && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> : <Clock className="w-3.5 h-3.5 text-amber-400/40" />}
+                                          {agentEfectivo.map((row: any, idx: number) => {
+                                            const agentDisplayName = (agentNameMap[row.agent_name] ?? row.agent_name) || '—'
+                                            const agentInitial = agentDisplayName[0]?.toUpperCase() ?? '?'
+                                            const isConfirmed = agentConfirmedIds.has(row.id)
+                                            const fullyDone = row.colider_paid && isConfirmed
+                                            const usd = Number(row.total_commission_usd || 0)
+                                            const cupAmt = (rates['efectivo_agent'] ?? 0) > 0 ? Math.round(usd * rates['efectivo_agent']) : null
+                                            const billetera = agentBilleteraMap[row.agent_user_id]
+                                            const metodo = agentMetodoMap[row.agent_user_id]
+                                            return (
+                                            <div key={row.id ?? idx} className={`rounded-2xl overflow-hidden border transition-all ${fullyDone ? 'border-amber-500/30 bg-gradient-to-br from-amber-950/40 to-black/50' : 'border-white/8 bg-gradient-to-br from-white/3 to-black/40'}`}>
+                                              <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${fullyDone ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-white/6 text-white/50 border border-white/10'}`}>
+                                                  {agentInitial}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-bold text-white leading-tight">{agentDisplayName}</p>
+                                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                                    <span className="inline-flex items-center gap-1 bg-amber-500/8 border border-amber-500/15 rounded-lg px-2 py-0.5">
+                                                      <span className="text-[10px] text-amber-400/80 font-semibold">{row.app_name}</span>
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                  <p className="text-base font-bold text-amber-300 leading-tight">${usd.toFixed(2)}</p>
+                                                  {cupAmt ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{cupAmt.toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
+                                                </div>
                                               </div>
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-white">{(agentNameMap[row.agent_name] ?? row.agent_name) || '—'}</p>
-                                                <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
-                                                {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(Number(row.total_commission_usd || 0) * rates['efectivo_agent']).toLocaleString('es-ES')} CUP</p>}
-                                                {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20">{agentMetodoMap[row.agent_user_id]}{agentBilleteraMap[row.agent_user_id] ? ' · ' + agentBilleteraMap[row.agent_user_id] : ''}</p>}
-                                              </div>
-                                              <div className="flex flex-col items-end gap-1 shrink-0">
-                                                {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
-                                                {row.colider_paid === false && <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full">Sin pagar</span>}
-                                                {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-[10px] text-white/20">Sin marcar</span>}
-                                                {agentConfirmedIds.has(row.id) ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
+                                              <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                  {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['efectivo_agent']}</span>}
+                                                  {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
+                                                  {billetera && (
+                                                    <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'ae'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
+                                                      <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[120px]">{billetera}</span>
+                                                      {copiedBilletera === row.id + 'ae' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                  {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span>}
+                                                  {row.colider_paid === false && <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full whitespace-nowrap">Sin pagar</span>}
+                                                  {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
+                                                  {isConfirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                </div>
                                               </div>
                                             </div>
-                                          ))}
+                                            )
+                                          })}
                                         </div>
                                       </div>
                                     )}
@@ -1970,31 +2008,46 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     {(coliderPaidD && agentConfirmedD) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
                                                   </div>
                                                   <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                      <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
-                                                      {d.workerRows[0]?.nombre_real && <p className="text-xs text-white/35">{d.workerRows[0].nombre_real}</p>}
-                                                      {d.workerRows[0]?.has_custom !== undefined && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{d.workerRows[0]?.has_custom ? '★ Exclusivo' : 'Global'}</span>}
+                                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                                      <p className="text-sm font-bold text-white leading-tight">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
+                                                      {d.workerRows[0]?.nombre_real && <p className="text-[11px] text-white/35">{d.workerRows[0].nombre_real}</p>}
                                                     </div>
-                                                    {d.workerRows.map((r:any) => (
-                                                      <p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}<span className="text-teal-400/60">{r.app_name}</span>{(r.nombre_en_app || r.apodo) ? ` ${r.nombre_en_app || r.apodo}` : ''}{r.id_aplicacion ? <span className="text-white/20"> #{r.id_aplicacion}</span> : ''}: ${Number(r.usd||0).toFixed(2)}</p>
-                                                    ))}
-                                                    {d.workerRows[0] && (
-                                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                                                        {d.workerRows[0].global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{d.workerRows[0].global_ef_rate}</span></p>}
-                                                        {d.workerRows[0].global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{d.workerRows[0].global_tr_rate}</span></p>}
-                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_ef_rate}</span></p>}
-                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_tr_rate}</span></p>}
-                                                      </div>
-                                                    )}
-                                                    <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalD.toFixed(2)}</p>
-                                                    <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalD.toFixed(2)}</p>
-                                                    {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(totalD * rates['efectivo_agent']).toLocaleString('es-ES')} CUP</p>}
-                                                    {metodoD && <p className="text-xs text-white/20 mt-0.5">{metodoD}{billeteraD ? ' · ' + billeteraD : ''}</p>}
+                                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                                      {d.workerRows.map((r:any) => (
+                                                        <span key={r.salary_id} className="inline-flex items-center gap-1 bg-teal-500/8 border border-teal-500/15 rounded-lg px-2 py-0.5">
+                                                          <span className="text-[10px] text-teal-400/80 font-semibold">{r.app_name}</span>
+                                                          {(r.nombre_en_app || r.apodo) && <span className="text-[10px] text-white/45">{r.nombre_en_app || r.apodo}</span>}
+                                                          {r.id_aplicacion && <span className="text-[10px] text-white/25 font-mono">#{r.id_aplicacion}</span>}
+                                                          <span className="text-[10px] text-teal-300/60">${Number(r.usd||0).toFixed(2)}</span>
+                                                        </span>
+                                                      ))}
+                                                    </div>
                                                   </div>
-                                                  <div className="flex flex-col items-end gap-1 shrink-0">
-                                                    {coliderPaidD && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
-                                                    {!coliderPaidD && <span className="text-[10px] text-white/20">Sin marcar</span>}
-                                                    {agentConfirmedD ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
+                                                  <div className="text-right shrink-0">
+                                                    <p className="text-base font-bold text-violet-300 leading-tight">${totalD.toFixed(2)}</p>
+                                                    {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(totalD * rates['efectivo_agent']).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p>}
+                                                  </div>
+                                                </div>
+                                                {/* Bottom strip */}
+                                                <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                    {d.workerRows[0]?.has_custom !== undefined && (
+                                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
+                                                        {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
+                                                      </span>
+                                                    )}
+                                                    <span className="text-[10px] text-white/25">👑 ${agentTotalD.toFixed(2)} comisión</span>
+                                                    {metodoD && <span className="text-[10px] text-white/25 truncate">{metodoD}</span>}
+                                                    {billeteraD && (
+                                                      <button onClick={() => { navigator.clipboard.writeText(billeteraD); setCopiedBilletera(d.agent_user_id + 'de'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
+                                                        <span className="text-[10px] font-mono text-violet-300/60 group-hover:text-violet-200 transition-colors truncate max-w-[100px]">{billeteraD}</span>
+                                                        {copiedBilletera === d.agent_user_id + 'de' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-violet-400 shrink-0 transition-colors" />}
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                  <div className="flex items-center gap-1.5 shrink-0">
+                                                    {coliderPaidD ? <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
+                                                    {agentConfirmedD ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                   </div>
                                                 </div>
                                               </div>
@@ -2046,49 +2099,60 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               const allApps = workerAppsMap[row.user_id] ?? []
                                               const isEf = (row.metodo_pago ?? '').toLowerCase().includes('efectivo')
                                               const usedRate = row.has_custom ? (isEf ? row.custom_ef_rate : row.custom_tr_rate) : (isEf ? row.global_ef_rate : row.global_tr_rate)
+                                              const initials = (row.apodo || row.nombre_en_app || row.nombre_real || '?')[0].toUpperCase()
+                                              const fullyDone = row.admin_paid && row.confirmed
                                               return (
-                                              <div key={row.salary_id} className="bg-black/30 border border-purple-500/10 rounded-2xl px-4 py-3 flex items-start gap-3">
-                                                <div className="w-7 h-7 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                                                  {(row.admin_paid && row.confirmed) ? <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" /> : <Clock className="w-3.5 h-3.5 text-purple-400/40" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                  <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
-                                                    {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-xs text-white/35">{row.nombre_real}</p>}
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{row.has_custom ? '★ Exclusivo' : 'Global'}</span>
+                                              <div key={row.salary_id} className={`rounded-2xl overflow-hidden border transition-all ${fullyDone ? 'border-purple-500/30 bg-gradient-to-br from-purple-950/50 to-black/50' : 'border-white/8 bg-gradient-to-br from-white/3 to-black/40'}`}>
+                                                {/* Top row */}
+                                                <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${fullyDone ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-white/6 text-white/50 border border-white/10'}`}>
+                                                    {initials}
                                                   </div>
-                                                  {allApps.length > 0 && (
-                                                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                                      <p className="text-sm font-bold text-white leading-tight">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                                      {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-[11px] text-white/35 leading-tight">{row.nombre_real}</p>}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1 mt-1.5">
                                                       {allApps.map((a:any) => (
-                                                        <span key={a.app_name} className="text-[10px] text-white/30">
-                                                          <span className="text-purple-400/60">{a.app_name}</span>{a.nombre_en_app ? ` ${a.nombre_en_app}` : ''}{a.id_aplicacion ? <span className="text-white/20"> #{a.id_aplicacion}</span> : ''}
+                                                        <span key={a.app_name} className="inline-flex items-center gap-1 bg-purple-500/8 border border-purple-500/15 rounded-lg px-2 py-0.5">
+                                                          <span className="text-[10px] text-purple-400/80 font-semibold">{a.app_name}</span>
+                                                          {a.nombre_en_app && <span className="text-[10px] text-white/45">{a.nombre_en_app}</span>}
+                                                          {a.id_aplicacion && <span className="text-[10px] text-white/25 font-mono">#{a.id_aplicacion}</span>}
                                                         </span>
                                                       ))}
                                                     </div>
-                                                  )}
-                                                  <p className="text-xs text-white/30 truncate mt-0.5">{row.email} · <span className="text-purple-400">${row.usd.toFixed(2)}</span></p>
-                                                  {row.metodo_pago && <p className="text-xs text-white/30">{row.metodo_pago}</p>}
-                                                  {row.billetera && (<button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera(row.salary_id + 't'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1.5 group mt-0.5"><span className="text-xs font-mono text-purple-300/70 group-hover:text-purple-200 transition-colors break-all">{row.billetera}</span>{copiedBilletera === row.salary_id + 't' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-purple-400 shrink-0 transition-colors" />}</button>)}
-                                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                                                    {row.global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{row.global_tr_rate}</span></p>}
-                                                    {row.global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{row.global_ef_rate}</span></p>}
-                                                    {row.has_custom && row.custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{row.custom_tr_rate}</span></p>}
-                                                    {row.has_custom && row.custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{row.custom_ef_rate}</span></p>}
                                                   </div>
-                                                  {row.cup_amount && <p className="text-xs text-amber-300/60 font-bold mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP {usedRate ? <span className="text-amber-300/35 font-normal">× {usedRate}</span> : ''}</p>}
+                                                  <div className="text-right shrink-0">
+                                                    <p className="text-base font-bold text-purple-300 leading-tight">${row.usd.toFixed(2)}</p>
+                                                    {row.cup_amount ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(row.cup_amount).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
+                                                  </div>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                                  {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
-                                                  <button
-                                                    onClick={() => toggleAdminPaid(row.id_aplicacion, row.app_name, row.semana)}
-                                                    disabled={!row.id_aplicacion || togglingAdminPaid === row.id_aplicacion}
-                                                    className={`flex items-center gap-1 transition-all ${!row.id_aplicacion ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
-                                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${row.admin_paid ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
-                                                      {row.admin_paid && <Check className="w-2.5 h-2.5 text-white" />}
-                                                      {togglingAdminPaid === row.id_aplicacion && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
-                                                    </div>
-                                                    <span className={`text-[10px] font-medium ${row.admin_paid ? 'text-purple-300' : 'text-white/30'}`}>{row.admin_paid ? 'Pagado ✓' : 'Marcar'}</span>
-                                                  </button>
+                                                {/* Bottom strip */}
+                                                <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
+                                                      {row.has_custom ? '★ Excl' : 'Global'}{usedRate ? ` ×${usedRate}` : ''}
+                                                    </span>
+                                                    {row.metodo_pago && <span className="text-[10px] text-white/30 truncate">{row.metodo_pago}</span>}
+                                                    {row.billetera && (<button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera(row.salary_id + 't'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
+                                                      <span className="text-[10px] font-mono text-purple-300/60 group-hover:text-purple-200 transition-colors truncate max-w-[120px]">{row.billetera}</span>
+                                                      {copiedBilletera === row.salary_id + 't' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-purple-400 shrink-0 transition-colors" />}
+                                                    </button>)}
+                                                  </div>
+                                                  <div className="flex items-center gap-1.5 shrink-0">
+                                                    {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                    <button
+                                                      onClick={() => toggleAdminPaid(row.id_aplicacion, row.app_name, row.semana)}
+                                                      disabled={!row.id_aplicacion || togglingAdminPaid === row.id_aplicacion}
+                                                      className={`flex items-center gap-1 transition-all ${!row.id_aplicacion ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
+                                                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${row.admin_paid ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
+                                                        {row.admin_paid && <Check className="w-2.5 h-2.5 text-white" />}
+                                                        {togglingAdminPaid === row.id_aplicacion && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
+                                                      </div>
+                                                      <span className={`text-[10px] font-medium whitespace-nowrap ${row.admin_paid ? 'text-purple-300' : 'text-white/30'}`}>{row.admin_paid ? 'Pagado ✓' : 'Marcar'}</span>
+                                                    </button>
+                                                  </div>
                                                 </div>
                                               </div>
                                               )
@@ -2102,32 +2166,63 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                       <div>
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">👑 Agente</p>
                                         <div className="space-y-2">
-                                          {agentAgencia.map((row: any, idx: number) => (
-                                            <div key={row.id ?? idx} className="bg-black/30 border border-amber-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
-                                              <div className="w-7 h-7 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                                                {(agentAdminPaidIds.has(row.agent_user_id) && agentConfirmedIds.has(row.id)) ? <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> : <Clock className="w-3.5 h-3.5 text-amber-400/40" />}
-                                              </div>
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-white">{(agentNameMap[row.agent_name] ?? row.agent_name) || '—'}</p>
-                                                <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
-                                                {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(Number(row.total_commission_usd || 0) * rates['transferencia_agent']).toLocaleString('es-ES')} CUP</p>}
-                                                {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/30">{agentMetodoMap[row.agent_user_id]}</p>}{agentBilleteraMap[row.agent_user_id] && (<button onClick={() => { navigator.clipboard.writeText(agentBilleteraMap[row.agent_user_id]); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1.5 group mt-0.5"><span className="text-xs font-mono text-amber-300/70 group-hover:text-amber-200 transition-colors break-all">{agentBilleteraMap[row.agent_user_id]}</span>{copiedBilletera === row.id + 'a' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}</button>)}
-                                              </div>
-                                              <div className="flex flex-col items-end gap-1 shrink-0">
-                                                {agentConfirmedIds.has(row.id) ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
-                                                <button
-                                                  onClick={() => toggleAgentAdminPaid(row.agent_user_id, row.app_name, row.semana)}
-                                                  disabled={!row.agent_user_id || togglingAgentAdminPaid === row.agent_user_id}
-                                                  className={`flex items-center gap-1 transition-all ${!row.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
-                                                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${agentAdminPaidIds.has(row.agent_user_id) ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
-                                                    {agentAdminPaidIds.has(row.agent_user_id) && <Check className="w-2.5 h-2.5 text-white" />}
-                                                    {togglingAgentAdminPaid === row.agent_user_id && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
+                                          {agentAgencia.map((row: any, idx: number) => {
+                                            const agentDisplayName = (agentNameMap[row.agent_name] ?? row.agent_name) || '—'
+                                            const agentInitial = agentDisplayName[0]?.toUpperCase() ?? '?'
+                                            const isConfirmed = agentConfirmedIds.has(row.id)
+                                            const isPaid = agentAdminPaidIds.has(row.agent_user_id)
+                                            const fullyDone = isPaid && isConfirmed
+                                            const usd = Number(row.total_commission_usd || 0)
+                                            const cupAmt = (rates['transferencia_agent'] ?? 0) > 0 ? Math.round(usd * rates['transferencia_agent']) : null
+                                            const billetera = agentBilleteraMap[row.agent_user_id]
+                                            const metodo = agentMetodoMap[row.agent_user_id]
+                                            return (
+                                            <div key={row.id ?? idx} className={`rounded-2xl overflow-hidden border transition-all ${fullyDone ? 'border-amber-500/30 bg-gradient-to-br from-amber-950/40 to-black/50' : 'border-white/8 bg-gradient-to-br from-white/3 to-black/40'}`}>
+                                              <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${fullyDone ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-white/6 text-white/50 border border-white/10'}`}>
+                                                  {agentInitial}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-bold text-white leading-tight">{agentDisplayName}</p>
+                                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                                    <span className="inline-flex items-center gap-1 bg-amber-500/8 border border-amber-500/15 rounded-lg px-2 py-0.5">
+                                                      <span className="text-[10px] text-amber-400/80 font-semibold">{row.app_name}</span>
+                                                    </span>
                                                   </div>
-                                                  <span className={`text-[10px] font-medium ${agentAdminPaidIds.has(row.agent_user_id) ? 'text-purple-300' : 'text-white/30'}`}>{agentAdminPaidIds.has(row.agent_user_id) ? 'Pagado ✓' : 'Marcar'}</span>
-                                                </button>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                  <p className="text-base font-bold text-amber-300 leading-tight">${usd.toFixed(2)}</p>
+                                                  {cupAmt ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{cupAmt.toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
+                                                </div>
+                                              </div>
+                                              <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                  {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['transferencia_agent']}</span>}
+                                                  {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
+                                                  {billetera && (
+                                                    <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
+                                                      <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[120px]">{billetera}</span>
+                                                      {copiedBilletera === row.id + 'a' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                  {isConfirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                  <button
+                                                    onClick={() => toggleAgentAdminPaid(row.agent_user_id, row.app_name, row.semana)}
+                                                    disabled={!row.agent_user_id || togglingAgentAdminPaid === row.agent_user_id}
+                                                    className={`flex items-center gap-1 transition-all ${!row.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
+                                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isPaid ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
+                                                      {isPaid && <Check className="w-2.5 h-2.5 text-white" />}
+                                                      {togglingAgentAdminPaid === row.agent_user_id && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
+                                                    </div>
+                                                    <span className={`text-[10px] font-medium whitespace-nowrap ${isPaid ? 'text-purple-300' : 'text-white/30'}`}>{isPaid ? 'Pagado ✓' : 'Marcar'}</span>
+                                                  </button>
+                                                </div>
                                               </div>
                                             </div>
-                                          ))}
+                                            )
+                                          })}
                                         </div>
                                       </div>
                                     )}
@@ -2144,41 +2239,58 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                             const metodoA = agentMetodoMap[d.agent_user_id] ?? d.workerRows[0]?.metodo_pago ?? ''
                                             const billeteraA = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
                                             return (
-                                              <div key={d.agent_user_id} className="bg-black/30 border border-violet-500/25 rounded-2xl px-4 py-3">
-                                                <div className="flex items-start gap-3">
-                                                  <div className="w-7 h-7 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0 mt-0.5">
-                                                    {(adminPaidA && agentConfirmedA) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
+                                              <div key={d.agent_user_id} className={`rounded-2xl overflow-hidden border transition-all ${adminPaidA && agentConfirmedA ? 'border-violet-500/30 bg-gradient-to-br from-violet-950/40 to-black/50' : 'border-white/8 bg-gradient-to-br from-white/3 to-black/40'}`}>
+                                                {/* Top row */}
+                                                <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${adminPaidA && agentConfirmedA ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-white/6 text-white/50 border border-white/10'}`}>
+                                                    {((agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '?')[0].toUpperCase()}
                                                   </div>
                                                   <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                      <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
-                                                      {d.workerRows[0]?.nombre_real && <p className="text-xs text-white/35">{d.workerRows[0].nombre_real}</p>}
-                                                      {d.workerRows[0]?.has_custom !== undefined && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{d.workerRows[0]?.has_custom ? '★ Exclusivo' : 'Global'}</span>}
+                                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                                      <p className="text-sm font-bold text-white leading-tight">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
+                                                      {d.workerRows[0]?.nombre_real && <p className="text-[11px] text-white/35">{d.workerRows[0].nombre_real}</p>}
                                                     </div>
-                                                    {d.workerRows.map((r:any) => (
-                                                      <p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}<span className="text-purple-400/60">{r.app_name}</span>{(r.nombre_en_app || r.apodo) ? ` ${r.nombre_en_app || r.apodo}` : ''}{r.id_aplicacion ? <span className="text-white/20"> #{r.id_aplicacion}</span> : ''}: ${Number(r.usd||0).toFixed(2)}</p>
-                                                    ))}
-                                                    {d.workerRows[0] && (
-                                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                                                        {d.workerRows[0].global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{d.workerRows[0].global_ef_rate}</span></p>}
-                                                        {d.workerRows[0].global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{d.workerRows[0].global_tr_rate}</span></p>}
-                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_ef_rate}</span></p>}
-                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_tr_rate}</span></p>}
-                                                      </div>
-                                                    )}
-                                                    <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalA.toFixed(2)}</p>
-                                                    <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalA.toFixed(2)}</p>
-                                                    {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(totalA * rates['transferencia_agent']).toLocaleString('es-ES')} CUP</p>}
-                                                    {metodoA && <p className="text-xs text-white/30 mt-0.5">{metodoA}</p>}{billeteraA && (<button onClick={() => { navigator.clipboard.writeText(billeteraA); setCopiedBilletera(d.agent_user_id + 'd'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1.5 group mt-0.5"><span className="text-xs font-mono text-violet-300/70 group-hover:text-violet-200 transition-colors break-all">{billeteraA}</span>{copiedBilletera === d.agent_user_id + 'd' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-violet-400 shrink-0 transition-colors" />}</button>)}
+                                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                                      {d.workerRows.map((r:any) => (
+                                                        <span key={r.salary_id} className="inline-flex items-center gap-1 bg-purple-500/8 border border-purple-500/15 rounded-lg px-2 py-0.5">
+                                                          <span className="text-[10px] text-purple-400/80 font-semibold">{r.app_name}</span>
+                                                          {(r.nombre_en_app || r.apodo) && <span className="text-[10px] text-white/45">{r.nombre_en_app || r.apodo}</span>}
+                                                          {r.id_aplicacion && <span className="text-[10px] text-white/25 font-mono">#{r.id_aplicacion}</span>}
+                                                          <span className="text-[10px] text-purple-300/60">${Number(r.usd||0).toFixed(2)}</span>
+                                                        </span>
+                                                      ))}
+                                                    </div>
                                                   </div>
-                                                  <div className="flex flex-col items-end gap-1 shrink-0">
-                                                    {agentConfirmedA ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
+                                                  <div className="text-right shrink-0">
+                                                    <p className="text-base font-bold text-violet-300 leading-tight">${totalA.toFixed(2)}</p>
+                                                    {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(totalA * rates['transferencia_agent']).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p>}
+                                                  </div>
+                                                </div>
+                                                {/* Bottom strip */}
+                                                <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                    {d.workerRows[0]?.has_custom !== undefined && (
+                                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
+                                                        {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
+                                                      </span>
+                                                    )}
+                                                    <span className="text-[10px] text-white/25 shrink-0">👑 ${agentTotalA.toFixed(2)} comisión</span>
+                                                    {metodoA && <span className="text-[10px] text-white/25 truncate">{metodoA}</span>}
+                                                    {billeteraA && (
+                                                      <button onClick={() => { navigator.clipboard.writeText(billeteraA); setCopiedBilletera(d.agent_user_id + 'd'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
+                                                        <span className="text-[10px] font-mono text-violet-300/60 group-hover:text-violet-200 transition-colors truncate max-w-[100px]">{billeteraA}</span>
+                                                        {copiedBilletera === d.agent_user_id + 'd' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-violet-400 shrink-0 transition-colors" />}
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                  <div className="flex items-center gap-1.5 shrink-0">
+                                                    {agentConfirmedA ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                     <button onClick={() => toggleAgentAdminPaid(d.agent_user_id, d.agentRow.app_name, d.agentRow.semana)} disabled={!d.agent_user_id || togglingAgentAdminPaid === d.agent_user_id} className={`flex items-center gap-1 transition-all ${!d.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
                                                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${adminPaidA ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
                                                         {adminPaidA && <Check className="w-2.5 h-2.5 text-white" />}
                                                         {togglingAgentAdminPaid === d.agent_user_id && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
                                                       </div>
-                                                      <span className={`text-[10px] font-medium ${adminPaidA ? 'text-purple-300' : 'text-white/30'}`}>{adminPaidA ? 'Pagado ✓' : 'Marcar'}</span>
+                                                      <span className={`text-[10px] font-medium whitespace-nowrap ${adminPaidA ? 'text-purple-300' : 'text-white/30'}`}>{adminPaidA ? 'Pagado ✓' : 'Marcar'}</span>
                                                     </button>
                                                   </div>
                                                 </div>
