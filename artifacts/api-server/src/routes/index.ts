@@ -24,6 +24,7 @@ import adminPaidMarksRouter from './admin-paid-marks';
 import paymentConfirmationsRouter from './payment-confirmations';
 import adminPagosRouter from './admin-pagos';
 import paymentMethodLockRouter from './payment-method-lock';
+  import adminUsersRouter from './admin-users';
 
   const router: IRouter = Router();
 
@@ -52,6 +53,7 @@ import paymentMethodLockRouter from './payment-method-lock';
   router.use(paymentConfirmationsRouter);
   router.use(adminPagosRouter);
   router.use(paymentMethodLockRouter);
+    router.use(adminUsersRouter);
 
   export default router;
   
