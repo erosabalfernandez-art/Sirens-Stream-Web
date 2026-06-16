@@ -150,8 +150,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
           const isAgent = !!(profile as any)?.agent_code
           const agentCode = ((profile as any)?.agent_code as string | undefined) ?? ''
           if (isAgent) {
-            setForm({ ...EMPTY_FORM, agente: agentCode })
-            setTimeout(() => checkAgentCode(agentCode), 100)
+            setForm({ ...EMPTY_FORM, agente: '' })
           } else {
             const draft = loadDraft()
             const _initAgente = lockedAgente ?? draft.agente
@@ -183,12 +182,11 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
         if (!form.pais) { setFormError('Selecciona tu país'); return }
         if (!form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider) { setFormError('Selecciona un método de pago'); return }
-        if ((profile as any)?.agent_code) {
-          const ownCode = ((profile as any).agent_code as string).trim().toUpperCase()
-          if (!form.agente || form.agente.trim().toUpperCase() !== ownCode) {
-            setFormError('Como agente debes vincular tu propio código.'); setSaving(false); return
+        if ((profile as any)?.agent_code || profile?.is_colider) {
+            if (form.agente && form.agente.trim()) {
+              setFormError('Los agentes y co-líderes no pueden vincular perfiles de apps a ningún código de agente.'); setSaving(false); return
+            }
           }
-        }
         setSaving(true); setFormError(null)
         const payload = {
           user_id: user!.id, app_name: form.app_name,
@@ -487,6 +485,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                     )}
                     </>
                   )}
+                  {!(profile as any)?.agent_code && !profile?.is_colider && (
                   <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
                       <FInput
                         value={form.agente}
@@ -529,6 +528,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                         </div>
                       )}
                     </Field>
+                  )}
 
                   {formError && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{formError}</p>}
                   <button onClick={handleSave} disabled={saving}
