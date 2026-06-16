@@ -233,11 +233,6 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             })
             .catch(() => {})
         }, [tab])
-        useEffect(() => {
-            if (tab !== 'pagos') return
-            const _iv = setInterval(fetchAllPagosData, 30000)
-            return () => clearInterval(_iv)
-          }, [tab])
         const sqlDirectPayments = [
             "CREATE TABLE IF NOT EXISTS direct_payment_notifications (",
             "  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,",
