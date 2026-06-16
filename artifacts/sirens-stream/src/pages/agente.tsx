@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
   import { supabase } from '@/lib/supabase'
-  import { DollarSign, ChevronDown, ChevronUp, Users, Copy, Check, CheckCircle2, MessageSquare, AlertTriangle, FileDown } from 'lucide-react'
+  import { DollarSign, ChevronDown, ChevronUp, Users, Copy, Check, CheckCircle2, MessageSquare, AlertTriangle, FileDown, BarChart2, ChevronRight } from 'lucide-react'
   import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
   interface AgentCommission {
@@ -636,7 +636,25 @@ import React, { useState, useEffect } from 'react'
                   </div>
                 )}
 
-                {/* Stats grid */}
+                {/* Rendimiento button */}
+                  {publishedComms.length > 0 && (
+                    <button
+                      onClick={() => navigate('/agente/rendimiento')}
+                      className="w-full flex items-center justify-between bg-gradient-to-r from-purple-600/15 to-purple-500/5 border border-purple-500/20 hover:border-purple-500/40 active:scale-[0.99] rounded-2xl p-4 mb-4 transition-all group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
+                          <BarChart2 className="w-4 h-4 text-purple-400" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-white font-bold text-sm">Rendimiento</p>
+                          <p className="text-white/35 text-xs">Ver tus ganancias de las últimas semanas</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-purple-400/50 group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                  )}
+
+                                  {/* Stats grid */}
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-white/40 text-xs font-bold uppercase tracking-wider">Resumen acumulado</p>
                   {commissions.length > 0 && (
