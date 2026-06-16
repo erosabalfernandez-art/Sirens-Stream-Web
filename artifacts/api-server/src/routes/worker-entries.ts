@@ -88,6 +88,15 @@ import { Router } from 'express';
       const lockedAgente = existing[0]?.agente ?? null;
 
       if (lockedAgente) {
+
+        // Block agents/coliders from being linked to any agent code
+        const profileR = await fetch(sbUrl(`profiles?id=eq.${encodeURIComponent(userId)}&select=is_agent,is_colider,agent_code&limit=1`), { headers: sbH() });
+        if (profileR.ok) {
+          const [prof] = await profileR.json() as { is_agent?: boolean; is_colider?: boolean; agent_code?: string | null }[];
+          if (prof?.is_agent || prof?.is_colider || prof?.agent_code) {
+            payload.agente = null;
+          }
+        }
         payload.agente = lockedAgente;
       }
 
