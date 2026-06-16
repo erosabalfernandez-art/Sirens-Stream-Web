@@ -122,27 +122,17 @@ import React, { useState, useEffect } from 'react'
         fetchExchangeRates()
         fetchWorkerSalaries()
       }
-      // Restore saved payment method — server first, localStorage fallback
-        if (profile?.id) {
-          const saved = localStorage.getItem(`apm_${profile.id}`)
-          if (saved === 'efectivo' || saved === 'transferencia') setAgentPayMethod(saved)
-          // Fetch from profiles table (server-side — admin can override from DB)
-          supabase.from('profiles').select('agent_payment_method').eq('id', profile.id).single()
-            .then(({ data }) => {
-              const m = (data as any)?.agent_payment_method
-              if (m === 'efectivo' || m === 'transferencia') {
-                setAgentPayMethod(m)
-                localStorage.setItem(`apm_${profile.id}`, m)
-              }
-            })
-            .catch(() => {})
-          // Fetch payment method lock status
-          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-          fetch(`${apiBase}/api/payment-method-lock?user_id=${encodeURIComponent(profile.id)}`)
-            .then(r => r.ok ? r.json() : null)
-            .then((d: any) => { if (d) setPayMethodLocked(d.locked === true) })
-            .catch(() => {})
-        }
+      // Restore saved payment method from localStorage
+      if (profile?.id) {
+        const saved = localStorage.getItem(`apm_${profile.id}`)
+        if (saved === 'efectivo' || saved === 'transferencia') setAgentPayMethod(saved)
+        // Fetch payment method lock status
+        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+        fetch(`${apiBase}/api/payment-method-lock?user_id=${encodeURIComponent(profile.id)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then((d: any) => { if (d) setPayMethodLocked(d.locked === true) })
+          .catch(() => {})
+      }
     }, [profile])
 
   // Auto-generate agent_code if not set yet (handles coliders and new agents)
@@ -271,23 +261,21 @@ import React, { useState, useEffect } from 'react'
       }
 
       async function selectPayMethod(method: 'efectivo' | 'transferencia') {
-          setAgentPayMethod(method)
-          if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
-          const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
-          if (profile?.id) {
-            await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
-            // Persist to profiles for server-side storage (admin can override from DB)
-            supabase.from('profiles').update({ agent_payment_method: method } as any).eq('id', profile.id).catch(() => {})
-            // Lock payment method — can only change again after cierre semanal
-            const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-            fetch(`${apiBase}/api/payment-method-lock`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_id: profile.id }),
-            }).then(r => r.ok ? r.json() : null)
-              .then(() => setPayMethodLocked(true))
-              .catch(() => {})
-          }
+        setAgentPayMethod(method)
+        if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
+        const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
+        if (profile?.id) {
+          await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
+          // Lock payment method â can only change again after cierre semanal
+          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+          fetch(`${apiBase}/api/payment-method-lock`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: profile.id }),
+          }).then(r => r.ok ? r.json() : null)
+            .then(() => setPayMethodLocked(true))
+            .catch(() => {})
         }
+      }
 
 
     function toggleExpand(id: string) {
@@ -308,7 +296,7 @@ import React, { useState, useEffect } from 'react'
           const workers = (c.workers_data ?? [])
           const workerRows = workers.map((w: any) =>
             `<tr class="worker-row">
-              <td class="worker-name-cell">${w.nombre || w.uid || '—'}</td>
+              <td class="worker-name-cell">${w.nombre || w.uid || 'â'}</td>
               <td class="worker-usd-cell">$${Number(w.salary_usd || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</td>
               <td class="worker-comm-cell">$${Number(w.commission_usd || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</td>
             </tr>`).join('')
@@ -318,7 +306,7 @@ import React, { useState, useEffect } from 'react'
                 <table class="inner-table" style="width:100%">
                   <tr class="week-header-row">
                     <td class="week-header-cell">Semana ${c.semana}</td>
-                    <td class="week-total-cell">Comisión total: <strong>$${Number(c.total_commission_usd || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</strong></td>
+                    <td class="week-total-cell">ComisiÃ³n total: <strong>$${Number(c.total_commission_usd || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</strong></td>
                   </tr>
                   ${workers.length > 0 ? `
                   <tr><td colspan="3" style="padding:0">
@@ -326,7 +314,7 @@ import React, { useState, useEffect } from 'react'
                       <thead><tr>
                         <th style="padding:5px 12px 5px 24px; text-align:left; color:#9ca3af; font-weight:700; background:#fafafa; border-bottom:1px solid #f3f4f6">Trabajadora</th>
                         <th style="padding:5px 12px; text-align:left; color:#9ca3af; font-weight:700; background:#fafafa; border-bottom:1px solid #f3f4f6">Salario USD</th>
-                        <th style="padding:5px 12px; text-align:left; color:#d97706; font-weight:700; background:#fafafa; border-bottom:1px solid #f3f4f6">Comisión USD</th>
+                        <th style="padding:5px 12px; text-align:left; color:#d97706; font-weight:700; background:#fafafa; border-bottom:1px solid #f3f4f6">ComisiÃ³n USD</th>
                       </tr></thead>
                       <tbody>${workerRows}</tbody>
                     </table>
@@ -386,7 +374,7 @@ import React, { useState, useEffect } from 'react'
   <div class="header">
     <div>
       <div class="brand">Eclipse <span>Angels</span> Agency</div>
-      <div class="doc-title">Historial de Comisiones — ${agentName} — Solo en USD</div>
+      <div class="doc-title">Historial de Comisiones â ${agentName} â Solo en USD</div>
     </div>
     <div class="meta">
       Generado: ${now}<br>
@@ -398,12 +386,12 @@ import React, { useState, useEffect } from 'react'
     <div class="summary-card">
       <div class="label">Total comisiones (USD)</div>
       <div class="value">$${totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 })} USD</div>
-      <div class="sub">Suma de todos los períodos</div>
+      <div class="sub">Suma de todos los perÃ­odos</div>
     </div>
     <div class="summary-card">
       <div class="label">Semanas registradas</div>
       <div class="value">${commissions.length}</div>
-      <div class="sub">En ${apps.length} aplicación${apps.length !== 1 ? 'es' : ''}</div>
+      <div class="sub">En ${apps.length} aplicaciÃ³n${apps.length !== 1 ? 'es' : ''}</div>
     </div>
     <div class="summary-card">
       <div class="label">Trabajadoras activas</div>
@@ -412,7 +400,7 @@ import React, { useState, useEffect } from 'react'
     </div>
   </div>
   ${appSections}
-  <div class="footer">Eclipse Angels Agency · Documento generado automáticamente · Todos los montos en USD</div>
+  <div class="footer">Eclipse Angels Agency Â· Documento generado automÃ¡ticamente Â· Todos los montos en USD</div>
 </body>
 </html>`
 
@@ -441,7 +429,7 @@ import React, { useState, useEffect } from 'react'
           if (!found) {
             for (const v of map.values()) { if (v.nombre === w.nombre) { found = v; break } }
           }
-          if (!found) continue // Trabajadora borrada de worker_entries → no se muestra en ningún lado
+          if (!found) continue // Trabajadora borrada de worker_entries â no se muestra en ningÃºn lado
           found.isActive = true
           found.totalComm += w.commission_usd || 0
           if (!found.apps.includes(c.app_name)) found.apps.push(c.app_name)
@@ -478,8 +466,8 @@ import React, { useState, useEffect } from 'react'
       return map
     }, [allWorkerCards])
 
-    // Map: user_id → (app_name → metodo_pago) from workerEntries (current, never stale)
-    // Only uses live workerEntries — never pulls historical salary/rates from publishedComms,
+    // Map: user_id â (app_name â metodo_pago) from workerEntries (current, never stale)
+    // Only uses live workerEntries â never pulls historical salary/rates from publishedComms,
     // so the trabajadoras tab stays clean between semana publishes.
     const workerCupMap = React.useMemo(() => {
       const methodMap = new Map<string, Map<string, string>>()
@@ -539,9 +527,9 @@ import React, { useState, useEffect } from 'react'
               </div>
               {agentCode && (
                 <div className="text-right shrink-0">
-                  <p className="text-white/25 text-xs mb-1.5">Tu código · toca para copiar</p>
+                  <p className="text-white/25 text-xs mb-1.5">Tu cÃ³digo Â· toca para copiar</p>
                   <CopyCode code={agentCode} />
-                  <p className="text-white/20 text-xs mt-1">Compártelo con tus trabajadoras</p>
+                  <p className="text-white/20 text-xs mt-1">CompÃ¡rtelo con tus trabajadoras</p>
                 </div>
               )}
             </div>
@@ -550,13 +538,13 @@ import React, { useState, useEffect } from 'react'
           {/* No-commission warning for own worker entries */}
           {workerEntries.some(w => w.user_id === profile.id) && (
             <div className="mb-4 bg-amber-500/8 border border-amber-500/25 rounded-2xl p-4 flex items-start gap-3">
-              <span className="text-amber-400 text-xl shrink-0 mt-0.5">⚠️</span>
+              <span className="text-amber-400 text-xl shrink-0 mt-0.5">â ï¸</span>
               <div>
-                <p className="text-amber-300 text-sm font-bold mb-1">Tus cuentas propias no generan comisión</p>
+                <p className="text-amber-300 text-sm font-bold mb-1">Tus cuentas propias no generan comisiÃ³n</p>
                 <p className="text-white/50 text-xs leading-relaxed">
                   Tienes cuentas en las apps bajo tu propio perfil
                   ({workerEntries.filter(w => w.user_id === profile.id).map(w => w.app_name).join(', ')}).
-                  Esas cuentas no cuentan para tu comisión de agente.
+                  Esas cuentas no cuentan para tu comisiÃ³n de agente.
                 </p>
               </div>
             </div>
@@ -579,7 +567,7 @@ import React, { useState, useEffect } from 'react'
                   </div>
                   <a href="/canales"
                     className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shrink-0">
-                    Ver canales →
+                    Ver canales â
                   </a>
                 </div>
               </div>
@@ -605,7 +593,7 @@ import React, { useState, useEffect } from 'react'
           {/* ====== COMISIONES TAB ====== */}
             {mainTab === 'comisiones' && (
               <>
-                {/* ESTA SEMANA — hero prominente */}
+                {/* ESTA SEMANA â hero prominente */}
                 {!pubCommsLoading && latestSemana && (
                   <div className="bg-gradient-to-br from-amber-600/25 via-amber-500/10 to-transparent border border-amber-500/35 rounded-3xl p-6 mb-5">
                     <p className="text-amber-400/70 text-xs font-extrabold uppercase tracking-widest mb-1">Semana {latestSemana}</p>
@@ -630,7 +618,7 @@ import React, { useState, useEffect } from 'react'
                             <div key={i} className="flex items-center justify-between">
                               <span className="text-white/55 text-sm truncate max-w-[55%]">
                                 {row.worker_name}
-                                <span className="text-white/25 text-xs ml-1">· {row.app_name}</span>
+                                <span className="text-white/25 text-xs ml-1">Â· {row.app_name}</span>
                               </span>
                               <div className="text-right shrink-0">
                                 <span className="text-green-400 font-bold text-sm">${commUsd.toFixed(2)}</span>
@@ -651,7 +639,7 @@ import React, { useState, useEffect } from 'react'
                   <div className="bg-[#0d0d1e] border border-amber-500/15 rounded-3xl p-6 mb-5 text-center">
                     <DollarSign className="w-8 h-8 text-amber-500/30 mx-auto mb-2" />
                     <p className="text-white/35 text-sm font-semibold">Sin comisiones publicadas esta semana</p>
-                    <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
+                    <p className="text-white/20 text-xs mt-1">El admin publicarÃ¡ tu comisiÃ³n cuando estÃ© lista.</p>
                   </div>
                 )}
 
@@ -675,11 +663,11 @@ import React, { useState, useEffect } from 'react'
                       ? pubTotalUSD > 0
                         ? <>
                             <p className="text-sm font-bold text-amber-300 mt-0.5">{(pubTotalUSD * (exchangeRates[`${agentPayMethod}_agent`] ?? 0)).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP</p>
-                            <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {(exchangeRates[`${agentPayMethod}_agent`] ?? 0).toLocaleString('es-ES')} CUP</p>
+                            <p className="text-white/20 text-xs mt-0.5">ð± 1 USD = {(exchangeRates[`${agentPayMethod}_agent`] ?? 0).toLocaleString('es-ES')} CUP</p>
                           </>
-                        : <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {(exchangeRates[`${agentPayMethod}_agent`] ?? 0).toLocaleString('es-ES')} CUP</p>
+                        : <p className="text-white/20 text-xs mt-0.5">ð± 1 USD = {(exchangeRates[`${agentPayMethod}_agent`] ?? 0).toLocaleString('es-ES')} CUP</p>
                       : agentPayMethod
-                        ? <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
+                        ? <p className="text-xs text-white/25 mt-0.5">â³ Tasa pendiente</p>
                         : null
                     }
                     <p className="text-white/35 text-xs mt-1 uppercase tracking-wider">Total publicado</p>
@@ -694,7 +682,7 @@ import React, { useState, useEffect } from 'react'
                   </div>
                 </div>
 
-                {/* Tipo de cambio informativo — visible cuando hay comisiones publicadas */}
+                {/* Tipo de cambio informativo â visible cuando hay comisiones publicadas */}
                 {(() => {
                   const ef = exchangeRates['efectivo_agent'] ?? 0
                   const tr = exchangeRates['transferencia_agent'] ?? 0
@@ -702,7 +690,7 @@ import React, { useState, useEffect } from 'react'
                   if (displayRate === 0 || publishedComms.length === 0) return null
                   return (
                     <div className="bg-purple-500/6 border border-purple-500/15 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3">
-                      <span className="text-xl shrink-0">💱</span>
+                      <span className="text-xl shrink-0">ð±</span>
                       <div>
                         <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-0.5">Tipo de cambio esta semana</p>
                         <p className="text-white/80 text-sm">1 USD = <span className="text-amber-300 font-extrabold">{displayRate.toLocaleString('es-ES')} CUP</span></p>
@@ -711,32 +699,32 @@ import React, { useState, useEffect } from 'react'
                   )
                 })()}
 
-                {/* Payment method selector — always visible */}
+                {/* Payment method selector â always visible */}
                 {(
                   <div className="mb-4">
                     {!agentPayMethod ? (
                       payMethodLocked ? (
                         <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-5 mb-3 flex items-center gap-3">
-                          <span className="text-2xl shrink-0">🔒</span>
+                          <span className="text-2xl shrink-0">ð</span>
                           <div>
-                            <p className="text-amber-300 text-sm font-bold">Método de pago bloqueado</p>
-                            <p className="text-white/35 text-xs mt-0.5">Ya elegiste tu método esta semana. Podrás cambiarlo cuando el admin cierre la semana.</p>
+                            <p className="text-amber-300 text-sm font-bold">MÃ©todo de pago bloqueado</p>
+                            <p className="text-white/35 text-xs mt-0.5">Ya elegiste tu mÃ©todo esta semana. PodrÃ¡s cambiarlo cuando el admin cierre la semana.</p>
                           </div>
                         </div>
                       ) : (
                       <div className="bg-[#0d0d1e] border border-amber-500/20 rounded-2xl p-5 mb-3">
-                        <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">💱 Elige tu método de cobro</p>
-                        <p className="text-white/40 text-xs mb-4">Selecciona cómo recibirás tus comisiones. Solo puedes elegir uno.</p>
+                        <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">ð± Elige tu mÃ©todo de cobro</p>
+                        <p className="text-white/40 text-xs mb-4">Selecciona cÃ³mo recibirÃ¡s tus comisiones. Solo puedes elegir uno.</p>
                         <div className="grid grid-cols-2 gap-3">
                           <button onClick={() => selectPayMethod('efectivo')}
                             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-amber-500/30 hover:border-amber-400 hover:bg-amber-500/10 transition-all">
-                            <span className="text-2xl">💵</span>
+                            <span className="text-2xl">ðµ</span>
                             <span className="text-white font-bold text-sm">Efectivo Cuba</span>
                             {(exchangeRates['efectivo_agent'] ?? 0) > 0 && <span className="text-amber-400/60 text-xs">1 USD = {(exchangeRates['efectivo_agent']).toLocaleString('es-ES')} CUP</span>}
                           </button>
                           <button onClick={() => selectPayMethod('transferencia')}
                             className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-blue-500/30 hover:border-blue-400 hover:bg-blue-500/10 transition-all">
-                            <span className="text-2xl">🏦</span>
+                            <span className="text-2xl">ð¦</span>
                             <span className="text-white font-bold text-sm">Transferencia Cuba</span>
                             {(exchangeRates['transferencia_agent'] ?? 0) > 0 && <span className="text-blue-400/60 text-xs">1 USD = {(exchangeRates['transferencia_agent']).toLocaleString('es-ES')} CUP</span>}
                           </button>
@@ -747,7 +735,7 @@ import React, { useState, useEffect } from 'react'
                       <div className={`bg-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-500/8 border border-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-500/20 rounded-2xl p-4 mb-3`}>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-lg">{agentPayMethod === 'efectivo' ? '💵' : '🏦'}</span>
+                            <span className="text-lg">{agentPayMethod === 'efectivo' ? 'ðµ' : 'ð¦'}</span>
                             <div>
                               <p className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-400 text-xs font-bold uppercase tracking-wider`}>
                                 {agentPayMethod === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'}
@@ -758,7 +746,7 @@ import React, { useState, useEffect } from 'react'
                             </div>
                           </div>
                           {payMethodLocked ? (
-                            <span className="text-amber-400/50 text-xs px-2 py-1 rounded-lg border border-amber-500/20">🔒 bloqueado</span>
+                            <span className="text-amber-400/50 text-xs px-2 py-1 rounded-lg border border-amber-500/20">ð bloqueado</span>
                           ) : (
                           <button onClick={() => setAgentPayMethod(null)}
                             className="text-white/30 hover:text-white/60 text-xs transition-colors px-2 py-1 rounded-lg border border-white/10">
@@ -774,20 +762,20 @@ import React, { useState, useEffect } from 'react'
                               const rate = exchangeRates[`${agentPayMethod}_agent`] ?? 0
                               return (
                                 <div key={app} className="flex items-center justify-between">
-                                  <span className="text-white/50 text-sm">{app} · <span className="text-green-400 font-bold">${appUsd.toFixed(2)}</span></span>
+                                  <span className="text-white/50 text-sm">{app} Â· <span className="text-green-400 font-bold">${appUsd.toFixed(2)}</span></span>
                                   <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-300 font-extrabold text-lg`}>
-                                    {rate > 0 ? (appUsd * rate).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP' : <span className="text-white/25 text-sm">— sin tasa</span>}
+                                    {rate > 0 ? (appUsd * rate).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP' : <span className="text-white/25 text-sm">â sin tasa</span>}
                                   </span>
                                 </div>
                               )
                             })}
                             {pubApps.length > 1 && (
                               <div className="flex items-center justify-between border-t border-white/8 pt-2 mt-1">
-                                <span className="text-white/40 text-sm font-bold">Total · <span className="text-green-400">${pubTotalUSD.toFixed(2)}</span></span>
+                                <span className="text-white/40 text-sm font-bold">Total Â· <span className="text-green-400">${pubTotalUSD.toFixed(2)}</span></span>
                                 <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-300 font-extrabold text-xl`}>
                                   {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
                                     ? (pubTotalUSD * (exchangeRates[`${agentPayMethod}_agent`] ?? 0)).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP'
-                                    : <span className="text-white/25 text-sm">— sin tasa</span>}
+                                    : <span className="text-white/25 text-sm">â sin tasa</span>}
                                 </span>
                               </div>
                             )}
@@ -801,13 +789,13 @@ import React, { useState, useEffect } from 'react'
                 {/* Contactar pagador */}
                 {agentPayMethod === 'efectivo' && publishedComms.length > 0 && (exchangeRates['efectivo_agent'] ?? 0) > 0 && (
                   <div className="bg-amber-500/6 border border-amber-500/15 rounded-2xl p-4 mb-3 space-y-2">
-                    <p className="text-amber-400/80 text-xs font-bold">📲 Contactar pagador</p>
-                    <p className="text-white/30 text-xs leading-relaxed">Solo escríbele cuando hayas visto tu monto semanal en CUP. No contactes al pagador sin haber visto el monto.</p>
+                    <p className="text-amber-400/80 text-xs font-bold">ð² Contactar pagador</p>
+                    <p className="text-white/30 text-xs leading-relaxed">Solo escrÃ­bele cuando hayas visto tu monto semanal en CUP. No contactes al pagador sin haber visto el monto.</p>
                     <a
                       href={`https://wa.me/5356380709?text=${encodeURIComponent('Hola. soy miembro de eclipse angels en la app ' + (pubApps[0] ?? '') + '. E logrado hacer la meta de la app por primera vez por favor guarda mi contacto para temas del pago.')}`}
                       target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
-                      💬 Escribir al pagador
+                      ð¬ Escribir al pagador
                     </a>
                   </div>
                 )}
@@ -821,7 +809,7 @@ import React, { useState, useEffect } from 'react'
                         <div className="text-white/30 text-sm text-center py-12 animate-pulse">Cargando salarios...</div>
                       ) : workerSalaries.length > 0 ? (
                         <div className="space-y-3">
-                          <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">💰 Salarios de tus trabajadoras</p>
+                          <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">ð° Salarios de tus trabajadoras</p>
                           {[...new Set(workerSalaries.map(s => s.semana))].sort((a, b) => b.localeCompare(a)).map(semana => {
                             const semRows = workerSalaries.filter(s => s.semana === semana)
                             return (
@@ -844,18 +832,18 @@ import React, { useState, useEffect } from 'react'
                                     const rate = isEfectivo ? efRate : trRate
                                     const hasExclusive = customEf > 0 || customTr > 0
                                     const cupAmount = isCuban && rate > 0 ? Number(s.usd) * rate : 0
-                                    const methodLabel = s.metodo_pago ? (met.includes('efectivo') ? '💵 Efectivo' : met.includes('transferencia') ? '🏦 Transf.' : s.metodo_pago) : ''
+                                    const methodLabel = s.metodo_pago ? (met.includes('efectivo') ? 'ðµ Efectivo' : met.includes('transferencia') ? 'ð¦ Transf.' : s.metodo_pago) : ''
                                     return (
                                       <div key={i} className="px-5 py-3 flex items-start justify-between gap-3">
                                         <div className="min-w-0">
-                                          <p className="text-white/75 text-sm font-semibold">{s.nombre_en_app ?? s.nombre_real ?? '—'}</p>
-                                          <p className="text-white/30 text-xs">{s.app_name}{methodLabel ? ` · ${methodLabel}` : ''}</p>
-                                          {isCuban && rate > 0 && <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {rate.toLocaleString('es-ES')} CUP{hasExclusive ? ' ✦' : ''}</p>}
+                                          <p className="text-white/75 text-sm font-semibold">{s.nombre_en_app ?? s.nombre_real ?? 'â'}</p>
+                                          <p className="text-white/30 text-xs">{s.app_name}{methodLabel ? ` Â· ${methodLabel}` : ''}</p>
+                                          {isCuban && rate > 0 && <p className="text-white/20 text-xs mt-0.5">ð± 1 USD = {rate.toLocaleString('es-ES')} CUP{hasExclusive ? ' â¦' : ''}</p>}
                                         </div>
                                         <div className="text-right shrink-0">
                                           <p className="text-green-400 font-extrabold text-base">${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })} <span className="text-green-400/60 text-sm font-bold">USD</span></p>
                                           {isCuban && cupAmount > 0 && <p className={`text-sm font-bold mt-0.5 ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>{cupAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP</p>}
-                                          {isCuban && rate <= 0 && <p className="text-white/25 text-xs mt-0.5">⏳ Tasa pendiente</p>}
+                                          {isCuban && rate <= 0 && <p className="text-white/25 text-xs mt-0.5">â³ Tasa pendiente</p>}
                                         </div>
                                       </div>
                                     )
@@ -868,8 +856,8 @@ import React, { useState, useEffect } from 'react'
                       ) : (
                         <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
                           <DollarSign className="w-8 h-8 text-white/15 mx-auto mb-3" />
-                          <p className="text-white/35 text-sm font-semibold">Comisión pendiente</p>
-                          <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
+                          <p className="text-white/35 text-sm font-semibold">ComisiÃ³n pendiente</p>
+                          <p className="text-white/20 text-xs mt-1">El admin publicarÃ¡ tu comisiÃ³n cuando estÃ© lista.</p>
                         </div>
                       )}
                     </>
@@ -887,11 +875,11 @@ import React, { useState, useEffect } from 'react'
                           <div key={sem} className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl overflow-hidden">
                             <button onClick={() => toggleExpand(sem)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-purple-500/5 transition-colors text-left">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0">💰</div>
+                                <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0">ð°</div>
                                 <div>
                                   <p className="text-white font-semibold text-sm">Semana {sem}</p>
                                   <p className="text-white/35 text-xs">{rows.length} {rows.length === 1 ? 'trabajadora' : 'trabajadoras'}</p>
-                                  {allSemConfirmed && <span className="text-[10px] text-green-400 font-bold">✓ Pago confirmado</span>}
+                                  {allSemConfirmed && <span className="text-[10px] text-green-400 font-bold">â Pago confirmado</span>}
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
@@ -900,15 +888,15 @@ import React, { useState, useEffect } from 'react'
                                   {rate > 0
                                     ? <>
                                         <p className={`text-sm font-bold mt-0.5 ${agentPayMethod === 'efectivo' ? 'text-amber-400' : 'text-blue-400'}`}>{(semUsd * rate).toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP</p>
-                                        <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {rate.toLocaleString('es-ES')} CUP</p>
+                                        <p className="text-white/20 text-xs mt-0.5">ð± 1 USD = {rate.toLocaleString('es-ES')} CUP</p>
                                       </>
-                                    : <p className="text-xs text-white/25 mt-0.5">⏳ Tasa pendiente</p>
+                                    : <p className="text-xs text-white/25 mt-0.5">â³ Tasa pendiente</p>
                                   }
                                 </div>
                                 {expanded.has(sem) ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                               </div>
                             </button>
-                            {/* Confirm payment buttons — always visible, one per app commission */}
+                            {/* Confirm payment buttons â always visible, one per app commission */}
                             {semanaComms.length > 0 && (
                               <div className="border-t border-amber-500/10 px-5 py-3 space-y-2">
                                 {semanaComms.map(comm => {
@@ -965,10 +953,10 @@ import React, { useState, useEffect } from 'react'
                                       <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
                                           <span className="text-white/70 text-sm block truncate">{row.worker_name}</span>
-                                          <span className="text-white/30 text-xs">{row.app_name}{isCuban && workerRate > 0 ? ` · ${workerRate.toLocaleString('es-ES')} CUP/USD${hasExclusive ? ' ✦' : ''}` : ''}</span>
+                                          <span className="text-white/30 text-xs">{row.app_name}{isCuban && workerRate > 0 ? ` Â· ${workerRate.toLocaleString('es-ES')} CUP/USD${hasExclusive ? ' â¦' : ''}` : ''}</span>
                                         </div>
                                         <div className="text-right shrink-0">
-                                          <span className="text-green-400 font-bold text-sm block">${Number(row.commission_usd).toFixed(2)} <span className="text-white/30 font-normal text-xs">comisión</span></span>
+                                          <span className="text-green-400 font-bold text-sm block">${Number(row.commission_usd).toFixed(2)} <span className="text-white/30 font-normal text-xs">comisiÃ³n</span></span>
                                           {workerSalUsd > 0 && (
                                             <span className="text-purple-300 font-bold text-xs block mt-0.5">${workerSalUsd.toFixed(2)} <span className="text-white/30 font-normal">salario</span></span>
                                           )}
@@ -978,7 +966,7 @@ import React, { useState, useEffect } from 'react'
                                             </span>
                                           )}
                                           {isCuban && workerRate <= 0 && (
-                                            <span className="text-white/20 text-xs block mt-0.5">⏳ tasa pendiente</span>
+                                            <span className="text-white/20 text-xs block mt-0.5">â³ tasa pendiente</span>
                                           )}
                                         </div>
                                       </div>
@@ -1017,10 +1005,10 @@ import React, { useState, useEffect } from 'react'
               ) : visibleWorkers.length === 0 ? (
                 <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
                   <Users className="w-8 h-8 text-white/15 mx-auto mb-3" />
-                  <p className="text-white/35 text-sm">Ninguna trabajadora ha registrado tu código aún.</p>
+                  <p className="text-white/35 text-sm">Ninguna trabajadora ha registrado tu cÃ³digo aÃºn.</p>
                   {agentCode && (
                     <div className="mt-5">
-                      <p className="text-white/25 text-xs mb-2">Comparte tu código:</p>
+                      <p className="text-white/25 text-xs mb-2">Comparte tu cÃ³digo:</p>
                       <div className="flex justify-center"><CopyCode code={agentCode} /></div>
                     </div>
                   )}
@@ -1075,15 +1063,15 @@ import React, { useState, useEffect } from 'react'
                           return (
                             <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
                               {nombreReal && (
-                                <p className="text-white/40 text-xs">👤 Nombre real: <span className="text-white/75 font-medium">{nombreReal}</span></p>
+                                <p className="text-white/40 text-xs">ð¤ Nombre real: <span className="text-white/75 font-medium">{nombreReal}</span></p>
                               )}
                               {entries.map(entry => (
-                                <p key={entry.app_name} className="text-white/40 text-xs">🎮 {entry.app_name}: <span className="text-white/75 font-medium">{entry.nombre_en_app || '—'}</span>{entry.id_aplicacion ? <span className="ml-1.5 text-white/25 font-mono text-[10px]">· ID: {entry.id_aplicacion}</span> : null}</p>
+                                <p key={entry.app_name} className="text-white/40 text-xs">ð® {entry.app_name}: <span className="text-white/75 font-medium">{entry.nombre_en_app || 'â'}</span>{entry.id_aplicacion ? <span className="ml-1.5 text-white/25 font-mono text-[10px]">Â· ID: {entry.id_aplicacion}</span> : null}</p>
                               ))}
                               {waNum && waNum.length >= 7 && (
                                 <a href={`https://wa.me/${waNum}`} target="_blank" rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 text-xs bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1 rounded-full hover:bg-green-500/20 transition-colors font-semibold mt-0.5">
-                                  📞 {tel}
+                                  ð {tel}
                                 </a>
                               )}
                             </div>
@@ -1093,15 +1081,15 @@ import React, { useState, useEffect } from 'react'
                         {cupRows.map(({ app, isEfectivo, displayRate, isExclusive }) => (
                           <div key={app} className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-xs shrink-0">{isEfectivo ? '💵' : '🏦'}</span>
+                              <span className="text-xs shrink-0">{isEfectivo ? 'ðµ' : 'ð¦'}</span>
                               <span className={`text-xs font-medium truncate ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>
-                                {app} · {isEfectivo ? 'Efectivo Cuba' : 'Transf. Cuba'}
-                                {isExclusive && <span className="ml-1 text-emerald-400/70 text-[10px]">✦</span>}
+                                {app} Â· {isEfectivo ? 'Efectivo Cuba' : 'Transf. Cuba'}
+                                {isExclusive && <span className="ml-1 text-emerald-400/70 text-[10px]">â¦</span>}
                               </span>
                             </div>
                             {displayRate > 0
                               ? <p className={`text-xs font-semibold shrink-0 ${isEfectivo ? 'text-amber-400/60' : 'text-blue-400/60'}`}>{displayRate.toLocaleString('es-ES')} CUP/USD</p>
-                              : <p className="text-white/20 text-xs shrink-0">⏳ Tasa pendiente</p>
+                              : <p className="text-white/20 text-xs shrink-0">â³ Tasa pendiente</p>
                             }
                           </div>
                         ))}
@@ -1135,7 +1123,7 @@ import React, { useState, useEffect } from 'react'
                                     <span className="text-[10px] font-normal text-white/20 ml-1">{isEfec ? 'ef.' : 'tr.'}</span>
                                   </p>
                                 )}
-                                {isCuban && workerRate <= 0 && <p className="text-white/20 text-[10px] mt-0.5">⏳ tasa pendiente</p>}
+                                {isCuban && workerRate <= 0 && <p className="text-white/20 text-[10px] mt-0.5">â³ tasa pendiente</p>}
                               </div>
                             </div>
                           )
@@ -1178,7 +1166,7 @@ import React, { useState, useEffect } from 'react'
                       {entries2plus.length > 0 && (
                         <div>
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-xs font-extrabold uppercase tracking-widest text-red-400">🔴 2 o más semanas sin cobrar</span>
+                            <span className="text-xs font-extrabold uppercase tracking-widest text-red-400">ð´ 2 o mÃ¡s semanas sin cobrar</span>
                             <span className="text-xs bg-red-500/20 text-red-300 rounded-full px-2 py-0.5">{entries2plus.length}</span>
                           </div>
                           <div className="space-y-2">
@@ -1191,10 +1179,10 @@ import React, { useState, useEffect } from 'react'
                                     <div>
                                       <p className="text-white font-bold text-sm">{nombre}</p>
                                       <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                                        <p className="text-white/35 text-xs">{latest.app_name} · {group.length} semanas</p>
+                                        <p className="text-white/35 text-xs">{latest.app_name} Â· {group.length} semanas</p>
                                         {latest.id_aplicacion && <span className="text-[10px] text-white/30 font-mono">ID: {latest.id_aplicacion}</span>}
                                       </div>
-                                      {(() => { const raw = `${latest.codigo_pais_worker ?? ''}${latest.telefono_worker ?? ''}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold transition-colors mt-0.5 inline-block">📱 WA</a> : null })()} 
+                                      {(() => { const raw = `${latest.codigo_pais_worker ?? ''}${latest.telefono_worker ?? ''}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold transition-colors mt-0.5 inline-block">ð± WA</a> : null })()} 
                                     </div>
                                     <span className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-full border bg-red-500/15 text-red-300 border-red-500/25">
                                       {group.length} sem.
@@ -1205,8 +1193,8 @@ import React, { useState, useEffect } from 'react'
                                       <div key={entry.id} className="flex items-center justify-between bg-white/3 rounded-xl px-3 py-2">
                                         <span className="text-white/40 text-xs">Semana {entry.semana}</span>
                                         {entry.justified
-                                          ? <span className="text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5">✓ Justificada</span>
-                                          : <span className="text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 rounded-full px-2 py-0.5">✗ No justificada</span>
+                                          ? <span className="text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5">â Justificada</span>
+                                          : <span className="text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 rounded-full px-2 py-0.5">â No justificada</span>
                                         }
                                       </div>
                                     ))}
@@ -1220,7 +1208,7 @@ import React, { useState, useEffect } from 'react'
                       {entries1.length > 0 && (
                         <div>
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400">⚠️ 1 semana sin cobrar</span>
+                            <span className="text-xs font-extrabold uppercase tracking-widest text-amber-400">â ï¸ 1 semana sin cobrar</span>
                             <span className="text-xs bg-amber-500/20 text-amber-300 rounded-full px-2 py-0.5">{entries1.length}</span>
                           </div>
                           <div className="space-y-2">
@@ -1232,14 +1220,14 @@ import React, { useState, useEffect } from 'react'
                                   <div>
                                     <p className="text-white font-semibold text-sm">{nombre}</p>
                                     <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                                      <p className="text-white/35 text-xs">{entry.app_name} · Semana {entry.semana}</p>
+                                      <p className="text-white/35 text-xs">{entry.app_name} Â· Semana {entry.semana}</p>
                                       {entry.id_aplicacion && <span className="text-[10px] text-white/30 font-mono">ID: {entry.id_aplicacion}</span>}
                                     </div>
-                                    {(() => { const raw = `${entry.codigo_pais_worker ?? ''}${entry.telefono_worker ?? ''}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold mt-0.5 inline-block">📱 WA</a> : null })()} 
+                                    {(() => { const raw = `${entry.codigo_pais_worker ?? ''}${entry.telefono_worker ?? ''}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold mt-0.5 inline-block">ð± WA</a> : null })()} 
                                   </div>
                                   {entry.justified
-                                    ? <span className="shrink-0 text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-1">✓ Justificada</span>
-                                    : <span className="shrink-0 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-1">⚠ No justificada</span>
+                                    ? <span className="shrink-0 text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-1">â Justificada</span>
+                                    : <span className="shrink-0 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-1">â  No justificada</span>
                                   }
                                 </div>
                               )
