@@ -1015,9 +1015,10 @@ import React, { useState, useEffect } from 'react'
                             }
                           </div>
                         ))}
-                        {/* Salario de esta trabajadora (desde published_salaries por user_id) */}
+                        {/* Salario de esta trabajadora — hidden after cierre-semanal */}
                         {(() => {
-                          const wSals = (workerSalaries as any[]).filter(s => s.user_id === w.key)
+                          const weekClosed = Object.keys(exchangeRates).length > 0 && Object.values(exchangeRates).every(r => r === 0)
+                          const wSals = weekClosed ? [] : (workerSalaries as any[]).filter(s => s.user_id === w.key)
                           if (wSals.length === 0) return null
                           const latestSal = wSals.sort((a: any, b: any) => String(b.semana).localeCompare(String(a.semana)))[0]
                           const salUsd = Number(latestSal.usd ?? 0)
