@@ -872,31 +872,43 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         }
 
         async function fetchAgentPayData() {
-            setAgentPayLoading(true)
-            const { data: latestComm } = await supabase
-              .from('agent_commissions').select('semana')
-              .order('semana', { ascending: false }).limit(1).maybeSingle()
-            if (!latestComm) { setAgentPayData({confirmed: [], pending: []}); setAgentPayLoading(false); return }
-            const semana = latestComm.semana
-            const { data: comms } = await supabase
-              .from('agent_commissions')
-              .select('id, agent_name, app_name, semana, total_commission_usd, agent_user_id')
-              .eq('semana', semana)
-            const { data: confs } = await supabase
-              .from('agent_payment_confirmations')
-              .select('commission_id, confirmed_at')
-              .in('commission_id', (comms ?? []).map((c: any) => c.id))
-            const confSet = new Set(((confs ?? []) as any[]).map((c: any) => c.commission_id))
-            const confMap: Record<string, string> = {}
-            ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
-            const all = (comms ?? []) as any[]
-            setAgentPayData({
-              confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({...c, confirmed_at: confMap[c.id]})),
-              pending: all.filter((c: any) => !confSet.has(c.id)),
-            })
-            setPagosSemana(semana)
-            setAgentPayLoading(false)
-          }
+              setAgentPayLoading(true)
+              const { data: latestComm } = await supabase
+                .from('agent_commissions').select('semana')
+                .order('semana', { ascending: false }).limit(1).maybeSingle()
+              if (!latestComm) { setAgentPayData({confirmed: [], pending: []}); setAgentPayLoading(false); return }
+              const semana = latestComm.semana
+              const { data: comms } = await supabase
+                .from('agent_commissions')
+                .select('id, agent_name, app_name, semana, total_commission_usd, agent_user_id')
+                .eq('semana', semana)
+              const { data: confs } = await supabase
+                .from('agent_payment_confirmations')
+                .select('commission_id, confirmed_at')
+                .in('commission_id', (comms ?? []).map((c: any) => c.id))
+              const confSet = new Set(((confs ?? []) as any[]).map((c: any) => c.commission_id))
+              const confMap: Record<string, string> = {}
+              ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
+              const all = (comms ?? []) as any[]
+              // Build agentMetodoMap from worker_entries + profile fallback so classification is correct
+              const _agUids = all.filter((c: any) => c.agent_user_id).map((c: any) => c.agent_user_id as string)
+              if (_agUids.length > 0) {
+                const [{ data: _agW }, { data: _agP }] = await Promise.all([
+                  supabase.from('worker_entries').select('user_id, metodo_pago').in('user_id', _agUids),
+                  supabase.from('profiles').select('id, agent_payment_method').in('id', _agUids),
+                ])
+                const _mm: Record<string, string> = {}
+                for (const w of (_agW ?? []) as any[]) { if (w.metodo_pago) _mm[w.user_id] = w.metodo_pago }
+                for (const p of (_agP ?? []) as any[]) { if (!_mm[p.id] && p.agent_payment_method) _mm[p.id] = p.agent_payment_method }
+                setAgentMetodoMap(_mm)
+              }
+              setAgentPayData({
+                confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({...c, confirmed_at: confMap[c.id]})),
+                pending: all.filter((c: any) => !confSet.has(c.id)),
+              })
+              setPagosSemana(semana)
+              setAgentPayLoading(false)
+            }
 
           async function fetchLaylaDirectNotifs() {
             setLaylaDirectLoading(true)
