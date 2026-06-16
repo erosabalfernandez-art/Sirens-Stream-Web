@@ -2187,7 +2187,6 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                                 {(agentColiderMap[uid]?.is_agent || agentColiderMap[uid]?.is_colider) && (
                                   <p className="text-amber-400/70 text-xs leading-relaxed bg-amber-500/5 border border-amber-500/15 rounded-lg px-2 py-1.5">⚠️ Este cambio aplica <strong>solo a su salario como trabajadora</strong>, no a sus comisiones de agente/colider.</p>
                                 )}
-                                {group.map(w => {
                               {group.map(w => {
                                 const k        = w.user_id + '::' + w.app_name
                                 const existing = customRates.find(r => r.user_id === w.user_id && r.app_name === w.app_name)
