@@ -329,38 +329,88 @@ const APP_COLORS = {
     const [workers, setWorkers] = useState<WorkerEntry[]>([])
     const [loadingWorkers, setLoadingWorkers] = useState(false)
     const [semana, setSemana] = useState(() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })
-    const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string; porcentaje: string }>>({})
+    const [values, setValues] = useState<Record<string, { retiradas: string; comerciales: string; porcentaje: string }>>(() => {
+      // Restore from localStorage on first render
+      try {
+        const activeSemana = localStorage.getItem('ea_active_semana') ?? ''
+        if (!activeSemana) return {}
+        const stored = localStorage.getItem(`ea_layla_vals_${activeSemana}`)
+        return stored ? JSON.parse(stored) : {}
+      } catch { return {} }
+    })
     const [publishing, setPublishing] = useState(false)
     const [publishedOk, setPublishedOk] = useState(false)
     const [agentNameMap, setAgentNameMap] = useState<Record<string,string>>({})
     const [agentIdMap, setAgentIdMap] = useState<Record<string,string>>({})
 
+    // Persist values to localStorage whenever they change (keyed by semana)
+    useEffect(() => {
+      if (!semana) return
+      try { localStorage.setItem(`ea_layla_vals_${semana}`, JSON.stringify(values)) } catch {}
+    }, [values, semana])
+
     useEffect(() => {
       if (!open || workers.length > 0) return
       setLoadingWorkers(true)
+      const activeSemana = (() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })()
       Promise.all([
         supabase.from('worker_entries').select('*').eq('app_name', 'Layla'),
         supabase.from('profiles').select('agent_name, colider_name, agent_code').or('is_agent.eq.true,is_colider.eq.true'),
-      ]).then(([{ data: workerData }, { data: agentData }]) => {
-        setWorkers((workerData ?? []) as WorkerEntry[])
+        // Load already-published salaries for the current semana to prefill inputs
+        activeSemana
+          ? supabase.from('published_salaries').select('user_id,diamantes,extras').eq('app_name', 'Layla').eq('semana', activeSemana)
+          : Promise.resolve({ data: [] }),
+      ]).then(([{ data: workerData }, { data: agentData }, { data: pubData }]) => {
+        const workerList = (workerData ?? []) as WorkerEntry[]
+        setWorkers(workerList)
         const am: Record<string,string> = Object.fromEntries(
           ((agentData ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.colider_name ?? a.agent_code])
         )
         setAgentNameMap(am)
-        // Sync semana from localStorage (set by Waha upload, cleared by cierre semanal)
-        const activeSemana = (() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })()
         if (activeSemana) setSemana(activeSemana)
+
+        // Build a map from published_salaries: user_id → {retiradas, comerciales, porcentaje}
+        const pubMap: Record<string, { retiradas: string; comerciales: string; porcentaje: string }> = {}
+        for (const row of (pubData ?? []) as any[]) {
+          pubMap[row.user_id] = {
+            retiradas: String(row.diamantes ?? ''),
+            comerciales: String((row.extras as any)?.monedas_comerciales ?? ''),
+            porcentaje: String((row.extras as any)?.porcentaje_comision ?? ''),
+          }
+        }
+
+        // Merge: localStorage values win, but fill missing entries from published_salaries
+        if (Object.keys(pubMap).length > 0) {
+          setValues(prev => {
+            const lsKey = activeSemana ? `ea_layla_vals_${activeSemana}` : ''
+            const stored: Record<string, any> = lsKey ? (() => { try { const s = localStorage.getItem(lsKey); return s ? JSON.parse(s) : {} } catch { return {} } })() : {}
+            const merged = { ...prev }
+            for (const w of workerList) {
+              if (!merged[w.id] && pubMap[w.user_id]) {
+                merged[w.id] = pubMap[w.user_id]
+              }
+            }
+            return merged
+          })
+          setPublishedOk(true)
+        }
+
         setLoadingWorkers(false)
       })
     }, [open])
 
     useEffect(() => {
       function onCierre() {
+        // Get current semana before clearing
+        const activeSemana = (() => { try { return localStorage.getItem('ea_active_semana') ?? '' } catch { return '' } })()
         setValues({})
         setPublishedOk(false)
         setSemana('')
         try { localStorage.removeItem('ea_nomina_layla_published') } catch {}
         try { localStorage.removeItem('ea_active_semana') } catch {}
+        if (activeSemana) {
+          try { localStorage.removeItem(`ea_layla_vals_${activeSemana}`) } catch {}
+        }
       }
       window.addEventListener('ea_cierre_done', onCierre)
       return () => window.removeEventListener('ea_cierre_done', onCierre)
