@@ -41,17 +41,23 @@ import { Router } from 'express';
         is_agent: boolean;
       }[];
       const profile = profiles[0];
-      if (!profile?.is_agent || !profile.agent_name) return res.json([]);
+      if (!profile?.is_agent) return res.json([]);
 
       const encId   = encodeURIComponent(agentId);
-      const encName = encodeURIComponent(profile.agent_name);
+
+      // Build query: always match by agent_user_id; also match by agent_name if available
+      let commsQuery: string;
+      if (profile.agent_name) {
+        const encName = encodeURIComponent(profile.agent_name);
+        commsQuery = `agent_commissions?or=(agent_user_id.eq.${encId},agent_name.eq.${encName})&order=created_at.desc`;
+      } else {
+        commsQuery = `agent_commissions?agent_user_id=eq.${encId}&order=created_at.desc`;
+      }
 
       // Fetch commissions matching by agent_user_id OR agent_name
       // (handles records where agent_user_id was null during publish)
       const r = await fetch(
-        sbUrl(
-          `agent_commissions?or=(agent_user_id.eq.${encId},agent_name.eq.${encName})&order=created_at.desc`
-        ),
+        sbUrl(commsQuery),
         { headers: sbHeaders() as Record<string, string> }
       );
       if (!r.ok) return res.status(r.status).json({ error: await r.text() });
