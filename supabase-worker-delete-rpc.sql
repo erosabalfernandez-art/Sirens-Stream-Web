@@ -1,9 +1,7 @@
--- Migration: add delete_worker_entry RPC function
-  -- Run this in the Supabase SQL Editor
+-- Migration: delete_worker_entry RPC (v2 — TEXT params to avoid PostgREST uuid cast issue)
+  -- Run this in the Supabase SQL Editor (replaces previous version if any)
 
-  -- Function allows a user to delete their own worker entry, bypassing PostgREST filter issues.
-  -- SECURITY DEFINER so it runs with elevated privileges (bypasses RLS).
-  CREATE OR REPLACE FUNCTION delete_worker_entry(entry_id UUID, requesting_user_id UUID)
+  CREATE OR REPLACE FUNCTION delete_worker_entry(entry_id TEXT, requesting_user_id TEXT)
   RETURNS BOOLEAN
   LANGUAGE plpgsql
   SECURITY DEFINER
@@ -11,21 +9,20 @@
   DECLARE
     deleted_app TEXT;
   BEGIN
-    -- Only delete if the entry belongs to the requesting user
+    -- Cast TEXT to UUID explicitly so PostgreSQL finds the right operator
     DELETE FROM worker_entries
-    WHERE id = entry_id AND user_id = requesting_user_id
+    WHERE id = entry_id::UUID AND user_id = requesting_user_id::UUID
     RETURNING app_name INTO deleted_app;
 
-    -- Also clean up custom_worker_rates for this user+app
     IF FOUND AND deleted_app IS NOT NULL THEN
       DELETE FROM custom_worker_rates
-      WHERE user_id = requesting_user_id AND app_name = deleted_app;
+      WHERE user_id = requesting_user_id::UUID AND app_name = deleted_app;
     END IF;
 
     RETURN FOUND;
   END;
   $$;
 
-  -- Grant execute to the anon and authenticated roles
-  GRANT EXECUTE ON FUNCTION delete_worker_entry(UUID, UUID) TO anon, authenticated;
+  -- Grant execute to anon and authenticated roles
+  GRANT EXECUTE ON FUNCTION delete_worker_entry(TEXT, TEXT) TO anon, authenticated;
   
