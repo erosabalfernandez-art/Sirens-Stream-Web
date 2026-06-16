@@ -190,15 +190,17 @@ import { Router } from 'express'
         }
 
             // Post-processing: remove workers who are the agent's own account (agent is also a worker)
+            // The uid stored in agent_commissions workers_data can be either the Supabase user_id
+            // OR the app id_aplicacion — so we check both identifiers.
             for (const agentInfo of Object.values(agentMap)) {
               if (!agentInfo.agent_user_id) continue
-              const selfUids = new Set(
-                (allWorkerEntries as any[])
+              const selfUids = new Set<string>([
+                agentInfo.agent_user_id,  // Supabase user_id (used as uid in some nómina uploads)
+                ...(allWorkerEntries as any[])
                   .filter((w: any) => w.user_id === agentInfo.agent_user_id)
                   .map((w: any) => String(w.id_aplicacion ?? ''))
-                  .filter(Boolean)
-              )
-              if (selfUids.size === 0) continue
+                  .filter(Boolean),
+              ])
               for (const appName of Object.keys(agentInfo.apps)) {
                 agentInfo.apps[appName] = agentInfo.apps[appName].filter(
                   (w: any) => !w.worker_uid || !selfUids.has(String(w.worker_uid))
