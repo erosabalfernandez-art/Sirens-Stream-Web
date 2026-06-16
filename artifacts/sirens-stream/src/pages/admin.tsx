@@ -165,6 +165,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             const [resetLoading, setResetLoading] = useState(false)
             const [resetResult, setResetResult] = useState<{ok: boolean; message: string} | null>(null)
           const [coliderSetupNeeded, setColiderSetupNeeded] = useState(false)
+            const [deleteUserEmail, setDeleteUserEmail] = useState('')
+            const [deleteUserConfirmEmail, setDeleteUserConfirmEmail] = useState('')
+            const [deletingUserAccount, setDeletingUserAccount] = useState(false)
+            const [deleteUserMsg, setDeleteUserMsg] = useState<{ok:boolean;msg:string}|null>(null)
         const [notifOk, setNotifOk] = useState<Record<string, boolean>>({})
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
           const [pushTestLoading, setPushTestLoading] = useState(false)
@@ -711,7 +715,41 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
       useEffect(() => {
         if (!loading && user && profile !== undefined) {
-          if (profile && !profile.is_admin) navigate('/perfil')
+          async function handleDeleteUser() {
+              if (!deleteUserEmail || deleteUserEmail !== deleteUserConfirmEmail) return
+              setDeletingUserAccount(true)
+              setDeleteUserMsg(null)
+              try {
+                const { data: profs } = await supabase
+                  .from('profiles')
+                  .select('id, email')
+                  .eq('email', deleteUserEmail.trim().toLowerCase())
+                  .limit(1)
+                if (!profs?.length) {
+                  setDeleteUserMsg({ ok: false, msg: `Usuario no encontrado: ${deleteUserEmail}` })
+                  return
+                }
+                const userId = (profs as any[])[0].id
+                const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+                const res = await fetch(`${apiBase}/api/admin/delete-user?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' })
+                const data = await res.json()
+                if (res.ok) {
+                  setDeleteUserMsg({ ok: true, msg: `✅ Usuario "${deleteUserEmail}" eliminado correctamente` })
+                  setDeleteUserEmail('')
+                  setDeleteUserConfirmEmail('')
+                  setAgents(prev => prev.filter(a => a.id !== userId))
+                  setColiders(prev => prev.filter(c => c.id !== userId))
+                } else {
+                  setDeleteUserMsg({ ok: false, msg: data.error ?? 'Error al eliminar usuario' })
+                }
+              } catch (e: any) {
+                setDeleteUserMsg({ ok: false, msg: e?.message ?? 'Error de red' })
+              } finally {
+                setDeletingUserAccount(false)
+              }
+            }
+
+            if (profile && !profile.is_admin) navigate('/perfil')
           if (profile?.is_admin) fetchAll()
         }
       }, [loading, user, profile])
