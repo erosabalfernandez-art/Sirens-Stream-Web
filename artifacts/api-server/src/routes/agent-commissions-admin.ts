@@ -57,7 +57,7 @@ import { Router } from 'express'
         if (!agentMap[key].apps[ac.app_name as string]) agentMap[key].apps[ac.app_name] = []
         for (const w of ((ac.workers_data ?? []) as any[])) {
           const pubKey = `${ac.agent_user_id}__${ac.app_name}__${w.nombre ?? ''}`
-          agentMap[key].apps[ac.app_name].push({ worker_uid: w.uid ?? null, worker_name: w.nombre ?? '', agc_usd: Number(w.commission_usd) || 0, monedas: ac.app_name === 'Layla' && w.uid ? (laylaMonedas[w.uid] ?? null) : null, published_usd: pubMap[pubKey] ?? null })
+          agentMap[key].apps[ac.app_name].push({ worker_uid: w.uid ?? null, worker_name: w.nombre ?? '', agc_usd: Number(w.commission_usd) || 0, salary_usd: Number(w.salary_usd) || 0, monedas: ac.app_name === 'Layla' && w.uid ? (laylaMonedas[w.uid] ?? null) : null, published_usd: pubMap[pubKey] ?? null })
         }
       }
 
@@ -136,12 +136,14 @@ import { Router } from 'express'
       
       // Step 3: Enrich agentMap with workers from worker_entries + published_salaries
       // so every registered worker appears even if they were never in a nomina upload.
+      let validAgentIds: Set<string> | null = null
       try {
         const [allAgentProfiles, allWorkerEntries, allSalaries] = await Promise.all([
           sbGet('profiles?is_agent=eq.true&select=id,agent_code,agent_name,colider_name'),
           sbGet('worker_entries?select=user_id,app_name,nombre_en_app,nombre_real,agente,id_aplicacion'),
           sbGet('published_salaries?semana=eq.' + encodeURIComponent(semana) + '&select=user_id,app_name,usd'),
         ])
+        validAgentIds = new Set((allAgentProfiles as any[]).map((p: any) => p.id as string))
         const salaryByUid: Record<string, number> = {}
         for (const s of (allSalaries as any[])) salaryByUid[s.user_id + '__' + s.app_name] = Number(s.usd) || 0
 
@@ -187,6 +189,16 @@ import { Router } from 'express'
           }
         }
       } catch { /* enrichment is best-effort */ }
+
+      // Remove stale agents: if agent_user_id is set but not in current profiles, they were deleted
+      if (validAgentIds) {
+        for (const key of Object.keys(agentMap)) {
+          const a = agentMap[key]
+          if (a.agent_user_id && !validAgentIds.has(a.agent_user_id)) {
+            delete agentMap[key]
+          }
+        }
+      }
 
 const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : lockedAgents.has(`__name__:${a.agent_name}`), apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
       const exchange_rates: Record<string, number> = {}
