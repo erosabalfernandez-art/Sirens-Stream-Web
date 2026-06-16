@@ -1783,8 +1783,10 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/,'')
     const [showPersonalizado, setShowPersonalizado] = useState(false)
     const [customRates, setCustomRates] = useState<CustomWorkerRate[]>([])
-    const [allWorkers, setAllWorkers] = useState<{user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null}[]>([])
+    const [allWorkers, setAllWorkers] = useState<{user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null;telefono:string|null;codigo_pais:string|null;id_aplicacion:string|null}[]>([])
     const [workerSearch, setWorkerSearch] = useState('')
+    const [filterPhone, setFilterPhone] = useState('')
+    const [filterId, setFilterId] = useState('')
     const [loadingCustom, setLoadingCustom] = useState(false)
     const [setupNeeded, setSetupNeeded] = useState(false)
     const [savingCustomKey, setSavingCustomKey] = useState<string|null>(null)
@@ -1851,8 +1853,10 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           fetch(API_URL + '/api/admin/custom-worker-rates').then(r => r.json()).catch(() => ({ rates: [], setup_needed: true }))
         ])
         if (ratesRes.setup_needed) { setSetupNeeded(true); setLoadingCustom(false); return }
-        const workers = (workersRes.workers ?? []) as {user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null}[]
-        setAllWorkers(workers)
+        const workers = (workersRes.workers ?? []) as {user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null;telefono:string|null;codigo_pais:string|null;id_aplicacion:string|null}[]
+        const { data: agentProfs } = await supabase.from('profiles').select('id').or('is_agent.eq.true,is_colider.eq.true')
+        const agentIds = new Set(((agentProfs ?? []) as {id:string}[]).map(p => p.id))
+        setAllWorkers(workers.filter(w => !agentIds.has(w.user_id)))
         // Only keep rates that are actually active (non-zero) — filters out ghost records
         // from deleted users and rows left over from a previous cierre with rate=0
         const activeRates = ((ratesRes.rates ?? []) as CustomWorkerRate[]).filter(
@@ -2083,17 +2087,30 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
                   {!loadingCustom && !setupNeeded && (
                     <div className="space-y-3">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                        <input type="text" value={workerSearch} onChange={e => setWorkerSearch(e.target.value)}
-                          placeholder="Buscar por nombre o app..."
-                          className="w-full bg-black/30 border border-white/10 rounded-xl pl-8 pr-8 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-violet-500/50"
-                        />
-                        {workerSearch && (
-                          <button onClick={() => setWorkerSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <X className="w-3.5 h-3.5 text-white/30 hover:text-white/70" />
-                          </button>
-                        )}
+                      {/* 3 filtros */}
+                      <div className="flex flex-col gap-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                          <input type="text" value={workerSearch} onChange={e => setWorkerSearch(e.target.value)}
+                            placeholder="🔍 Buscar por nombre real o nombre en app..."
+                            className="w-full bg-black/30 border border-white/10 rounded-xl pl-8 pr-8 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-violet-500/50"
+                          />
+                          {workerSearch && (
+                            <button onClick={() => setWorkerSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <X className="w-3.5 h-3.5 text-white/30 hover:text-white/70" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input type="text" value={filterId} onChange={e => setFilterId(e.target.value)}
+                            placeholder="ID de aplicación..."
+                            className="bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-violet-500/50"
+                          />
+                          <input type="text" value={filterPhone} onChange={e => setFilterPhone(e.target.value)}
+                            placeholder="Teléfono..."
+                            className="bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-violet-500/50"
+                          />
+                        </div>
                       </div>
 
                       {customRates.length > 0 && (
@@ -2114,60 +2131,93 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                       )}
 
                       {(() => {
-                        const search = workerSearch.toLowerCase()
-                        const filtered = allWorkers.filter(w =>
-                          !search ||
-                          (w.nombre_en_app ?? '').toLowerCase().includes(search) ||
-                          (w.nombre_real ?? '').toLowerCase().includes(search) ||
-                          w.app_name.toLowerCase().includes(search)
-                        )
-                        if (filtered.length === 0) return (
+                        const srch = workerSearch.toLowerCase()
+                        const idF  = filterId.toLowerCase()
+                        const phF  = filterPhone.toLowerCase()
+
+                        const groups: Record<string, typeof allWorkers> = {}
+                        for (const w of allWorkers) {
+                          if (!groups[w.user_id]) groups[w.user_id] = []
+                          groups[w.user_id].push(w)
+                        }
+
+                        const filteredGroups = Object.values(groups).filter(group =>
+                          group.some(w =>
+                            (!srch || (w.nombre_en_app ?? '').toLowerCase().includes(srch) || (w.nombre_real ?? '').toLowerCase().includes(srch) || w.app_name.toLowerCase().includes(srch)) &&
+                            (!idF  || (w.id_aplicacion ?? '').toLowerCase().includes(idF)) &&
+                            (!phF  || (w.telefono ?? '').toLowerCase().includes(phF))
+                          )
+                        ).sort((a, b) => (a[0].nombre_real ?? '').localeCompare(b[0].nombre_real ?? ''))
+
+                        if (filteredGroups.length === 0) return (
                           <p className="text-white/30 text-sm text-center py-6">
-                            {workerSearch ? 'No se encontraron trabajadoras con ese criterio.' : 'No hay trabajadoras registradas aún.'}
+                            {(srch || idF || phF) ? 'No se encontraron trabajadoras con ese criterio.' : 'No hay trabajadoras registradas aún.'}
                           </p>
                         )
-                        return filtered.map(w => {
-                          const k = w.user_id + '::' + w.app_name
-                          const existing = customRates.find(r => r.user_id === w.user_id && r.app_name === w.app_name)
-                          const inp = customInputs[k] ?? { ef: '', tr: '' }
-                          const isSaving = savingCustomKey === k
+
+                        return filteredGroups.map(group => {
+                          const uid       = group[0].user_id
+                          const nomReal   = group[0].nombre_real
+                          const tel       = group[0].telefono
+                          const pais      = group[0].codigo_pais ?? ''
+                          const waPhone   = tel ? (pais + tel.replace(/\D/g, '')) : null
+
                           return (
-                            <div key={k} className="bg-black/20 border border-white/8 rounded-xl p-3">
-                              <div className="flex items-center justify-between mb-2.5">
-                                <div>
-                                  <span className="text-white/80 text-sm font-semibold">{w.nombre_en_app ?? '—'}</span>
-                                  {w.nombre_real && <span className="text-white/35 text-xs ml-2">{w.nombre_real}</span>}
-                                  <span className="ml-2 text-xs bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded">{w.app_name}</span>
-                                  {existing && <span className="ml-1 text-xs text-violet-300/60">· personalizado</span>}
-                                </div>
-                                {existing && (
-                                  <button onClick={() => deleteCustomRate(w.user_id, w.app_name)} disabled={isSaving}
-                                    className="text-xs text-rose-400/70 hover:text-rose-400 transition-colors disabled:opacity-40 px-2 py-0.5 rounded hover:bg-rose-500/10">
-                                    Borrar
-                                  </button>
+                            <div key={uid} className="bg-black/20 border border-white/8 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-white/80 text-sm font-semibold">{nomReal ?? '—'}</span>
+                                {tel && (
+                                  <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
+                                    className="text-xs text-green-400 hover:text-green-300 underline">
+                                    📱 {tel}
+                                  </a>
                                 )}
                               </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <p className="text-amber-400/70 text-xs font-bold mb-1">💵 Efectivo CUP</p>
-                                  <input type="number" min="0" step="any" value={inp.ef}
-                                    onChange={e => setCustomInputs(prev => ({ ...prev, [k]: { ...(prev[k] ?? {ef:'',tr:''}), ef: e.target.value } }))}
-                                    placeholder={existing?.efectivo_rate ? String(existing.efectivo_rate) : 'Ej: 420'}
-                                    className="w-full bg-[#07070f] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500/50" />
-                                </div>
-                                <div>
-                                  <p className="text-blue-400/70 text-xs font-bold mb-1">🏦 Transferencia CUP</p>
-                                  <input type="number" min="0" step="any" value={inp.tr}
-                                    onChange={e => setCustomInputs(prev => ({ ...prev, [k]: { ...(prev[k] ?? {ef:'',tr:''}), tr: e.target.value } }))}
-                                    placeholder={existing?.transferencia_rate ? String(existing.transferencia_rate) : 'Ej: 420'}
-                                    className="w-full bg-[#07070f] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500/50" />
-                                </div>
-                              </div>
-                              <button onClick={() => saveCustomRate(w.user_id, w.app_name, w.nombre_en_app)}
-                                disabled={isSaving || (!inp.ef && !inp.tr)}
-                                className="mt-2 w-full text-xs font-bold py-1.5 rounded-lg transition-all disabled:opacity-40 bg-violet-600 hover:bg-violet-500 text-white">
-                                {isSaving ? '...' : existing ? '✓ Actualizar cambio' : 'Guardar cambio personalizado'}
-                              </button>
+                              {group.map(w => {
+                                const k        = w.user_id + '::' + w.app_name
+                                const existing = customRates.find(r => r.user_id === w.user_id && r.app_name === w.app_name)
+                                const inp      = customInputs[k] ?? { ef: '', tr: '' }
+                                const isSaving = savingCustomKey === k
+                                return (
+                                  <div key={k} className="border-t border-white/5 pt-2">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-xs bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded font-semibold">{w.app_name}</span>
+                                        {w.nombre_en_app && <span className="text-white/60 text-xs">{w.nombre_en_app}</span>}
+                                        {w.id_aplicacion && <span className="text-white/35 text-xs font-mono">#{w.id_aplicacion}</span>}
+                                        {existing && <span className="text-xs text-violet-300/60">· personalizado</span>}
+                                      </div>
+                                      {existing && (
+                                        <button onClick={() => deleteCustomRate(w.user_id, w.app_name)} disabled={isSaving}
+                                          className="text-xs text-rose-400/70 hover:text-rose-400 transition-colors disabled:opacity-40 px-2 py-0.5 rounded hover:bg-rose-500/10">
+                                          Borrar
+                                        </button>
+                                      )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <p className="text-amber-400/70 text-xs font-bold mb-1">💵 Efectivo CUP</p>
+                                        <input type="number" min="0" step="any" value={inp.ef}
+                                          onChange={e => setCustomInputs(prev => ({ ...prev, [k]: { ...(prev[k] ?? {ef:'',tr:''}), ef: e.target.value } }))}
+                                          placeholder={existing?.efectivo_rate ? String(existing.efectivo_rate) : 'Ej: 420'}
+                                          className="w-full bg-[#07070f] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-amber-500/50" />
+                                      </div>
+                                      <div>
+                                        <p className="text-blue-400/70 text-xs font-bold mb-1">🏦 Transferencia CUP</p>
+                                        <input type="number" min="0" step="any" value={inp.tr}
+                                          onChange={e => setCustomInputs(prev => ({ ...prev, [k]: { ...(prev[k] ?? {ef:'',tr:''}), tr: e.target.value } }))}
+                                          placeholder={existing?.transferencia_rate ? String(existing.transferencia_rate) : 'Ej: 420'}
+                                          className="w-full bg-[#07070f] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500/50" />
+                                      </div>
+                                    </div>
+                                    <button onClick={() => saveCustomRate(w.user_id, w.app_name, w.nombre_en_app)}
+                                      disabled={isSaving || (!inp.ef && !inp.tr)}
+                                      className="mt-2 w-full text-xs font-bold py-1.5 rounded-lg transition-all disabled:opacity-40 bg-violet-600 hover:bg-violet-500 text-white">
+                                      {isSaving ? '...' : existing ? '✓ Actualizar cambio' : 'Guardar cambio personalizado'}
+                                    </button>
+                                  </div>
+                                )
+                              })}
                             </div>
                           )
                         })
