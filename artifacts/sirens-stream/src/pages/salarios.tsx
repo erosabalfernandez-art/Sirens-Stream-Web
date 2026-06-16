@@ -20,7 +20,7 @@ import { useState, useEffect } from 'react'
 
 
   export default function Salarios() {
-    const { user, loading } = useAuth()
+    const { user, profile, loading } = useAuth()
       const { lang } = useLanguage()
       const T = {
         badge:        lang === 'pt' ? 'Meus Salários'          : 'Mis Salarios',
@@ -460,6 +460,7 @@ import { useState, useEffect } from 'react'
                                 )}
                               </>
                             )}
+                            {!profile?.is_agent && !profile?.is_colider && (<>
                             {/* Confirmación de pago */}
                             <div className="px-5 py-3 border-t border-purple-500/8">
                               {confirmed.has(s.id) ? (
@@ -479,6 +480,7 @@ import { useState, useEffect } from 'react'
                                 </button>
                               )}
                             </div>
+                            </>)}
                               {metodo === 'Efectivo (Cuba)' && (
                                 <div className="px-5 pb-4 pt-0">
                                   <div className="bg-amber-500/6 border border-amber-500/15 rounded-xl p-3 space-y-2">
