@@ -119,7 +119,6 @@ import React, { useState, useEffect } from 'react'
         fetchCommissions()
         fetchPublishedCommissions()
         fetchWorkers()
-        fetchExchangeRates()
         fetchWorkerSalaries()
       }
       // Restore saved payment method from localStorage
@@ -197,13 +196,6 @@ import React, { useState, useEffect } from 'react'
         if (res.ok) { setWorkerEntries(await res.json() as WorkerEntry[]); setWorkersLoading(false); return }
       } catch {}
       setWorkersLoading(false)
-    }
-
-    async function fetchExchangeRates() {
-      const ratesRes = await supabase.from('exchange_rates').select('id, rate')
-      const r: Record<string,number> = {}
-      for (const row of (ratesRes.data ?? []) as {id:string;rate:number}[]) r[row.id] = row.rate
-      setExchangeRates(r)
     }
 
     async function fetchNoCobro() {
