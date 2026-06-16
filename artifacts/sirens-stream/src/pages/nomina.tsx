@@ -2061,9 +2061,9 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
               {showPersonalizado && (
                 <div className="border-t border-violet-500/10 p-5">
-                    Asigna un tipo de cambio exclusivo a trabajadoras o a agentes/coliders que también son streamers. Ese cambio reemplaza el global solo para ellos — lo verán en sus salarios. Para agentes y coliders, este cambio aplica únicamente a su salario como trabajadora, NO a sus comisiones.
-                    Asigna un tipo de cambio exclusivo a trabajadoras específicas. Ese cambio reemplaza el global solo para ellas — lo verán en sus salarios y el colider lo verá en sus cálculos.
-                  </p>
+                  <p className="text-white/40 text-xs mb-4 leading-relaxed">
+                      Asigna un tipo de cambio exclusivo a trabajadoras o a agentes/coliders que también son streamers. Ese cambio reemplaza el global solo para ellos — lo verán en sus salarios. Para agentes y coliders, este cambio aplica únicamente a su salario como trabajadora, NO a sus comisiones.
+                    </p>
 
                   {setupNeeded && (
                     <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 mb-4">
