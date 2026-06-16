@@ -297,6 +297,12 @@ import { dispatchPush } from '../lib/push-dispatch';
               method: 'DELETE',
               headers: { ...sbH(), Prefer: 'return=minimal' },
             }),
+            // Zero out exchange_rates → weekClosed=true for agents/workers until new rates are published
+            fetch(sbUrl(`exchange_rates?id=not.is.null`), {
+              method: 'PATCH',
+              headers: { ...sbH(), Prefer: 'return=minimal' },
+              body: JSON.stringify({ rate: 0 }),
+            }),
           ];
 
           if (latestSalaryIds.length > 0) {
