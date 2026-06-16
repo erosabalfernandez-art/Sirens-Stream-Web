@@ -1,3 +1,9 @@
+          if (res.status === 404) {
+            console.warn('[Auth] Profile not found — user was deleted, forcing sign out')
+            setProfile(null)
+            await supabase.auth.signOut()
+            return
+          }
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
   import type { User } from '@supabase/supabase-js'
   import { supabase, type Profile } from '@/lib/supabase'
