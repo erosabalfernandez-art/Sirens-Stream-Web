@@ -2627,6 +2627,46 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                         </div>
                       </div>
                     )}
+
+                    {/* ELIMINAR CUENTA DE USUARIO */}
+                    <div className="bg-[#0d0d1e] border border-red-500/15 rounded-2xl p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                        <span className="text-sm font-semibold text-white/70">Eliminar cuenta de usuario</span>
+                      </div>
+                      {deleteUserMsg && (
+                        <div className={`mb-4 p-3 rounded-xl text-sm font-semibold ${deleteUserMsg.ok ? 'bg-green-500/10 border border-green-500/20 text-green-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
+                          {deleteUserMsg.msg}
+                        </div>
+                      )}
+                      <p className="text-xs text-white/40 mb-3">Ingresa el correo del usuario a eliminar permanentemente. Se borrarán todos sus datos.</p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <input
+                          value={deleteUserEmail}
+                          onChange={e => { setDeleteUserEmail(e.target.value); setDeleteUserMsg(null) }}
+                          placeholder="Correo del usuario"
+                          type="email"
+                          className="bg-[#07070f] border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-red-400/50"
+                        />
+                        <input
+                          value={deleteUserConfirmEmail}
+                          onChange={e => setDeleteUserConfirmEmail(e.target.value)}
+                          placeholder="Confirma el correo"
+                          type="email"
+                          className="bg-[#07070f] border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-red-400/50"
+                        />
+                      </div>
+                      <button
+                        onClick={handleDeleteUser}
+                        disabled={deletingUserAccount || !deleteUserEmail || deleteUserEmail !== deleteUserConfirmEmail}
+                        className="mt-3 flex items-center gap-2 bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
+                        {deletingUserAccount
+                          ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <Trash2 className="w-4 h-4" />}
+                        {deletingUserAccount ? 'Eliminando...' : 'Eliminar usuario permanentemente'}
+                      </button>
+                      <p className="mt-2 text-xs text-red-300/40">⚠️ Esta acción es irreversible. No se puede deshacer.</p>
+                    </div>
                   </div>
               )}
 
