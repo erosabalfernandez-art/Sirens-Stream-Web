@@ -122,17 +122,27 @@ import React, { useState, useEffect } from 'react'
         fetchExchangeRates()
         fetchWorkerSalaries()
       }
-      // Restore saved payment method from localStorage
-      if (profile?.id) {
-        const saved = localStorage.getItem(`apm_${profile.id}`)
-        if (saved === 'efectivo' || saved === 'transferencia') setAgentPayMethod(saved)
-        // Fetch payment method lock status
-        const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-        fetch(`${apiBase}/api/payment-method-lock?user_id=${encodeURIComponent(profile.id)}`)
-          .then(r => r.ok ? r.json() : null)
-          .then((d: any) => { if (d) setPayMethodLocked(d.locked === true) })
-          .catch(() => {})
-      }
+      // Restore saved payment method — server first, localStorage fallback
+        if (profile?.id) {
+          const saved = localStorage.getItem(`apm_${profile.id}`)
+          if (saved === 'efectivo' || saved === 'transferencia') setAgentPayMethod(saved)
+          // Fetch from profiles table (server-side — admin can override from DB)
+          supabase.from('profiles').select('agent_payment_method').eq('id', profile.id).single()
+            .then(({ data }) => {
+              const m = (data as any)?.agent_payment_method
+              if (m === 'efectivo' || m === 'transferencia') {
+                setAgentPayMethod(m)
+                localStorage.setItem(`apm_${profile.id}`, m)
+              }
+            })
+            .catch(() => {})
+          // Fetch payment method lock status
+          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+          fetch(`${apiBase}/api/payment-method-lock?user_id=${encodeURIComponent(profile.id)}`)
+            .then(r => r.ok ? r.json() : null)
+            .then((d: any) => { if (d) setPayMethodLocked(d.locked === true) })
+            .catch(() => {})
+        }
     }, [profile])
 
   // Auto-generate agent_code if not set yet (handles coliders and new agents)
@@ -261,21 +271,23 @@ import React, { useState, useEffect } from 'react'
       }
 
       async function selectPayMethod(method: 'efectivo' | 'transferencia') {
-        setAgentPayMethod(method)
-        if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
-        const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
-        if (profile?.id) {
-          await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
-          // Lock payment method — can only change again after cierre semanal
-          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-          fetch(`${apiBase}/api/payment-method-lock`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: profile.id }),
-          }).then(r => r.ok ? r.json() : null)
-            .then(() => setPayMethodLocked(true))
-            .catch(() => {})
+          setAgentPayMethod(method)
+          if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
+          const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
+          if (profile?.id) {
+            await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
+            // Persist to profiles for server-side storage (admin can override from DB)
+            supabase.from('profiles').update({ agent_payment_method: method } as any).eq('id', profile.id).catch(() => {})
+            // Lock payment method — can only change again after cierre semanal
+            const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+            fetch(`${apiBase}/api/payment-method-lock`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: profile.id }),
+            }).then(r => r.ok ? r.json() : null)
+              .then(() => setPayMethodLocked(true))
+              .catch(() => {})
+          }
         }
-      }
 
 
     function toggleExpand(id: string) {
