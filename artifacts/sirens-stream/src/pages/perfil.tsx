@@ -41,12 +41,12 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         const T = {
           title:             lang === 'pt' ? 'Meu Perfil'                        : 'Mi Perfil',
           logout:            lang === 'pt' ? 'Sair'                              : 'Salir',
-          notifTitle:        lang === 'pt' ? 'Notificações push'                 : 'Notificaciones push',
-          notifSub:          lang === 'pt' ? 'Receba alertas de salários e comunicados' : 'Recibe alertas de salarios y comunicados',
-          notifActive:       lang === 'pt' ? '✅ Suscripción aprobada'           : '✅ Suscripción aprobada',
-          notifStale:        lang === 'pt' ? '⚠️ Renovar suscripción'            : '⚠️ Renovar suscripción',
+          notifTitle:        lang === 'pt' ? 'NotificaÃ§Ãµes push'                 : 'Notificaciones push',
+          notifSub:          lang === 'pt' ? 'Receba alertas de salÃ¡rios e comunicados' : 'Recibe alertas de salarios y comunicados',
+          notifActive:       lang === 'pt' ? 'â SuscripciÃ³n aprobada'           : 'â SuscripciÃ³n aprobada',
+          notifStale:        lang === 'pt' ? 'â ï¸ Renovar suscripciÃ³n'            : 'â ï¸ Renovar suscripciÃ³n',
           notifBlocked:      lang === 'pt' ? 'Bloqueadas'                        : 'Bloqueadas',
-          notifActivate:     lang === 'pt' ? 'Ativar notificações'               : 'Activar notificaciones',
+          notifActivate:     lang === 'pt' ? 'Ativar notificaÃ§Ãµes'               : 'Activar notificaciones',
           notifActivating:   lang === 'pt' ? 'Ativando...'                       : 'Activando...',
           notifRenew:        lang === 'pt' ? 'Renovar agora'                     : 'Renovar ahora',
           notifRenewing:     lang === 'pt' ? 'Renovando...'                      : 'Renovando...',
@@ -89,7 +89,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
       }, [user?.id])
 
 
-        // Persist draft in localStorage — data survives navigation/background
+        // Persist draft in localStorage â data survives navigation/background
         useEffect(() => {
           if (showForm && !editingId) saveDraft(form)
         }, [form, showForm, editingId])
@@ -180,13 +180,13 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
       }
 
       async function handleSave() {
-        if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
-        if (!form.pais) { setFormError('Selecciona tu país'); return }
-        if (!form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider) { setFormError('Selecciona un método de pago'); return }
+        if (!form.app_name) { setFormError('Selecciona una aplicaciÃ³n'); return }
+        if (!form.pais) { setFormError('Selecciona tu paÃ­s'); return }
+        if (!form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider) { setFormError('Selecciona un mÃ©todo de pago'); return }
         if ((profile as any)?.agent_code) {
           const ownCode = ((profile as any).agent_code as string).trim().toUpperCase()
           if (!form.agente || form.agente.trim().toUpperCase() !== ownCode) {
-            setFormError('Como agente debes vincular tu propio código.'); setSaving(false); return
+            setFormError('Como agente debes vincular tu propio cÃ³digo.'); setSaving(false); return
           }
         }
         setSaving(true); setFormError(null)
@@ -233,7 +233,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         if (error) { setFormError(error); return }
         if (!editingId) clearDraft()
         setShowForm(false); fetchEntries()
-        // Lock payment method after saving (workers only — agents/coliders lock via agente.tsx)
+        // Lock payment method after saving (workers only â agents/coliders lock via agente.tsx)
         if (form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider) {
           fetch(`${API}/api/payment-method-lock`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -244,7 +244,13 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         }
       }
 
-      async function handleDelete(id: string) { await supabase.from('worker_entries').delete().eq('id', id); fetchEntries() }
+      async function handleDelete(id: string) {
+          try {
+            const r = await fetch(`${API}/api/worker-entries/${id}?user_id=${encodeURIComponent(user!.id)}`, { method: 'DELETE' })
+            if (!r.ok) { console.error('Delete failed', await r.text()); return }
+          } catch (e) { console.error('Delete error', e); return }
+          fetchEntries()
+        }
       async function handleClearAll() { await supabase.from('worker_entries').delete().eq('user_id', user!.id); setEntries([]); setConfirmClear(false) }
 
 
@@ -260,7 +266,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
               const d = await r.json() as { name: string; is_colider: boolean }
               setAgenteInfo(d)
             } else {
-              setAgenteError('Código no encontrado. Pide el código a tu agente.')
+              setAgenteError('CÃ³digo no encontrado. Pide el cÃ³digo a tu agente.')
             }
           } catch { setAgenteError('Error al verificar. Intenta de nuevo.') }
           setAgenteChecking(false)
@@ -315,7 +321,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
               {loadingEntries ? <div className="text-white/30 text-sm">Cargando...</div>
               : entries.length === 0 ? (
                 <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-8 text-center">
-                  <p className="text-white/40 text-sm mb-4">No tienes ninguna app registrada aún.</p>
+                  <p className="text-white/40 text-sm mb-4">No tienes ninguna app registrada aÃºn.</p>
                   <button onClick={openAdd} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl mx-auto transition-all">
                     <Plus className="w-4 h-4" /> Agregar mi primera app
                   </button>
@@ -332,7 +338,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                           </div>
                           <div className="text-left">
                             <p className="font-bold text-sm">{entry.nombre_real || entry.app_name}</p>
-                            <p className="text-white/35 text-xs">{entry.app_name}{entry.nombre_en_app ? ` · ${entry.nombre_en_app}` : ''}</p>
+                            <p className="text-white/35 text-xs">{entry.app_name}{entry.nombre_en_app ? ` Â· ${entry.nombre_en_app}` : ''}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -348,13 +354,13 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                               ['Nombre real', entry.nombre_real],
                               ['Nombre en app', entry.nombre_en_app],
                               ['ID en la app', entry.id_aplicacion],
-                              ['Teléfono', entry.codigo_pais && entry.telefono ? `${entry.codigo_pais} ${entry.telefono}` : entry.telefono],
-                              ['País', entry.pais],
-                              ['Método de pago', entry.metodo_pago],
+                              ['TelÃ©fono', entry.codigo_pais && entry.telefono ? `${entry.codigo_pais} ${entry.telefono}` : entry.telefono],
+                              ['PaÃ­s', entry.pais],
+                              ['MÃ©todo de pago', entry.metodo_pago],
                               ...(entry.billetera ? [['Billetera', entry.billetera]] : []),
                               ...(entry.agente ? [['ID de agente', entry.agente]] : []),
                             ] as [string, string | null][]).map(([label, value]) => (
-                              <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><p className="text-white/80 text-sm font-medium">{value || '—'}</p></div>
+                              <div key={label}><p className="text-white/30 text-xs mb-0.5">{label}</p><p className="text-white/80 text-sm font-medium">{value || 'â'}</p></div>
                             ))}
                           </div>
                         </div>
@@ -365,7 +371,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                           {laylaPayNotified[new Date().toISOString().slice(0,10).replace(/-/g,'').slice(0,8)] ? (
                             <div className="flex items-center gap-2 text-green-400">
                               <Check className="w-4 h-4 shrink-0" />
-                              <span className="text-sm font-semibold">Pago recibido notificado ✓</span>
+                              <span className="text-sm font-semibold">Pago recibido notificado â</span>
                             </div>
                           ) : (
                             <button
@@ -391,14 +397,14 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-white mb-1">Borrar toda mi información</p>
+                    <p className="text-sm font-semibold text-white mb-1">Borrar toda mi informaciÃ³n</p>
                     <p className="text-white/40 text-xs mb-3">Elimina los datos de todas tus apps. Tu cuenta permanece activa.</p>
                     {!confirmClear ? (
-                      <button onClick={() => setConfirmClear(true)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">Borrar información</button>
+                      <button onClick={() => setConfirmClear(true)} className="text-red-400 hover:text-red-300 text-xs font-semibold transition-colors">Borrar informaciÃ³n</button>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <p className="text-red-400 text-xs font-semibold">¿Confirmas?</p>
-                        <button onClick={handleClearAll} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold px-2.5 py-1 rounded-lg transition-all"><Check className="w-3 h-3" /> Sí, borrar</button>
+                        <p className="text-red-400 text-xs font-semibold">Â¿Confirmas?</p>
+                        <button onClick={handleClearAll} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold px-2.5 py-1 rounded-lg transition-all"><Check className="w-3 h-3" /> SÃ­, borrar</button>
                         <button onClick={() => setConfirmClear(false)} className="text-white/35 hover:text-white text-xs transition-colors">Cancelar</button>
                       </div>
                     )}
@@ -416,7 +422,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                   <button onClick={() => setShowForm(false)} className="text-white/40 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="p-5 space-y-4">
-                  <Field label="Aplicación *">
+                  <Field label="AplicaciÃ³n *">
                     <select value={form.app_name} onChange={e => setForm(f => ({ ...f, app_name: e.target.value }))} disabled={!!editingId}
                       className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50">
                       <option value="">Seleccionar...</option>
@@ -426,10 +432,10 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                   <Field label="Nombre real">
                     <FInput value={form.nombre_real} onChange={v => setForm(f => ({ ...f, nombre_real: v }))} placeholder="Tu nombre completo" />
                   </Field>
-                  <Field label="Nombre en la aplicación">
+                  <Field label="Nombre en la aplicaciÃ³n">
                     <FInput value={form.nombre_en_app} onChange={v => setForm(f => ({ ...f, nombre_en_app: v }))} placeholder="Nickname en la app" />
                   </Field>
-                  <Field label="ID en la aplicación">
+                  <Field label="ID en la aplicaciÃ³n">
                     <FInput value={form.id_aplicacion} onChange={v => { if (lockedIdApp) return; setForm(f => ({ ...f, id_aplicacion: v })) }} placeholder="ID de tu cuenta" style={lockedIdApp ? { opacity: 0.65, cursor: 'not-allowed', pointerEvents: 'none' } : undefined} />
                     {lockedIdApp && (
                       <div className="flex items-center gap-1.5 mt-1.5 text-amber-400/70">
@@ -438,46 +444,46 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                       </div>
                     )}
                   </Field>
-                  <Field label="País *">
+                  <Field label="PaÃ­s *">
                     <select value={form.pais} onChange={e => setForm(f => ({ ...f, pais: e.target.value, metodo_pago: '', billetera: '' }))}
                       className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50">
                       <option value="">Seleccionar...</option>
                       {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </Field>
-                  <Field label="Teléfono">
+                  <Field label="TelÃ©fono">
                     <div className="flex gap-2">
                       <FInput value={form.codigo_pais} onChange={v => setForm(f => ({ ...f, codigo_pais: v }))} placeholder="+53" className="w-20" />
-                      <FInput value={form.telefono} onChange={v => setForm(f => ({ ...f, telefono: v }))} placeholder="Número" className="flex-1" />
+                      <FInput value={form.telefono} onChange={v => setForm(f => ({ ...f, telefono: v }))} placeholder="NÃºmero" className="flex-1" />
                     </div>
                   </Field>
                   {!(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider && (
                     <>
                     {payMethodLocked && form.metodo_pago ? (
                       <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl px-3 py-3 flex items-center gap-2.5">
-                        <span className="text-base shrink-0">🔒</span>
+                        <span className="text-base shrink-0">ð</span>
                         <div>
-                          <p className="text-amber-300 text-xs font-bold">Método de pago bloqueado esta semana</p>
-                          <p className="text-white/40 text-xs mt-0.5">{form.metodo_pago}{form.billetera ? ` · ${form.billetera}` : ''}</p>
+                          <p className="text-amber-300 text-xs font-bold">MÃ©todo de pago bloqueado esta semana</p>
+                          <p className="text-white/40 text-xs mt-0.5">{form.metodo_pago}{form.billetera ? ` Â· ${form.billetera}` : ''}</p>
                         </div>
                       </div>
                     ) : (
                       <>
-                  <Field label="Método de pago *">
+                  <Field label="MÃ©todo de pago *">
                     <select value={form.metodo_pago} onChange={e => setForm(f => ({ ...f, metodo_pago: e.target.value, billetera: '' }))} disabled={!form.pais || payMethodLocked}
                       className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50 disabled:opacity-40">
-                      <option value="">{form.pais ? 'Seleccionar...' : 'Primero selecciona tu país'}</option>
+                      <option value="">{form.pais ? 'Seleccionar...' : 'Primero selecciona tu paÃ­s'}</option>
                       {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </Field>
-                  <Field label={walletLabel || 'Billetera / Dirección de pago'}>
+                  <Field label={walletLabel || 'Billetera / DirecciÃ³n de pago'}>
                     <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: 123456789" />
                   </Field>
                       </>
                     )}
                     </>
                   )}
-                  <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
+                  <Field label={(profile as any)?.agent_code ? "Tu cÃ³digo de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
                       <FInput
                         value={form.agente}
                         onChange={v => {
@@ -485,31 +491,31 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                           setForm(f => ({ ...f, agente: v })); setAgenteInfo(null); setAgenteError(null)
                         }}
                         onBlur={() => checkAgentCode(form.agente)}
-                        placeholder="Código EA-XXXXXXXX de tu agente o co-líder"
+                        placeholder="CÃ³digo EA-XXXXXXXX de tu agente o co-lÃ­der"
                         style={((profile as any)?.agent_code || lockedAgente) ? { opacity: 0.65, cursor: 'not-allowed', pointerEvents: 'none' } as React.CSSProperties : undefined}
                       />
                       {(profile as any)?.agent_code && (
                         <div className="flex items-center gap-1.5 mt-1.5 text-amber-400/80">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                          <span className="text-xs">Como agente, no recibirás comisión por esta cuenta de trabajadora.</span>
+                          <span className="text-xs">Como agente, no recibirÃ¡s comisiÃ³n por esta cuenta de trabajadora.</span>
                         </div>
                       )}
                       {lockedAgente && !(profile as any)?.agent_code && (
                         <div className="flex items-center gap-1.5 mt-1.5 text-indigo-400/80">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                          <span className="text-xs">Tu agente queda bloqueado permanentemente. No podrás cambiarlo.</span>
+                          <span className="text-xs">Tu agente queda bloqueado permanentemente. No podrÃ¡s cambiarlo.</span>
                         </div>
                       )}
                       {agenteChecking && (
                         <div className="flex items-center gap-1.5 mt-1.5">
                           <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                          <span className="text-white/40 text-xs">Verificando código...</span>
+                          <span className="text-white/40 text-xs">Verificando cÃ³digo...</span>
                         </div>
                       )}
                       {agenteInfo && !agenteChecking && (
                         <div className="flex items-center gap-1.5 mt-1.5 text-green-400">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                          <span className="text-xs font-semibold">Vinculado con <span className="text-green-300">{agenteInfo.name}</span>{agenteInfo.is_colider ? ' (co-líder)' : ' (agente)'}</span>
+                          <span className="text-xs font-semibold">Vinculado con <span className="text-green-300">{agenteInfo.name}</span>{agenteInfo.is_colider ? ' (co-lÃ­der)' : ' (agente)'}</span>
                         </div>
                       )}
                       {agenteError && !agenteChecking && (
