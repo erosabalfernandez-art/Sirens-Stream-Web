@@ -1949,11 +1949,6 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                   <p className="text-sm font-bold text-white leading-tight">{agentDisplayName}</p>
-                                                  <div className="flex flex-wrap gap-1 mt-1.5">
-                                                    <span className="inline-flex items-center gap-1 bg-amber-500/8 border border-amber-500/15 rounded-lg px-2 py-0.5">
-                                                      <span className="text-[10px] text-amber-400/80 font-semibold">{row.app_name}</span>
-                                                    </span>
-                                                  </div>
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                   <p className="text-base font-bold text-amber-300 leading-tight">${usd.toFixed(2)}</p>
@@ -1962,7 +1957,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               </div>
                                               <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                  {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['efectivo_agent']}</span>}
+                                                  {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/5 border border-white/10 text-white/35 shrink-0">Global ×{rates['efectivo_agent']}</span>}
                                                   {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
                                                   {billetera && (
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'ae'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
@@ -2179,11 +2174,6 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                   <p className="text-sm font-bold text-white leading-tight">{agentDisplayName}</p>
-                                                  <div className="flex flex-wrap gap-1 mt-1.5">
-                                                    <span className="inline-flex items-center gap-1 bg-amber-500/8 border border-amber-500/15 rounded-lg px-2 py-0.5">
-                                                      <span className="text-[10px] text-amber-400/80 font-semibold">{row.app_name}</span>
-                                                    </span>
-                                                  </div>
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                   <p className="text-base font-bold text-amber-300 leading-tight">${usd.toFixed(2)}</p>
@@ -2192,7 +2182,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               </div>
                                               <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                  {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['transferencia_agent']}</span>}
+                                                  {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/5 border border-white/10 text-white/35 shrink-0">Global ×{rates['transferencia_agent']}</span>}
                                                   {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
                                                   {billetera && (
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
