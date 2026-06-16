@@ -139,7 +139,7 @@ import { Router } from 'express';
         // Lock: force the existing agente, ignore any incoming agente change
         payload.agente = currentAgente;
       } else if (payload.agente) {
-        // First time setting agente â check if user has it set in another entry
+        // First time setting agente Ã¢ÂÂ check if user has it set in another entry
         const otherR = await fetch(
           sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(userId)}&agente=not.is.null&id=neq.${encodeURIComponent(id)}&select=agente&limit=1`),
           { headers: sbH() }
@@ -177,26 +177,25 @@ import { Router } from 'express';
     if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
 
     try {
-      const checkR = await fetch(
-        sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user_id)}&select=id,app_name&limit=1`),
-        { headers: sbH() }
+      // Use delete_worker_entry RPC to avoid PostgREST uuid operator issue on direct DELETE
+      // The function verifies ownership and cleans custom_worker_rates atomically
+      const rpcR = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/rpc/delete_worker_entry`,
+        {
+          method: 'POST',
+          headers: { ...sbH(), Prefer: 'return=representation' },
+          body: JSON.stringify({ entry_id: id, requesting_user_id: user_id }),
+        }
       );
-      const rows = (await checkR.json()) as { id: string; app_name: string }[];
-      if (!rows.length) return res.status(404).json({ error: 'Entrada no encontrada o no pertenece al usuario' });
-
-      const appName = rows[0].app_name;
-
-      const delR = await fetch(
-        sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user_id)}`),
-        { method: 'DELETE', headers: { ...sbH(), Prefer: 'return=minimal' } }
-      );
-      if (!delR.ok) return res.status(delR.status).json({ error: await delR.text() });
-
-      await fetch(
-        sbUrl(`custom_worker_rates?user_id=eq.${encodeURIComponent(user_id)}&app_name=eq.${encodeURIComponent(appName)}`),
-        { method: 'DELETE', headers: { ...sbH(), Prefer: 'return=minimal' } }
-      ).catch(() => {});
-
+      if (!rpcR.ok) {
+        const errText = await rpcR.text();
+        if (errText.includes('PGRST202') || errText.includes('does not exist')) {
+          return res.status(503).json({ error: 'rpc_not_ready', message: 'Ejecuta supabase-worker-delete-rpc.sql en el SQL Editor de Supabase.' });
+        }
+        return res.status(rpcR.status).json({ error: errText });
+      }
+      const rpcData = await rpcR.json();
+      if (rpcData === false) return res.status(404).json({ error: 'Entrada no encontrada o no pertenece al usuario' });
       return res.json({ ok: true });
     } catch (err: any) {
       return res.status(500).json({ error: err?.message ?? 'Error interno' });
@@ -209,7 +208,7 @@ import { Router } from 'express';
    * Tables cleaned: worker_entries, custom_worker_rates, published_salaries,
    *                 payment_confirmations, agent_payment_confirmations.
    * If the user has NO remaining worker_entries after deletion, also cleans
-   * push_subscriptions and profiles (but NOT auth.users â delete from Supabase dashboard).
+   * push_subscriptions and profiles (but NOT auth.users Ã¢ÂÂ delete from Supabase dashboard).
    */
   router.delete('/admin/worker-entry', async (req, res) => {
     const { user_id, app_name } = req.query as { user_id?: string; app_name?: string };
@@ -242,7 +241,7 @@ import { Router } from 'express';
       const remaining = await remainingR.json().catch(() => []);
       const hasMoreEntries = Array.isArray(remaining) && remaining.length > 0;
 
-      // 6. If no more entries â clean push_subscriptions too
+      // 6. If no more entries Ã¢ÂÂ clean push_subscriptions too
       if (!hasMoreEntries) {
         const subR = await fetch(sbUrl(`push_subscriptions?user_id=eq.${uid}`), { method: 'DELETE', headers: sbH() });
         results.push_subscriptions = subR.status;
