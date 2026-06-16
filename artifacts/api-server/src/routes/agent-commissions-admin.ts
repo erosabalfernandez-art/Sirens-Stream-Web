@@ -190,15 +190,33 @@ import { Router } from 'express'
         }
       } catch { /* enrichment is best-effort */ }
 
-      // Remove stale agents: if agent_user_id is set but not in current profiles, they were deleted
-      if (validAgentIds) {
-        for (const key of Object.keys(agentMap)) {
-          const a = agentMap[key]
-          if (a.agent_user_id && !validAgentIds.has(a.agent_user_id)) {
-            delete agentMap[key]
+      // Remove stale agents: filter both ID-based and name-based orphaned agents
+        if (validAgentIds) {
+          // Collect valid agent names/codes for filtering null-id agents
+          let validAgentNames: Set<string> = new Set()
+          try {
+            const activeProfiles = await sbGet('profiles?is_agent=eq.true&select=agent_name,agent_code,colider_name')
+            for (const p of (activeProfiles as any[])) {
+              if (p.agent_name) validAgentNames.add((p.agent_name as string).toLowerCase())
+              if (p.agent_code) validAgentNames.add((p.agent_code as string).toLowerCase())
+              if (p.colider_name) validAgentNames.add((p.colider_name as string).toLowerCase())
+            }
+          } catch { /* best-effort */ }
+          for (const key of Object.keys(agentMap)) {
+            const a = agentMap[key]
+            if (a.agent_user_id) {
+              // Agent has an ID — remove if not in current valid profiles
+              if (!validAgentIds.has(a.agent_user_id)) {
+                delete agentMap[key]
+              }
+            } else {
+              // Agent has no ID — remove if name doesn't match any active profile
+              if (validAgentNames.size > 0 && !validAgentNames.has(a.agent_name.toLowerCase())) {
+                delete agentMap[key]
+              }
+            }
           }
         }
-      }
 
 const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : lockedAgents.has(`__name__:${a.agent_name}`), apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
       const exchange_rates: Record<string, number> = {}
