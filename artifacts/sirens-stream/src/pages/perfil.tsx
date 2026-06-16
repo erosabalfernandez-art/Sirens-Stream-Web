@@ -147,7 +147,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
       function openAdd() {
           setEditingId(null); setFormError(null)
           setAgenteInfo(null); setAgenteError(null)
-          const isAgent = !!(profile as any)?.agent_code
+          const isAgent = !!(profile as any)?.agent_code || !!(profile as any)?.is_agent
           const agentCode = ((profile as any)?.agent_code as string | undefined) ?? ''
           if (isAgent) {
             setForm({ ...EMPTY_FORM, agente: '' })
@@ -182,7 +182,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         if (!form.app_name) { setFormError('Selecciona una aplicación'); return }
         if (!form.pais) { setFormError('Selecciona tu país'); return }
         if (!form.metodo_pago && !(profile as any)?.agent_code && !profile?.is_agent && !profile?.is_colider) { setFormError('Selecciona un método de pago'); return }
-        if ((profile as any)?.agent_code || profile?.is_colider) {
+        if ((profile as any)?.agent_code || profile?.is_colider || (profile as any)?.is_agent) {
             if (form.agente && form.agente.trim()) {
               setFormError('Los agentes y co-líderes no pueden vincular perfiles de apps a ningún código de agente.'); setSaving(false); return
             }
@@ -485,7 +485,7 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                     )}
                     </>
                   )}
-                  {!(profile as any)?.agent_code && !profile?.is_colider && (
+                  {!(profile as any)?.agent_code && !profile?.is_colider && !(profile as any)?.is_agent && (
                   <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
                       <FInput
                         value={form.agente}
