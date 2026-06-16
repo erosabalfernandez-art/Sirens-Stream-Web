@@ -82,6 +82,7 @@ import { useState, useEffect } from 'react'
               const k = inputKey(agId, app.app_name, w.worker_name)
               if (w.published_usd !== null) init[k] = String(w.published_usd)
               else if (w.agc_usd > 0) init[k] = (w.agc_usd ?? 0).toFixed(2)
+              else if (app.app_name !== 'Layla' && (w.salary_usd ?? 0) > 0) init[k] = ((w.salary_usd ?? 0) * 0.10).toFixed(2)
             }
           }
         }
