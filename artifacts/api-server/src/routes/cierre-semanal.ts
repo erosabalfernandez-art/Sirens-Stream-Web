@@ -16,7 +16,7 @@ import { dispatchPush } from '../lib/push-dispatch';
         return `${process.env.SUPABASE_URL}/rest/v1/${path}`;
       }
 
-            // GET /api/no-cobro â returns all entries enriched with agent display names
+            // GET /api/no-cobro — returns all entries enriched with agent display names
         router.get('/no-cobro', async (_req, res) => {
           try {
             const r = await fetch(sbUrl('weekly_no_cobro?order=app_name.asc,user_id.asc,created_at.desc&select=*'), { headers: sbH() });
@@ -59,7 +59,7 @@ import { dispatchPush } from '../lib/push-dispatch';
           }
         });
 
-      // PATCH /api/toggle-justified â toggle justified flag on a no-cobro entry
+      // PATCH /api/toggle-justified — toggle justified flag on a no-cobro entry
       router.patch('/toggle-justified', async (req, res) => {
         const { id, justified } = req.body as { id: string; justified: boolean };
         if (!id) return res.status(400).json({ error: 'id requerido' });
@@ -79,18 +79,18 @@ import { dispatchPush } from '../lib/push-dispatch';
       // POST /api/cierre-semanal
       // Body: { force?: boolean }
       //
-      // QuÃ© hace el cierre:
-      //   - CONSERVA published_salaries  â historial permanente de cada trabajadora en /salarios
-      //   - CONSERVA agent_commissions   â historial permanente de cada agente en /agente
-      //   - CONSERVA nomina_history      â archivo del admin
-      //   - BORRA payment_confirmations  (para los salarios de esa semana) â resetea confirmaciones
+      // Qué hace el cierre:
+      //   - CONSERVA published_salaries  → historial permanente de cada trabajadora en /salarios
+      //   - CONSERVA agent_commissions   → historial permanente de cada agente en /agente
+      //   - CONSERVA nomina_history      → archivo del admin
+      //   - BORRA payment_confirmations  (para los salarios de esa semana) → resetea confirmaciones
       //   - BORRA agent_payment_confirmations (para las comisiones de esa semana)
-      //   - BORRA colider_week_status    â resetea estado del colider
-      //   - BORRA weekly_no_cobro        â resetea lista de no-cobro
-      //   - BORRA colider_marks          â resetea marcas de pago del colider
-      //   - BORRA direct_payment_notifications â resetea notificaciones de pago directo (Layla)
-      //   - PONE exchange_rates a 0  â oculta cambio a trabajadoras, colider y agentes hasta nueva publicaciÃ³n
-      //   - MARCA nomina_history como published=false â desbloquea la pÃ¡gina de nÃ³mina para nueva semana
+      //   - BORRA colider_week_status    → resetea estado del colider
+      //   - BORRA weekly_no_cobro        → resetea lista de no-cobro
+      //   - BORRA colider_marks          → resetea marcas de pago del colider
+      //   - BORRA direct_payment_notifications → resetea notificaciones de pago directo (Layla)
+      //   - PONE exchange_rates a 0  → oculta cambio a trabajadoras, colider y agentes hasta nueva publicación
+      //   - MARCA nomina_history como published=false → desbloquea la página de nómina para nueva semana
       router.post('/cierre-semanal', async (req, res) => {
         const force = !!(req.body as Record<string, unknown>)?.force;
         try {
@@ -103,7 +103,7 @@ import { dispatchPush } from '../lib/push-dispatch';
           const allCommissions: any[] = commissionsRes.ok ? (await commissionsRes.json()) as any[] : [];
 
           if (allSalaries.length === 0 && allCommissions.length === 0) {
-            return res.json({ ok: true, allConfirmed: true, message: 'No hay nÃ³minas activas esta semana.' });
+            return res.json({ ok: true, allConfirmed: true, message: 'No hay nóminas activas esta semana.' });
           }
 
           // Most recent semana across both tables
@@ -115,19 +115,6 @@ import { dispatchPush } from '../lib/push-dispatch';
 
           // 2. If normal cierre, verify all confirmations before proceeding
           if (!force) {
-            // Short-circuit: if nomina_history for this semana is already published=false,
-            // the week was already force-closed — no need to check confirmations again.
-            const nominaCheckRes = await fetch(
-              sbUrl(`nomina_history?semana=eq.${encodeURIComponent(latestSemana)}&select=published`),
-              { headers: sbH() }
-            );
-            if (nominaCheckRes.ok) {
-              const nominaRows = (await nominaCheckRes.json()) as Array<{ published: boolean }>;
-              if (nominaRows.length > 0 && nominaRows.every((r) => !r.published)) {
-                return res.json({ ok: true, allConfirmed: true, semana: latestSemana, alreadyClosed: true, message: 'La semana ya fue cerrada.' });
-              }
-            }
-
             const latestSalaries = allSalaries.filter((s: any) => s.semana === latestSemana);
             const latestCommissions = allCommissions.filter((c: any) => c.semana === latestSemana);
             const salaryIds = latestSalaries.map((s: any) => s.id);
@@ -162,7 +149,7 @@ import { dispatchPush } from '../lib/push-dispatch';
                 // --- Colider section ---
                 if (!allColiderPaid) {
                   if (coliderMarks.length === 0) {
-                    pending.push({ type: 'colider', name: 'El colider aÃºn no ha marcado ningÃºn pago', app: '\u2014', phone: null });
+                    pending.push({ type: 'colider', name: 'El colider aún no ha marcado ningún pago', app: '\u2014', phone: null });
                   } else {
                     // Fetch phones for unpaid persons
                     const coliderPersonUids = [...new Set(unpaidMarks.filter((m: any) => m.person_uid).map((m: any) => m.person_uid as string))];
@@ -192,7 +179,7 @@ import { dispatchPush } from '../lib/push-dispatch';
                   const emailMap: Record<string,string> = Object.fromEntries(profiles.map((p: any) => [p.id, p.email ?? '']));
                   const workerMap: Record<string,any> = {};
                   for (const w of workerData) workerMap[w.user_id + '_' + w.app_name] = w;
-                  // Group by user â collect all unconfirmed apps per person
+                  // Group by user — collect all unconfirmed apps per person
                   const byUser: Record<string, { name: string; apps: string[]; phone: string | null; codigoPais: string }> = {};
                   for (const s of unconfirmedWorkers) {
                     const w = workerMap[s.user_id + '_' + s.app_name] ?? {};
@@ -239,11 +226,11 @@ import { dispatchPush } from '../lib/push-dispatch';
             }
           }
 
-          // 3. All confirmed (or force) â reset weekly state
+          // 3. All confirmed (or force) — reset weekly state
           //
-          //    published_salaries   â KEPT (permanent worker history visible in /salarios)
-          //    agent_commissions    â KEPT (permanent agent history visible in /agente)
-          //    nomina_history       â KEPT (permanent admin archive)
+          //    published_salaries   → KEPT (permanent worker history visible in /salarios)
+          //    agent_commissions    → KEPT (permanent agent history visible in /agente)
+          //    nomina_history       → KEPT (permanent admin archive)
           //
           //    What gets cleared:
           //      - payment_confirmations for this week's salaries
@@ -251,7 +238,7 @@ import { dispatchPush } from '../lib/push-dispatch';
           //      - colider_week_status for this week
           //      - weekly_no_cobro for this week
           //      - colider_marks for this week
-          //      - direct_payment_notifications (all â weekly operational data, semana format differs)
+          //      - direct_payment_notifications (all — weekly operational data, semana format differs)
 
           const latestSalaryIds = allSalaries
             .filter((s: any) => s.semana === latestSemana)
@@ -330,7 +317,7 @@ import { dispatchPush } from '../lib/push-dispatch';
             );
           }
 
-          // Reset all exchange rates to 0 â workers, colider, and agents won't see rates until admin re-publishes
+          // Reset all exchange rates to 0 — workers, colider, and agents won't see rates until admin re-publishes
             cleanupOps.push(
               fetch(sbUrl('exchange_rates?rate=gte.0'), {
                 method: 'PATCH',
@@ -339,7 +326,7 @@ import { dispatchPush } from '../lib/push-dispatch';
               }).catch(() => Promise.resolve(new Response()))
             );
 
-            // Delete all custom_worker_rates on cierre â removes per-worker assignments entirely
+            // Delete all custom_worker_rates on cierre — removes per-worker assignments entirely
             // (ghost records from deleted users and stale rate=0 rows are fully cleaned up)
             cleanupOps.push(
               fetch(sbUrl('custom_worker_rates?id=gte.00000000-0000-0000-0000-000000000000'), {
@@ -348,7 +335,7 @@ import { dispatchPush } from '../lib/push-dispatch';
               }).catch(() => Promise.resolve(new Response()))
             );
 
-            // Unlock payment method for all users â they can choose again next week
+            // Unlock payment method for all users — they can choose again next week
             cleanupOps.push(
               fetch(sbUrl('payment_method_locks?locked=eq.true'), {
                 method: 'PATCH',
@@ -358,7 +345,7 @@ import { dispatchPush } from '../lib/push-dispatch';
             );
 
             // Clear baked-in CUP rates from published_salaries.extras for the closed semana.
-            // salarios.tsx checks storedRate (extras.cup_*_rate) first â must clear on cierre
+            // salarios.tsx checks storedRate (extras.cup_*_rate) first — must clear on cierre
             // so Cuba workers stop seeing CUP until admin re-publishes rates for the new week.
             cleanupOps.push(
               (async () => {
@@ -383,7 +370,7 @@ import { dispatchPush } from '../lib/push-dispatch';
                       body: JSON.stringify({ extras: Object.keys(rest).length ? rest : null }),
                     });
                   }));
-                } catch { /* best-effort â never block cierre for rate cleanup */ }
+                } catch { /* best-effort — never block cierre for rate cleanup */ }
               })()
             );
 
@@ -400,9 +387,9 @@ import { dispatchPush } from '../lib/push-dispatch';
                 const coliderIds = coliders.map((r: any) => r.id as string).filter(Boolean);
                 const semLabel = latestSemana ?? '';
                 const notifs: Promise<any>[] = [];
-                if (workerIds.length > 0) notifs.push(dispatchPush(workerIds, 'ð Cierre de semana', `La semana ${semLabel} ha sido cerrada. Tu historial de pagos estÃ¡ disponible en la secciÃ³n Salarios.`, '/salarios'));
-                if (agentIds.length  > 0) notifs.push(dispatchPush(agentIds,  'ð Cierre de semana', `La semana ${semLabel} ha concluido. El nuevo ciclo de trabajo ha comenzado.`, '/agente'));
-                if (coliderIds.length > 0) notifs.push(dispatchPush(coliderIds, 'ð Cierre de semana', `La semana ${semLabel} ha sido cerrada por el administrador. El nuevo ciclo estÃ¡ activo.`, '/colider'));
+                if (workerIds.length > 0) notifs.push(dispatchPush(workerIds, '🔒 Cierre de semana', `La semana ${semLabel} ha sido cerrada. Tu historial de pagos está disponible en la sección Salarios.`, '/salarios'));
+                if (agentIds.length  > 0) notifs.push(dispatchPush(agentIds,  '🔒 Cierre de semana', `La semana ${semLabel} ha concluido. El nuevo ciclo de trabajo ha comenzado.`, '/agente'));
+                if (coliderIds.length > 0) notifs.push(dispatchPush(coliderIds, '🔒 Cierre de semana', `La semana ${semLabel} ha sido cerrada por el administrador. El nuevo ciclo está activo.`, '/colider'));
                 await Promise.all(notifs);
               } catch { /* ignore push errors */ }
             });
@@ -415,14 +402,14 @@ import { dispatchPush } from '../lib/push-dispatch';
 
 
   // POST /api/admin/reset-all-history
-  // â ï¸ NUCLEAR RESET â deletes ALL payroll history permanently.
+  // ⚠️ NUCLEAR RESET — deletes ALL payroll history permanently.
   router.post('/admin/reset-all-history', async (req, res) => {
     const { confirm } = req.body as { confirm?: string }
     if (confirm !== 'BORRAR TODO') {
-      return res.status(400).json({ error: 'Se requiere confirmaciÃ³n: { confirm: "BORRAR TODO" }' })
+      return res.status(400).json({ error: 'Se requiere confirmación: { confirm: "BORRAR TODO" }' })
     }
 
-    // Each entry: [table, filter] â PostgREST needs a filter to allow DELETE
+    // Each entry: [table, filter] — PostgREST needs a filter to allow DELETE
     // UUID-id tables: id=gte.00000000-0000-0000-0000-000000000000  (matches every valid UUID)
     // semana-only tables: semana=like.*  (matches every non-null text)
     const TABLES: [string, string][] = [

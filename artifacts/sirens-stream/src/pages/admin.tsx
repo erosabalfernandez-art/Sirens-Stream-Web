@@ -25,9 +25,9 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
     const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
     const COUNTRIES = [
       '','Argentina','Bolivia','Brasil','Chile','Colombia','Costa Rica','Cuba',
-      'Ecuador','El Salvador','EspaÃ±a','Estados Unidos','Guatemala','Honduras',
-      'MÃ©xico','Nicaragua','PanamÃ¡','Paraguay','PerÃº','Puerto Rico',
-      'RepÃºblica Dominicana','Uruguay','Venezuela','Otro',
+      'Ecuador','El Salvador','España','Estados Unidos','Guatemala','Honduras',
+      'México','Nicaragua','Panamá','Paraguay','Perú','Puerto Rico',
+      'República Dominicana','Uruguay','Venezuela','Otro',
     ]
 
 function cleanNum(s: string | null | undefined): string { return (s ?? '').replace(/[^0-9]/g, '') }
@@ -37,7 +37,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
       { key: 'id_aplicacion', label: 'ID en la app' },
       { key: 'billetera', label: 'Billetera' },
       { key: 'nombre_en_app', label: 'Nombre en app' },
-      { key: 'telefono', label: 'TelÃ©fono' },
+      { key: 'telefono', label: 'Teléfono' },
     ]
 
     function CopyCell({ label, value, uid, href }: { label: string; value: string | null; uid: string; href?: string }) {
@@ -61,12 +61,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               {href && (
                 <a href={href} target="_blank" rel="noopener noreferrer"
                    className="text-xs bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/25 transition-colors font-semibold shrink-0">
-                  WhatsApp â
+                  WhatsApp ↗
                 </a>
               )}
             </div>
           ) : (
-            <p className="text-white/25 text-sm">â</p>
+            <p className="text-white/25 text-sm">—</p>
           )}
         </div>
       )
@@ -288,9 +288,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             const confAt = confMap[s.id]
             return {
               salary_id: s.id, user_id: s.user_id, semana: s.semana, usd: Number(s.usd), app_name: app,
-              apodo: (s.extras?.Apodo ?? s.extras?.apodo ?? s.extras?.Nick ?? w.nombre_en_app ?? 'â') as string,
+              apodo: (s.extras?.Apodo ?? s.extras?.apodo ?? s.extras?.Nick ?? w.nombre_en_app ?? '—') as string,
               nombre_real: w.nombre_real ?? null, nombre_en_app: w.nombre_en_app ?? null,
-              email: profileMap[s.user_id] ?? 'â',
+              email: profileMap[s.user_id] ?? '—',
               metodo_pago: w.metodo_pago ?? null, billetera: w.billetera ?? null,
               agente: w.agente ?? null,
               confirmed: !!confAt, confirmed_at: confAt ?? null,
@@ -380,9 +380,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               }
               return {
                 salary_id: s.id, user_id: s.user_id, app_name: app, semana: s._semana ?? s.semana, usd: Number(s.usd),
-                apodo: (s.extras?.Apodo ?? s.extras?.apodo ?? s.extras?.Nick ?? w.nombre_en_app ?? 'â') as string,
+                apodo: (s.extras?.Apodo ?? s.extras?.apodo ?? s.extras?.Nick ?? w.nombre_en_app ?? '—') as string,
                 nombre_real: w.nombre_real ?? null, nombre_en_app: w.nombre_en_app ?? null,
-                email: profileMap[s.user_id] ?? 'â',
+                email: profileMap[s.user_id] ?? '—',
                 metodo_pago: w.metodo_pago ?? null, billetera: w.billetera ?? null, agente: w.agente ?? null,
                 confirmed: !!confAt, confirmed_at: confAt ?? null,
                 id_aplicacion: w.id_aplicacion ?? null,
@@ -394,7 +394,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 global_tr_rate: rateMap['transferencia_worker'] ?? null,
               }
             })
-            // 8. Apply colider marks + admin marks â both from service-role API (bypasses RLS)
+            // 8. Apply colider marks + admin marks — both from service-role API (bypasses RLS)
             const coliderPaidSet = new Set(apiColiderPaidUids)
             const adminPaidSet = new Set(apiAdminPaidUids)
             const final = merged.map(row => ({
@@ -518,7 +518,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               ...n,
               nombre_en_app: wMap[n.user_id]?.nombre_en_app ?? null,
               nombre_real: wMap[n.user_id]?.nombre_real ?? null,
-              email: eMap[n.user_id] ?? 'â',
+              email: eMap[n.user_id] ?? '—',
               metodo_pago: wMap[n.user_id]?.metodo_pago ?? null,
               billetera: wMap[n.user_id]?.billetera ?? null,
               agente: wMap[n.user_id]?.agente ?? null,
@@ -585,7 +585,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                   setResetResult({ ok: false, message: d.error ?? 'Error desconocido' })
                 } else {
                   const cleared = Object.entries(d.results ?? {}).filter(([,v]) => v === 'cleared').map(([k]) => k)
-                  setResetResult({ ok: true, message: `â Borrado completo. Tablas limpiadas: ${cleared.join(', ')}` })
+                  setResetResult({ ok: true, message: `✅ Borrado completo. Tablas limpiadas: ${cleared.join(', ')}` })
                   setResetConfirmText('')
                 }
               } catch (e: unknown) {
@@ -601,7 +601,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
               const [statusRes, testRes] = await Promise.all([
                 fetch(`${apiBase}/api/push/status`),
-                fetch(`${apiBase}/api/push/test`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'ð Prueba desde admin', body: 'El sistema de notificaciones estÃ¡ funcionando.' , url: '/' }) }),
+                fetch(`${apiBase}/api/push/test`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '🔔 Prueba desde admin', body: 'El sistema de notificaciones está funcionando.' , url: '/' }) }),
               ])
               const statusData = await statusRes.json() as { subscriptions: number }
               const testData = await testRes.json() as { sent: number; ok: boolean }
@@ -638,8 +638,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             ])]
           }
           const msg = type === 'salary'
-            ? { title: `ð° Tu salario de ${app} estÃ¡ disponible`, body: 'Entra a ver tus ganancias en tu perfil.', url: '/salarios' }
-            : { title: `ð¢ Nuevo en tu canal ${app}`, body: 'Hay una actualizaciÃ³n en tu canal. Â¡RevÃ­sala!', url: '/canales' }
+            ? { title: `💰 Tu salario de ${app} está disponible`, body: 'Entra a ver tus ganancias en tu perfil.', url: '/salarios' }
+            : { title: `📢 Nuevo en tu canal ${app}`, body: 'Hay una actualización en tu canal. ¡Revísala!', url: '/canales' }
           let sent = 0; let logError: string | undefined
           if (ids.length > 0) {
             const result = await sendPushViaApi(ids, msg.title, msg.body, msg.url)
@@ -659,8 +659,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           setTestPushOk(p => ({ ...p, [worker.id]: false }))
           await sendPushViaApi(
             [worker.user_id],
-            'ð NotificaciÃ³n de prueba',
-            `Hola${worker.nombre_real ? ` ${worker.nombre_real}` : ''}! Esta es una notificaciÃ³n de prueba enviada desde el panel admin.`,
+            '🔔 Notificación de prueba',
+            `Hola${worker.nombre_real ? ` ${worker.nombre_real}` : ''}! Esta es una notificación de prueba enviada desde el panel admin.`,
             '/perfil'
           )
           setTestPushSending(p => ({ ...p, [worker.id]: false }))
@@ -672,7 +672,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           setTestPushAgents(true); setTestPushAgentsOk(false)
           const { data: agentProfs } = await supabase.from('profiles').select('id').eq('is_agent', true)
           const ids = ((agentProfs ?? []) as {id:string}[]).map(p => p.id)
-          if (ids.length > 0) await sendPushViaApi(ids, 'ð NotificaciÃ³n de prueba (Agentes)', 'Esta es una notificaciÃ³n de prueba enviada desde el panel admin.', '/agente')
+          if (ids.length > 0) await sendPushViaApi(ids, '🔔 Notificación de prueba (Agentes)', 'Esta es una notificación de prueba enviada desde el panel admin.', '/agente')
           setTestPushAgents(false); setTestPushAgentsOk(true)
           setTimeout(() => setTestPushAgentsOk(false), 4000)
         }
@@ -683,8 +683,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           const greeting = ag.agent_name ? ` ${ag.agent_name}` : ''
           await sendPushViaApi(
             [ag.id],
-            'ð NotificaciÃ³n de prueba',
-            `Hola${greeting}! Esta es una notificaciÃ³n de prueba enviada desde el panel admin.`,
+            '🔔 Notificación de prueba',
+            `Hola${greeting}! Esta es una notificación de prueba enviada desde el panel admin.`,
             '/agente'
           )
           setTestPushSending(p => ({ ...p, [ag.id]: false }))
@@ -698,8 +698,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             const greeting = c.colider_name ? ` ${c.colider_name}` : ''
             await sendPushViaApi(
               [c.id],
-              'ð NotificaciÃ³n de prueba',
-              `Hola${greeting}! Esta es una notificaciÃ³n de prueba enviada desde el panel admin.`,
+              '🔔 Notificación de prueba',
+              `Hola${greeting}! Esta es una notificación de prueba enviada desde el panel admin.`,
               '/colider'
             )
             setTestPushSending(p => ({ ...p, [c.id]: false }))
@@ -734,16 +734,16 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               if (status === 'approved') {
                 sendPushViaApi(
                   [sol.user_id],
-                  `â Acceso aprobado â Canal ${sol.app_name}`,
-                  `Ya tienes acceso al canal ${sol.app_name}. Â¡Revisa los comunicados!`,
+                  `✅ Acceso aprobado — Canal ${sol.app_name}`,
+                  `Ya tienes acceso al canal ${sol.app_name}. ¡Revisa los comunicados!`,
                   '/canales',
                   true
                 )
               } else {
                 sendPushViaApi(
                   [sol.user_id],
-                  `â Solicitud de canal ${sol.app_name}`,
-                  `Tu solicitud al canal ${sol.app_name} no fue aprobada. ContÃ¡ctanos si tienes dudas.`,
+                  `❌ Solicitud de canal ${sol.app_name}`,
+                  `Tu solicitud al canal ${sol.app_name} no fue aprobada. Contáctanos si tienes dudas.`,
                   '/canales',
                   true
                 )
@@ -877,7 +877,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               ...n,
               nombre_en_app: wMap[n.user_id]?.nombre_en_app ?? null,
               nombre_real: wMap[n.user_id]?.nombre_real ?? null,
-              email: eMap[n.user_id] ?? 'â',
+              email: eMap[n.user_id] ?? '—',
               metodo_pago: wMap[n.user_id]?.metodo_pago ?? null,
               billetera: wMap[n.user_id]?.billetera ?? null,
               agente: wMap[n.user_id]?.agente ?? null,
@@ -1006,7 +1006,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 setAgentCreateMsg({ ok: false, msg: json.error ?? 'Error al crear cuenta.' })
                 setCreatingAgent(false); return
               }
-              setAgentCreateMsg({ ok: true, msg: `â Agente "${agentFormName.trim()}" creado. CÃ³digo de agente: ${json.agent_code}` })
+              setAgentCreateMsg({ ok: true, msg: `✓ Agente "${agentFormName.trim()}" creado. Código de agente: ${json.agent_code}` })
               setAgentFormName(''); setAgentFormEmail(''); setAgentFormPassword(''); setAgentFormPhone('')
               await fetchAgents()
             } catch {
@@ -1032,7 +1032,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
           async function createColider() {
             if (!coliderFormEmail.trim() || !coliderFormPassword.trim()) {
-              setColiderCreateMsg({ ok: false, msg: 'Email y contraseÃ±a son requeridos.' }); return
+              setColiderCreateMsg({ ok: false, msg: 'Email y contraseña son requeridos.' }); return
             }
             setCreatingColider(true); setColiderCreateMsg(null)
             try {
@@ -1047,7 +1047,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 setColiderCreateMsg({ ok: false, msg: json.error ?? 'Error al crear cuenta de colider.' })
                 setCreatingColider(false); return
               }
-              setColiderCreateMsg({ ok: true, msg: `â Colider "${coliderFormName.trim() || coliderFormEmail.trim()}" creado correctamente.` })
+              setColiderCreateMsg({ ok: true, msg: `✓ Colider "${coliderFormName.trim() || coliderFormEmail.trim()}" creado correctamente.` })
               setColiderFormName(''); setColiderFormEmail(''); setColiderFormPassword(''); setColiderFormTelefono('')
               await fetchColiders()
             } catch {
@@ -1103,11 +1103,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             if (id === 'efectivo_worker') {
               const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Efectivo (Cuba)').in('app_name', ['Waha', 'Howdy'])
               const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id))]
-              if (ids.length > 0) sendPushViaApi(ids, 'ð± Cambio Efectivo actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dÃ³lar â entra a ver tu salario.`, '/salarios', false)
+              if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Efectivo actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', false)
             } else if (id === 'transferencia_worker') {
               const { data } = await supabase.from('worker_entries').select('user_id').eq('metodo_pago', 'Transferencia Bancaria (Cuba)').in('app_name', ['Waha', 'Howdy'])
               const ids = [...new Set(((data ?? []) as {user_id:string}[]).map(w => w.user_id))]
-              if (ids.length > 0) sendPushViaApi(ids, 'ð± Cambio Transferencia actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dÃ³lar â entra a ver tu salario.`, '/salarios', false)
+              if (ids.length > 0) sendPushViaApi(ids, '💱 Cambio Transferencia actualizado', `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar — entra a ver tu salario.`, '/salarios', false)
             } else {
               const [{ data: agentData }, { data: coliderData }] = await Promise.all([
                 supabase.from('profiles').select('id').eq('is_agent', true),
@@ -1116,8 +1116,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               const agentIds = ((agentData ?? []) as {id:string}[]).map(p => p.id)
               const coliderIds = ((coliderData ?? []) as {id:string}[]).map(p => p.id).filter(cid => !agentIds.includes(cid))
               const label = id === 'efectivo_agent' ? 'Efectivo' : 'Transferencia'
-              if (agentIds.length > 0) sendPushViaApi(agentIds, `ð± Cambio ${label} actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dÃ³lar.`, '/agente', false)
-              if (coliderIds.length > 0) sendPushViaApi(coliderIds, `ð± Cambio ${label} actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dÃ³lar.`, '/colider', false)
+              if (agentIds.length > 0) sendPushViaApi(agentIds, `💱 Cambio ${label} actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/agente', false)
+              if (coliderIds.length > 0) sendPushViaApi(coliderIds, `💱 Cambio ${label} actualizado`, `Nuevo cambio: ${rate.toLocaleString('es-ES')} por dólar.`, '/colider', false)
             }
             setSavingRate(null); setRateSaved(id); setTimeout(() => setRateSaved(null), 3000)
           }
@@ -1169,7 +1169,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 <Filter className="w-3 h-3 text-purple-400" />
                 <span className="text-purple-300 text-xs font-semibold uppercase tracking-wider">Admin</span>
               </div>
-              <h1 className="text-2xl font-extrabold">Panel de AdministraciÃ³n</h1>
+              <h1 className="text-2xl font-extrabold">Panel de Administración</h1>
             </div>
 
             {/* Tabs */}
@@ -1186,7 +1186,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               <button onClick={() => setTab('config')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'config' ? 'bg-amber-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Settings className="w-3.5 h-3.5" />
-                ConfiguraciÃ³n
+                Configuración
               </button>
               <button onClick={() => { setTab('solicitudes'); fetchSolicitudes() }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'solicitudes' ? 'bg-orange-600 text-white' : 'text-white/40 hover:text-white'}`}>
@@ -1220,7 +1220,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 </button>
                 <button onClick={() => { setTab('nocobro'); fetchNoCobro() }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'nocobro' ? 'bg-red-600 text-white' : 'text-white/40 hover:text-white'}`}>
-                ð¨ No Cobraron
+                🚨 No Cobraron
               </button>
             </div>
 
@@ -1231,12 +1231,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 <div className="bg-[#0d0d1e] border border-amber-500/10 rounded-2xl p-6 mb-6">
                   <div className="flex items-center gap-2 mb-5">
                     <Settings className="w-4 h-4 text-amber-400" />
-                    <span className="text-sm font-semibold text-white/70">ConfiguraciÃ³n del sitio</span>
+                    <span className="text-sm font-semibold text-white/70">Configuración del sitio</span>
                   </div>
                   <div className="flex items-center justify-between p-4 bg-[#07070f] rounded-xl border border-amber-500/10">
                     <div>
-                      <p className="text-sm font-semibold text-white mb-0.5">SecciÃ³n "Crear Agencia"</p>
-                      <p className="text-xs text-white/40">Controla si los visitantes pueden ver la opciÃ³n de crear su propia agencia en la pÃ¡gina de inicio.</p>
+                      <p className="text-sm font-semibold text-white mb-0.5">Sección "Crear Agencia"</p>
+                      <p className="text-xs text-white/40">Controla si los visitantes pueden ver la opción de crear su propia agencia en la página de inicio.</p>
                     </div>
                     <button onClick={toggleAgencia} disabled={loadingAgencia}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${showAgencia ? 'bg-green-500/15 border border-green-500/30 text-green-300 hover:bg-green-500/25' : 'bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25'} disabled:opacity-50`}>
@@ -1261,14 +1261,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                     </div>
                   )}
 
-                  {/* ââ Zona de Peligro âââââââââââââââââââââââââââââââââââ */}
+                  {/* ── Zona de Peligro ─────────────────────────────────── */}
                   <div className="mt-5 bg-red-950/30 border border-red-500/25 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle className="w-4 h-4 text-red-400" />
                       <span className="text-sm font-bold text-red-300">Zona de Peligro</span>
                     </div>
                     <p className="text-xs text-white/45 mb-4 leading-relaxed">
-                      Borra <strong className="text-white/70">todo el historial de nÃ³minas</strong>: salarios publicados, comisiones de agentes, confirmaciones de pago (trabajadoras y agentes), marcas del colider, lista de no-cobraron, e historial de subidas. El sistema quedarÃ¡ como si nunca se hubiera subido ninguna nÃ³mina.
+                      Borra <strong className="text-white/70">todo el historial de nóminas</strong>: salarios publicados, comisiones de agentes, confirmaciones de pago (trabajadoras y agentes), marcas del colider, lista de no-cobraron, e historial de subidas. El sistema quedará como si nunca se hubiera subido ninguna nómina.
                     </p>
                     <button
                       onClick={() => { setShowResetModal(true); setResetResult(null); setResetConfirmText('') }}
@@ -1303,14 +1303,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-white/40 mb-1">PaÃ­s</label>
+                      <label className="block text-xs text-white/40 mb-1">País</label>
                       <select value={filterPais} onChange={e => setFilterPais(e.target.value)}
                         className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
                         {COUNTRIES.map(c => <option key={c} value={c}>{c || 'Todos'}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-white/40 mb-1">MÃ©todo de pago</label>
+                      <label className="block text-xs text-white/40 mb-1">Método de pago</label>
                       <select value={filterPago} onChange={e => setFilterPago(e.target.value)}
                         className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
                         {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m || 'Todos'}</option>)}
@@ -1349,10 +1349,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs text-white/40 mb-1">TelÃ©fono</label>
+                      <label className="block text-xs text-white/40 mb-1">Teléfono</label>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                        <input type="text" value={filterTelefono} onChange={e => setFilterTelefono(e.target.value)} placeholder="NÃºmero..."
+                        <input type="text" value={filterTelefono} onChange={e => setFilterTelefono(e.target.value)} placeholder="Número..."
                           className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-500/50" />
                       </div>
                     </div>
@@ -1397,14 +1397,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                 {w.nombre_real && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.app_name}</span>}
                                 {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{w.pais}</span>}
                                 {w.metodo_pago && <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{w.metodo_pago}</span>}
-                    {w.agente && (() => { const aName = agentNameMap[w.agente] ?? w.agente; const aPhone = agentPhoneMap[w.agente]; const _cp = cleanNum(aPhone); return aPhone ? (<a href={`https://wa.me/${_cp}`} target="_blank" rel="noreferrer" className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/20 transition-colors">{aName} ð±</a>) : (<span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{aName}</span>); })()}
+                    {w.agente && (() => { const aName = agentNameMap[w.agente] ?? w.agente; const aPhone = agentPhoneMap[w.agente]; const _cp = cleanNum(aPhone); return aPhone ? (<a href={`https://wa.me/${_cp}`} target="_blank" rel="noreferrer" className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/20 transition-colors">{aName} 📱</a>) : (<span className="text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full">{aName}</span>); })()}
                                 {w.telefono && (
                                   <a
                                     href={`https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}`}
                                     target="_blank" rel="noopener noreferrer"
                                     onClick={e => e.stopPropagation()}
                                     className="text-xs bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full hover:bg-emerald-500/25 transition-colors font-medium">
-                                    ð± {w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}
+                                    📱 {w.codigo_pais ? `${w.codigo_pais} ${w.telefono}` : w.telefono}
                                   </a>
                                 )}
                               </div>
@@ -1422,9 +1422,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                 ['Nombre real', w.nombre_real],
                                 ['Nombre en app', w.nombre_en_app],
                                 ['ID en la app', w.id_aplicacion],
-                                ['TelÃ©fono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono, w.telefono ? `https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}` : undefined],
-                                ['PaÃ­s', w.pais],
-                                ['MÃ©todo de pago', w.metodo_pago],
+                                ['Teléfono', w.codigo_pais && w.telefono ? `${w.codigo_pais} ${w.telefono}` : w.telefono, w.telefono ? `https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}` : undefined],
+                                ['País', w.pais],
+                                ['Método de pago', w.metodo_pago],
                                 ['Billetera', w.billetera],
                                 ['Agente', agentNameMap[w.agente ?? ''] ?? w.agente],
                               ] as [string, string | null, string?][]).map(([label, value, href]) => (
@@ -1445,7 +1445,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                   <Bell className="w-3.5 h-3.5" />
                                 )}
                                 <span>
-                                  {testPushOk[w.id] ? 'â NotificaciÃ³n enviada' : testPushSending[w.id] ? 'Enviando...' : 'NotificaciÃ³n de prueba'}
+                                  {testPushOk[w.id] ? '✓ Notificación enviada' : testPushSending[w.id] ? 'Enviando...' : 'Notificación de prueba'}
                                 </span>
                               </button>
                               <span className="text-xs text-white/25">Solo le llega a ella</span>
@@ -1474,7 +1474,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                         const group = solicitudes.filter(s => s.status === status)
                         if (group.length === 0) return null
                         const colors: Record<string,string> = { pending:'amber', approved:'green', rejected:'red' }
-                        const labels: Record<string,string> = { pending:'â³ Pendientes', approved:'â Aprobadas', rejected:'â Rechazadas' }
+                        const labels: Record<string,string> = { pending:'⏳ Pendientes', approved:'✓ Aprobadas', rejected:'✗ Rechazadas' }
                         const c = colors[status]
                         return (
                           <div key={status}>
@@ -1530,7 +1530,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       }
                     `}</style>
 
-                  {/* ââ App selector âââââââââââââââââââââââââââââââââââââ */}
+                  {/* ── App selector ───────────────────────────────────── */}
                   <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
                     {(['Waha','Layla','Howdy'] as const).map(app => (
                       <button key={app} onClick={() => { setChannelApp(app); setChannelContent(''); setChannelFile(null); setChannelPreview(null); setChannelImage(''); fetchChannelMessages(app); if(adminPayApp===app) fetchAdminPayStk(app) }}
@@ -1547,7 +1547,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                     ))}
                   </div>
 
-                  {/* ââ SECCIÃN TELEGRAM ââââââââââââââââââââââââââââââââââ */}
+                  {/* ══ SECCIÓN TELEGRAM ══════════════════════════════════ */}
                   <div style={{marginBottom:16,borderRadius:18,overflow:'hidden',border:'1px solid rgba(44,165,224,0.18)',boxShadow:'0 2px 20px rgba(0,0,0,0.25)'}}>
                     {/* Collapse header */}
                     <button onClick={()=>setTgOpen(o=>!o)}
@@ -1558,12 +1558,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                         <Send style={{width:16,height:16,color:'white'}}/>
                       </div>
                       <div style={{flex:1}}>
-                        <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal Telegram â {channelApp}</div>
+                        <div style={{color:'white',fontWeight:700,fontSize:15}}>Canal Telegram — {channelApp}</div>
                         <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Comunicados oficiales a trabajadoras y agentes</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:10}}>
                         <span style={{background:'rgba(44,165,224,0.2)',color:'#2ca5e0',fontSize:12,fontWeight:700,padding:'3px 10px',borderRadius:20}}>{channelMessages.length} msgs</span>
-                        <span style={{color:'rgba(255,255,255,0.4)',fontSize:18,transition:'transform 0.25s',display:'inline-block',transform:tgOpen?'rotate(180deg)':'rotate(0deg)'}}>â</span>
+                        <span style={{color:'rgba(255,255,255,0.4)',fontSize:18,transition:'transform 0.25s',display:'inline-block',transform:tgOpen?'rotate(180deg)':'rotate(0deg)'}}>⌄</span>
                       </div>
                     </button>
 
@@ -1580,7 +1580,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                               <span style={{color:'white',fontWeight:700,fontSize:15}}>Canal {channelApp}</span>
                               <span style={{background:'#2ca5e0',borderRadius:5,padding:'1px 7px',fontSize:9,color:'white',fontWeight:800,letterSpacing:0.5}}>CANAL</span>
                             </div>
-                            <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Eclipse Angels Agency Â· Vista Admin</div>
+                            <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Eclipse Angels Agency · Vista Admin</div>
                           </div>
                         </div>
                         {/* Messages list */}
@@ -1593,9 +1593,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                           ) : channelMessages.length === 0 ? (
                             <div style={{textAlign:'center',padding:'56px 24px'}}>
                               <div style={{width:58,height:58,borderRadius:'50%',background:'rgba(44,165,224,0.08)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
-                                <span style={{fontSize:28}}>ð¢</span>
+                                <span style={{fontSize:28}}>📢</span>
                               </div>
-                              <p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>Sin publicaciones en {channelApp} aÃºn</p>
+                              <p style={{color:'rgba(255,255,255,0.25)',fontSize:13,margin:0}}>Sin publicaciones en {channelApp} aún</p>
                             </div>
                           ) : (
                             <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -1663,7 +1663,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                     )}
                   </div>
 
-                  {/* ââ SECCIÃN WHATSAPP PAGOS ââââââââââââââââââââââââââââ */}
+                  {/* ══ SECCIÓN WHATSAPP PAGOS ════════════════════════════ */}
                   <div style={{borderRadius:18,overflow:'hidden',border:'1px solid rgba(37,211,102,0.18)',boxShadow:'0 2px 20px rgba(0,0,0,0.25)'}}>
                     {/* Collapse header */}
                     <button onClick={()=>setWaOpen(o=>!o)}
@@ -1674,12 +1674,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                           <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${adminPayApp.toLowerCase()}.jpg`} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                         </div>
                       <div style={{flex:1}}>
-                        <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos WhatsApp â {adminPayApp}</div>
+                        <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos WhatsApp — {adminPayApp}</div>
                         <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Stickers enviados al confirmar pagos</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:10}}>
                         <span style={{background:'rgba(37,211,102,0.15)',color:'#25d366',fontSize:12,fontWeight:700,padding:'3px 10px',borderRadius:20}}>{adminPayStk.filter(s=>s.app_name===adminPayApp).length} pagos</span>
-                        <span style={{color:'rgba(255,255,255,0.4)',fontSize:18,transition:'transform 0.25s',display:'inline-block',transform:waOpen?'rotate(180deg)':'rotate(0deg)'}}>â</span>
+                        <span style={{color:'rgba(255,255,255,0.4)',fontSize:18,transition:'transform 0.25s',display:'inline-block',transform:waOpen?'rotate(180deg)':'rotate(0deg)'}}>⌄</span>
                       </div>
                     </button>
 
@@ -1696,7 +1696,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                               <span style={{color:'white',fontWeight:700,fontSize:15}}>Pagos {adminPayApp}</span>
                               <span style={{background:'#25d366',borderRadius:5,padding:'1px 7px',fontSize:9,color:'white',fontWeight:800,letterSpacing:0.5}}>PAGOS</span>
                             </div>
-                            <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Canal de confirmaciones de pago Â· Vista Admin</div>
+                            <div style={{color:'rgba(255,255,255,0.35)',fontSize:12,marginTop:1}}>Canal de confirmaciones de pago · Vista Admin</div>
                           </div>
                         </div>
                         {/* App sub-selector */}
@@ -1717,7 +1717,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                             style={{marginLeft:'auto',padding:'5px 12px',borderRadius:20,border:'1px solid rgba(37,211,102,0.3)',background:'transparent',cursor:'pointer',color:'#25d366',fontSize:12,fontWeight:700,transition:'all 0.15s'}}
                             onMouseEnter={e=>{e.currentTarget.style.background='rgba(37,211,102,0.1)'}}
                             onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
-                            â» Refrescar
+                            ↻ Refrescar
                           </button>
                         </div>
                         {/* Stickers list */}
@@ -1729,9 +1729,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                             </div>
                           ) : adminPayStk.filter(s=>s.app_name===adminPayApp).length===0 ? (
                             <div style={{textAlign:'center',padding:'56px 24px'}}>
-                              <div style={{fontSize:42,marginBottom:12}}>ð¸</div>
+                              <div style={{fontSize:42,marginBottom:12}}>💸</div>
                               <p style={{color:'rgba(255,255,255,0.3)',fontSize:14,margin:0,fontWeight:600}}>Sin pagos confirmados en {adminPayApp}</p>
-                              <p style={{color:'rgba(255,255,255,0.15)',fontSize:12,marginTop:6}}>AparecerÃ¡n aquÃ­ cuando alguien confirme su pago</p>
+                              <p style={{color:'rgba(255,255,255,0.15)',fontSize:12,marginTop:6}}>Aparecerán aquí cuando alguien confirme su pago</p>
                             </div>
                           ) : (
                             <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -1752,7 +1752,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                         <img src={stickerImg} alt="Pago recibido" style={{width:200,height:200,objectFit:'cover',display:'block'}}/>
                                         <div style={{position:'absolute',bottom:6,right:8,background:'rgba(0,0,0,0.55)',borderRadius:8,padding:'2px 7px',display:'flex',alignItems:'center',gap:4}}>
                                           <span style={{color:'rgba(255,255,255,0.9)',fontSize:11,fontWeight:600}}>{sentTime}</span>
-                                          <span style={{color:'rgba(255,255,255,0.5)',fontSize:10}}>Â· {sentDate}</span>
+                                          <span style={{color:'rgba(255,255,255,0.5)',fontSize:10}}>· {sentDate}</span>
                                         </div>
                                       </div>
                                     </div>
@@ -1781,21 +1781,21 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       </div>
                       <button onClick={fetchAllPagosData} disabled={pagosLoading}
                         className="px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
-                        {pagosLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : 'â»'}
+                        {pagosLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
                       </button>
                     </div>
 
                     {/* SQL setup notice */}
                     {pagosNeedSetup && (
                       <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-5">
-                        <p className="text-amber-300 text-sm font-bold mb-1">â ï¸ Falta crear la tabla en Supabase</p>
-                        <p className="text-white/40 text-xs">Ejecuta el SQL de payment_confirmations en el editor SQL de Supabase y recarga la pÃ¡gina.</p>
+                        <p className="text-amber-300 text-sm font-bold mb-1">⚠️ Falta crear la tabla en Supabase</p>
+                        <p className="text-white/40 text-xs">Ejecuta el SQL de payment_confirmations en el editor SQL de Supabase y recarga la página.</p>
                       </div>
                     )}
 
-                    {/* The 3 bars â always visible */}
+                    {/* The 3 bars — always visible */}
                     {(() => {
-                      // Multi-app map: user_id â [{app_name, nombre_en_app, id_aplicacion}]
+                      // Multi-app map: user_id → [{app_name, nombre_en_app, id_aplicacion}]
                       const workerAppsMap: Record<string, {app_name:string;nombre_en_app:string|null;id_aplicacion:string|null}[]> = {}
                       for (const r of (pagosData as any[])) {
                         if (!workerAppsMap[r.user_id]) workerAppsMap[r.user_id] = []
@@ -1820,14 +1820,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       const dualCards = Object.values(dualCardsMap)
                       const dualEfectivo = dualCards.filter(d => d.isEfectivo)
                       const dualAgencia = dualCards.filter(d => !d.isEfectivo)
-                      // Progress: Efectivo (colider) â colider_paid OR agent confirmed payment received
+                      // Progress: Efectivo (colider) — colider_paid OR agent confirmed payment received
                       const coliderWorkerDone = efectivoRows.filter((r: any) => r.colider_paid === true).length
                       const coliderAgentDone = agentEfectivo.filter((a: any) => a.colider_paid === true || agentConfirmedIds.has(a.id)).length
                       const dualEfectivoDone = dualEfectivo.filter((d: any) => d.agentRow.colider_paid === true || agentConfirmedIds.has(d.agentRow.id)).length
                       const coliderDone = coliderWorkerDone + coliderAgentDone + dualEfectivoDone
                       const coliderTotal = efectivoRows.length + agentEfectivo.length + dualEfectivo.length
                       const coliderPct = coliderTotal > 0 ? Math.round(coliderDone / coliderTotal * 100) : 0
-                      // Progress: Pagos Agencia (admin) â admin_paid OR agent confirmed payment received
+                      // Progress: Pagos Agencia (admin) — admin_paid OR agent confirmed payment received
                       const agenciaDoneWorkers = agenciaRows.filter((r: any) => r.admin_paid === true).length
                       const agenciaDoneAgents = agentAgencia.filter((a: any) => agentAdminPaidIds.has(a.agent_user_id) || agentConfirmedIds.has(a.id)).length
                       const dualAgenciaDone = dualAgencia.filter((d: any) => agentAdminPaidIds.has(d.agentRow.agent_user_id) || agentConfirmedIds.has(d.agentRow.id)).length
@@ -1841,21 +1841,21 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       const APPS = ['Waha', 'Layla', 'Howdy'] as const
                       return (
                         <div className="space-y-4">
-                          {/* ââ BARRA EFECTIVO âââââââââââââââââââââââââââââââ */}
+                          {/* ── BARRA EFECTIVO ─────────────────────────────── */}
                           <div className="bg-[#0d0d1e] border border-teal-500/15 rounded-2xl overflow-hidden">
                             <button onClick={() => setEfectivoExpanded(v => !v)}
                               className="w-full p-4 text-left hover:bg-teal-500/5 transition-colors">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-bold text-teal-300/80 uppercase tracking-wider flex items-center gap-2">
-                                  ðµ Pago en Efectivo
-                                  <span className="text-teal-400/40 text-[10px] font-normal">{efectivoExpanded ? 'â² Ocultar' : 'â¼ Ver'}</span>
+                                  💵 Pago en Efectivo
+                                  <span className="text-teal-400/40 text-[10px] font-normal">{efectivoExpanded ? '▲ Ocultar' : '▼ Ver'}</span>
                                 </span>
-                                <span className="text-xs font-bold text-white/40">{coliderDone}/{coliderTotal} Â· {coliderPct}%</span>
+                                <span className="text-xs font-bold text-white/40">{coliderDone}/{coliderTotal} · {coliderPct}%</span>
                               </div>
                               <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full bg-teal-400 transition-all duration-500 rounded-full" style={{ width: `${coliderPct}%` }} />
                               </div>
-                              <p className="text-xs text-white/20 mt-1.5">Colider confirma cada pago Â· toca para ver personas</p>
+                              <p className="text-xs text-white/20 mt-1.5">Colider confirma cada pago · toca para ver personas</p>
                             </button>
                             {efectivoExpanded && (
                               <div className="border-t border-teal-500/10 p-4 space-y-3">
@@ -1863,7 +1863,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                   <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-white/5 rounded-2xl animate-pulse" />)}</div>
                                 ) : (
                                   <>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400/60 mb-2 px-1">ð©âð» Trabajadora</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400/60 mb-2 px-1">👩‍💻 Trabajadora</p>
                                     {/* Workers per app */}
                                     {APPS.map(app => {
                                       const appRows = efectivoRows.filter((r: any) => r.app_name === app)
@@ -1887,7 +1887,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="flex-1 min-w-0">
                                                     <div className="flex items-baseline gap-2 flex-wrap">
-                                                      <p className="text-sm font-bold text-white leading-tight">{row.apodo || row.nombre_en_app || row.nombre_real || 'â'}</p>
+                                                      <p className="text-sm font-bold text-white leading-tight">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
                                                       {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-[11px] text-white/35 leading-tight">{row.nombre_real}</p>}
                                                     </div>
                                                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -1909,15 +1909,15 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                   <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                                     <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
-                                                      {row.has_custom ? 'â Excl' : 'Global'}{usedRate ? ` Ã${usedRate}` : ''}
+                                                      {row.has_custom ? '★ Excl' : 'Global'}{usedRate ? ` ×${usedRate}` : ''}
                                                     </span>
                                                     {row.metodo_pago && <span className="text-[10px] text-white/30 truncate">{row.metodo_pago}</span>}
                                                   </div>
                                                   <div className="flex items-center gap-1.5 shrink-0">
-                                                    {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider â</span>}
+                                                    {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span>}
                                                     {row.colider_paid === false && <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full whitespace-nowrap">Sin pagar</span>}
                                                     {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
-                                                    {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">ConfirmÃ³ â</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                    {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                   </div>
                                                 </div>
                                               </div>
@@ -1930,10 +1930,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     {/* Efectivo agents */}
                                     {agentEfectivo.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">ð Agente</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">👑 Agente</p>
                                         <div className="space-y-2">
                                           {agentEfectivo.map((row: any, idx: number) => {
-                                            const agentDisplayName = (agentNameMap[row.agent_name] ?? row.agent_name) || 'â'
+                                            const agentDisplayName = (agentNameMap[row.agent_name] ?? row.agent_name) || '—'
                                             const agentInitial = agentDisplayName[0]?.toUpperCase() ?? '?'
                                             const isConfirmed = agentConfirmedIds.has(row.id)
                                             const fullyDone = row.colider_paid && isConfirmed
@@ -1949,6 +1949,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                   <p className="text-sm font-bold text-white leading-tight">{agentDisplayName}</p>
+                                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                                    <span className="inline-flex items-center gap-1 bg-amber-500/8 border border-amber-500/15 rounded-lg px-2 py-0.5">
+                                                      <span className="text-[10px] text-amber-400/80 font-semibold">{row.app_name}</span>
+                                                    </span>
+                                                  </div>
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                   <p className="text-base font-bold text-amber-300 leading-tight">${usd.toFixed(2)}</p>
@@ -1957,7 +1962,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               </div>
                                               <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                  {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/5 border border-white/10 text-white/35 shrink-0">Global Ã{rates['efectivo_agent']}</span>}
+                                                  {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['efectivo_agent']}</span>}
                                                   {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
                                                   {billetera && (
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'ae'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
@@ -1967,10 +1972,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   )}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 shrink-0">
-                                                  {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider â</span>}
+                                                  {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span>}
                                                   {row.colider_paid === false && <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-300/70 px-2 py-0.5 rounded-full whitespace-nowrap">Sin pagar</span>}
                                                   {(row.colider_paid === null || row.colider_paid === undefined) && <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
-                                                  {isConfirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">ConfirmÃ³ â</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                  {isConfirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                 </div>
                                               </div>
                                             </div>
@@ -1981,7 +1986,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     )}
                                     {dualEfectivo.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">ð Agente + Trabajadora</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">🔗 Agente + Trabajadora</p>
                                         <div className="space-y-2">
                                           {dualEfectivo.map((d, _di) => {
                                             const workerTotalD = d.workerRows.reduce((s:number,r:any)=>s+Number(r.usd||0),0)
@@ -1999,7 +2004,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="flex-1 min-w-0">
                                                     <div className="flex items-baseline gap-2 flex-wrap">
-                                                      <p className="text-sm font-bold text-white leading-tight">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || 'â'}</p>
+                                                      <p className="text-sm font-bold text-white leading-tight">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
                                                       {d.workerRows[0]?.nombre_real && <p className="text-[11px] text-white/35">{d.workerRows[0].nombre_real}</p>}
                                                     </div>
                                                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -2023,10 +2028,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                                     {d.workerRows[0]?.has_custom !== undefined && (
                                                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
-                                                        {d.workerRows[0]?.has_custom ? 'â Excl' : 'Global'}
+                                                        {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
                                                       </span>
                                                     )}
-                                                    <span className="text-[10px] text-white/25">ð ${agentTotalD.toFixed(2)} comisiÃ³n</span>
+                                                    <span className="text-[10px] text-white/25">👑 ${agentTotalD.toFixed(2)} comisión</span>
                                                     {metodoD && <span className="text-[10px] text-white/25 truncate">{metodoD}</span>}
                                                     {billeteraD && (
                                                       <button onClick={() => { navigator.clipboard.writeText(billeteraD); setCopiedBilletera(d.agent_user_id + 'de'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
@@ -2036,8 +2041,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     )}
                                                   </div>
                                                   <div className="flex items-center gap-1.5 shrink-0">
-                                                    {coliderPaidD ? <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider â</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
-                                                    {agentConfirmedD ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">ConfirmÃ³ â</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                    {coliderPaidD ? <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
+                                                    {agentConfirmedD ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                   </div>
                                                 </div>
                                               </div>
@@ -2055,21 +2060,21 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                             )}
                           </div>
 
-                          {/* ââ BARRA PAGOS AGENCIA âââââââââââââââââââââââââââ */}
+                          {/* ── BARRA PAGOS AGENCIA ─────────────────────────── */}
                           <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl overflow-hidden">
                             <button onClick={() => setAgenciaExpanded(v => !v)}
                               className="w-full p-4 text-left hover:bg-purple-500/5 transition-colors">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-bold text-purple-300/80 uppercase tracking-wider flex items-center gap-2">
-                                  ð³ Pagos Agencia
-                                  <span className="text-purple-400/40 text-[10px] font-normal">{agenciaExpanded ? 'â² Ocultar' : 'â¼ Ver'}</span>
+                                  💳 Pagos Agencia
+                                  <span className="text-purple-400/40 text-[10px] font-normal">{agenciaExpanded ? '▲ Ocultar' : '▼ Ver'}</span>
                                 </span>
-                                <span className="text-xs font-bold text-white/40">{agenciaDone}/{agenciaTotal} Â· {agenciaPct}%</span>
+                                <span className="text-xs font-bold text-white/40">{agenciaDone}/{agenciaTotal} · {agenciaPct}%</span>
                               </div>
                               <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full bg-purple-400 transition-all duration-500 rounded-full" style={{ width: `${agenciaPct}%` }} />
                               </div>
-                              <p className="text-xs text-white/20 mt-1.5">Admin marca pagado Â· toca para ver personas</p>
+                              <p className="text-xs text-white/20 mt-1.5">Admin marca pagado · toca para ver personas</p>
                             </button>
                             {agenciaExpanded && (
                               <div className="border-t border-purple-500/10 p-4 space-y-3">
@@ -2077,7 +2082,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                   <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-white/5 rounded-2xl animate-pulse" />)}</div>
                                 ) : (
                                   <>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-2 px-1">ð©âð» Trabajadora</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-2 px-1">👩‍💻 Trabajadora</p>
                                     {APPS.map(app => {
                                       const appRows = agenciaRows.filter((r: any) => r.app_name === app)
                                       if (!appRows.length) return null
@@ -2100,7 +2105,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="flex-1 min-w-0">
                                                     <div className="flex items-baseline gap-2 flex-wrap">
-                                                      <p className="text-sm font-bold text-white leading-tight">{row.apodo || row.nombre_en_app || row.nombre_real || 'â'}</p>
+                                                      <p className="text-sm font-bold text-white leading-tight">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
                                                       {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-[11px] text-white/35 leading-tight">{row.nombre_real}</p>}
                                                     </div>
                                                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -2122,7 +2127,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                   <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                                     <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
-                                                      {row.has_custom ? 'â Excl' : 'Global'}{usedRate ? ` Ã${usedRate}` : ''}
+                                                      {row.has_custom ? '★ Excl' : 'Global'}{usedRate ? ` ×${usedRate}` : ''}
                                                     </span>
                                                     {row.metodo_pago && <span className="text-[10px] text-white/30 truncate">{row.metodo_pago}</span>}
                                                     {row.billetera && (<button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera(row.salary_id + 't'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
@@ -2131,7 +2136,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     </button>)}
                                                   </div>
                                                   <div className="flex items-center gap-1.5 shrink-0">
-                                                    {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">ConfirmÃ³ â</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                    {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                     <button
                                                       onClick={() => toggleAdminPaid(row.id_aplicacion, row.app_name, row.semana)}
                                                       disabled={!row.id_aplicacion || togglingAdminPaid === row.id_aplicacion}
@@ -2140,7 +2145,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                         {row.admin_paid && <Check className="w-2.5 h-2.5 text-white" />}
                                                         {togglingAdminPaid === row.id_aplicacion && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
                                                       </div>
-                                                      <span className={`text-[10px] font-medium whitespace-nowrap ${row.admin_paid ? 'text-purple-300' : 'text-white/30'}`}>{row.admin_paid ? 'Pagado â' : 'Marcar'}</span>
+                                                      <span className={`text-[10px] font-medium whitespace-nowrap ${row.admin_paid ? 'text-purple-300' : 'text-white/30'}`}>{row.admin_paid ? 'Pagado ✓' : 'Marcar'}</span>
                                                     </button>
                                                   </div>
                                                 </div>
@@ -2154,10 +2159,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     {/* Agencia agents */}
                                     {agentAgencia.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">ð Agente</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/50 mb-2 px-1">👑 Agente</p>
                                         <div className="space-y-2">
                                           {agentAgencia.map((row: any, idx: number) => {
-                                            const agentDisplayName = (agentNameMap[row.agent_name] ?? row.agent_name) || 'â'
+                                            const agentDisplayName = (agentNameMap[row.agent_name] ?? row.agent_name) || '—'
                                             const agentInitial = agentDisplayName[0]?.toUpperCase() ?? '?'
                                             const isConfirmed = agentConfirmedIds.has(row.id)
                                             const isPaid = agentAdminPaidIds.has(row.agent_user_id)
@@ -2174,6 +2179,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                   <p className="text-sm font-bold text-white leading-tight">{agentDisplayName}</p>
+                                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                                    <span className="inline-flex items-center gap-1 bg-amber-500/8 border border-amber-500/15 rounded-lg px-2 py-0.5">
+                                                      <span className="text-[10px] text-amber-400/80 font-semibold">{row.app_name}</span>
+                                                    </span>
+                                                  </div>
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                   <p className="text-base font-bold text-amber-300 leading-tight">${usd.toFixed(2)}</p>
@@ -2182,7 +2192,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               </div>
                                               <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                  {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/5 border border-white/10 text-white/35 shrink-0">Global Ã{rates['transferencia_agent']}</span>}
+                                                  {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['transferencia_agent']}</span>}
                                                   {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
                                                   {billetera && (
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
@@ -2192,7 +2202,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   )}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 shrink-0">
-                                                  {isConfirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">ConfirmÃ³ â</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                  {isConfirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                   <button
                                                     onClick={() => toggleAgentAdminPaid(row.agent_user_id, row.app_name, row.semana)}
                                                     disabled={!row.agent_user_id || togglingAgentAdminPaid === row.agent_user_id}
@@ -2201,7 +2211,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                       {isPaid && <Check className="w-2.5 h-2.5 text-white" />}
                                                       {togglingAgentAdminPaid === row.agent_user_id && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
                                                     </div>
-                                                    <span className={`text-[10px] font-medium whitespace-nowrap ${isPaid ? 'text-purple-300' : 'text-white/30'}`}>{isPaid ? 'Pagado â' : 'Marcar'}</span>
+                                                    <span className={`text-[10px] font-medium whitespace-nowrap ${isPaid ? 'text-purple-300' : 'text-white/30'}`}>{isPaid ? 'Pagado ✓' : 'Marcar'}</span>
                                                   </button>
                                                 </div>
                                               </div>
@@ -2213,7 +2223,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     )}
                                     {dualAgencia.length > 0 && (
                                       <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">ð Agente + Trabajadora</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-2 px-1">🔗 Agente + Trabajadora</p>
                                         <div className="space-y-2">
                                           {dualAgencia.map((d, _di2) => {
                                             const workerTotalA = d.workerRows.reduce((s:number,r:any)=>s+Number(r.usd||0),0)
@@ -2232,7 +2242,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="flex-1 min-w-0">
                                                     <div className="flex items-baseline gap-2 flex-wrap">
-                                                      <p className="text-sm font-bold text-white leading-tight">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || 'â'}</p>
+                                                      <p className="text-sm font-bold text-white leading-tight">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
                                                       {d.workerRows[0]?.nombre_real && <p className="text-[11px] text-white/35">{d.workerRows[0].nombre_real}</p>}
                                                     </div>
                                                     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -2256,10 +2266,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                                     {d.workerRows[0]?.has_custom !== undefined && (
                                                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
-                                                        {d.workerRows[0]?.has_custom ? 'â Excl' : 'Global'}
+                                                        {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
                                                       </span>
                                                     )}
-                                                    <span className="text-[10px] text-white/25 shrink-0">ð ${agentTotalA.toFixed(2)} comisiÃ³n</span>
+                                                    <span className="text-[10px] text-white/25 shrink-0">👑 ${agentTotalA.toFixed(2)} comisión</span>
                                                     {metodoA && <span className="text-[10px] text-white/25 truncate">{metodoA}</span>}
                                                     {billeteraA && (
                                                       <button onClick={() => { navigator.clipboard.writeText(billeteraA); setCopiedBilletera(d.agent_user_id + 'd'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
@@ -2269,13 +2279,13 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     )}
                                                   </div>
                                                   <div className="flex items-center gap-1.5 shrink-0">
-                                                    {agentConfirmedA ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">ConfirmÃ³ â</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                    {agentConfirmedA ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                     <button onClick={() => toggleAgentAdminPaid(d.agent_user_id, d.agentRow.app_name, d.agentRow.semana)} disabled={!d.agent_user_id || togglingAgentAdminPaid === d.agent_user_id} className={`flex items-center gap-1 transition-all ${!d.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
                                                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${adminPaidA ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
                                                         {adminPaidA && <Check className="w-2.5 h-2.5 text-white" />}
                                                         {togglingAgentAdminPaid === d.agent_user_id && <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin" />}
                                                       </div>
-                                                      <span className={`text-[10px] font-medium whitespace-nowrap ${adminPaidA ? 'text-purple-300' : 'text-white/30'}`}>{adminPaidA ? 'Pagado â' : 'Marcar'}</span>
+                                                      <span className={`text-[10px] font-medium whitespace-nowrap ${adminPaidA ? 'text-purple-300' : 'text-white/30'}`}>{adminPaidA ? 'Pagado ✓' : 'Marcar'}</span>
                                                     </button>
                                                   </div>
                                                 </div>
@@ -2294,21 +2304,21 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                             )}
                           </div>
 
-                          {/* ââ TOTAL GENERAL âââââââââââââââââââââââââââââââââ */}
+                          {/* ── TOTAL GENERAL ───────────────────────────────── */}
                           <div className={`bg-[#0d0d1e] border rounded-2xl p-4 ${totalPct === 100 && totalTotal > 0 ? 'border-green-500/30' : 'border-white/8'}`}>
                             <div className="flex items-center justify-between mb-2">
-                              <span className={`text-xs font-bold uppercase tracking-wider ${totalPct === 100 && totalTotal > 0 ? 'text-green-300/80' : 'text-white/40'}`}>ð Total General</span>
-                              <span className="text-xs font-bold text-white/40">{totalDone}/{totalTotal} Â· {totalPct}%</span>
+                              <span className={`text-xs font-bold uppercase tracking-wider ${totalPct === 100 && totalTotal > 0 ? 'text-green-300/80' : 'text-white/40'}`}>🏆 Total General</span>
+                              <span className="text-xs font-bold text-white/40">{totalDone}/{totalTotal} · {totalPct}%</span>
                             </div>
                             <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                               <div className={`h-full transition-all duration-500 rounded-full ${totalPct === 100 && totalTotal > 0 ? 'bg-green-400' : 'bg-gradient-to-r from-teal-400 to-purple-400'}`} style={{ width: `${totalPct}%` }} />
                             </div>
                             <p className={`text-xs mt-1 ${totalPct === 100 && totalTotal > 0 ? 'text-green-400/60 font-semibold' : 'text-white/20'}`}>
-                              {totalTotal === 0 ? 'Publica nÃ³minas para ver el progreso' : totalPct === 100 ? 'â Todos los pagos confirmados â cierre semanal disponible' : 'Efectivo (colÃ­der) + Pagos Agencia (admin)'}
+                              {totalTotal === 0 ? 'Publica nóminas para ver el progreso' : totalPct === 100 ? '✅ Todos los pagos confirmados — cierre semanal disponible' : 'Efectivo (colíder) + Pagos Agencia (admin)'}
                             </p>
                           </div>
 
-                          {/* ââ CIERRE SEMANAL âââââââââââââââââââââââââââââââ */}
+                          {/* ── CIERRE SEMANAL ─────────────────────────────── */}
                           <div className="pt-1">
                             {cierreMsg && (
                               <div className={`mb-3 p-3 rounded-xl text-xs font-semibold ${cierreMsg.ok ? 'bg-green-500/10 border border-green-500/25 text-green-300' : 'bg-red-500/10 border border-red-500/25 text-red-300'}`}>
@@ -2321,7 +2331,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                               className={`w-full px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${totalPct === 100 && totalTotal > 0 ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/30' : 'bg-white/5 border border-white/10 text-white/25 cursor-not-allowed'}`}>
                               {cierreLoading
                                 ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Cerrando semana...</>
-                                : <>ð Cerrar semana</>
+                                : <>🔒 Cerrar semana</>
                               }
                             </button>
                             {totalPct < 100 && totalTotal > 0 && !cierreLoading && (
@@ -2364,8 +2374,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-7 h-7 rounded-lg bg-purple-500/15 flex items-center justify-center text-purple-400 font-bold text-xs shrink-0">{w.app_name[0]}</div>
                                 <div className="min-w-0">
-                                  <p className="text-white/80 text-sm font-semibold truncate">{w.nombre_real || w.nombre_en_app || 'â'}</p>
-                                  <p className="text-white/35 text-xs truncate">{w.profile_email} Â· {w.app_name}</p>
+                                  <p className="text-white/80 text-sm font-semibold truncate">{w.nombre_real || w.nombre_en_app || '—'}</p>
+                                  <p className="text-white/35 text-xs truncate">{w.profile_email} · {w.app_name}</p>
                                 </div>
                               </div>
                               {w.pais && <span className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full hidden sm:block shrink-0">{w.pais}</span>}
@@ -2395,11 +2405,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                         <input value={agentFormName} onChange={e => setAgentFormName(e.target.value)}
                           placeholder="Nombre del agente" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                         <input value={agentFormEmail} onChange={e => setAgentFormEmail(e.target.value)}
-                          placeholder="Correo electrÃ³nico" type="email" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                          placeholder="Correo electrónico" type="email" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                         <input value={agentFormPassword} onChange={e => setAgentFormPassword(e.target.value)}
-                          placeholder="ContraseÃ±a" type="password" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                          placeholder="Contraseña" type="password" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                         <input value={agentFormPhone} onChange={e => setAgentFormPhone(e.target.value)}
-                          placeholder="TelÃ©fono con cÃ³digo de paÃ­s (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
+                          placeholder="Teléfono con código de país (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-purple-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-purple-400/50" />
                       </div>
                       <button onClick={createAgent} disabled={creatingAgent}
                         className="mt-3 flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
@@ -2413,24 +2423,24 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                         <span className="text-xs text-white/30">{agents.length} agente{agents.length !== 1 ? 's' : ''}</span>
                       </div>
                       {agents.length === 0 ? (
-                        <div className="p-8 text-center text-white/25 text-sm">No hay agentes registrados aÃºn.</div>
+                        <div className="p-8 text-center text-white/25 text-sm">No hay agentes registrados aún.</div>
                       ) : (
                         <div className="divide-y divide-white/4">
                           {agents.map(ag => (
                             <div key={ag.id} className="px-5 py-3 flex items-center justify-between gap-3">
                               <div>
-                                <p className="text-white/80 text-sm font-semibold">{ag.agent_name || 'â'}</p>
+                                <p className="text-white/80 text-sm font-semibold">{ag.agent_name || '—'}</p>
                                 <p className="text-white/35 text-xs">{ag.email}</p>
                                 {ag.agent_code && (
                                   <div className="flex items-center gap-1.5 mt-1">
-                                    <span className="text-amber-400/60 text-xs">CÃ³digo:</span>
+                                    <span className="text-amber-400/60 text-xs">Código:</span>
                                     <span className="text-amber-300 font-mono font-bold text-xs tracking-wider">{ag.agent_code}</span>
                                   </div>
                                 )}
                                 {ag.phone && (
                                   <a href={`https://wa.me/${cleanNum(ag.phone)}`} target="_blank" rel="noreferrer"
                                     className="mt-1 flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors">
-                                    <span>ð±</span><span>{ag.phone}</span>
+                                    <span>📱</span><span>{ag.phone}</span>
                                   </a>
                                 )}
                               </div>
@@ -2438,12 +2448,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                 <button
                                     onClick={() => sendTestPushToAgent(ag)}
                                     disabled={testPushSending[ag.id]}
-                                    title="Enviar notificaciÃ³n de prueba"
+                                    title="Enviar notificación de prueba"
                                     className={`flex items-center gap-1.5 ${testPushOk[ag.id] ? 'bg-green-600' : testPushNoSub[ag.id] ? 'bg-orange-600/80' : 'bg-blue-600/80 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all`}>
                                     {testPushSending[ag.id]
                                       ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                       : testPushNoSub[ag.id] ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
-                                    {testPushOk[ag.id] ? 'â Enviado' : testPushNoSub[ag.id] ? 'Sin suscripciÃ³n' : testPushSending[ag.id] ? 'Enviando...' : 'Notificar'}
+                                    {testPushOk[ag.id] ? '✓ Enviado' : testPushNoSub[ag.id] ? 'Sin suscripción' : testPushSending[ag.id] ? 'Enviando...' : 'Notificar'}
                                   </button>
                                 <button
                                     onClick={() => grantAgentChannels(ag.id)}
@@ -2453,7 +2463,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                     {grantingChannels[ag.id]
                                       ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                       : <MessageSquare className="w-3 h-3" />}
-                                    {channelsGranted[ag.id] ? 'â Canales' : grantingChannels[ag.id] ? '...' : 'Dar canales'}
+                                    {channelsGranted[ag.id] ? '✓ Canales' : grantingChannels[ag.id] ? '...' : 'Dar canales'}
                                   </button>
                                 <span className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Agente</span>
                               </div>
@@ -2469,7 +2479,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       </div>
                       {coliderSetupNeeded && (
                         <div className="mb-4 bg-amber-500/8 border border-amber-500/20 rounded-xl p-4">
-                          <p className="text-amber-300 text-sm font-bold mb-2">â ï¸ Falta migraciÃ³n de base de datos</p>
+                          <p className="text-amber-300 text-sm font-bold mb-2">⚠️ Falta migración de base de datos</p>
                           <p className="text-white/50 text-xs mb-2">Ejecuta este SQL en el Editor SQL de Supabase:</p>
                           <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all">{`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_colider boolean DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS colider_name text;
@@ -2500,7 +2510,7 @@ ALTER TABLE colider_week_status ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON colider_marks TO service_role;
 GRANT ALL ON colider_week_status TO service_role;
 
--- Bloqueo semanal de mÃ©todo de pago (trabajadoras, agentes, coliders)
+-- Bloqueo semanal de método de pago (trabajadoras, agentes, coliders)
 CREATE TABLE IF NOT EXISTS payment_method_locks (
   user_id text PRIMARY KEY,
   locked boolean DEFAULT false,
@@ -2508,7 +2518,7 @@ CREATE TABLE IF NOT EXISTS payment_method_locks (
 );
 ALTER TABLE payment_method_locks ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON payment_method_locks TO service_role;`}</pre>
-                          <p className="text-white/30 text-xs mt-2">Luego recarga esta pÃ¡gina.</p>
+                          <p className="text-white/30 text-xs mt-2">Luego recarga esta página.</p>
                         </div>
                       )}
                       {coliderCreateMsg && (
@@ -2520,18 +2530,18 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                         <input value={coliderFormName} onChange={e => setColiderFormName(e.target.value)}
                           placeholder="Nombre del colider" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
                         <input value={coliderFormEmail} onChange={e => setColiderFormEmail(e.target.value)}
-                          placeholder="Correo electrÃ³nico" type="email" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                          placeholder="Correo electrónico" type="email" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
                         <input value={coliderFormPassword} onChange={e => setColiderFormPassword(e.target.value)}
-                          placeholder="ContraseÃ±a" type="password" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                          placeholder="Contraseña" type="password" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
                         <input value={coliderFormTelefono} onChange={e => setColiderFormTelefono(e.target.value)}
-                          placeholder="TelÃ©fono (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
+                          placeholder="Teléfono (ej: +5351234567)" type="tel" className="bg-[#07070f] border border-teal-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-teal-400/50" />
                       </div>
                       <button onClick={createColider} disabled={creatingColider}
                         className="mt-3 flex items-center gap-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
                         {creatingColider ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Shield className="w-4 h-4" />}
                         {creatingColider ? 'Creando...' : 'Crear colider'}
                       </button>
-                      <p className="mt-3 text-xs text-white/25">El colider podrÃ¡ marcar pagos entregados desde su panel en <code className="text-teal-400/60">/colider</code></p>
+                      <p className="mt-3 text-xs text-white/25">El colider podrá marcar pagos entregados desde su panel en <code className="text-teal-400/60">/colider</code></p>
                     </div>
                     {coliders.length > 0 && (
                       <div className="bg-[#0d0d1e] border border-teal-500/10 rounded-2xl overflow-hidden">
@@ -2543,12 +2553,12 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                           {coliders.map(c => (
                             <div key={c.id} className="px-5 py-3 flex items-center justify-between gap-3">
                               <div>
-                                <p className="text-white/80 text-sm font-semibold">{c.colider_name || 'â'}</p>
+                                <p className="text-white/80 text-sm font-semibold">{c.colider_name || '—'}</p>
                                 <p className="text-white/35 text-xs">{c.email}</p>
                                 {c.telefono && (
                                   <a href={`https://wa.me/${cleanNum(c.telefono)}`} target="_blank" rel="noreferrer"
                                     className="mt-1 flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors">
-                                    <span>ð±</span><span>{c.telefono}</span>
+                                    <span>📱</span><span>{c.telefono}</span>
                                   </a>
                                 )}
                               </div>
@@ -2556,12 +2566,12 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                   <button
                                     onClick={() => sendTestPushToColider(c)}
                                     disabled={testPushSending[c.id]}
-                                    title="Enviar notificaciÃ³n de prueba"
+                                    title="Enviar notificación de prueba"
                                     className={`flex items-center gap-1.5 ${testPushOk[c.id] ? 'bg-green-600' : testPushNoSub[c.id] ? 'bg-orange-600/80' : 'bg-blue-600/80 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all`}>
                                     {testPushSending[c.id]
                                       ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                       : testPushNoSub[c.id] ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
-                                    {testPushOk[c.id] ? 'â Enviado' : testPushNoSub[c.id] ? 'Sin suscripciÃ³n' : testPushSending[c.id] ? 'Enviando...' : 'Notificar'}
+                                    {testPushOk[c.id] ? '✓ Enviado' : testPushNoSub[c.id] ? 'Sin suscripción' : testPushSending[c.id] ? 'Enviando...' : 'Notificar'}
                                   </button>
                                   <button
                                     onClick={() => grantColiderChannels(c.id)}
@@ -2569,7 +2579,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-600/20 hover:bg-teal-600/40 border border-teal-500/30 text-teal-300 disabled:opacity-50 transition-all">
                                     {grantingColiderChannels[c.id]
                                       ? <div className="w-3 h-3 border-2 border-teal-300 border-t-transparent rounded-full animate-spin" />
-                                      : coliderChannelsGranted[c.id] ? 'â' : <Radio className="w-3 h-3" />}
+                                      : coliderChannelsGranted[c.id] ? '✓' : <Radio className="w-3 h-3" />}
                                     {coliderChannelsGranted[c.id] ? 'Dados' : 'Dar canales'}
                                   </button>
                                   <span className="text-xs bg-teal-500/10 border border-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">Colider</span>
@@ -2588,8 +2598,8 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                   {/* TRABAJADORAS */}
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70 mb-4 flex items-center gap-2">
-                      <span className="text-base">ð±</span> Cambio para Trabajadoras
-                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">â Waha y Howdy Ãºnicamente</span>
+                      <span className="text-base">💱</span> Cambio para Trabajadoras
+                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">— Waha y Howdy únicamente</span>
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {([
@@ -2612,7 +2622,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                               disabled={savingRate === id}
                               className={`flex items-center gap-1.5 ${rateSaved === id ? 'bg-green-600' : `bg-${color}-600 hover:bg-${color}-500`} disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shrink-0`}>
                               {savingRate === id ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                              {rateSaved === id ? 'â Publicado' : (savingRate === id ? '...' : 'Publicar')}
+                              {rateSaved === id ? '✓ Publicado' : (savingRate === id ? '...' : 'Publicar')}
                             </button>
                           </div>
                         </div>
@@ -2623,8 +2633,8 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                   {/* AGENTES */}
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-4 flex items-center gap-2">
-                      <span className="text-base">ð±</span> Cambio para Agentes
-                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">â independiente al de trabajadoras</span>
+                      <span className="text-base">💱</span> Cambio para Agentes
+                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">— independiente al de trabajadoras</span>
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {([
@@ -2647,7 +2657,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                               disabled={savingRate === id}
                               className={`flex items-center gap-1.5 ${rateSaved === id ? 'bg-green-600' : `bg-${color}-600 hover:bg-${color}-500`} disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shrink-0`}>
                               {savingRate === id ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                              {rateSaved === id ? 'â Publicado' : (savingRate === id ? '...' : 'Publicar')}
+                              {rateSaved === id ? '✓ Publicado' : (savingRate === id ? '...' : 'Publicar')}
                             </button>
                           </div>
                         </div>
@@ -2658,12 +2668,12 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                   {/* CAMBIO PERSONALIZADO */}
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-400/70 mb-4 flex items-center gap-2">
-                      <span className="text-base">ð¯</span> Cambio Personalizado por Chica
-                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">â sobreescribe el general</span>
+                      <span className="text-base">🎯</span> Cambio Personalizado por Chica
+                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">— sobreescribe el general</span>
                     </h3>
                     {customRateSetupNeeded ? (
                       <div className="bg-[#0d0d1e] border border-yellow-500/20 rounded-2xl p-5">
-                        <p className="text-yellow-400 text-xs font-bold mb-2">â ï¸ Tabla no creada aÃºn â ejecuta esto en Supabase SQL Editor:</p>
+                        <p className="text-yellow-400 text-xs font-bold mb-2">⚠️ Tabla no creada aún — ejecuta esto en Supabase SQL Editor:</p>
                         <pre className="text-white/50 text-xs bg-black/30 rounded-xl p-3 overflow-x-auto select-all">{'CREATE TABLE IF NOT EXISTS custom_worker_rates (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  user_id text NOT NULL,\n  app_name text NOT NULL,\n  nombre_en_app text,\n  efectivo_rate numeric(10,2) NOT NULL DEFAULT 0,\n  transferencia_rate numeric(10,2) NOT NULL DEFAULT 0,\n  updated_at timestamptz DEFAULT now(),\n  UNIQUE(user_id, app_name)\n);'}</pre>
                       </div>
                     ) : (
@@ -2690,12 +2700,12 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                 <div className="flex items-start justify-between mb-3">
                                   <div>
                                     <p className="text-white text-sm font-semibold">{w.nombre_en_app}</p>
-                                    {existing && <p className="text-emerald-400 text-xs mt-0.5">ð¯ Activo Â· ef. {existing.efectivo_rate.toLocaleString('es-ES')} Â· transf. {existing.transferencia_rate.toLocaleString('es-ES')} CUP/USD</p>}
+                                    {existing && <p className="text-emerald-400 text-xs mt-0.5">🎯 Activo · ef. {existing.efectivo_rate.toLocaleString('es-ES')} · transf. {existing.transferencia_rate.toLocaleString('es-ES')} CUP/USD</p>}
                                   </div>
                                   {existing && (
                                     <button onClick={() => deleteCustomRate(w)} disabled={deletingCustomRate === key}
                                       className="text-red-400/60 hover:text-red-400 text-xs px-2 py-1 rounded-lg transition-all disabled:opacity-50">
-                                      {deletingCustomRate === key ? '...' : 'â Quitar'}
+                                      {deletingCustomRate === key ? '...' : '✕ Quitar'}
                                     </button>
                                   )}
                                 </div>
@@ -2711,7 +2721,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                       <button onClick={() => saveCustomRate(w, 'efectivo')} disabled={savingCustomRate === `${key}__efectivo`}
                                         className={`flex items-center gap-1 ${savedCustomRate === `${key}__efectivo` ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
                                         {savingCustomRate === `${key}__efectivo` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                                        {savedCustomRate === `${key}__efectivo` ? 'â' : (savingCustomRate === `${key}__efectivo` ? '' : 'Pub.')}
+                                        {savedCustomRate === `${key}__efectivo` ? '✓' : (savingCustomRate === `${key}__efectivo` ? '' : 'Pub.')}
                                       </button>
                                     </div>
                                   </div>
@@ -2726,7 +2736,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                       <button onClick={() => saveCustomRate(w, 'transferencia')} disabled={savingCustomRate === `${key}__transferencia`}
                                         className={`flex items-center gap-1 ${savedCustomRate === `${key}__transferencia` ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
                                         {savingCustomRate === `${key}__transferencia` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                                        {savedCustomRate === `${key}__transferencia` ? 'â' : (savingCustomRate === `${key}__transferencia` ? '' : 'Pub.')}
+                                        {savedCustomRate === `${key}__transferencia` ? '✓' : (savingCustomRate === `${key}__transferencia` ? '' : 'Pub.')}
                                       </button>
                                     </div>
                                   </div>
@@ -2747,10 +2757,10 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                 </div>
               )}
 
-                  {/* âââ NO COBRARON TAB âââââââââââââââââââââââââââââââââââââââââââââââ */}
+                  {/* ─── NO COBRARON TAB ─────────────────────────────────────────────── */}
 
                 {tab === 'chicas' && (() => {
-                  // Build codeâname lookup from agents state
+                  // Build code→name lookup from agents state
                   const agentCodeToName: Record<string, string> = {}
                   for (const a of agents) {
                     if (a.agent_code) agentCodeToName[a.agent_code.trim()] = a.agent_name || a.colider_name || a.email || a.agent_code
@@ -2805,7 +2815,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                       </div>
 
                       <p className="text-white/30 text-xs">
-                        {agentNames.length} agente{agentNames.length !== 1 ? 's' : ''} Â· {workers.length} entrada{workers.length !== 1 ? 's' : ''} totales
+                        {agentNames.length} agente{agentNames.length !== 1 ? 's' : ''} · {workers.length} entrada{workers.length !== 1 ? 's' : ''} totales
                       </p>
 
                       {/* Agent accordion cards */}
@@ -2832,7 +2842,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                 <div>
                                   <p className="font-bold text-white text-sm">{resolveAgentName(agente)}</p>
                                   <p className="text-white/35 text-xs mt-0.5">
-                                    {uniqueGirls.length} chica{uniqueGirls.length !== 1 ? 's' : ''} Â· {agentWorkers.length} entrada{agentWorkers.length !== 1 ? 's' : ''}
+                                    {uniqueGirls.length} chica{uniqueGirls.length !== 1 ? 's' : ''} · {agentWorkers.length} entrada{agentWorkers.length !== 1 ? 's' : ''}
                                   </p>
                                 </div>
                               </div>
@@ -2857,7 +2867,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                   </p>
                                   <div className="flex flex-wrap gap-2">
                                     {uniqueGirls.map((entries, i) => {
-                                      const nombre = entries[0].nombre_real || entries[0].nombre_en_app || 'â'
+                                      const nombre = entries[0].nombre_real || entries[0].nombre_en_app || '—'
                                       return (
                                         <button key={i} onClick={() => setChicasModal(entries)}
                                           className="bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/20 hover:border-purple-400/40 text-purple-200 text-xs font-medium px-3 py-1.5 rounded-xl transition-all">
@@ -2879,7 +2889,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                         <button key={i}
                                           onClick={() => setChicasModal(agentWorkers.filter(aw => (aw.nombre_real || aw.nombre_en_app || '').toLowerCase().trim() === (w.nombre_real || w.nombre_en_app || '').toLowerCase().trim()))}
                                           className="bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/15 hover:border-blue-400/30 text-blue-200 text-xs font-medium px-3 py-1.5 rounded-xl transition-all">
-                                          {w.nombre_real || w.nombre_en_app || 'â'}
+                                          {w.nombre_real || w.nombre_en_app || '—'}
                                           {w.nombre_en_app && w.nombre_real && w.nombre_en_app !== w.nombre_real && (
                                             <span className="text-blue-400/40 ml-1">({w.nombre_en_app})</span>
                                           )}
@@ -2899,7 +2909,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                         const firstPhone = chicasModal.find(w => w.telefono)
                         const phoneRaw = firstPhone ? cleanFullPhone(firstPhone.codigo_pais, firstPhone.telefono) : ''
                         const phoneDisplay = firstPhone ? `${firstPhone.codigo_pais ? firstPhone.codigo_pais + ' ' : ''}${firstPhone.telefono}` : null
-                        const nombreReal = chicasModal[0].nombre_real || 'â'
+                        const nombreReal = chicasModal[0].nombre_real || '—'
                         const agente = chicasModal[0].agente
                         const aName = agente ? (agentNameMap[agente] ?? agente) : null
                         const aPhone = agente ? agentPhoneMap[agente] : null
@@ -2909,7 +2919,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                           <div className="bg-[#0d0d1e] border border-purple-500/20 rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl"
                             onClick={e => e.stopPropagation()}>
 
-                            {/* ââ Header ââ */}
+                            {/* ── Header ── */}
                             <div className="flex items-center justify-between px-6 py-4 border-b border-purple-500/10 sticky top-0 bg-[#0d0d1e]">
                               <div>
                                 <p className="font-bold text-white text-base">{nombreReal}</p>
@@ -2922,7 +2932,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
 
                             <div className="p-5 space-y-4">
 
-                              {/* ââ Datos personales (nivel persona) ââ */}
+                              {/* ── Datos personales (nivel persona) ── */}
                               <div className="bg-[#07070f] rounded-xl p-4 border border-indigo-500/15 space-y-3">
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/60">Datos personales</p>
 
@@ -2932,9 +2942,9 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                   <p className="text-white/90 text-sm font-semibold">{nombreReal}</p>
                                 </div>
 
-                                {/* TelÃ©fono â siempre visible */}
+                                {/* Teléfono — siempre visible */}
                                 <div>
-                                  <p className="text-white/30 text-xs mb-0.5">TelÃ©fono</p>
+                                  <p className="text-white/30 text-xs mb-0.5">Teléfono</p>
                                   {phoneDisplay ? (
                                     <a
                                       href={`https://wa.me/${phoneRaw}`}
@@ -2942,10 +2952,10 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                       rel="noreferrer"
                                       className="inline-flex items-center gap-2 bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-semibold px-3 py-1.5 rounded-xl hover:bg-green-500/25 transition-colors"
                                     >
-                                      ð± {phoneDisplay} Â· WhatsApp â
+                                      📱 {phoneDisplay} · WhatsApp ↗
                                     </a>
                                   ) : (
-                                    <p className="text-white/25 text-sm">â sin telÃ©fono registrado</p>
+                                    <p className="text-white/25 text-sm">— sin teléfono registrado</p>
                                   )}
                                 </div>
 
@@ -2954,21 +2964,21 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                   <div>
                                     <p className="text-white/30 text-xs mb-0.5">Agente</p>
                                     {aPhone
-                                      ? <a href={`https://wa.me/${cleanNum(aPhone)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-amber-300 text-sm font-medium hover:text-amber-200 transition-colors">{aName} <span>ð±</span></a>
+                                      ? <a href={`https://wa.me/${cleanNum(aPhone)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-amber-300 text-sm font-medium hover:text-amber-200 transition-colors">{aName} <span>📱</span></a>
                                       : <p className="text-white/80 text-sm font-medium">{aName}</p>}
                                   </div>
                                 )}
 
-                                {/* PaÃ­s */}
+                                {/* País */}
                                 {chicasModal[0].pais && (
                                   <div>
-                                    <p className="text-white/30 text-xs mb-0.5">PaÃ­s</p>
+                                    <p className="text-white/30 text-xs mb-0.5">País</p>
                                     <p className="text-white/80 text-sm font-medium">{chicasModal[0].pais}</p>
                                   </div>
                                 )}
                               </div>
 
-                              {/* ââ Por app ââ */}
+                              {/* ── Por app ── */}
                               <div className="space-y-3">
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400/60 px-1">
                                   Apps registradas ({chicasModal.length})
@@ -2981,20 +2991,20 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                       <span className="text-blue-300 text-xs font-bold tracking-wide">{w.app_name}</span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 text-xs">
-                                      {/* Nombre en app â siempre */}
+                                      {/* Nombre en app — siempre */}
                                       <div>
                                         <p className="text-white/30 mb-0.5">Nombre en app</p>
-                                        <p className="text-white/85 font-medium">{w.nombre_en_app || 'â'}</p>
+                                        <p className="text-white/85 font-medium">{w.nombre_en_app || '—'}</p>
                                       </div>
-                                      {/* ID en app â siempre */}
+                                      {/* ID en app — siempre */}
                                       <div>
                                         <p className="text-white/30 mb-0.5">ID en app</p>
-                                        <p className="text-white/85 font-semibold font-mono">{w.id_aplicacion || 'â'}</p>
+                                        <p className="text-white/85 font-semibold font-mono">{w.id_aplicacion || '—'}</p>
                                       </div>
-                                      {/* MÃ©todo de pago */}
+                                      {/* Método de pago */}
                                       {w.metodo_pago && (
                                         <div>
-                                          <p className="text-white/30 mb-0.5">MÃ©todo de pago</p>
+                                          <p className="text-white/30 mb-0.5">Método de pago</p>
                                           <p className="text-white/80 font-medium">{w.metodo_pago}</p>
                                         </div>
                                       )}
@@ -3005,13 +3015,13 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                           <p className="text-white/80 font-medium font-mono break-all">{w.billetera}</p>
                                         </div>
                                       )}
-                                      {/* TelÃ©fono de esta app si es distinto al principal */}
+                                      {/* Teléfono de esta app si es distinto al principal */}
                                       {w.telefono && cleanFullPhone(w.codigo_pais, w.telefono) !== phoneRaw && (
                                         <div className="col-span-2">
-                                          <p className="text-white/30 mb-0.5">TelÃ©fono (esta app)</p>
+                                          <p className="text-white/30 mb-0.5">Teléfono (esta app)</p>
                                           <a href={`https://wa.me/${cleanFullPhone(w.codigo_pais, w.telefono)}`} target="_blank" rel="noreferrer"
                                             className="inline-flex items-center gap-1.5 text-green-300 font-medium hover:text-green-200 transition-colors">
-                                            ð± {w.codigo_pais} {w.telefono} Â· WhatsApp â
+                                            📱 {w.codigo_pais} {w.telefono} · WhatsApp ↗
                                           </a>
                                         </div>
                                       )}
@@ -3033,7 +3043,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                       <div className="space-y-6 max-w-3xl">
                         {noCobroSetupNeeded ? (
                           <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-6">
-                            <p className="text-amber-300 text-sm font-bold mb-2">â ï¸ Falta crear las tablas en Supabase</p>
+                            <p className="text-amber-300 text-sm font-bold mb-2">⚠️ Falta crear las tablas en Supabase</p>
                             <p className="text-white/50 text-xs mb-3">Ejecuta este SQL en el Editor SQL de Supabase:</p>
                             <pre className="text-[11px] text-emerald-300/80 bg-black/40 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap select-all text-left">{`CREATE TABLE IF NOT EXISTS weekly_no_cobro (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -3070,7 +3080,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                               </div>
                               <button onClick={fetchNoCobro} disabled={noCobroLoading}
                                 className="ml-auto px-3 py-2 rounded-xl text-sm font-bold bg-[#0d0d1e] border border-white/10 text-white/40 hover:text-white transition-all disabled:opacity-40">
-                                {noCobroLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : 'â»'}
+                                {noCobroLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-transparent rounded-full animate-spin" /> : '↻'}
                               </button>
                             </div>
 
@@ -3080,7 +3090,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                             ) : noCobroEntries.length === 0 ? (
                               <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-12 text-center">
                                 <p className="text-white/40 text-sm">No hay trabajadoras en la lista de no cobraron.</p>
-                                <p className="text-white/25 text-xs mt-1">AparecerÃ¡n aquÃ­ automÃ¡ticamente al subir nÃ³minas.</p>
+                                <p className="text-white/25 text-xs mt-1">Aparecerán aquí automáticamente al subir nóminas.</p>
                               </div>
                             ) : (() => {
                               // Helpers
@@ -3090,7 +3100,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                 return d.length >= 7 ? `https://wa.me/${d}` : null
                               }
 
-                              // Group by user_id+app_name â pick latest, count weeks
+                              // Group by user_id+app_name → pick latest, count weeks
                               const grouped: Record<string, any[]> = {}
                               for (const e of noCobroEntries) {
                                 const k = `${e.user_id}_${e.app_name}`
@@ -3165,7 +3175,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                             {waLink && (
                                               <a href={waLink} target="_blank" rel="noopener noreferrer"
                                                 className="text-[10px] bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-1 rounded-lg hover:bg-green-500/25 transition-colors font-semibold">
-                                                WA â
+                                                WA ↗
                                               </a>
                                             )}
                                           </div>
@@ -3183,12 +3193,12 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                         {/* Agent section header */}
                                         <div className="flex items-center gap-2 mb-2 px-1">
                                           <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400/70">
-                                            {agentCode === 'sin_agente' ? `Sin agente asignado â ${rows.length} sin cobrar` : `Agente: ${rep.agente_name || agentCode} â ${rows.length} sin cobrar`}
+                                            {agentCode === 'sin_agente' ? `Sin agente asignado — ${rows.length} sin cobrar` : `Agente: ${rep.agente_name || agentCode} — ${rows.length} sin cobrar`}
                                           </h3>
                                           {agentWa && (
                                             <a href={agentWa} target="_blank" rel="noopener noreferrer"
                                               className="text-[10px] bg-green-500/15 border border-green-500/25 text-green-300 px-2 py-0.5 rounded-full hover:bg-green-500/25 font-semibold">
-                                              WhatsApp â
+                                              WhatsApp ↗
                                             </a>
                                           )}
                                         </div>
@@ -3204,13 +3214,13 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                                 {/* Status icon */}
                                                 <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
                                                   style={{background: row.is_justified ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)'}}>
-                                                  <span className="text-sm">{row.is_justified ? 'â¸' : 'â'}</span>
+                                                  <span className="text-sm">{row.is_justified ? '⏸' : '✕'}</span>
                                                 </div>
 
                                                 {/* Main info */}
                                                 <div className="flex-1 min-w-0">
                                                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                                    <p className="text-sm font-bold text-white leading-tight">{row.nombre_en_app || row.nombre_real || 'â'}</p>
+                                                    <p className="text-sm font-bold text-white leading-tight">{row.nombre_en_app || row.nombre_real || '—'}</p>
                                                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${row.app_name === 'Waha' ? 'bg-blue-500/15 border-blue-500/20 text-blue-300' : row.app_name === 'Layla' ? 'bg-pink-500/15 border-pink-500/20 text-pink-300' : 'bg-orange-500/15 border-orange-500/20 text-orange-300'}`}>
                                                       {row.app_name}
                                                     </span>
@@ -3222,10 +3232,10 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                                                     {workerWa ? (
                                                       <a href={workerWa} target="_blank" rel="noopener noreferrer"
                                                         className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold transition-colors">
-                                                        ð± {rawPhone}
+                                                        📱 {rawPhone}
                                                       </a>
                                                     ) : row.telefono_worker && (
-                                                      <span className="text-xs text-white/35">ð± {row.telefono_worker}</span>
+                                                      <span className="text-xs text-white/35">📱 {row.telefono_worker}</span>
                                                     )}
                                                   </div>
                                                   <p className="text-xs mt-1 font-semibold" style={{color: weeksColor}}>
@@ -3270,12 +3280,12 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                   </div>
                   <div>
                     <p className="text-base font-bold text-red-300">Borrar todo el historial</p>
-                    <p className="text-xs text-white/35 mt-0.5">Esta acciÃ³n no se puede deshacer</p>
+                    <p className="text-xs text-white/35 mt-0.5">Esta acción no se puede deshacer</p>
                   </div>
                 </div>
                 <div className="bg-red-950/40 border border-red-500/15 rounded-xl p-4 mb-5 space-y-1">
-                  <p className="text-xs font-bold text-red-300 mb-2">Se borrarÃ¡ permanentemente:</p>
-                  {['Salarios publicados de todas las trabajadoras','Comisiones de todos los agentes','Confirmaciones de pago (trabajadoras y agentes)','Marcas del colider','Lista de no-cobraron','Historial de nÃ³minas subidas al admin','Registro de comisiones publicadas del colider','EstadÃ­sticas del ranking del mes (se reiniciarÃ¡ desde cero)','Mensajes de los canales Telegram (Waha, Layla, Howdy)','Stickers de pagos del canal WhatsApp'].map(item => (
+                  <p className="text-xs font-bold text-red-300 mb-2">Se borrará permanentemente:</p>
+                  {['Salarios publicados de todas las trabajadoras','Comisiones de todos los agentes','Confirmaciones de pago (trabajadoras y agentes)','Marcas del colider','Lista de no-cobraron','Historial de nóminas subidas al admin','Registro de comisiones publicadas del colider','Estadísticas del ranking del mes (se reiniciará desde cero)','Mensajes de los canales Telegram (Waha, Layla, Howdy)','Stickers de pagos del canal WhatsApp'].map(item => (
                     <div key={item} className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
                       <p className="text-xs text-white/55">{item}</p>
