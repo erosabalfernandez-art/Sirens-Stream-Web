@@ -1791,6 +1791,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     const [setupNeeded, setSetupNeeded] = useState(false)
     const [savingCustomKey, setSavingCustomKey] = useState<string|null>(null)
     const [customInputs, setCustomInputs] = useState<Record<string,{ef:string,tr:string}>>({})
+      const [agentColiderMap, setAgentColiderMap] = useState<Record<string, {is_agent: boolean; is_colider: boolean}>>({})
 
   if (!loading && user && profile !== undefined && !profile?.is_admin) navigate('/perfil')
 
@@ -1854,9 +1855,13 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
         ])
         if (ratesRes.setup_needed) { setSetupNeeded(true); setLoadingCustom(false); return }
         const workers = (workersRes.workers ?? []) as {user_id:string;app_name:string;nombre_en_app:string|null;nombre_real:string|null;metodo_pago:string|null;telefono:string|null;codigo_pais:string|null;id_aplicacion:string|null}[]
-        const { data: agentProfs } = await supabase.from('profiles').select('id').or('is_agent.eq.true,is_colider.eq.true')
-        const agentIds = new Set(((agentProfs ?? []) as {id:string}[]).map(p => p.id))
-        setAllWorkers(workers.filter(w => !agentIds.has(w.user_id)))
+        const { data: agentProfs } = await supabase.from('profiles').select('id,is_agent,is_colider').or('is_agent.eq.true,is_colider.eq.true')
+          const acMap: Record<string, {is_agent: boolean; is_colider: boolean}> = {}
+          for (const p of ((agentProfs ?? []) as {id:string; is_agent: boolean; is_colider: boolean}[])) {
+            acMap[p.id] = { is_agent: !!p.is_agent, is_colider: !!p.is_colider }
+          }
+          setAgentColiderMap(acMap)
+          setAllWorkers(workers)
         // Only keep rates that are actually active (non-zero) — filters out ghost records
         // from deleted users and rows left over from a previous cierre with rate=0
         const activeRates = ((ratesRes.rates ?? []) as CustomWorkerRate[]).filter(
@@ -2056,7 +2061,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
 
               {showPersonalizado && (
                 <div className="border-t border-violet-500/10 p-5">
-                  <p className="text-white/40 text-xs mb-4 leading-relaxed">
+                    Asigna un tipo de cambio exclusivo a trabajadoras o a agentes/coliders que también son streamers. Ese cambio reemplaza el global solo para ellos — lo verán en sus salarios. Para agentes y coliders, este cambio aplica únicamente a su salario como trabajadora, NO a sus comisiones.
                     Asigna un tipo de cambio exclusivo a trabajadoras específicas. Ese cambio reemplaza el global solo para ellas — lo verán en sus salarios y el colider lo verá en sus cálculos.
                   </p>
 
@@ -2165,14 +2170,24 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                           return (
                             <div key={uid} className="bg-black/20 border border-white/8 rounded-xl p-3 space-y-2">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-white/80 text-sm font-semibold">{nomReal ?? '—'}</span>
-                                {tel && (
-                                  <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
-                                    className="text-xs text-green-400 hover:text-green-300 underline">
-                                    📱 {tel}
-                                  </a>
+                                  <span className="text-white/80 text-sm font-semibold">{nomReal ?? '—'}</span>
+                                  {agentColiderMap[uid]?.is_agent && (
+                                    <span className="text-xs bg-amber-500/15 border border-amber-500/25 text-amber-300 px-1.5 py-0.5 rounded font-bold tracking-wide">AGENTE+TRABAJADORA</span>
+                                  )}
+                                  {agentColiderMap[uid]?.is_colider && (
+                                    <span className="text-xs bg-blue-500/15 border border-blue-500/25 text-blue-300 px-1.5 py-0.5 rounded font-bold tracking-wide">COLIDER+TRABAJADORA</span>
+                                  )}
+                                  {tel && (
+                                    <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
+                                      className="text-xs text-green-400 hover:text-green-300 underline">
+                                      📱 {tel}
+                                    </a>
+                                  )}
+                                </div>
+                                {(agentColiderMap[uid]?.is_agent || agentColiderMap[uid]?.is_colider) && (
+                                  <p className="text-amber-400/70 text-xs leading-relaxed bg-amber-500/5 border border-amber-500/15 rounded-lg px-2 py-1.5">⚠️ Este cambio aplica <strong>solo a su salario como trabajadora</strong>, no a sus comisiones de agente/colider.</p>
                                 )}
-                              </div>
+                                {group.map(w => {
                               {group.map(w => {
                                 const k        = w.user_id + '::' + w.app_name
                                 const existing = customRates.find(r => r.user_id === w.user_id && r.app_name === w.app_name)
