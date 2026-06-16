@@ -133,7 +133,62 @@ import { Router } from 'express'
           } catch {}
         }
 
-      const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : lockedAgents.has(`__name__:${a.agent_name}`), apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
+      
+      // Step 3: Enrich agentMap with workers from worker_entries + published_salaries
+      // so every registered worker appears even if they were never in a nomina upload.
+      try {
+        const [allAgentProfiles, allWorkerEntries, allSalaries] = await Promise.all([
+          sbGet('profiles?is_agent=eq.true&select=id,agent_code,agent_name,colider_name'),
+          sbGet('worker_entries?select=user_id,app_name,nombre_en_app,nombre_real,agente,id_aplicacion'),
+          sbGet('published_salaries?semana=eq.' + encodeURIComponent(semana) + '&select=user_id,app_name,usd'),
+        ])
+        const salaryByUid: Record<string, number> = {}
+        for (const s of (allSalaries as any[])) salaryByUid[s.user_id + '__' + s.app_name] = Number(s.usd) || 0
+
+        for (const agentProfile of (allAgentProfiles as any[])) {
+          const agentCode = agentProfile.agent_code as string | null
+          if (!agentCode) continue
+          const agentId = agentProfile.id as string
+          const displayName = (agentProfile.colider_name ?? agentProfile.agent_name ?? agentCode) as string
+          const myWorkers = (allWorkerEntries as any[]).filter((w: any) => w.agente === agentCode)
+          if (myWorkers.length === 0) continue
+
+          let mapKey = Object.keys(agentMap).find(k => agentMap[k].agent_user_id === agentId)
+          if (!mapKey) mapKey = Object.keys(agentMap).find(k => agentMap[k].agent_name === displayName || agentMap[k].agent_name === agentCode)
+          if (!mapKey) {
+            mapKey = agentId
+            agentMap[mapKey] = { agent_name: displayName, agent_user_id: agentId, apps: {} }
+          } else {
+            agentMap[mapKey].agent_user_id = agentMap[mapKey].agent_user_id ?? agentId
+            agentMap[mapKey].agent_name = displayName
+          }
+
+          for (const worker of myWorkers) {
+            const app = worker.app_name as string
+            if (!agentMap[mapKey].apps[app]) agentMap[mapKey].apps[app] = []
+            const workerName = (worker.nombre_en_app ?? '') as string
+            const workerIdApp = (worker.id_aplicacion ?? null) as string | null
+            const workerRealName = (worker.nombre_real ?? null) as string | null
+            const alreadyIn = agentMap[mapKey].apps[app].some((w: any) =>
+              w.worker_name === workerName || (workerIdApp && w.worker_uid === workerIdApp)
+            )
+            if (alreadyIn) continue
+            const salUsd = salaryByUid[worker.user_id + '__' + app] ?? 0
+            const pubKey = agentId + '__' + app + '__' + workerName
+            agentMap[mapKey].apps[app].push({
+              worker_uid: workerIdApp,
+              worker_name: workerName,
+              worker_real_name: workerRealName,
+              agc_usd: 0,
+              salary_usd: salUsd,
+              monedas: app === 'Layla' ? (laylaMonedas[worker.user_id] ?? null) : null,
+              published_usd: pubMap[pubKey] ?? null,
+            })
+          }
+        }
+      } catch { /* enrichment is best-effort */ }
+
+const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, agent_user_id: a.agent_user_id, locked: a.agent_user_id ? lockedAgents.has(a.agent_user_id) : lockedAgents.has(`__name__:${a.agent_name}`), apps: Object.entries(a.apps).map(([appName, workers]) => ({ app_name: appName, workers })) }))
       const exchange_rates: Record<string, number> = {}
         for (const r of (exchangeRatesRows as any[])) exchange_rates[r.id] = Number(r.rate) || 0
         res.json({ semana, agents, colider_published: coliderLog.length > 0, colider_published_at: (coliderLog[0] as any)?.published_at ?? null, exchange_rates })
