@@ -753,33 +753,6 @@ import React, { useState, useEffect } from 'react'
                           </button>
                           )}
                         </div>
-                        {/* Per-app breakdown from published commissions */}
-                        {pubApps.length > 0 && (
-                          <div className="space-y-1.5">
-                            {pubApps.map(app => {
-                              const appUsd = publishedComms.filter(c => c.app_name === app).reduce((s, c) => s + (Number(c.commission_usd) || 0), 0)
-                              const rate = exchangeRates[`${agentPayMethod}_agent`] ?? 0
-                              return (
-                                <div key={app} className="flex items-center justify-between">
-                                  <span className="text-white/50 text-sm">{app} · <span className="text-green-400 font-bold">${appUsd.toFixed(2)}</span></span>
-                                  <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-300 font-extrabold text-lg`}>
-                                    {rate > 0 ? (appUsd * rate).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP' : <span className="text-white/25 text-sm">— sin tasa</span>}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                            {pubApps.length > 1 && (
-                              <div className="flex items-center justify-between border-t border-white/8 pt-2 mt-1">
-                                <span className="text-white/40 text-sm font-bold">Total · <span className="text-green-400">${pubTotalUSD.toFixed(2)}</span></span>
-                                <span className={`text-${agentPayMethod === 'efectivo' ? 'amber' : 'blue'}-300 font-extrabold text-xl`}>
-                                  {(exchangeRates[`${agentPayMethod}_agent`] ?? 0) > 0
-                                    ? (pubTotalUSD * (exchangeRates[`${agentPayMethod}_agent`] ?? 0)).toLocaleString('es-ES', {maximumFractionDigits: 0}) + ' CUP'
-                                    : <span className="text-white/25 text-sm">— sin tasa</span>}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
