@@ -32,6 +32,7 @@ import { InAppNotificationBanner } from "@/components/layout/InAppNotificationBa
   import Salarios from "@/pages/salarios";
   import Canales from "@/pages/canales";
   import AgentePanel from "@/pages/agente";
+  import Rendimiento from "@/pages/rendimiento";
   import Colider from "@/pages/colider";
 import ComisionesAgente from "@/pages/comisiones-agente";
 import Ranking from "@/pages/ranking";
@@ -105,6 +106,7 @@ import Ranking from "@/pages/ranking";
               {profile?.is_admin && <Route path="/nomina"  component={Nomina} />}
               {profile?.is_admin && <Route path="/comisiones-agente" component={ComisionesAgente} />}
               {(profile?.is_agent || profile?.is_colider) && <Route path="/agente" component={AgentePanel} />}
+                {(profile?.is_agent || profile?.is_colider) && <Route path="/agente/rendimiento" component={Rendimiento} />}
               {profile?.is_colider && <Route path="/colider" component={Colider} />}
               <Route path="/ranking" component={Ranking} />
               <Route component={() => <RedirectTo href={profile?.is_agent && !profile?.is_admin ? "/agente" : profile?.is_colider && !profile?.is_admin ? "/colider" : "/perfil"} />} />
