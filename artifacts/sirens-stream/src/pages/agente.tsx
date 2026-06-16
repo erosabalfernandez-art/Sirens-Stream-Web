@@ -896,6 +896,51 @@ import React, { useState, useEffect } from 'react'
                                 {expanded.has(sem) ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
                               </div>
                             </button>
+                            {/* Confirm payment buttons — always visible, one per app commission */}
+                            {semanaComms.length > 0 && (
+                              <div className="border-t border-amber-500/10 px-5 py-3 space-y-2">
+                                {semanaComms.map(comm => {
+                                  const isConfirmed = agentConfirmed.has(comm.id)
+                                  const isConfirming = agentConfirming === comm.id
+                                  const cupTotal = rate > 0 ? comm.total_commission_usd * rate : 0
+                                  return (
+                                    <div key={comm.id}>
+                                      {isConfirmed ? (
+                                        <div className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-bold">
+                                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                          Pago recibido confirmado · {comm.app_name}
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => { if (!isConfirming && agentPayMethod) confirmAgentPayment(comm.id, comm.semana, comm.app_name) }}
+                                          disabled={isConfirming || !agentPayMethod}
+                                          className={`w-full py-3 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                                            !agentPayMethod
+                                              ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
+                                              : isConfirming
+                                              ? 'bg-amber-600/40 text-white/50 cursor-wait border border-amber-500/20'
+                                              : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/20'
+                                          }`}>
+                                          {isConfirming
+                                            ? <><div className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin shrink-0" /> Confirmando...</>
+                                            : <><CheckCircle2 className="w-4 h-4 shrink-0" />
+                                                Confirmar pago recibido · {comm.app_name}
+                                                {cupTotal > 0 && <span className={`font-normal text-xs ml-1 ${agentPayMethod === 'efectivo' ? 'text-amber-200/70' : 'text-blue-200/70'}`}>
+                                                  ({cupTotal.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP)
+                                                </span>}
+                                              </>
+                                          }
+                                        </button>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                                {!agentPayMethod && semanaComms.some(c => !agentConfirmed.has(c.id)) && (
+                                  <p className="text-center text-xs text-white/30 pb-1">Elige tu método de cobro arriba para confirmar</p>
+                                )}
+                              </div>
+                            )}
+
                             {expanded.has(sem) && (
                               <div className="border-t border-purple-500/10 px-5 py-4 space-y-2">
                                 {rows.map((row, i) => {
@@ -937,51 +982,6 @@ import React, { useState, useEffect } from 'react'
                                     </div>
                                   )
                                 })}
-
-                                {/* Confirm payment buttons — one per agent_commissions record (per app) */}
-                                {semanaComms.length > 0 && (
-                                  <div className="border-t border-amber-500/10 pt-4 mt-2 space-y-2">
-                                    {semanaComms.map(comm => {
-                                      const isConfirmed = agentConfirmed.has(comm.id)
-                                      const isConfirming = agentConfirming === comm.id
-                                      const cupTotal = rate > 0 ? comm.total_commission_usd * rate : 0
-                                      return (
-                                        <div key={comm.id}>
-                                          {isConfirmed ? (
-                                            <div className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-bold">
-                                              <CheckCircle2 className="w-4 h-4 shrink-0" />
-                                              Pago recibido confirmado · {comm.app_name}
-                                            </div>
-                                          ) : (
-                                            <button
-                                              onClick={() => { if (!isConfirming && agentPayMethod) confirmAgentPayment(comm.id, comm.semana, comm.app_name) }}
-                                              disabled={isConfirming || !agentPayMethod}
-                                              className={`w-full py-3 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                                                !agentPayMethod
-                                                  ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
-                                                  : isConfirming
-                                                  ? 'bg-amber-600/40 text-white/50 cursor-wait border border-amber-500/20'
-                                                  : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/20'
-                                              }`}>
-                                              {isConfirming
-                                                ? <><div className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin shrink-0" /> Confirmando...</>
-                                                : <><CheckCircle2 className="w-4 h-4 shrink-0" />
-                                                    Confirmar pago recibido · {comm.app_name}
-                                                    {cupTotal > 0 && <span className={`font-normal text-xs ml-1 ${agentPayMethod === 'efectivo' ? 'text-amber-200/70' : 'text-blue-200/70'}`}>
-                                                      ({cupTotal.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP)
-                                                    </span>}
-                                                  </>
-                                              }
-                                            </button>
-                                          )}
-                                        </div>
-                                      )
-                                    })}
-                                    {!agentPayMethod && semanaComms.some(c => !agentConfirmed.has(c.id)) && (
-                                      <p className="text-center text-xs text-white/30 pt-1">Elige tu método de cobro arriba para confirmar</p>
-                                    )}
-                                  </div>
-                                )}
                               </div>
                             )}
                           </div>
