@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
   import { useAuth } from '@/contexts/AuthContext'
   import { useLocation } from 'wouter'
-  import { Phone, CheckCircle, Circle, Bell, BellOff, Lock, Clock, Users, DollarSign, AlertTriangle } from 'lucide-react'
+  import { Phone, CheckCircle, Circle, Bell, BellOff, Lock, Clock, Users, DollarSign } from 'lucide-react'
 import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
 function cleanNum(s: string | null | undefined): string { return (s ?? '').replace(/[^0-9]/g, '') }
@@ -25,22 +25,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
   }
 
 
-  interface NoCobro {
-    id: string
-    user_id: string
-    app_name: string
-    semana: string
-    nombre_en_app: string | null
-    nombre_real: string | null
-    email: string | null
-    justified: boolean
-    reason: string
-    created_at: string
-    id_aplicacion?: string | null
-    telefono_worker?: string | null
-    codigo_pais_worker?: string | null
-  }
-
   function fmtCup(n: number) { return n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }
 
   export default function Colider() {
@@ -56,9 +40,7 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
     const [loadingData, setLoadingData] = useState(false)
     const [notifying, setNotifying] = useState(false)
     const [toggling, setToggling] = useState<string | null>(null)
-  const [tab, setTab] = useState<'workers' | 'agents' | 'dual' | 'nocobro'>(() => { try { return (localStorage.getItem('ea_colider_tab') as any) || 'workers' } catch { return 'workers' } })
-    const [noCobroData, setNoCobroData] = useState<NoCobro[]>([])
-    const [noCobroLoading, setNoCobroLoading] = useState(false)
+  const [tab, setTab] = useState<'workers' | 'agents' | 'dual'>(() => { try { return (localStorage.getItem('ea_colider_tab') as any) || 'workers' } catch { return 'workers' } })
     const [notifyMsg, setNotifyMsg] = useState('')
 
   const [localAgentCode, setLocalAgentCode] = useState<string | null>(null)
@@ -72,7 +54,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
       if (!loading && profile && !profile?.is_colider && !profile?.is_admin) navigate('/perfil')
     }, [loading, profile])
     useEffect(() => { if (user) fetchWeeks() }, [user])
-    useEffect(() => { if (user) fetchNoCobro() }, [user])
 
   // Auto-generate agent_code for colider if not set yet
   useEffect(() => {
@@ -111,15 +92,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
         setWeeks(w)
         if (w.length > 0) setSemana(w[0])
       } catch {}
-    }
-
-    async function fetchNoCobro() {
-      setNoCobroLoading(true)
-      try {
-        const r = await fetch(`${API}/api/agent/no-cobro?agent_id=${user?.id ?? ''}`)
-        if (r.ok) { const d = await r.json() as { entries: NoCobro[] }; setNoCobroData(d.entries ?? []) }
-      } catch {}
-      setNoCobroLoading(false)
     }
 
     async function loadData() {
@@ -403,14 +375,10 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             <button onClick={() => setTab('workers')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'workers' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>👩 Trabajadoras ({pureWorkers.length})</button>
             <button onClick={() => setTab('agents')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'agents' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>🧡 Agentes ({pureAgents.length})</button>
             {dualUids.size > 0 && (<button onClick={() => setTab('dual')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'dual' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>🔗 Agente+Trabajadora ({dualUids.size})</button>)}
-            <button onClick={() => setTab('nocobro')}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'nocobro' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-[#0d0d1e] text-white/30 border border-white/5 hover:text-white/60'}`}>
-              🚨 Sin cobrar{noCobroData.length > 0 ? ` (${noCobroData.length})` : ''}
-            </button>
           </div>
 
-          {tab !== 'nocobro' && (
-            <>
+          <>
+
           {loadingData ? (
             <div className="space-y-2 mb-6">
               {[1,2,3].map(i => <div key={i} className="h-20 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
@@ -535,57 +503,6 @@ function cleanNum(s: string | null | undefined): string { return (s ?? '').repla
             </div>
           )}
           </>
-
-          )}
-
-          {/* ====== SIN COBRAR TAB ====== */}
-          {tab === 'nocobro' && (
-            <div className="mb-6">
-              {noCobroLoading ? (
-                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}</div>
-              ) : noCobroData.length === 0 ? (
-                <div className="bg-[#0d0d1e] border border-white/8 rounded-2xl p-12 text-center">
-                  <AlertTriangle className="w-8 h-8 text-white/15 mx-auto mb-3" />
-                  <p className="text-white/35 text-sm">Ninguna persona aparece sin cobrar todavía.</p>
-                  <p className="text-white/25 text-xs mt-1">Aparecerán aquí al publicar nóminas.</p>
-                </div>
-              ) : (() => {
-                const grouped = new Map<string, NoCobro[]>()
-                for (const e of noCobroData) {
-                  const k = e.user_id + '__' + e.app_name
-                  if (!grouped.has(k)) grouped.set(k, [])
-                  grouped.get(k)!.push(e)
-                }
-                const sorted = [...grouped.values()]
-                  .map(g => ({ ...g.sort((a, b) => b.semana.localeCompare(a.semana))[0], weeks_count: g.length }))
-                  .sort((a, b) => (b as any).weeks_count - (a as any).weeks_count)
-                return (
-                  <div className="space-y-2">
-                    {sorted.map((e: any) => (
-                      <div key={e.id} className="bg-[#0d0d1e] border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-bold text-sm text-white truncate">{e.nombre_real ?? e.nombre_en_app ?? e.email ?? e.user_id}</p>
-                          {e.nombre_en_app && e.nombre_en_app !== e.nombre_real && <p className="text-white/40 text-xs">{e.nombre_en_app}</p>}
-                          <p className="text-red-400/70 text-xs mt-0.5">{e.app_name} · Semana {e.semana}</p>
-                          {e.reason === 'zero_commission' && <p className="text-amber-400/60 text-xs">Comisión $0</p>}
-                          <div className="flex items-center gap-2 flex-wrap mt-1">
-                            {(e as any).id_aplicacion && <span className="text-[10px] text-white/30 font-mono">ID: {(e as any).id_aplicacion}</span>}
-                            {(e as any).telefono_worker && (() => { const raw = `${(e as any).codigo_pais_worker ?? ''}${(e as any).telefono_worker}`; const d = raw.replace(/\\D/g,''); return d.length >= 7 ? <a href={`https://wa.me/${d}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full hover:bg-green-500/20 font-semibold">📱 WA</a> : null })()} 
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          {(e as any).weeks_count > 1 && <span className="text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">{(e as any).weeks_count} semanas</span>}
-                          {e.justified
-                            ? <p className="text-amber-400 text-xs font-bold mt-1">⏸ Justificada</p>
-                            : <p className="text-red-400 text-xs font-bold mt-1">✗ No justificada</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-            </div>
-          )}
 
           {semana && (
             <div className="space-y-2">
