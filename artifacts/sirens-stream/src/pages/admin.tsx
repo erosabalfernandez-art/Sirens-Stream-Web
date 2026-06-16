@@ -468,20 +468,32 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
               if (_agentUids.length > 0) {
                 const _apiBaseAgent = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
-                const [_coliderApiData, { data: _agWorkers }] = await Promise.all([
-                  fetch(`${_apiBaseAgent}/api/admin/agent-colider-marks?semana=${encodeURIComponent(semana)}&agent_uids=${_agentUids.join(',')}`, { credentials: 'include' })
-                    .then(r => r.ok ? r.json() : { coliderMap: {}, adminPaidIds: [] })
-                    .catch(() => ({ coliderMap: {}, adminPaidIds: [] })),
-                  supabase.from('worker_entries').select('user_id, metodo_pago, billetera').in('user_id', _agentUids),
-                ])
-                _agentColiderMap = _coliderApiData.coliderMap ?? {}
-                _agentAdminPaidSet = new Set<string>(_coliderApiData.adminPaidIds ?? [])
-                const _agentBilleteraMapLocal: Record<string, string> = {}
-                for (const w of (_agWorkers ?? []) as any[]) {
-                  if ((w as any).metodo_pago) _agentMetodoMapLocal[(w as any).user_id] = (w as any).metodo_pago
-                  if ((w as any).billetera) _agentBilleteraMapLocal[(w as any).user_id] = (w as any).billetera
+                const [_coliderApiData, { data: _agWorkers }, { data: _agProfiles }] = await Promise.all([
+                    fetch(`${_apiBaseAgent}/api/admin/agent-colider-marks?semana=${encodeURIComponent(semana)}&agent_uids=${_agentUids.join(',')}`, { credentials: 'include' })
+                      .then(r => r.ok ? r.json() : { coliderMap: {}, adminPaidIds: [] })
+                      .catch(() => ({ coliderMap: {}, adminPaidIds: [] })),
+                    supabase.from('worker_entries').select('user_id, metodo_pago, billetera').in('user_id', _agentUids),
+                    supabase.from('profiles').select('id, agent_payment_method').in('id', _agentUids),
+                  ])
+                  _agentColiderMap = _coliderApiData.coliderMap ?? {}
+                  _agentAdminPaidSet = new Set<string>(_coliderApiData.adminPaidIds ?? [])
+                  const _agentBilleteraMapLocal: Record<string, string> = {}
+                  // Build profile fallback map (agent_payment_method stored when agent selects method)
+                  const _profileMetodoMap: Record<string, string> = {}
+                  for (const p of (_agProfiles ?? []) as any[]) {
+                    if (p.agent_payment_method) _profileMetodoMap[p.id] = p.agent_payment_method
+                  }
+                  for (const w of (_agWorkers ?? []) as any[]) {
+                    if ((w as any).metodo_pago) _agentMetodoMapLocal[(w as any).user_id] = (w as any).metodo_pago
+                    if ((w as any).billetera) _agentBilleteraMapLocal[(w as any).user_id] = (w as any).billetera
+                  }
+                  // Fill gaps: use profile.agent_payment_method for agents not in worker_entries
+                  for (const uid of _agentUids) {
+                    if (!_agentMetodoMapLocal[uid] && _profileMetodoMap[uid]) {
+                      _agentMetodoMapLocal[uid] = _profileMetodoMap[uid]
+                    }
+                  }
                 }
-              }
             setAgentMetodoMap(_agentMetodoMapLocal)
             setAgentBilleteraMap(_agentBilleteraMapLocal)
             setAgentAdminPaidIds(_agentAdminPaidSet)
