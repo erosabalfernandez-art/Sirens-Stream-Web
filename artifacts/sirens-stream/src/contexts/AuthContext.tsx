@@ -1,9 +1,3 @@
-          if (res.status === 404) {
-            console.warn('[Auth] Profile not found — user was deleted, forcing sign out')
-            setProfile(null)
-            await supabase.auth.signOut()
-            return
-          }
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
   import type { User } from '@supabase/supabase-js'
   import { supabase, type Profile } from '@/lib/supabase'
@@ -59,6 +53,12 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
             const data = await res.json()
             setProfile(data as Profile)
             silentPushRefresh(userId)
+            return
+          }
+          if (res.status === 404) {
+            console.warn('[Auth] Profile not found — user was deleted, forcing sign out')
+            setProfile(null)
+            await supabase.auth.signOut()
             return
           }
           console.warn(`[Auth] loadProfile attempt ${attempt} HTTP ${res.status}`)
