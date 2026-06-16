@@ -55,7 +55,6 @@ import { Router } from 'express';
     /**
        * GET /api/active-semanas
      * Returns semanas where nomina_history.published = true (service role, bypasses RLS)
-     * Workers/coliders/agents use this to know which weeks are still open for confirmation.
      */
     router.get('/active-semanas', async (req, res) => {
       try {
@@ -74,7 +73,6 @@ import { Router } from 'express';
     /**
      * POST /api/worker-entries
    * Body: same fields as worker_entries table
-   * Enforces: agente cannot differ from any existing agente for same user
    */
   router.post('/worker-entries', async (req, res) => {
     try {
@@ -82,7 +80,6 @@ import { Router } from 'express';
       const userId = payload.user_id as string;
       if (!userId) return res.status(400).json({ error: 'user_id requerido' });
 
-      // Enforce agent lock: check if user already has an agente set in any entry
       const existingR = await fetch(
         sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(userId)}&agente=not.is.null&select=agente&limit=1`),
         { headers: sbH() }
@@ -91,7 +88,6 @@ import { Router } from 'express';
       const lockedAgente = existing[0]?.agente ?? null;
 
       if (lockedAgente) {
-        // Force the locked agente regardless of what was sent
         payload.agente = lockedAgente;
       }
 
@@ -110,8 +106,6 @@ import { Router } from 'express';
 
   /**
    * PATCH /api/worker-entries/:id
-   * Body: fields to update
-   * Enforces: agente cannot be changed if already set
    */
   router.patch('/worker-entries/:id', async (req, res) => {
     try {
@@ -120,7 +114,6 @@ import { Router } from 'express';
       const userId = payload.user_id as string;
       if (!userId) return res.status(400).json({ error: 'user_id requerido' });
 
-      // Fetch the current entry to check agente
       const currentR = await fetch(
         sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}&select=agente,id_aplicacion&limit=1`),
         { headers: sbH() }
@@ -130,23 +123,20 @@ import { Router } from 'express';
 
       const currentAgente = current[0].agente;
 
-        // Lock: id_aplicacion cannot be changed once set
         if (current[0].id_aplicacion) {
           payload.id_aplicacion = current[0].id_aplicacion;
         }
 
       if (currentAgente !== null && currentAgente !== undefined && currentAgente !== '') {
-        // Lock: force the existing agente, ignore any incoming agente change
         payload.agente = currentAgente;
       } else if (payload.agente) {
-        // First time setting agente — check if user has it set in another entry
         const otherR = await fetch(
           sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(userId)}&agente=not.is.null&id=neq.${encodeURIComponent(id)}&select=agente&limit=1`),
           { headers: sbH() }
         );
         const other = await otherR.json() as { agente: string }[];
         if (other[0]?.agente && other[0].agente !== payload.agente) {
-          payload.agente = other[0].agente; // enforce same agente across all entries
+          payload.agente = other[0].agente;
         }
       }
 
@@ -167,39 +157,47 @@ import { Router } from 'express';
   });
 
   /**
-   * DELETE /api/worker-entries/:id
-   * Lets a worker delete their own entry (bypasses RLS via service role, verifies user_id ownership).
+   * DELETE /api/worker-entries/:id?user_id=X
+   * Uses admin_delete_worker_entry RPC (SECURITY DEFINER) to bypass RLS DELETE bug.
+   * Verifies ownership before calling.
    */
   router.delete('/worker-entries/:id', async (req, res) => {
     const { id } = req.params;
     const { user_id } = req.query as { user_id?: string };
     if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
-    try {
-      const r = await fetch(
-        sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user_id)}`),
-        { method: 'DELETE', headers: { ...sbH(), Prefer: 'return=representation' } }
-      );
-      const data = await r.json().catch(() => []);
-      if (!r.ok) return res.status(r.status).json({ error: JSON.stringify(data) });
-      return res.json({ ok: true, deleted: Array.isArray(data) ? data.length : 1 });
-    } catch (err: any) {
-      return res.status(500).json({ error: err?.message ?? 'Error interno' });
-    }
-  });
 
-  /**
-   * DELETE /api/worker-entries?user_id=X
-   * Lets a worker delete ALL their own entries (bypasses RLS via service role).
-   */
-  router.delete('/worker-entries', async (req, res) => {
-    const { user_id } = req.query as { user_id?: string };
-    if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
     try {
-      const r = await fetch(
-        sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(user_id)}`),
-        { method: 'DELETE', headers: { ...sbH(), Prefer: 'return=representation' } }
+      // First verify ownership
+      const checkR = await fetch(
+        sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user_id)}&select=id&limit=1`),
+        { headers: sbH() }
       );
-      if (!r.ok) { const t = await r.text(); return res.status(r.status).json({ error: t }); }
+      const checkData = await checkR.json() as any[];
+      if (!Array.isArray(checkData) || checkData.length === 0) {
+        return res.status(404).json({ error: 'Entrada no encontrada o no pertenece al usuario' });
+      }
+
+      // Use admin_delete_worker_entry (SECURITY DEFINER — bypasses RLS DELETE bug)
+      const rpcR = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/rpc/admin_delete_worker_entry`,
+        {
+          method: 'POST',
+          headers: { ...sbH(), Prefer: 'return=representation' },
+          body: JSON.stringify({ entry_id: id }),
+        }
+      );
+      if (!rpcR.ok) {
+        const errText = await rpcR.text();
+        if (errText.includes('PGRST202') || errText.includes('does not exist')) {
+          return res.status(503).json({
+            error: 'rpc_not_ready',
+            message: 'Ejecuta supabase-worker-delete-rpc.sql en el SQL Editor de Supabase para habilitar el borrado de entradas.'
+          });
+        }
+        return res.status(rpcR.status).json({ error: errText });
+      }
+      const rpcData = await rpcR.json();
+      if (rpcData === false) return res.status(404).json({ error: 'Entrada no encontrada' });
       return res.json({ ok: true });
     } catch (err: any) {
       return res.status(500).json({ error: err?.message ?? 'Error interno' });
@@ -208,54 +206,88 @@ import { Router } from 'express';
 
   /**
    * DELETE /api/admin/worker-entry?user_id=X&app_name=Y
-   * Fully removes a worker entry and ALL related data for that user+app.
-   * Tables cleaned: worker_entries, custom_worker_rates, published_salaries,
-   *                 payment_confirmations, agent_payment_confirmations.
-   * If the user has NO remaining worker_entries after deletion, also cleans
-   * push_subscriptions and profiles (but NOT auth.users — delete from Supabase dashboard).
+   * Admin: delete a specific worker entry by user_id + app_name.
+   * Uses admin_delete_worker_entry RPC (SECURITY DEFINER).
    */
   router.delete('/admin/worker-entry', async (req, res) => {
     const { user_id, app_name } = req.query as { user_id?: string; app_name?: string };
     if (!user_id || !app_name) return res.status(400).json({ error: 'user_id y app_name requeridos' });
 
-    const uid = encodeURIComponent(user_id);
-    const app = encodeURIComponent(app_name);
-
     try {
-      const results: Record<string, number> = {};
+      // Find the entry ID first (GET works fine)
+      const findR = await fetch(
+        sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(user_id)}&app_name=eq.${encodeURIComponent(app_name)}&select=id&limit=1`),
+        { headers: sbH() }
+      );
+      const found = await findR.json() as { id: string }[];
+      if (!found.length) return res.status(404).json({ error: 'Entrada no encontrada' });
 
-      // 1. Delete the worker_entry itself
-      const weR = await fetch(sbUrl(`worker_entries?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
-      results.worker_entries = weR.status;
+      const entryId = found[0].id;
 
-      // 2. Delete custom exchange rate for this worker+app
-      const crR = await fetch(sbUrl(`custom_worker_rates?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
-      results.custom_worker_rates = crR.status;
-
-      // 3. Delete published salaries for this worker+app
-      const psR = await fetch(sbUrl(`published_salaries?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
-      results.published_salaries = psR.status;
-
-      // 4. Delete payment confirmations for this worker+app
-      const pcR = await fetch(sbUrl(`payment_confirmations?user_id=eq.${uid}&app_name=eq.${app}`), { method: 'DELETE', headers: sbH() });
-      results.payment_confirmations = pcR.status;
-
-      // 5. Check if user has any remaining worker_entries
-      const remainingR = await fetch(sbUrl(`worker_entries?user_id=eq.${uid}&select=user_id&limit=1`), { headers: sbH() });
-      const remaining = await remainingR.json().catch(() => []);
-      const hasMoreEntries = Array.isArray(remaining) && remaining.length > 0;
-
-      // 6. If no more entries → clean push_subscriptions too
-      if (!hasMoreEntries) {
-        const subR = await fetch(sbUrl(`push_subscriptions?user_id=eq.${uid}`), { method: 'DELETE', headers: sbH() });
-        results.push_subscriptions = subR.status;
+      const rpcR = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/rpc/admin_delete_worker_entry`,
+        {
+          method: 'POST',
+          headers: { ...sbH(), Prefer: 'return=representation' },
+          body: JSON.stringify({ entry_id: entryId }),
+        }
+      );
+      if (!rpcR.ok) {
+        const errText = await rpcR.text();
+        if (errText.includes('PGRST202') || errText.includes('does not exist')) {
+          return res.status(503).json({
+            error: 'rpc_not_ready',
+            message: 'Ejecuta supabase-worker-delete-rpc.sql en el SQL Editor de Supabase.'
+          });
+        }
+        return res.status(rpcR.status).json({ error: errText });
       }
 
-      return res.json({ ok: true, tables_cleaned: results, user_fully_removed: !hasMoreEntries });
+      return res.json({ ok: true });
     } catch (err: any) {
       return res.status(500).json({ error: err?.message ?? 'Error interno' });
     }
   });
 
+  /**
+   * DELETE /api/admin/cleanup-entries
+   * Admin: delete a list of worker entries by their IDs (for cleanup after user deletion).
+   * Uses admin_delete_worker_entry RPC (SECURITY DEFINER).
+   */
+  router.delete('/admin/cleanup-entries', async (req, res) => {
+    const { ids } = req.body as { ids?: string[] };
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array requerido' });
+    }
+
+    const results: Record<string, string> = {};
+    for (const entryId of ids) {
+      try {
+        const rpcR = await fetch(
+          `${process.env.SUPABASE_URL}/rest/v1/rpc/admin_delete_worker_entry`,
+          {
+            method: 'POST',
+            headers: { ...sbH(), Prefer: 'return=representation' },
+            body: JSON.stringify({ entry_id: entryId }),
+          }
+        );
+        if (!rpcR.ok) {
+          const errText = await rpcR.text();
+          if (errText.includes('PGRST202') || errText.includes('does not exist')) {
+            results[entryId] = 'rpc_not_ready';
+          } else {
+            results[entryId] = `error: ${errText.slice(0, 100)}`;
+          }
+        } else {
+          results[entryId] = 'deleted';
+        }
+      } catch (e: any) {
+        results[entryId] = `error: ${e?.message}`;
+      }
+    }
+
+    return res.json({ results });
+  });
+
   export default router;
-  
+
