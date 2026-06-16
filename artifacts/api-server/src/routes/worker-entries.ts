@@ -17,7 +17,7 @@ import { Router } from 'express';
   router.get('/admin/all-workers', async (req, res) => {
     try {
       const r = await fetch(
-        sbUrl('worker_entries?select=user_id,app_name,nombre_en_app,nombre_real,metodo_pago&order=nombre_en_app.asc'),
+        sbUrl('worker_entries?select=user_id,app_name,nombre_en_app,nombre_real,metodo_pago,telefono,codigo_pais,id_aplicacion&order=nombre_real.asc,nombre_en_app.asc'),
         { headers: sbH() }
       );
       if (!r.ok) return res.status(r.status).json({ error: await r.text() });
