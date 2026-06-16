@@ -71,7 +71,22 @@ import { Router } from 'express';
       );
       if (!workersRes.ok) return res.status(workersRes.status).json({ error: await workersRes.text() });
 
-      return res.json((await workersRes.json()) ?? []);
+      const workers = (await workersRes.json()) as { id: string; user_id: string; [key: string]: unknown }[];
+
+        // Exclude entries where the user_id belongs to an agent or colider
+        if (workers.length > 0) {
+          const userIds = [...new Set(workers.map(w => w.user_id).filter(Boolean))];
+          const agentProfilesRes = await fetch(
+            sbUrl(`profiles?id=in.(${userIds.map(id => '"' + id + '"').join(',')})&or=(is_agent.eq.true,is_colider.eq.true,agent_code.not.is.null)&select=id`),
+            { headers: sbHeaders() as Record<string, string> }
+          );
+          if (agentProfilesRes.ok) {
+            const agentUsers = await agentProfilesRes.json() as { id: string }[];
+            const agentUserIds = new Set(agentUsers.map((p: { id: string }) => p.id));
+            return res.json(workers.filter(w => !agentUserIds.has(w.user_id as string)));
+          }
+        }
+        return res.json(workers);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'unknown';
       return res.status(500).json({ error: msg });
