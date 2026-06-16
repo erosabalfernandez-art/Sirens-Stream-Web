@@ -273,20 +273,26 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
           setPagosSemana(semana)
           const userIds = (salaries as any[]).map((s: any) => s.user_id)
           const salaryIds = (salaries as any[]).map((s: any) => s.id)
-          const [{ data: profiles }, { data: workers }, _confResPc] = await Promise.all([
+          const [{ data: profiles }, { data: workers }, _confResPc, { data: exRates }, _customRatesPc] = await Promise.all([
             supabase.from('profiles').select('id, email').in('id', userIds),
             supabase.from('worker_entries').select('user_id, nombre_real, nombre_en_app, id_aplicacion, metodo_pago, billetera, agente').eq('app_name', app).in('user_id', userIds),
             salaryIds.length > 0 ? fetch(`${_apiBasePc}/api/payment-confirmations?salary_ids=${salaryIds.join(',')}`, { credentials: 'include' }).then(r => r.ok ? r.json() : { confirmations: [] }).catch(() => ({ confirmations: [] })) : Promise.resolve({ confirmations: [] }),
+            supabase.from('exchange_rates').select('id, rate'),
+            fetch(`${_apiBasePc}/api/admin/custom-worker-rates`, { credentials: 'include' }).then(r => r.ok ? r.json() : { rates: [] }).catch(() => ({ rates: [] })),
           ])
           const confirmations = (_confResPc as any)?.confirmations ?? []
           const profileMap: Record<string,string> = Object.fromEntries(((profiles ?? []) as any[]).map((p: any) => [p.id, p.email]))
           const workerMap: Record<string,any> = Object.fromEntries(((workers ?? []) as any[]).map((w: any) => [w.user_id, w]))
           const confMap: Record<string,string> = Object.fromEntries((confirmations as any[]).map((c: any) => [c.salary_id, c.confirmed_at]))
+          const _rateMap: Record<string, number> = {}
+          for (const r of (exRates ?? []) as any[]) _rateMap[(r as any).id] = (r as any).rate
+          const _customRateMapPc: Record<string, any> = {}
+          for (const cr of ((_customRatesPc as any)?.rates ?? [])) _customRateMapPc[`${cr.user_id}__${cr.app_name}`] = cr
           const merged = (salaries as any[]).map((s: any) => {
             const w = workerMap[s.user_id] ?? {}
             const confAt = confMap[s.id]
             return {
-              salary_id: s.id, user_id: s.user_id, semana: s.semana, usd: Number(s.usd),
+              salary_id: s.id, user_id: s.user_id, semana: s.semana, usd: Number(s.usd), app_name: app,
               apodo: (s.extras?.Apodo ?? s.extras?.apodo ?? s.extras?.Nick ?? w.nombre_en_app ?? '—') as string,
               nombre_real: w.nombre_real ?? null, nombre_en_app: w.nombre_en_app ?? null,
               email: profileMap[s.user_id] ?? '—',
@@ -296,21 +302,28 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
               id_aplicacion: w.id_aplicacion ?? null,
             }
           })
-          // Fetch exchange_rates (colider_marks now come from service-role API)
-          const { data: exRates } = await supabase.from('exchange_rates').select('id, rate')
-          const _rateMap: Record<string, number> = {}
-          for (const r of (exRates ?? []) as any[]) _rateMap[(r as any).id] = (r as any).rate
           const _adminPaidSet = new Set(apiAdminPaidUids)
           const _coliderPaidSet = new Set(apiColiderPaidUids)
           const mergedWithAdmin = merged.map((row: any) => {
             const colider_paid = _coliderPaidSet.has(row.user_id) ? true : (_coliderPaidSet.size > 0 ? false : null)
+            const customRate = _customRateMapPc[`${row.user_id}__${app}`]
             const mp = (row.metodo_pago ?? '').toLowerCase()
+            const isEf = mp.includes('efectivo')
             let cup_amount: number | null = null
             if (mp.includes('cuba')) {
-              const rate = mp.includes('efectivo') ? (_rateMap['efectivo_worker'] ?? 0) : (_rateMap['transferencia_worker'] ?? 0)
+              const rate = customRate
+                ? (isEf ? (customRate.efectivo_rate ?? 0) : (customRate.transferencia_rate ?? 0))
+                : (isEf ? (_rateMap['efectivo_worker'] ?? 0) : (_rateMap['transferencia_worker'] ?? 0))
               if (rate > 0) cup_amount = row.usd * rate
             }
-            return { ...row, colider_paid, cup_amount, admin_paid: _adminPaidSet.has(row.id_aplicacion ?? '') }
+            return {
+              ...row, colider_paid, cup_amount, admin_paid: _adminPaidSet.has(row.id_aplicacion ?? ''),
+              has_custom: !!customRate,
+              custom_ef_rate: customRate?.efectivo_rate ?? null,
+              custom_tr_rate: customRate?.transferencia_rate ?? null,
+              global_ef_rate: _rateMap['efectivo_worker'] ?? null,
+              global_tr_rate: _rateMap['transferencia_worker'] ?? null,
+            }
           })
           setPagosData(mergedWithAdmin); setPagosLoading(false)
           fetchAgentPayData()
@@ -337,11 +350,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             // 5. Collect ids for batch queries
             const userIds = [...new Set(allSalaries.map(s => s.user_id))] as string[]
             const salaryIds = allSalaries.map(s => s.id) as string[]
-            const [{ data: profiles }, { data: workers }, _confResAll, { data: exRates }] = await Promise.all([
+            const [{ data: profiles }, { data: workers }, _confResAll, { data: exRates }, _customRatesAll] = await Promise.all([
               supabase.from('profiles').select('id, email').in('id', userIds),
               supabase.from('worker_entries').select('user_id, app_name, nombre_real, nombre_en_app, id_aplicacion, metodo_pago, billetera, agente'),
               salaryIds.length > 0 ? fetch(`${_apiBaseAll}/api/payment-confirmations?salary_ids=${salaryIds.join(',')}`, { credentials: 'include' }).then(r => r.ok ? r.json() : { confirmations: [] }).catch(() => ({ confirmations: [] })) : Promise.resolve({ confirmations: [] }),
               supabase.from('exchange_rates').select('id, rate'),
+              fetch(`${_apiBaseAll}/api/admin/custom-worker-rates`, { credentials: 'include' }).then(r => r.ok ? r.json() : { rates: [] }).catch(() => ({ rates: [] })),
             ])
             // 6. Build lookup maps
             const profileMap: Record<string,string> = Object.fromEntries(((profiles ?? []) as any[]).map((p: any) => [p.id, p.email]))
@@ -352,15 +366,21 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             const confMap: Record<string,string> = Object.fromEntries((confirmationsAll as any[]).map((c: any) => [c.salary_id, c.confirmed_at]))
             const rateMap: Record<string,number> = {}
             for (const r of (exRates ?? []) as any[]) rateMap[(r as any).id] = (r as any).rate
+            const _customRateMapAll: Record<string, any> = {}
+            for (const cr of ((_customRatesAll as any)?.rates ?? [])) _customRateMapAll[`${cr.user_id}__${cr.app_name}`] = cr
             // 7. Enrich salaries
             const merged = allSalaries.map(s => {
               const app = s._app ?? s.app_name
               const w = workerMap[`${s.user_id}_${app}`] ?? workerMap[Object.keys(workerMap).find(k => k.startsWith(s.user_id)) ?? ''] ?? {}
               const confAt = confMap[s.id]
+              const customRate = _customRateMapAll[`${s.user_id}__${app}`]
               const mp = (w.metodo_pago ?? '').toLowerCase()
+              const isEf = mp.includes('efectivo')
               let cup_amount: number | null = null
               if (mp.includes('cuba')) {
-                const rate = mp.includes('efectivo') ? (rateMap['efectivo_worker'] ?? 0) : (rateMap['transferencia_worker'] ?? 0)
+                const rate = customRate
+                  ? (isEf ? (customRate.efectivo_rate ?? 0) : (customRate.transferencia_rate ?? 0))
+                  : (isEf ? (rateMap['efectivo_worker'] ?? 0) : (rateMap['transferencia_worker'] ?? 0))
                 if (rate > 0) cup_amount = Number(s.usd) * rate
               }
               return {
@@ -372,6 +392,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 confirmed: !!confAt, confirmed_at: confAt ?? null,
                 id_aplicacion: w.id_aplicacion ?? null,
                 colider_paid: null as boolean | null, cup_amount,
+                has_custom: !!customRate,
+                custom_ef_rate: customRate?.efectivo_rate ?? null,
+                custom_tr_rate: customRate?.transferencia_rate ?? null,
+                global_ef_rate: rateMap['efectivo_worker'] ?? null,
+                global_tr_rate: rateMap['transferencia_worker'] ?? null,
               }
             })
             // 8. Apply colider marks + admin marks — both from service-role API (bypasses RLS)
@@ -1775,6 +1800,13 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
                     {/* The 3 bars — always visible */}
                     {(() => {
+                      // Multi-app map: user_id → [{app_name, nombre_en_app, id_aplicacion}]
+                      const workerAppsMap: Record<string, {app_name:string;nombre_en_app:string|null;id_aplicacion:string|null}[]> = {}
+                      for (const r of (pagosData as any[])) {
+                        if (!workerAppsMap[r.user_id]) workerAppsMap[r.user_id] = []
+                        if (!workerAppsMap[r.user_id].some((a:any) => a.app_name === r.app_name))
+                          workerAppsMap[r.user_id].push({ app_name: r.app_name, nombre_en_app: r.nombre_en_app, id_aplicacion: r.id_aplicacion })
+                      }
                       const allAgents = [...agentPayData.confirmed, ...agentPayData.pending]
                       const agentConfirmedIds = new Set(agentPayData.confirmed.map((r: any) => r.id))
                       const agentUserIdSet = new Set(allAgents.filter((a:any) => a.agent_user_id).map((a:any) => a.agent_user_id as string))
@@ -1845,16 +1877,39 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                         <div key={app}>
                                           <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400/50 mb-2 px-1">{app}</p>
                                           <div className="space-y-2">
-                                            {appRows.map((row: any) => (
-                                              <div key={row.salary_id} className="bg-black/30 border border-teal-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
-                                                <div className="w-7 h-7 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
+                                            {appRows.map((row: any) => {
+                                              const allApps = workerAppsMap[row.user_id] ?? []
+                                              const isEf = (row.metodo_pago ?? '').toLowerCase().includes('efectivo')
+                                              const usedRate = row.has_custom ? (isEf ? row.custom_ef_rate : row.custom_tr_rate) : (isEf ? row.global_ef_rate : row.global_tr_rate)
+                                              return (
+                                              <div key={row.salary_id} className="bg-black/30 border border-teal-500/15 rounded-2xl px-4 py-3 flex items-start gap-3">
+                                                <div className="w-7 h-7 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0 mt-0.5">
                                                   {(row.colider_paid && row.confirmed) ? <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" /> : <Clock className="w-3.5 h-3.5 text-teal-400/40" />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                  <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
-                                                  <p className="text-xs text-white/30 truncate">{row.email} · <span className="text-teal-400">${row.usd.toFixed(2)}</span></p>
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                                    {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-xs text-white/35">{row.nombre_real}</p>}
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{row.has_custom ? '★ Exclusivo' : 'Global'}</span>
+                                                  </div>
+                                                  {allApps.length > 0 && (
+                                                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                                                      {allApps.map((a:any) => (
+                                                        <span key={a.app_name} className="text-[10px] text-white/30">
+                                                          <span className="text-teal-400/60">{a.app_name}</span>{a.nombre_en_app ? ` ${a.nombre_en_app}` : ''}{a.id_aplicacion ? <span className="text-white/20"> #{a.id_aplicacion}</span> : ''}
+                                                        </span>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                  <p className="text-xs text-white/30 truncate mt-0.5">{row.email} · <span className="text-teal-400">${row.usd.toFixed(2)}</span></p>
                                                   {row.metodo_pago && <p className="text-xs text-white/20">{row.metodo_pago}{row.billetera ? ` · ${row.billetera}` : ''}</p>}
-                                                  {row.cup_amount && <p className="text-xs text-amber-300/50">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
+                                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                                                    {row.global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{row.global_ef_rate}</span></p>}
+                                                    {row.global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{row.global_tr_rate}</span></p>}
+                                                    {row.has_custom && row.custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{row.custom_ef_rate}</span></p>}
+                                                    {row.has_custom && row.custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{row.custom_tr_rate}</span></p>}
+                                                  </div>
+                                                  {row.cup_amount && <p className="text-xs text-amber-300/60 font-bold mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP {usedRate ? <span className="text-amber-300/35 font-normal">× {usedRate}</span> : ''}</p>}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1 shrink-0">
                                                   {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold">Colider ✓</span>}
@@ -1863,7 +1918,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
                                                 </div>
                                               </div>
-                                            ))}
+                                              )
+                                            })}
                                           </div>
                                         </div>
                                       )
@@ -1914,8 +1970,22 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     {(coliderPaidD && agentConfirmedD) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
                                                   </div>
                                                   <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
-                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}{r.app_name}{(r.nombre_en_app || r.apodo) ? ` · ${r.nombre_en_app || r.apodo}` : ''}: ${Number(r.usd||0).toFixed(2)}</p>))}
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                      <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
+                                                      {d.workerRows[0]?.nombre_real && <p className="text-xs text-white/35">{d.workerRows[0].nombre_real}</p>}
+                                                      {d.workerRows[0]?.has_custom !== undefined && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{d.workerRows[0]?.has_custom ? '★ Exclusivo' : 'Global'}</span>}
+                                                    </div>
+                                                    {d.workerRows.map((r:any) => (
+                                                      <p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}<span className="text-teal-400/60">{r.app_name}</span>{(r.nombre_en_app || r.apodo) ? ` ${r.nombre_en_app || r.apodo}` : ''}{r.id_aplicacion ? <span className="text-white/20"> #{r.id_aplicacion}</span> : ''}: ${Number(r.usd||0).toFixed(2)}</p>
+                                                    ))}
+                                                    {d.workerRows[0] && (
+                                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                                                        {d.workerRows[0].global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{d.workerRows[0].global_ef_rate}</span></p>}
+                                                        {d.workerRows[0].global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{d.workerRows[0].global_tr_rate}</span></p>}
+                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_ef_rate}</span></p>}
+                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_tr_rate}</span></p>}
+                                                      </div>
+                                                    )}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalD.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalD.toFixed(2)}</p>
                                                     {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(totalD * rates['efectivo_agent']).toLocaleString('es-ES')} CUP</p>}
@@ -1972,16 +2042,40 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                         <div key={app}>
                                           <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/50 mb-2 px-1">{app}</p>
                                           <div className="space-y-2">
-                                            {appRows.map((row: any) => (
-                                              <div key={row.salary_id} className="bg-black/30 border border-purple-500/10 rounded-2xl px-4 py-3 flex items-center gap-3">
-                                                <div className="w-7 h-7 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
+                                            {appRows.map((row: any) => {
+                                              const allApps = workerAppsMap[row.user_id] ?? []
+                                              const isEf = (row.metodo_pago ?? '').toLowerCase().includes('efectivo')
+                                              const usedRate = row.has_custom ? (isEf ? row.custom_ef_rate : row.custom_tr_rate) : (isEf ? row.global_ef_rate : row.global_tr_rate)
+                                              return (
+                                              <div key={row.salary_id} className="bg-black/30 border border-purple-500/10 rounded-2xl px-4 py-3 flex items-start gap-3">
+                                                <div className="w-7 h-7 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
                                                   {(row.admin_paid && row.confirmed) ? <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" /> : <Clock className="w-3.5 h-3.5 text-purple-400/40" />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                  <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
-                                                  <p className="text-xs text-white/30 truncate">{row.email} · <span className="text-purple-400">${row.usd.toFixed(2)}</span></p>
-                                                  {row.metodo_pago && <p className="text-xs text-white/30">{row.metodo_pago}</p>}{row.billetera && (<button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera(row.salary_id + 't'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1.5 group mt-0.5"><span className="text-xs font-mono text-purple-300/70 group-hover:text-purple-200 transition-colors break-all">{row.billetera}</span>{copiedBilletera === row.salary_id + 't' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-purple-400 shrink-0 transition-colors" />}</button>)}
-                                                  {row.cup_amount && <p className="text-xs text-amber-300/50">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP</p>}
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="text-sm font-bold text-white">{row.apodo || row.nombre_en_app || row.nombre_real || '—'}</p>
+                                                    {row.nombre_real && row.nombre_real !== row.apodo && <p className="text-xs text-white/35">{row.nombre_real}</p>}
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{row.has_custom ? '★ Exclusivo' : 'Global'}</span>
+                                                  </div>
+                                                  {allApps.length > 0 && (
+                                                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                                                      {allApps.map((a:any) => (
+                                                        <span key={a.app_name} className="text-[10px] text-white/30">
+                                                          <span className="text-purple-400/60">{a.app_name}</span>{a.nombre_en_app ? ` ${a.nombre_en_app}` : ''}{a.id_aplicacion ? <span className="text-white/20"> #{a.id_aplicacion}</span> : ''}
+                                                        </span>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                  <p className="text-xs text-white/30 truncate mt-0.5">{row.email} · <span className="text-purple-400">${row.usd.toFixed(2)}</span></p>
+                                                  {row.metodo_pago && <p className="text-xs text-white/30">{row.metodo_pago}</p>}
+                                                  {row.billetera && (<button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera(row.salary_id + 't'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1.5 group mt-0.5"><span className="text-xs font-mono text-purple-300/70 group-hover:text-purple-200 transition-colors break-all">{row.billetera}</span>{copiedBilletera === row.salary_id + 't' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-purple-400 shrink-0 transition-colors" />}</button>)}
+                                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                                                    {row.global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{row.global_tr_rate}</span></p>}
+                                                    {row.global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{row.global_ef_rate}</span></p>}
+                                                    {row.has_custom && row.custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{row.custom_tr_rate}</span></p>}
+                                                    {row.has_custom && row.custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{row.custom_ef_rate}</span></p>}
+                                                  </div>
+                                                  {row.cup_amount && <p className="text-xs text-amber-300/60 font-bold mt-0.5">≈ {Math.round(row.cup_amount).toLocaleString('es-ES')} CUP {usedRate ? <span className="text-amber-300/35 font-normal">× {usedRate}</span> : ''}</p>}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1 shrink-0">
                                                   {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Confirmó ✓</span> : <span className="text-[10px] text-white/25">Sin confirmar</span>}
@@ -1997,7 +2091,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </button>
                                                 </div>
                                               </div>
-                                            ))}
+                                              )
+                                            })}
                                           </div>
                                         </div>
                                       )
@@ -2055,8 +2150,22 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     {(adminPaidA && agentConfirmedA) ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <Clock className="w-3.5 h-3.5 text-violet-400/40" />}
                                                   </div>
                                                   <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
-                                                    {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}{r.app_name}{(r.nombre_en_app || r.apodo) ? ` · ${r.nombre_en_app || r.apodo}` : ''}: ${Number(r.usd||0).toFixed(2)}</p>))}
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                      <p className="text-sm font-bold text-white">{(agentNameMap[d.agentRow.agent_name] ?? d.agentRow.agent_name) || '—'}</p>
+                                                      {d.workerRows[0]?.nombre_real && <p className="text-xs text-white/35">{d.workerRows[0].nombre_real}</p>}
+                                                      {d.workerRows[0]?.has_custom !== undefined && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>{d.workerRows[0]?.has_custom ? '★ Exclusivo' : 'Global'}</span>}
+                                                    </div>
+                                                    {d.workerRows.map((r:any) => (
+                                                      <p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}<span className="text-purple-400/60">{r.app_name}</span>{(r.nombre_en_app || r.apodo) ? ` ${r.nombre_en_app || r.apodo}` : ''}{r.id_aplicacion ? <span className="text-white/20"> #{r.id_aplicacion}</span> : ''}: ${Number(r.usd||0).toFixed(2)}</p>
+                                                    ))}
+                                                    {d.workerRows[0] && (
+                                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                                                        {d.workerRows[0].global_ef_rate && <p className="text-[10px] text-white/25">Global ef: <span className="text-white/40">{d.workerRows[0].global_ef_rate}</span></p>}
+                                                        {d.workerRows[0].global_tr_rate && <p className="text-[10px] text-white/25">Global tr: <span className="text-white/40">{d.workerRows[0].global_tr_rate}</span></p>}
+                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_ef_rate && <p className="text-[10px] text-yellow-300/50">Excl ef: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_ef_rate}</span></p>}
+                                                        {d.workerRows[0].has_custom && d.workerRows[0].custom_tr_rate && <p className="text-[10px] text-yellow-300/50">Excl tr: <span className="text-yellow-300/70 font-bold">{d.workerRows[0].custom_tr_rate}</span></p>}
+                                                      </div>
+                                                    )}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalA.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalA.toFixed(2)}</p>
                                                     {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(totalA * rates['transferencia_agent']).toLocaleString('es-ES')} CUP</p>}
