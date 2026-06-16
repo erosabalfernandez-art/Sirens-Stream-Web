@@ -262,18 +262,17 @@ import React, { useState, useEffect } from 'react'
 
       async function selectPayMethod(method: 'efectivo' | 'transferencia') {
         setAgentPayMethod(method)
+        setPayMethodLocked(true)  // Lock immediately — don't wait for API response
         if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
         const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
         if (profile?.id) {
           await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
-          // Lock payment method — can only change again after cierre semanal
+          // Persist lock in DB — so it survives page reloads until cierre semanal
           const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
           fetch(`${apiBase}/api/payment-method-lock`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: profile.id }),
-          }).then(r => r.ok ? r.json() : null)
-            .then(() => setPayMethodLocked(true))
-            .catch(() => {})
+          }).catch(() => {})
         }
       }
 
