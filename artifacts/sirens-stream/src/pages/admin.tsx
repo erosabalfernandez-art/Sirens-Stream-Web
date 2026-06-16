@@ -713,43 +713,43 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
           useEffect(() => { if (!loading && !user) navigate('/login') }, [loading, user])
 
+      async function handleDeleteUser() {
+        if (!deleteUserEmail || deleteUserEmail !== deleteUserConfirmEmail) return
+        setDeletingUserAccount(true)
+        setDeleteUserMsg(null)
+        try {
+          const { data: profs } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .eq('email', deleteUserEmail.trim().toLowerCase())
+            .limit(1)
+          if (!profs?.length) {
+            setDeleteUserMsg({ ok: false, msg: `Usuario no encontrado: ${deleteUserEmail}` })
+            return
+          }
+          const userId = (profs as any[])[0].id
+          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+          const res = await fetch(`${apiBase}/api/admin/delete-user?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' })
+          const data = await res.json()
+          if (res.ok) {
+            setDeleteUserMsg({ ok: true, msg: `✅ Usuario "${deleteUserEmail}" eliminado correctamente` })
+            setDeleteUserEmail('')
+            setDeleteUserConfirmEmail('')
+            setAgents(prev => prev.filter(a => a.id !== userId))
+            setColiders(prev => prev.filter(c => c.id !== userId))
+          } else {
+            setDeleteUserMsg({ ok: false, msg: data.error ?? 'Error al eliminar usuario' })
+          }
+        } catch (e: any) {
+          setDeleteUserMsg({ ok: false, msg: e?.message ?? 'Error de red' })
+        } finally {
+          setDeletingUserAccount(false)
+        }
+      }
+
       useEffect(() => {
         if (!loading && user && profile !== undefined) {
-          async function handleDeleteUser() {
-              if (!deleteUserEmail || deleteUserEmail !== deleteUserConfirmEmail) return
-              setDeletingUserAccount(true)
-              setDeleteUserMsg(null)
-              try {
-                const { data: profs } = await supabase
-                  .from('profiles')
-                  .select('id, email')
-                  .eq('email', deleteUserEmail.trim().toLowerCase())
-                  .limit(1)
-                if (!profs?.length) {
-                  setDeleteUserMsg({ ok: false, msg: `Usuario no encontrado: ${deleteUserEmail}` })
-                  return
-                }
-                const userId = (profs as any[])[0].id
-                const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-                const res = await fetch(`${apiBase}/api/admin/delete-user?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' })
-                const data = await res.json()
-                if (res.ok) {
-                  setDeleteUserMsg({ ok: true, msg: `✅ Usuario "${deleteUserEmail}" eliminado correctamente` })
-                  setDeleteUserEmail('')
-                  setDeleteUserConfirmEmail('')
-                  setAgents(prev => prev.filter(a => a.id !== userId))
-                  setColiders(prev => prev.filter(c => c.id !== userId))
-                } else {
-                  setDeleteUserMsg({ ok: false, msg: data.error ?? 'Error al eliminar usuario' })
-                }
-              } catch (e: any) {
-                setDeleteUserMsg({ ok: false, msg: e?.message ?? 'Error de red' })
-              } finally {
-                setDeletingUserAccount(false)
-              }
-            }
-
-            if (profile && !profile.is_admin) navigate('/perfil')
+          if (profile && !profile.is_admin) navigate('/perfil')
           if (profile?.is_admin) fetchAll()
         }
       }, [loading, user, profile])
