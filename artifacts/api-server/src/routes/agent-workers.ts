@@ -195,4 +195,48 @@ import { Router } from 'express';
     }
   });
 
-  export default router;
+    // POST /api/admin/cleanup-agent-self-links
+    // One-time (and safe to re-run): nullifies the agente field on worker_entries
+    // where the worker themselves is an agent or colider.
+    router.post('/admin/cleanup-agent-self-links', async (req, res) => {
+      try {
+        // 1. Get all agent/colider profile IDs
+        const profilesRes = await fetch(
+          sbUrl('profiles?or=(is_agent.eq.true,is_colider.eq.true,agent_code.not.is.null)&select=id'),
+          { headers: sbHeaders() as Record<string, string> }
+        );
+        if (!profilesRes.ok) return res.status(500).json({ error: await profilesRes.text() });
+        const profiles = await profilesRes.json() as { id: string }[];
+        if (profiles.length === 0) return res.json({ ok: true, updated: 0 });
+
+        const ids = profiles.map(p => '"' + p.id + '"').join(',');
+
+        // 2. Find entries where user_id is an agent/colider AND agente is not null
+        const entriesRes = await fetch(
+          sbUrl(`worker_entries?user_id=in.(${ids})&agente=not.is.null&select=id,user_id,agente`),
+          { headers: sbHeaders() as Record<string, string> }
+        );
+        if (!entriesRes.ok) return res.status(500).json({ error: await entriesRes.text() });
+        const entries = await entriesRes.json() as { id: string; user_id: string; agente: string }[];
+        if (entries.length === 0) return res.json({ ok: true, updated: 0, message: 'No hay entradas mal vinculadas' });
+
+        // 3. Nullify agente for each entry
+        const entryIds = entries.map(e => '"' + e.id + '"').join(',');
+        const patchRes = await fetch(
+          sbUrl(`worker_entries?id=in.(${entryIds})`),
+          {
+            method: 'PATCH',
+            headers: { ...sbHeaders(), Prefer: 'return=minimal' } as Record<string, string>,
+            body: JSON.stringify({ agente: null }),
+          }
+        );
+        if (!patchRes.ok) return res.status(500).json({ error: await patchRes.text() });
+
+        req.log.info({ entries }, 'cleanup-agent-self-links complete');
+        return res.json({ ok: true, updated: entries.length, fixed: entries });
+      } catch (e: unknown) {
+        return res.status(500).json({ error: e instanceof Error ? e.message : 'unknown' });
+      }
+    });
+
+    export default router;
