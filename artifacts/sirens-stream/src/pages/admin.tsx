@@ -1893,20 +1893,27 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       const dualCards = Object.values(dualCardsMap)
                       const dualEfectivo = dualCards.filter(d => d.isEfectivo)
                       const dualAgencia = dualCards.filter(d => !d.isEfectivo)
-                      // Progress: Efectivo (colider) — colider_paid OR agent confirmed payment received
-                      const coliderWorkerDone = efectivoRows.filter((r: any) => r.colider_paid === true).length
-                      const coliderAgentDone = agentEfectivo.filter((a: any) => a.colider_paid === true || agentConfirmedIds.has(a.id)).length
-                      const dualEfectivoDone = dualEfectivo.filter((d: any) => d.agentRow.colider_paid === true || agentConfirmedIds.has(d.agentRow.id)).length
-                      const coliderDone = coliderWorkerDone + coliderAgentDone + dualEfectivoDone
-                      const coliderTotal = efectivoRows.length + agentEfectivo.length + dualEfectivo.length
-                      const coliderPct = coliderTotal > 0 ? Math.round(coliderDone / coliderTotal * 100) : 0
-                      // Progress: Pagos Agencia (admin) — admin_paid OR agent confirmed payment received
-                      const agenciaDoneWorkers = agenciaRows.filter((r: any) => r.admin_paid === true).length
-                      const agenciaDoneAgents = agentAgencia.filter((a: any) => agentAdminPaidIds.has(a.agent_user_id) || agentConfirmedIds.has(a.id)).length
-                      const dualAgenciaDone = dualAgencia.filter((d: any) => agentAdminPaidIds.has(d.agentRow.agent_user_id) || agentConfirmedIds.has(d.agentRow.id)).length
-                      const agenciaDone = agenciaDoneWorkers + agenciaDoneAgents + dualAgenciaDone
-                      const agenciaTotal = agenciaRows.length + agentAgencia.length + dualAgencia.length
-                      const agenciaPct = agenciaTotal > 0 ? Math.round(agenciaDone / agenciaTotal * 100) : 0
+                      // Progress: 2 pasos por persona — (1) marcado pagado + (2) trabajadora/agente confirma recepcion
+                        // Barra Efectivo (colider)
+                        const coliderWorkerPaid = efectivoRows.filter((r: any) => r.colider_paid === true).length
+                        const coliderWorkerConf = efectivoRows.filter((r: any) => r.confirmed === true).length
+                        const coliderAgentPaid = agentEfectivo.filter((a: any) => a.colider_paid === true).length
+                        const coliderAgentConf = agentEfectivo.filter((a: any) => agentConfirmedIds.has(a.id)).length
+                        const dualEfectivoPaid = dualEfectivo.filter((d: any) => d.agentRow.colider_paid === true).length
+                        const dualEfectivoConf = dualEfectivo.filter((d: any) => agentConfirmedIds.has(d.agentRow.id)).length
+                        const coliderDone = coliderWorkerPaid + coliderWorkerConf + coliderAgentPaid + coliderAgentConf + dualEfectivoPaid + dualEfectivoConf
+                        const coliderTotal = (efectivoRows.length + agentEfectivo.length + dualEfectivo.length) * 2
+                        const coliderPct = coliderTotal > 0 ? Math.round(coliderDone / coliderTotal * 100) : 0
+                        // Barra Agencia (admin)
+                        const agenciaWorkerPaid = agenciaRows.filter((r: any) => r.admin_paid === true).length
+                        const agenciaWorkerConf = agenciaRows.filter((r: any) => r.confirmed === true).length
+                        const agenciaAgentPaid = agentAgencia.filter((a: any) => agentAdminPaidIds.has(a.agent_user_id)).length
+                        const agenciaAgentConf = agentAgencia.filter((a: any) => agentConfirmedIds.has(a.id)).length
+                        const dualAgenciaPaid = dualAgencia.filter((d: any) => agentAdminPaidIds.has(d.agentRow.agent_user_id)).length
+                        const dualAgenciaConf = dualAgencia.filter((d: any) => agentConfirmedIds.has(d.agentRow.id)).length
+                        const agenciaDone = agenciaWorkerPaid + agenciaWorkerConf + agenciaAgentPaid + agenciaAgentConf + dualAgenciaPaid + dualAgenciaConf
+                        const agenciaTotal = (agenciaRows.length + agentAgencia.length + dualAgencia.length) * 2
+                        const agenciaPct = agenciaTotal > 0 ? Math.round(agenciaDone / agenciaTotal * 100) : 0
                       // Total
                       const totalDone = coliderDone + agenciaDone
                       const totalTotal = coliderTotal + agenciaTotal
