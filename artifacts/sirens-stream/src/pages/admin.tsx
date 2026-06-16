@@ -464,18 +464,27 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
               if (_agentUids.length > 0) {
                 const _apiBaseAgent = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
-                const [_coliderApiData, { data: _agWorkers }] = await Promise.all([
+                const [_coliderApiData, { data: _agWorkers }, { data: _agProfiles }] = await Promise.all([
                   fetch(`${_apiBaseAgent}/api/admin/agent-colider-marks?semana=${encodeURIComponent(semana)}&agent_uids=${_agentUids.join(',')}`, { credentials: 'include' })
                     .then(r => r.ok ? r.json() : { coliderMap: {}, adminPaidIds: [] })
                     .catch(() => ({ coliderMap: {}, adminPaidIds: [] })),
                   supabase.from('worker_entries').select('user_id, metodo_pago, billetera').in('user_id', _agentUids),
+                  supabase.from('profiles').select('id, agent_payment_method').in('id', _agentUids),
                 ])
                 _agentColiderMap = _coliderApiData.coliderMap ?? {}
                 _agentAdminPaidSet = new Set<string>(_coliderApiData.adminPaidIds ?? [])
                 const _agentBilleteraMapLocal: Record<string, string> = {}
+                // Build metodo map from worker_entries first
                 for (const w of (_agWorkers ?? []) as any[]) {
                   if ((w as any).metodo_pago) _agentMetodoMapLocal[(w as any).user_id] = (w as any).metodo_pago
                   if ((w as any).billetera) _agentBilleteraMapLocal[(w as any).user_id] = (w as any).billetera
+                }
+                // Override/fill with profiles.agent_payment_method (server-side source of truth)
+                for (const p of (_agProfiles ?? []) as any[]) {
+                  const m = (p as any).agent_payment_method
+                  if (m === 'efectivo' || m === 'transferencia') {
+                    _agentMetodoMapLocal[(p as any).id] = m === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
+                  }
                 }
               }
             setAgentMetodoMap(_agentMetodoMapLocal)
