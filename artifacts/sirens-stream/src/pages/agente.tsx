@@ -261,22 +261,24 @@ import React, { useState, useEffect } from 'react'
       }
 
       async function selectPayMethod(method: 'efectivo' | 'transferencia') {
-        setAgentPayMethod(method)
-        setPayMethodLocked(true)  // Lock immediately — don't wait for API response
-        if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
-        const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
-        if (profile?.id) {
-          await supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id)
-          // Persist lock in DB — so it survives page reloads until cierre semanal
-          const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-          fetch(`${apiBase}/api/payment-method-lock`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: profile.id }),
-          }).catch(() => {})
+          setAgentPayMethod(method)
+          setPayMethodLocked(true)  // Lock immediately — don't wait for API response
+          if (profile?.id) localStorage.setItem(`apm_${profile.id}`, method)
+          const metodoLabel = method === 'efectivo' ? 'Efectivo Cuba' : 'Transferencia Cuba'
+          if (profile?.id) {
+            // Save to worker_entries (if row exists) AND to profile.agent_payment_method (always works)
+            await Promise.all([
+              supabase.from('worker_entries').update({ metodo_pago: metodoLabel }).eq('user_id', profile.id),
+              supabase.from('profiles').update({ agent_payment_method: metodoLabel }).eq('id', profile.id),
+            ])
+            // Persist lock in DB — so it survives page reloads until cierre semanal
+            const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+            fetch(`${apiBase}/api/payment-method-lock`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: profile.id }),
+            }).catch(() => {})
+          }
         }
-      }
-
-
     function toggleExpand(id: string) {
       setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
     }
