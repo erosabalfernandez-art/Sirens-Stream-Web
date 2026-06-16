@@ -1881,6 +1881,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-white">{(agentNameMap[row.agent_name] ?? row.agent_name) || '—'}</p>
                                                 <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
+                                                {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(Number(row.total_commission_usd || 0) * rates['efectivo_agent']).toLocaleString('es-ES')} CUP</p>}
                                                 {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/20">{agentMetodoMap[row.agent_user_id]}{agentBilleteraMap[row.agent_user_id] ? ' · ' + agentBilleteraMap[row.agent_user_id] : ''}</p>}
                                               </div>
                                               <div className="flex flex-col items-end gap-1 shrink-0">
@@ -1917,6 +1918,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-teal-300/60">{'💼 '}{r.app_name}{(r.nombre_en_app || r.apodo) ? ` · ${r.nombre_en_app || r.apodo}` : ''}: ${Number(r.usd||0).toFixed(2)}</p>))}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalD.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalD.toFixed(2)}</p>
+                                                    {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(totalD * rates['efectivo_agent']).toLocaleString('es-ES')} CUP</p>}
                                                     {metodoD && <p className="text-xs text-white/20 mt-0.5">{metodoD}{billeteraD ? ' · ' + billeteraD : ''}</p>}
                                                   </div>
                                                   <div className="flex flex-col items-end gap-1 shrink-0">
@@ -2013,6 +2015,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-white">{(agentNameMap[row.agent_name] ?? row.agent_name) || '—'}</p>
                                                 <p className="text-xs text-white/30">{row.app_name} · <span className="text-amber-400">${Number(row.total_commission_usd || 0).toFixed(2)}</span></p>
+                                                {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(Number(row.total_commission_usd || 0) * rates['transferencia_agent']).toLocaleString('es-ES')} CUP</p>}
                                                 {agentMetodoMap[row.agent_user_id] && <p className="text-xs text-white/30">{agentMetodoMap[row.agent_user_id]}</p>}{agentBilleteraMap[row.agent_user_id] && (<button onClick={() => { navigator.clipboard.writeText(agentBilleteraMap[row.agent_user_id]); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1.5 group mt-0.5"><span className="text-xs font-mono text-amber-300/70 group-hover:text-amber-200 transition-colors break-all">{agentBilleteraMap[row.agent_user_id]}</span>{copiedBilletera === row.id + 'a' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}</button>)}
                                               </div>
                                               <div className="flex flex-col items-end gap-1 shrink-0">
@@ -2056,6 +2059,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     {d.workerRows.map((r:any) => (<p key={r.salary_id} className="text-xs text-purple-300/60">{'💼 '}{r.app_name}{(r.nombre_en_app || r.apodo) ? ` · ${r.nombre_en_app || r.apodo}` : ''}: ${Number(r.usd||0).toFixed(2)}</p>))}
                                                     <p className="text-xs text-amber-300/60">{"👑 Comisión: $"}{agentTotalA.toFixed(2)}</p>
                                                     <p className="text-xs font-bold text-violet-300 mt-0.5">{"💰 Total: $"}{totalA.toFixed(2)}</p>
+                                                    {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/60 font-bold">≈ {Math.round(totalA * rates['transferencia_agent']).toLocaleString('es-ES')} CUP</p>}
                                                     {metodoA && <p className="text-xs text-white/30 mt-0.5">{metodoA}</p>}{billeteraA && (<button onClick={() => { navigator.clipboard.writeText(billeteraA); setCopiedBilletera(d.agent_user_id + 'd'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1.5 group mt-0.5"><span className="text-xs font-mono text-violet-300/70 group-hover:text-violet-200 transition-colors break-all">{billeteraA}</span>{copiedBilletera === d.agent_user_id + 'd' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-violet-400 shrink-0 transition-colors" />}</button>)}
                                                   </div>
                                                   <div className="flex flex-col items-end gap-1 shrink-0">
