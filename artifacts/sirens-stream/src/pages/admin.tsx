@@ -872,43 +872,54 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         }
 
         async function fetchAgentPayData() {
-              setAgentPayLoading(true)
-              const { data: latestComm } = await supabase
-                .from('agent_commissions').select('semana')
-                .order('semana', { ascending: false }).limit(1).maybeSingle()
-              if (!latestComm) { setAgentPayData({confirmed: [], pending: []}); setAgentPayLoading(false); return }
-              const semana = latestComm.semana
-              const { data: comms } = await supabase
-                .from('agent_commissions')
-                .select('id, agent_name, app_name, semana, total_commission_usd, agent_user_id')
-                .eq('semana', semana)
-              const { data: confs } = await supabase
-                .from('agent_payment_confirmations')
-                .select('commission_id, confirmed_at')
-                .in('commission_id', (comms ?? []).map((c: any) => c.id))
-              const confSet = new Set(((confs ?? []) as any[]).map((c: any) => c.commission_id))
-              const confMap: Record<string, string> = {}
-              ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
-              const all = (comms ?? []) as any[]
-              // Build agentMetodoMap from worker_entries + profile fallback so classification is correct
-              const _agUids = all.filter((c: any) => c.agent_user_id).map((c: any) => c.agent_user_id as string)
-              if (_agUids.length > 0) {
-                const [{ data: _agW }, { data: _agP }] = await Promise.all([
-                  supabase.from('worker_entries').select('user_id, metodo_pago').in('user_id', _agUids),
-                  supabase.from('profiles').select('id, agent_payment_method').in('id', _agUids),
-                ])
-                const _mm: Record<string, string> = {}
-                for (const w of (_agW ?? []) as any[]) { if (w.metodo_pago) _mm[w.user_id] = w.metodo_pago }
-                for (const p of (_agP ?? []) as any[]) { if (!_mm[p.id] && p.agent_payment_method) _mm[p.id] = p.agent_payment_method }
-                setAgentMetodoMap(_mm)
+                setAgentPayLoading(true)
+                const { data: latestComm } = await supabase
+                  .from('agent_commissions').select('semana')
+                  .order('semana', { ascending: false }).limit(1).maybeSingle()
+                if (!latestComm) { setAgentPayData({confirmed: [], pending: []}); setAgentPayLoading(false); return }
+                const semana = latestComm.semana
+                const { data: comms } = await supabase
+                  .from('agent_commissions')
+                  .select('id, agent_name, app_name, semana, total_commission_usd, agent_user_id')
+                  .eq('semana', semana)
+                const { data: confs } = await supabase
+                  .from('agent_payment_confirmations')
+                  .select('commission_id, confirmed_at')
+                  .in('commission_id', (comms ?? []).map((c: any) => c.id))
+                const confSet = new Set(((confs ?? []) as any[]).map((c: any) => c.commission_id))
+                const confMap: Record<string, string> = {}
+                ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
+                const all = (comms ?? []) as any[]
+                // Load colider marks, admin paid marks, and metodo_pago on every fetch (ensures reload works)
+                const _agUids2 = all.filter((c: any) => c.agent_user_id).map((c: any) => c.agent_user_id as string)
+                let _coliderMap2: Record<string, boolean> = {}
+                let _metodoMap2: Record<string, string> = {}
+                let _adminPaidSet2 = new Set<string>()
+                if (_agUids2.length > 0) {
+                  const _apiBase2 = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
+                  const [_coliderApiData2, { data: _agW2 }, { data: _agP2 }] = await Promise.all([
+                    fetch(_apiBase2 + '/api/admin/agent-colider-marks?semana=' + encodeURIComponent(semana) + '&agent_uids=' + _agUids2.join(','), { credentials: 'include' })
+                      .then(r => r.ok ? r.json() : { coliderMap: {}, adminPaidIds: [] })
+                      .catch(() => ({ coliderMap: {}, adminPaidIds: [] })),
+                    supabase.from('worker_entries').select('user_id, metodo_pago').in('user_id', _agUids2),
+                    supabase.from('profiles').select('id, agent_payment_method').in('id', _agUids2),
+                  ])
+                  _coliderMap2 = _coliderApiData2.coliderMap ?? {}
+                  _adminPaidSet2 = new Set<string>(_coliderApiData2.adminPaidIds ?? [])
+                  const _profMetodo2: Record<string, string> = {}
+                  for (const p of (_agP2 ?? []) as any[]) { if (p.agent_payment_method) _profMetodo2[p.id] = p.agent_payment_method }
+                  for (const w of (_agW2 ?? []) as any[]) { if ((w as any).metodo_pago) _metodoMap2[(w as any).user_id] = (w as any).metodo_pago }
+                  for (const uid of _agUids2) { if (!_metodoMap2[uid] && _profMetodo2[uid]) _metodoMap2[uid] = _profMetodo2[uid] }
+                }
+                setAgentMetodoMap(_metodoMap2)
+                setAgentAdminPaidIds(_adminPaidSet2)
+                setAgentPayData({
+                  confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({ ...c, confirmed_at: confMap[c.id], colider_paid: c.agent_user_id ? ((c.agent_user_id in _coliderMap2) ? _coliderMap2[c.agent_user_id] : null) : null })),
+                  pending: all.filter((c: any) => !confSet.has(c.id)).map((c: any) => ({ ...c, colider_paid: c.agent_user_id ? ((c.agent_user_id in _coliderMap2) ? _coliderMap2[c.agent_user_id] : null) : null })),
+                })
+                setPagosSemana(semana)
+                setAgentPayLoading(false)
               }
-              setAgentPayData({
-                confirmed: all.filter((c: any) => confSet.has(c.id)).map((c: any) => ({...c, confirmed_at: confMap[c.id]})),
-                pending: all.filter((c: any) => !confSet.has(c.id)),
-              })
-              setPagosSemana(semana)
-              setAgentPayLoading(false)
-            }
 
           async function fetchLaylaDirectNotifs() {
             setLaylaDirectLoading(true)
