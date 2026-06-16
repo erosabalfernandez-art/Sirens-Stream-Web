@@ -244,8 +244,18 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
         }
       }
 
-      async function handleDelete(id: string) { await supabase.from('worker_entries').delete().eq('id', id); fetchEntries() }
-      async function handleClearAll() { await supabase.from('worker_entries').delete().eq('user_id', user!.id); setEntries([]); setConfirmClear(false) }
+      async function handleDelete(id: string) {
+        try {
+          await fetch(`${API}/api/worker-entries/${encodeURIComponent(id)}?user_id=${encodeURIComponent(user!.id)}`, { method: 'DELETE' })
+        } catch {}
+        fetchEntries()
+      }
+      async function handleClearAll() {
+        try {
+          await fetch(`${API}/api/worker-entries?user_id=${encodeURIComponent(user!.id)}`, { method: 'DELETE' })
+        } catch {}
+        setEntries([]); setConfirmClear(false)
+      }
 
 
       const API = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
