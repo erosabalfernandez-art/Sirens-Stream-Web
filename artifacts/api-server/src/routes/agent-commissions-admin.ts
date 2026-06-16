@@ -490,5 +490,56 @@ const agents = Object.values(agentMap).map(a => ({ agent_name: a.agent_name, age
         res.json({ published: true, published_at: (log[0] as any).published_at, agents: Object.values(agentMap), exchange_rates: rm })
     } catch (e) { res.status(500).json({ error: String(e) }) }
   })
-  export default router
+  /**
+     * GET /api/agent/worker-salaries?agent_id=X
+     * Returns published_salaries for the agent's workers.
+     * ONLY returns salaries for semanas where nomina_history.published = true.
+     * After cierre-semanal (sets nomina_history.published = false), returns empty → agent sees nothing.
+     */
+    router.get('/agent/worker-salaries', async (req, res) => {
+      const { agent_id } = req.query as { agent_id?: string }
+      if (!agent_id) { res.status(400).json({ error: 'agent_id required' }); return }
+      try {
+        // 1. Get agent profile to find their agent_code
+        const profRows = await sbGet(`profiles?id=eq.${encodeURIComponent(agent_id)}&select=agent_code`)
+        const agentCode = (profRows[0] as any)?.agent_code as string | null
+        if (!agentCode) { res.json({ salaries: [], exchange_rates: {} }); return }
+
+        // 2. Fetch workers, active semanas, and exchange_rates in parallel
+        const [workerRows, activeSemanaRows, exchangeRateRows] = await Promise.all([
+          sbGet(`worker_entries?agente=eq.${encodeURIComponent(agentCode)}&select=user_id,app_name,nombre_en_app,nombre_real,metodo_pago`),
+          sbGet('nomina_history?published=eq.true&select=semana'),
+          sbGet('exchange_rates?select=id,rate'),
+        ])
+
+        const rm: Record<string, number> = {}
+        for (const r of (exchangeRateRows as any[])) rm[r.id] = Number(r.rate) || 0
+
+        // If no active (published) semanas → week is closed → return empty salaries
+        const activeSemanas = new Set((activeSemanaRows as any[]).map((r: any) => r.semana as string))
+        if (activeSemanas.size === 0) {
+          res.json({ salaries: [], exchange_rates: rm }); return
+        }
+
+        const workerUserIds = [...new Set((workerRows as any[]).map((w: any) => w.user_id as string))]
+        if (workerUserIds.length === 0) {
+          res.json({ salaries: [], exchange_rates: rm }); return
+        }
+
+        // 3. Fetch published_salaries for these workers
+        const uidStr = workerUserIds.map((id: string) => '"' + id + '"').join(',')
+        const salaryRows = await sbGet(
+          `published_salaries?user_id=in.(${uidStr})&select=id,user_id,app_name,semana,usd,metodo_pago&order=semana.desc`
+        )
+
+        // 4. Only return salaries from currently-active semanas
+        const activeSalaries = (salaryRows as any[]).filter((s: any) => activeSemanas.has(s.semana as string))
+
+        res.json({ salaries: activeSalaries, exchange_rates: rm })
+      } catch (err: any) {
+        res.status(500).json({ error: err?.message ?? 'Error interno' })
+      }
+    })
+
+    export default router
   
