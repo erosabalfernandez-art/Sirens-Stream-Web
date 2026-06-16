@@ -219,10 +219,13 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [customRateInputs, setCustomRateInputs] = useState<Record<string, {efectivo:string;transferencia:string}>>({})
         const [customRateApp, setCustomRateApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
         const [customRateSearch, setCustomRateSearch] = useState('')
+        const [customRateFilterId, setCustomRateFilterId] = useState('')
+        const [customRateFilterPhone, setCustomRateFilterPhone] = useState('')
         const [savingCustomRate, setSavingCustomRate] = useState<string|null>(null)
         const [savedCustomRate, setSavedCustomRate] = useState<string|null>(null)
         const [deletingCustomRate, setDeletingCustomRate] = useState<string|null>(null)
         const [customRateSetupNeeded, setCustomRateSetupNeeded] = useState(false)
+        const [agentUserIds, setAgentUserIds] = useState<Set<string>>(new Set())
         useEffect(() => {
           if (tab !== 'cambio') return
           const _ab = ((import.meta.env.VITE_API_URL as string|undefined) ?? '').replace(/\/$/, '')
@@ -962,10 +965,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         async function fetchAll() {
         setLoadingData(true)
         fetchRates()
-        const [{ data: entries }, { data: profiles }, { data: agentProfsAll }] = await Promise.all([
+        const [{ data: entries }, { data: profiles }, { data: agentProfsAll }, { data: agentProfileIds }] = await Promise.all([
             supabase.from('worker_entries').select('*').order('created_at', { ascending: false }),
             supabase.from('profiles').select('id, email'),
             supabase.from('profiles').select('agent_name, colider_name, agent_code, phone').not('agent_code', 'is', null),
+            supabase.from('profiles').select('id').or('is_agent.eq.true,is_colider.eq.true'),
           ])
           const pm = Object.fromEntries(((profiles ?? []) as any[]).map(p => [p.id, p.email]))
           emailMapRef.current = pm
@@ -977,6 +981,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             ((agentProfsAll ?? []) as any[]).filter((a: any) => a.agent_code && a.phone).map((a: any) => [a.agent_code, a.phone as string])
           )
           setAgentPhoneMap(pm2)
+          setAgentUserIds(new Set(((agentProfileIds ?? []) as {id:string}[]).map(p => p.id)))
           if (entries) {
             setWorkers(entries.map((e: any) => ({ ...e, profile_email: pm[e.user_id] ?? 'desconocido' })))
           }
@@ -2750,41 +2755,6 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                     </div>
                   </div>
 
-                  {/* AGENTES */}
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-4 flex items-center gap-2">
-                      <span className="text-base">💱</span> Cambio para Agentes
-                      <span className="text-white/20 font-normal normal-case tracking-normal ml-1">— independiente al de trabajadoras</span>
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {([
-                        { id: 'efectivo_agent',       label: 'Efectivo Cuba',       color: 'amber' },
-                        { id: 'transferencia_agent',  label: 'Transferencia Cuba',  color: 'blue'  },
-                      ] as const).map(({ id, label, color }) => (
-                        <div key={id} className={`bg-[#0d0d1e] border border-${color}-500/15 rounded-2xl p-5`}>
-                          <p className={`text-${color}-400 text-xs font-bold uppercase tracking-wider mb-1`}>{label}</p>
-                          <p className="text-white/30 text-xs mb-3">Cambio actual: <span className="text-white/60 font-semibold">{(rates[id] ?? 0).toLocaleString('es-ES')} por USD</span></p>
-                          <div className="flex gap-2">
-                            <input
-                              type="number" min="0" step="any"
-                              value={rateInputs[id] ?? ''}
-                              onChange={e => setRateInputs(prev => ({ ...prev, [id]: e.target.value }))}
-                              placeholder="Ej: 400"
-                              className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50"
-                            />
-                            <button
-                              onClick={() => publishRate(id)}
-                              disabled={savingRate === id}
-                              className={`flex items-center gap-1.5 ${rateSaved === id ? 'bg-green-600' : `bg-${color}-600 hover:bg-${color}-500`} disabled:opacity-50 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shrink-0`}>
-                              {savingRate === id ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                              {rateSaved === id ? '✓ Publicado' : (savingRate === id ? '...' : 'Publicar')}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* CAMBIO PERSONALIZADO */}
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-400/70 mb-4 flex items-center gap-2">
@@ -2796,82 +2766,141 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                         <p className="text-yellow-400 text-xs font-bold mb-2">⚠️ Tabla no creada aún — ejecuta esto en Supabase SQL Editor:</p>
                         <pre className="text-white/50 text-xs bg-black/30 rounded-xl p-3 overflow-x-auto select-all">{'CREATE TABLE IF NOT EXISTS custom_worker_rates (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  user_id text NOT NULL,\n  app_name text NOT NULL,\n  nombre_en_app text,\n  efectivo_rate numeric(10,2) NOT NULL DEFAULT 0,\n  transferencia_rate numeric(10,2) NOT NULL DEFAULT 0,\n  updated_at timestamptz DEFAULT now(),\n  UNIQUE(user_id, app_name)\n);'}</pre>
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex gap-2 mb-4">
-                          {(['Waha', 'Layla', 'Howdy'] as const).map(app => (
-                            <button key={app} onClick={() => setCustomRateApp(app)}
-                              className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${customRateApp === app ? 'bg-emerald-600 text-white' : 'bg-white/5 text-white/40 hover:text-white/70'}`}>
-                              {app}
-                            </button>
-                          ))}
-                        </div>
-                        <input type="text" placeholder="Buscar por nombre en app..."
-                          value={customRateSearch} onChange={e => setCustomRateSearch(e.target.value)}
-                          className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50 mb-4"
-                        />
-                        <div className="space-y-3">
-                          {workers.filter(w => w.app_name === customRateApp && (customRateSearch === '' || (w.nombre_en_app ?? '').toLowerCase().includes(customRateSearch.toLowerCase()))).map(w => {
-                            const key = `${w.user_id}__${w.app_name}`
-                            const existing = customRatesByKey[key]
-                            const inputs = customRateInputs[key] ?? { efectivo: '', transferencia: '' }
-                            return (
-                              <div key={key} className="bg-[#0d0d1e] border border-emerald-500/10 rounded-2xl p-4">
-                                <div className="flex items-start justify-between mb-3">
-                                  <div>
-                                    <p className="text-white text-sm font-semibold">{w.nombre_en_app}</p>
-                                    {existing && <p className="text-emerald-400 text-xs mt-0.5">🎯 Activo · ef. {existing.efectivo_rate.toLocaleString('es-ES')} · transf. {existing.transferencia_rate.toLocaleString('es-ES')} CUP/USD</p>}
+                    ) : (() => {
+                      // Group workers by user_id, excluding agents/coliders
+                      const workerGroups: Record<string, WorkerRow[]> = {}
+                      for (const w of workers) {
+                        if (agentUserIds.has(w.user_id)) continue
+                        if (!workerGroups[w.user_id]) workerGroups[w.user_id] = []
+                        workerGroups[w.user_id].push(w)
+                      }
+                      const srch = customRateSearch.toLowerCase()
+                      const idF  = customRateFilterId.toLowerCase()
+                      const phF  = customRateFilterPhone.toLowerCase()
+                      const filteredGroups = Object.values(workerGroups).filter(group => {
+                        if (srch && !group.some(w => (w.nombre_real ?? '').toLowerCase().includes(srch) || (w.nombre_en_app ?? '').toLowerCase().includes(srch))) return false
+                        if (idF  && !group.some(w => (w.id_aplicacion ?? '').toLowerCase().includes(idF))) return false
+                        if (phF  && !group.some(w => (w.telefono ?? '').toLowerCase().includes(phF) || (`${w.codigo_pais ?? ''}${w.telefono ?? ''}`).replace(/\s/g,'').includes(phF.replace(/\s/g,'')))) return false
+                        return true
+                      }).sort((a, b) => (a[0].nombre_real ?? '').localeCompare(b[0].nombre_real ?? ''))
+
+                      return (
+                        <>
+                          {/* Filters */}
+                          <div className="flex flex-col gap-2 mb-4">
+                            <input type="text" placeholder="🔍 Buscar por nombre real o nombre en app..."
+                              value={customRateSearch} onChange={e => setCustomRateSearch(e.target.value)}
+                              className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <input type="text" placeholder="🔑 Filtrar por ID de app..."
+                                value={customRateFilterId} onChange={e => setCustomRateFilterId(e.target.value)}
+                                className="bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50"
+                              />
+                              <input type="text" placeholder="📱 Filtrar por teléfono..."
+                                value={customRateFilterPhone} onChange={e => setCustomRateFilterPhone(e.target.value)}
+                                className="bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500/50"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            {filteredGroups.map(group => {
+                              const first = group[0]
+                              const rawPhone = `${first.codigo_pais ?? ''}${first.telefono ?? ''}`.replace(/[\s\-\(\)]/g, '')
+                              const displayPhone = first.telefono ? `+${first.codigo_pais ?? ''}${first.telefono}` : null
+
+                              return (
+                                <div key={first.user_id} className="bg-[#0d0d1e] border border-emerald-500/10 rounded-2xl p-4">
+                                  {/* Girl header */}
+                                  <div className="flex items-center justify-between mb-3">
+                                    <p className="text-white text-sm font-bold">{first.nombre_real || '—'}</p>
+                                    {displayPhone && rawPhone ? (
+                                      <a href={`https://wa.me/${rawPhone}`} target="_blank" rel="noreferrer"
+                                        className="flex items-center gap-1.5 text-xs bg-green-500/10 border border-green-500/20 text-green-300 px-2.5 py-1 rounded-full hover:bg-green-500/20 transition-colors font-semibold">
+                                        📱 {displayPhone}
+                                      </a>
+                                    ) : first.telefono ? (
+                                      <span className="text-xs text-white/30 font-mono">{first.telefono}</span>
+                                    ) : null}
                                   </div>
-                                  {existing && (
-                                    <button onClick={() => deleteCustomRate(w)} disabled={deletingCustomRate === key}
-                                      className="text-red-400/60 hover:text-red-400 text-xs px-2 py-1 rounded-lg transition-all disabled:opacity-50">
-                                      {deletingCustomRate === key ? '...' : '✕ Quitar'}
-                                    </button>
-                                  )}
+
+                                  {/* Per-app entries */}
+                                  <div className="space-y-4">
+                                    {group.map((w, wi) => {
+                                      const key = `${w.user_id}__${w.app_name}`
+                                      const existing = customRatesByKey[key]
+                                      const inputs = customRateInputs[key] ?? { efectivo: '', transferencia: '' }
+                                      return (
+                                        <div key={key} className={wi > 0 ? 'border-t border-white/5 pt-4' : ''}>
+                                          {/* App info row */}
+                                          <div className="flex items-center flex-wrap gap-2 mb-2.5">
+                                            <span className="text-xs font-bold bg-purple-500/15 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full">{w.app_name}</span>
+                                            <span className="text-xs text-white/70 font-semibold">{w.nombre_en_app}</span>
+                                            {w.id_aplicacion && (
+                                              <span className="text-xs text-white/35 font-mono bg-white/4 px-2 py-0.5 rounded">ID: {w.id_aplicacion}</span>
+                                            )}
+                                            {existing && (
+                                              <span className="text-emerald-400 text-xs">🎯 ef. {existing.efectivo_rate.toLocaleString('es-ES')} · tr. {existing.transferencia_rate.toLocaleString('es-ES')}</span>
+                                            )}
+                                            {existing && (
+                                              <button onClick={() => deleteCustomRate(w)} disabled={deletingCustomRate === key}
+                                                className="ml-auto text-red-400/60 hover:text-red-400 text-xs px-2 py-1 rounded-lg transition-all disabled:opacity-50">
+                                                {deletingCustomRate === key ? '...' : '✕ Quitar'}
+                                              </button>
+                                            )}
+                                          </div>
+                                          {/* Rate inputs */}
+                                          <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                              <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1.5">💵 Efectivo CUP</p>
+                                              <div className="flex gap-2">
+                                                <input type="number" min="0" step="any"
+                                                  placeholder={existing?.efectivo_rate ? String(existing.efectivo_rate) : 'Ej: 400'}
+                                                  value={inputs.efectivo}
+                                                  onChange={e => setCustomRateInputs(prev => ({ ...prev, [key]: { ...(prev[key] ?? { efectivo: '', transferencia: '' }), efectivo: e.target.value } }))}
+                                                  className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-amber-500/50 min-w-0"
+                                                />
+                                                <button onClick={() => saveCustomRate(w, 'efectivo')} disabled={savingCustomRate === `${key}__efectivo`}
+                                                  className={`flex items-center gap-1 ${savedCustomRate === `${key}__efectivo` ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
+                                                  {savingCustomRate === `${key}__efectivo` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                                                  {savedCustomRate === `${key}__efectivo` ? '✓' : (savingCustomRate === `${key}__efectivo` ? '' : 'Pub.')}
+                                                </button>
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <p className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1.5">🏦 Transferencia CUP</p>
+                                              <div className="flex gap-2">
+                                                <input type="number" min="0" step="any"
+                                                  placeholder={existing?.transferencia_rate ? String(existing.transferencia_rate) : 'Ej: 390'}
+                                                  value={inputs.transferencia}
+                                                  onChange={e => setCustomRateInputs(prev => ({ ...prev, [key]: { ...(prev[key] ?? { efectivo: '', transferencia: '' }), transferencia: e.target.value } }))}
+                                                  className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-blue-500/50 min-w-0"
+                                                />
+                                                <button onClick={() => saveCustomRate(w, 'transferencia')} disabled={savingCustomRate === `${key}__transferencia`}
+                                                  className={`flex items-center gap-1 ${savedCustomRate === `${key}__transferencia` ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
+                                                  {savingCustomRate === `${key}__transferencia` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                                                  {savedCustomRate === `${key}__transferencia` ? '✓' : (savingCustomRate === `${key}__transferencia` ? '' : 'Pub.')}
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1.5">Efectivo Cuba</p>
-                                    <div className="flex gap-2">
-                                      <input type="number" min="0" step="any" placeholder={existing?.efectivo_rate ? String(existing.efectivo_rate) : 'Ej: 400'}
-                                        value={inputs.efectivo}
-                                        onChange={e => setCustomRateInputs(prev => ({ ...prev, [key]: { ...(prev[key] ?? { efectivo: '', transferencia: '' }), efectivo: e.target.value } }))}
-                                        className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-amber-500/50 min-w-0"
-                                      />
-                                      <button onClick={() => saveCustomRate(w, 'efectivo')} disabled={savingCustomRate === `${key}__efectivo`}
-                                        className={`flex items-center gap-1 ${savedCustomRate === `${key}__efectivo` ? 'bg-green-600' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
-                                        {savingCustomRate === `${key}__efectivo` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                                        {savedCustomRate === `${key}__efectivo` ? '✓' : (savingCustomRate === `${key}__efectivo` ? '' : 'Pub.')}
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <p className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1.5">Transferencia Cuba</p>
-                                    <div className="flex gap-2">
-                                      <input type="number" min="0" step="any" placeholder={existing?.transferencia_rate ? String(existing.transferencia_rate) : 'Ej: 390'}
-                                        value={inputs.transferencia}
-                                        onChange={e => setCustomRateInputs(prev => ({ ...prev, [key]: { ...(prev[key] ?? { efectivo: '', transferencia: '' }), transferencia: e.target.value } }))}
-                                        className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-blue-500/50 min-w-0"
-                                      />
-                                      <button onClick={() => saveCustomRate(w, 'transferencia')} disabled={savingCustomRate === `${key}__transferencia`}
-                                        className={`flex items-center gap-1 ${savedCustomRate === `${key}__transferencia` ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shrink-0`}>
-                                        {savingCustomRate === `${key}__transferencia` ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                                        {savedCustomRate === `${key}__transferencia` ? '✓' : (savingCustomRate === `${key}__transferencia` ? '' : 'Pub.')}
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                          {workers.filter(w => w.app_name === customRateApp && (customRateSearch === '' || (w.nombre_en_app ?? '').toLowerCase().includes(customRateSearch.toLowerCase()))).length === 0 && (
-                            <p className="text-white/20 text-sm text-center py-4">
-                              {customRateSearch ? 'No se encontraron chicas con ese nombre.' : `No hay chicas registradas en ${customRateApp}.`}
-                            </p>
-                          )}
-                        </div>
-                      </>
-                    )}
+                              )
+                            })}
+                            {filteredGroups.length === 0 && (
+                              <p className="text-white/20 text-sm text-center py-4">
+                                {(srch || idF || phF) ? 'No se encontraron chicas con esos filtros.' : 'No hay trabajadoras registradas.'}
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
 
                 </div>
