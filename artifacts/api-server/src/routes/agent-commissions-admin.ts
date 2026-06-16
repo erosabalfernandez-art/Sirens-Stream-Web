@@ -152,7 +152,7 @@ import { Router } from 'express'
           if (!agentCode) continue
           const agentId = agentProfile.id as string
           const displayName = (agentProfile.colider_name ?? agentProfile.agent_name ?? agentCode) as string
-          const myWorkers = (allWorkerEntries as any[]).filter((w: any) => w.agente === agentCode)
+          const myWorkers = (allWorkerEntries as any[]).filter((w: any) => w.agente === agentCode && w.user_id !== agentId)
           if (myWorkers.length === 0) continue
 
           let mapKey = Object.keys(agentMap).find(k => agentMap[k].agent_user_id === agentId)
@@ -188,7 +188,25 @@ import { Router } from 'express'
             })
           }
         }
-      } catch { /* enrichment is best-effort */ }
+
+            // Post-processing: remove workers who are the agent's own account (agent is also a worker)
+            for (const agentInfo of Object.values(agentMap)) {
+              if (!agentInfo.agent_user_id) continue
+              const selfUids = new Set(
+                (allWorkerEntries as any[])
+                  .filter((w: any) => w.user_id === agentInfo.agent_user_id)
+                  .map((w: any) => String(w.id_aplicacion ?? ''))
+                  .filter(Boolean)
+              )
+              if (selfUids.size === 0) continue
+              for (const appName of Object.keys(agentInfo.apps)) {
+                agentInfo.apps[appName] = agentInfo.apps[appName].filter(
+                  (w: any) => !w.worker_uid || !selfUids.has(String(w.worker_uid))
+                )
+                if (agentInfo.apps[appName].length === 0) delete agentInfo.apps[appName]
+              }
+            }
+        } catch { /* enrichment is best-effort */ }
 
       // Remove stale agents: filter both ID-based and name-based orphaned agents
         if (validAgentIds) {
