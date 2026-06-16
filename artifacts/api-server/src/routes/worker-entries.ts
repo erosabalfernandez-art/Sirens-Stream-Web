@@ -167,6 +167,46 @@ import { Router } from 'express';
   });
 
   /**
+   * DELETE /api/worker-entries/:id
+   * Lets a worker delete their own entry (bypasses RLS via service role, verifies user_id ownership).
+   */
+  router.delete('/worker-entries/:id', async (req, res) => {
+    const { id } = req.params;
+    const { user_id } = req.query as { user_id?: string };
+    if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
+    try {
+      const r = await fetch(
+        sbUrl(`worker_entries?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user_id)}`),
+        { method: 'DELETE', headers: { ...sbH(), Prefer: 'return=representation' } }
+      );
+      const data = await r.json().catch(() => []);
+      if (!r.ok) return res.status(r.status).json({ error: JSON.stringify(data) });
+      return res.json({ ok: true, deleted: Array.isArray(data) ? data.length : 1 });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? 'Error interno' });
+    }
+  });
+
+  /**
+   * DELETE /api/worker-entries?user_id=X
+   * Lets a worker delete ALL their own entries (bypasses RLS via service role).
+   */
+  router.delete('/worker-entries', async (req, res) => {
+    const { user_id } = req.query as { user_id?: string };
+    if (!user_id) return res.status(400).json({ error: 'user_id requerido' });
+    try {
+      const r = await fetch(
+        sbUrl(`worker_entries?user_id=eq.${encodeURIComponent(user_id)}`),
+        { method: 'DELETE', headers: { ...sbH(), Prefer: 'return=representation' } }
+      );
+      if (!r.ok) { const t = await r.text(); return res.status(r.status).json({ error: t }); }
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message ?? 'Error interno' });
+    }
+  });
+
+  /**
    * DELETE /api/admin/worker-entry?user_id=X&app_name=Y
    * Fully removes a worker entry and ALL related data for that user+app.
    * Tables cleaned: worker_entries, custom_worker_rates, published_salaries,
