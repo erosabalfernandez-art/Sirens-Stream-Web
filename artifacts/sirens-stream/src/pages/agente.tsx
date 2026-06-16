@@ -97,7 +97,7 @@ import React, { useState, useEffect } from 'react'
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [filterApp, setFilterApp] = useState(() => { try { return localStorage.getItem('ea_agent_filterapp') ?? '' } catch { return '' } })
 
-  const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'nocobro'|'salarios'>(() => { try { const s = localStorage.getItem('ea_agent_tab'); return (s === 'comisiones' || s === 'trabajadoras' || s === 'nocobro' || s === 'salarios' ? s : 'comisiones') } catch { return 'comisiones' } })
+  const [mainTab, setMainTab] = useState<'comisiones'|'trabajadoras'|'nocobro'>(() => { try { const s = localStorage.getItem('ea_agent_tab'); return (s === 'comisiones' || s === 'trabajadoras' || s === 'nocobro' ? s : 'comisiones') } catch { return 'comisiones' } })
   const [workerAppFilter, setWorkerAppFilter] = useState(() => { try { return localStorage.getItem('ea_agent_workerapp') ?? '' } catch { return '' } })
     const [exchangeRates, setExchangeRates] = useState<Record<string,number>>({})
     const [agentPayMethod, setAgentPayMethod] = useState<'efectivo' | 'transferencia' | null>(null)
@@ -112,13 +112,6 @@ import React, { useState, useEffect } from 'react'
     const [workerSalaries, setWorkerSalaries] = useState<WorkerSalary[]>([])
     const [workerSalariesLoading, setWorkerSalariesLoading] = useState(false)
     const [workerExchangeRates, setWorkerExchangeRates] = useState<Record<string,number>>({})
-      const [agentSalaries, setAgentSalaries] = useState<PublishedSalary[]>([])
-      const [agentSalLoading, setAgentSalLoading] = useState(false)
-      const [agentPayMethods, setAgentPayMethods] = useState<Record<string,string>>({})
-      const [agentCustomRates, setAgentCustomRates] = useState<Record<string,{efectivo_rate:number;transferencia_rate:number}>>({})
-      const [agentActiveNominas, setAgentActiveNominas] = useState<Set<string>>(new Set())
-      const [agentSalExpanded, setAgentSalExpanded] = useState<Set<string>>(new Set())
-      const [agentSalHistoryOpen, setAgentSalHistoryOpen] = useState(false)
 
   // Persist tab and filter selections
   useEffect(() => { try { localStorage.setItem('ea_agent_tab', mainTab) } catch {} }, [mainTab])
@@ -238,31 +231,6 @@ import React, { useState, useEffect } from 'react'
         } catch {}
         setWorkerSalariesLoading(false)
       }
-
-        async function fetchAgentOwnSalaries() {
-          if (!profile?.id) return
-          setAgentSalLoading(true)
-          try {
-            const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
-            const [salRes, activeRes, entriesRes, myRatesRes] = await Promise.all([
-              supabase.from('published_salaries').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
-              fetch(apiBase + '/api/active-semanas').then(r => r.json()).catch(() => ({ semanas: [] })),
-              supabase.from('worker_entries').select('app_name, metodo_pago').eq('user_id', profile.id),
-              fetch(apiBase + '/api/worker/my-rates?user_id=' + encodeURIComponent(profile.id)).then(r => r.json()).catch(() => ({ custom: {}, global: {} })),
-            ])
-            setAgentSalaries((salRes.data as PublishedSalary[]) ?? [])
-            setAgentActiveNominas(new Set(((activeRes.semanas ?? []) as string[])))
-            const methods: Record<string,string> = {}
-            for (const e of ((entriesRes.data ?? []) as {app_name:string;metodo_pago:string|null}[])) {
-              methods[e.app_name] = e.metodo_pago ?? ''
-            }
-            setAgentPayMethods(methods)
-            setAgentCustomRates(((myRatesRes as any).custom ?? {}) as Record<string,{efectivo_rate:number;transferencia_rate:number}>)
-            const globalRates = (myRatesRes as any).global ?? {}
-            if (Object.keys(globalRates).length > 0) setExchangeRates((prev: Record<string,number>) => ({ ...prev, ...globalRates }))
-          } catch {}
-          setAgentSalLoading(false)
-        }
 
         async function fetchAgentConfirmed() {
         const { data } = await supabase
@@ -538,29 +506,6 @@ import React, { useState, useEffect } from 'react'
     const thisWeekRows = latestSemana ? (publishedComms as any[]).filter((c: any) => c.semana === latestSemana) : []
     const thisWeekAgentUSD = thisWeekRows.reduce((s: number, c: any) => s + (Number(c.commission_usd) || 0), 0)
 
-      const toggleSal = (id: string) => {
-        setAgentSalExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-      }
-
-      const exportSalPDF = () => {
-        if (agentSalaries.length === 0) return
-        const allAppsS = [...new Set(agentSalaries.map(s => s.app_name))]
-        const totalUSD = agentSalaries.reduce((sum, s) => sum + Number(s.usd), 0)
-        const now = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
-        const rows = allAppsS.map(app => {
-          const appSals = agentSalaries.filter(s => s.app_name === app)
-          const appTotal = appSals.reduce((sum, s) => sum + Number(s.usd), 0)
-          const weekRows = appSals.map(s => {
-            const extras = s.extras ? Object.entries(s.extras).filter(([k, v]) => v !== '' && v !== null && !String(k).toLowerCase().includes('cup') && !String(k).toLowerCase().includes('rate')) : []
-            return '<tr><td><b>Semana ' + s.semana + '</b><br><small>' + new Date(s.created_at).toLocaleDateString('es-ES') + '</small></td><td style="color:#059669;font-weight:900">$' + Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' USD</td>' + (s.diamantes > 0 ? '<td style="color:#7c3aed">' + Number(s.diamantes).toLocaleString('es-ES') + ' 💎</td>' : '<td>—</td>') + '<td>' + extras.map(([k, v]) => '<span style="background:#f3f4f6;border-radius:4px;padding:2px 6px;margin:1px;display:inline-block;font-size:11px"><b>' + k + ':</b> ' + v + '</span>').join('') + '</td></tr>'
-          }).join('')
-          return '<div style="margin-bottom:24px"><div style="background:#7c3aed;color:#fff;border-radius:8px 8px 0 0;padding:10px 16px;display:flex;justify-content:space-between"><span style="font-weight:900">' + app + '</span><span style="background:rgba(255,255,255,.2);padding:2px 10px;border-radius:20px">Total: $' + appTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' USD</span></div><table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-top:none"><thead><tr style="background:#f5f3ff"><th style="padding:8px 12px;text-align:left;font-size:11px;color:#7c3aed;text-transform:uppercase">Semana</th><th style="padding:8px 12px;text-align:left;font-size:11px;color:#7c3aed;text-transform:uppercase">USD</th><th style="padding:8px 12px;text-align:left;font-size:11px;color:#7c3aed;text-transform:uppercase">Diamantes</th><th style="padding:8px 12px;text-align:left;font-size:11px;color:#7c3aed;text-transform:uppercase">Detalles</th></tr></thead><tbody>' + weekRows + '</tbody></table></div>'
-        }).join('')
-        const html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Mis Salarios - Eclipse Angels</title></head><body style="font-family:Segoe UI,sans-serif;color:#1a1a2e;padding:36px;font-size:13px"><div style="display:flex;justify-content:space-between;border-bottom:3px solid #7c3aed;padding-bottom:18px;margin-bottom:24px"><div><div style="font-size:22px;font-weight:900;color:#7c3aed">Eclipse <span style="color:#a855f7">Angels</span> Agency</div><div style="color:#6b7280;margin-top:4px">Historial de Salarios</div></div><div style="text-align:right;font-size:11px;color:#9ca3af">Generado: ' + now + '<br>Total semanas: ' + agentSalaries.length + '</div></div><div style="display:flex;gap:16px;margin-bottom:24px"><div style="flex:1;background:#f3f0ff;border:1px solid #ddd6fe;border-radius:10px;padding:14px 18px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px">Total acumulado (USD)</div><div style="font-size:20px;font-weight:900">$' + totalUSD.toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' USD</div></div><div style="flex:1;background:#f3f0ff;border:1px solid #ddd6fe;border-radius:10px;padding:14px 18px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px">Semanas registradas</div><div style="font-size:20px;font-weight:900">' + agentSalaries.length + '</div></div></div>' + rows + '<div style="margin-top:36px;border-top:1px solid #e5e7eb;padding-top:14px;font-size:10px;color:#9ca3af;text-align:center">Eclipse Angels Agency · Documento generado automáticamente</div></body></html>'
-        const win = window.open('', '_blank')
-        if (!win) { alert('Permite las ventanas emergentes para exportar'); return }
-        win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 400)
-      }
 
   
     return (
@@ -576,7 +521,7 @@ import React, { useState, useEffect } from 'react'
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <h1 className="text-2xl font-extrabold">
-                  {mainTab === 'comisiones' ? 'Mis Comisiones' : mainTab === 'trabajadoras' ? 'Mis Trabajadoras' : mainTab === 'salarios' ? 'Mis Salarios' : 'Sin Cobrar'}
+                  {mainTab === 'comisiones' ? 'Mis Comisiones' : mainTab === 'trabajadoras' ? 'Mis Trabajadoras' : 'Sin Cobrar'}
                 </h1>
                 {profile.agent_name && <p className="text-white/40 text-sm mt-0.5">Agente: {profile.agent_name}</p>}
               </div>
@@ -638,11 +583,6 @@ import React, { useState, useEffect } from 'react'
               <Users className="w-3.5 h-3.5" /> Trabajadoras
               {allWorkerCards.length > 0 && <span className="text-[11px] bg-white/10 rounded-full px-1.5 py-0.5 leading-none">{allWorkerCards.length}</span>}
             </button>
-            <button onClick={() => setMainTab('salarios')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === 'salarios' ? 'bg-green-700 text-white' : 'text-white/40 hover:text-white'}`}>
-                <Calendar className="w-3.5 h-3.5" /> Mis Salarios
-                {agentSalaries.length > 0 && <span className="text-[11px] bg-white/10 rounded-full px-1.5 py-0.5 leading-none">{agentSalaries.length}</span>}
-              </button>
               <button onClick={() => setMainTab('nocobro')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === 'nocobro' ? 'bg-rose-700 text-white' : 'text-white/40 hover:text-white'}`}>
                 <AlertTriangle className="w-3.5 h-3.5" /> Sin Cobrar
@@ -1240,251 +1180,6 @@ import React, { useState, useEffect } from 'react'
             )}
 
 
-          {/* ====== SALARIOS TAB ====== */}
-          {mainTab === 'salarios' && (
-            <>
-              {agentSalLoading ? (
-                <div className="space-y-3">
-                  {[1,2,3].map(i => <div key={i} className="h-24 bg-[#0d0d1e] rounded-2xl animate-pulse" />)}
-                </div>
-              ) : agentSalaries.length === 0 ? (
-                <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-16 text-center">
-                  <DollarSign className="w-12 h-12 text-white/10 mx-auto mb-4" />
-                  <p className="text-white/40 text-sm">Aún no tienes salarios publicados.</p>
-                  <p className="text-white/25 text-xs mt-1">Tu agencia publicará tus ganancias semanalmente.</p>
-                </div>
-              ) : (() => {
-                const activeSals = agentSalaries.filter(s => agentActiveNominas.has(s.semana))
-                const historySals = agentSalaries.filter(s => !agentActiveNominas.has(s.semana))
-                const activeApps = [...new Set(activeSals.map(s => s.app_name))]
-                return (
-                  <div className="space-y-6">
-                    <div className="flex justify-end">
-                      <button onClick={exportSalPDF}
-                        className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/25 text-green-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
-                        <FileDown className="w-4 h-4" /> Exportar PDF
-                      </button>
-                    </div>
-
-                    {/* Exchange rate info */}
-                    {(() => {
-                      const hasExclusive = activeApps.some(app => {
-                        const m = agentPayMethods[app] ?? ''
-                        const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
-                        if (!isCuban) return false
-                        const c = agentCustomRates[app]
-                        const rate = m === 'Efectivo (Cuba)' ? (c?.efectivo_rate ?? 0) : (c?.transferencia_rate ?? 0)
-                        return rate > 0
-                      })
-                      if (hasExclusive) return null
-                      const ef = exchangeRates['efectivo_worker'] ?? 0
-                      const tr = exchangeRates['transferencia_worker'] ?? 0
-                      const displayRate = ef > 0 ? ef : tr
-                      if (displayRate === 0 || activeSals.length === 0) return null
-                      return (
-                        <div className="bg-purple-500/6 border border-purple-500/15 rounded-2xl px-4 py-3 flex items-center gap-3">
-                          <span className="text-xl shrink-0">💱</span>
-                          <div>
-                            <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-0.5">Tipo de cambio esta semana</p>
-                            <p className="text-white/80 text-sm">1 USD = <span className="text-amber-300 font-extrabold">{displayRate.toLocaleString('es-ES')} CUP</span></p>
-                          </div>
-                        </div>
-                      )
-                    })()}
-
-                    {/* CUP summary banner */}
-                    {(() => {
-                      const cupApps = activeApps.filter(app => {
-                        const m = agentPayMethods[app] ?? ''
-                        const isCuban = m === 'Efectivo (Cuba)' || m === 'Transferencia Bancaria (Cuba)'
-                        if (!isCuban) return false
-                        const c = agentCustomRates[app]
-                        const cRate = m === 'Efectivo (Cuba)' ? (c?.efectivo_rate ?? 0) : (c?.transferencia_rate ?? 0)
-                        if (cRate > 0) return true
-                        const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                        return (exchangeRates[rk] ?? 0) > 0
-                      })
-                      if (cupApps.length === 0) return null
-                      let grandTotal = 0
-                      return (
-                        <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-4">
-                          <p className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-3">💱 Resumen en Moneda Nacional (CUP)</p>
-                          <div className="space-y-2">
-                            {cupApps.map(app => {
-                              const m = agentPayMethods[app] ?? ''
-                              const rk = m === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                              const c = agentCustomRates[app]
-                              const cRate = m === 'Efectivo (Cuba)' ? (c?.efectivo_rate ?? 0) : (c?.transferencia_rate ?? 0)
-                              const rate = cRate > 0 ? cRate : (exchangeRates[rk] ?? 0)
-                              const isExclusive = cRate > 0
-                              const appUsd = activeSals.filter(s => s.app_name === app).reduce((sum, s) => sum + Number(s.usd), 0)
-                              const cup = appUsd * rate
-                              grandTotal += cup
-                              return (
-                                <div key={app} className="flex items-center justify-between py-1">
-                                  <div>
-                                    <span className="text-white/80 text-sm font-bold">{app}</span>
-                                    <span className="text-white/30 text-xs ml-2">{m.includes('Efectivo') ? '💵 Ef.' : '🏦 Tr.'} · 1 USD = {rate.toLocaleString('es-ES')} CUP{isExclusive ? ' ✦' : ''}</span>
-                                  </div>
-                                  <p className="text-amber-300 font-extrabold text-base">{cup.toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-xs font-semibold">CUP</span></p>
-                                </div>
-                              )
-                            })}
-                            {cupApps.length > 1 && (
-                              <div className="flex items-center justify-between border-t border-amber-500/20 pt-2 mt-1">
-                                <span className="text-amber-400/70 text-xs font-bold uppercase tracking-wider">Total</span>
-                                <p className="text-amber-300 font-extrabold text-xl">{grandTotal.toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-sm">CUP</span></p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })()}
-
-                    {activeSals.length === 0 && historySals.length > 0 && (
-                      <div className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl p-8 text-center">
-                        <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-3"><span className="text-lg">🔒</span></div>
-                        <p className="text-white/50 text-sm font-medium">Semana cerrada</p>
-                        <p className="text-white/25 text-xs mt-1">Los pagos se procesaron. Consulta el historial abajo.</p>
-                      </div>
-                    )}
-
-                    {activeApps.map(app => {
-                      const appSals = activeSals.filter(s => s.app_name === app)
-                      return (
-                        <div key={app}>
-                          <h2 className="text-sm font-bold text-white/40 uppercase tracking-wider mb-3 px-1">{app}</h2>
-                          <div className="space-y-3">
-                            {appSals.map(s => {
-                              const isOpen = agentSalExpanded.has(s.id)
-                              const extraEntries = s.extras ? Object.entries(s.extras).filter(([, v]) => v !== '' && v !== null) : []
-                              const metodo = agentPayMethods[s.app_name] ?? ''
-                              const isCubanPay = metodo === 'Efectivo (Cuba)' || metodo === 'Transferencia Bancaria (Cuba)'
-                              const rk = metodo === 'Efectivo (Cuba)' ? 'efectivo_worker' : 'transferencia_worker'
-                              const c = agentCustomRates[s.app_name]
-                              const customRate = isCubanPay ? (metodo === 'Efectivo (Cuba)' ? (c?.efectivo_rate ?? 0) : (c?.transferencia_rate ?? 0)) : 0
-                              const stored = metodo === 'Efectivo (Cuba)' ? (s.extras?.cup_efectivo_rate as number | undefined) : (s.extras?.cup_transferencia_rate as number | undefined)
-                              const live = exchangeRates[rk] ?? 0
-                              const cupRate = isCubanPay ? (customRate > 0 ? customRate : ((stored && stored > 0) ? stored : live)) : 0
-                              return (
-                                <div key={s.id} className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl overflow-hidden">
-                                  <div className="px-5 py-4 flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0">
-                                        <Calendar className="w-4 h-4 text-green-400" />
-                                      </div>
-                                      <div>
-                                        <p className="font-bold text-sm">Semana {s.semana}</p>
-                                        <p className="text-white/30 text-xs mt-0.5">{new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <div className="text-right">
-                                        <p className="text-xl font-extrabold text-green-400">{'$'}{Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
-                                        {!isCubanPay && s.diamantes > 0 && (
-                                          <div className="flex items-center justify-end gap-1 mt-0.5">
-                                            <Gem className="w-3.5 h-3.5 text-purple-400" />
-                                            <span className="text-purple-300 text-sm font-semibold">{Number(s.diamantes).toLocaleString('es-ES')}</span>
-                                          </div>
-                                        )}
-                                        {isCubanPay && cupRate > 0 && <>
-                                          <p className="text-amber-300 font-bold text-sm mt-0.5">{(Number(s.usd) * cupRate).toLocaleString('es-ES', {maximumFractionDigits: 0})} <span className="text-amber-400/60 text-xs">CUP</span></p>
-                                          <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {cupRate.toLocaleString('es-ES')} CUP</p>
-                                        </>}
-                                        {isCubanPay && cupRate <= 0 && <p className="text-white/25 text-xs mt-0.5">⏳ Cambio pendiente</p>}
-                                      </div>
-                                      {extraEntries.length > 0 && (
-                                        <button onClick={() => toggleSal(s.id)}
-                                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all shrink-0">
-                                          {isOpen ? <ChevronUp className="w-4 h-4 text-white/40" /> : <ChevronDown className="w-4 h-4 text-white/40" />}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {isOpen && extraEntries.length > 0 && (
-                                    <div className="px-5 pb-4 border-t border-white/5 pt-3">
-                                      <p className="text-white/25 text-xs font-bold uppercase tracking-wider mb-2">Detalles</p>
-                                      <div className="space-y-1.5">
-                                        {extraEntries.map(([k, v]) => (
-                                          <div key={k} className="flex items-center justify-between">
-                                            <span className="text-white/40 text-xs">{k}</span>
-                                            <span className="text-white/70 text-xs font-semibold">{String(v)}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )
-                    })}
-
-                    {historySals.length > 0 && (
-                      <div>
-                        <button onClick={() => setAgentSalHistoryOpen(p => !p)}
-                          className="w-full flex items-center justify-between bg-white/3 hover:bg-white/6 border border-white/8 rounded-2xl px-4 py-3 transition-all">
-                          <span className="text-white/40 text-sm font-bold">Historial anterior ({historySals.length} semanas)</span>
-                          {agentSalHistoryOpen ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
-                        </button>
-                        {agentSalHistoryOpen && (
-                          <div className="mt-3 space-y-3">
-                            {historySals.map(s => {
-                              const isOpen = agentSalExpanded.has(s.id + '_h')
-                              const extraEntries = s.extras ? Object.entries(s.extras).filter(([, v]) => v !== '' && v !== null) : []
-                              const metodo = agentPayMethods[s.app_name] ?? ''
-                              const isCubanPay = metodo === 'Efectivo (Cuba)' || metodo === 'Transferencia Bancaria (Cuba)'
-                              const stored = metodo === 'Efectivo (Cuba)' ? (s.extras?.cup_efectivo_rate as number | undefined) : (s.extras?.cup_transferencia_rate as number | undefined)
-                              const cupRate = isCubanPay && stored && stored > 0 ? stored : 0
-                              return (
-                                <div key={s.id} className="bg-[#0d0d1e] border border-white/5 rounded-2xl overflow-hidden opacity-70">
-                                  <div className="px-5 py-4 flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                                        <Calendar className="w-3.5 h-3.5 text-white/30" />
-                                      </div>
-                                      <div>
-                                        <p className="font-bold text-sm text-white/60">{s.app_name} · Semana {s.semana}</p>
-                                        <p className="text-white/25 text-xs mt-0.5">{new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <div className="text-right">
-                                        <p className="text-base font-extrabold text-white/50">{'$'}{Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
-                                        {isCubanPay && cupRate > 0 && <p className="text-amber-300/50 text-xs">{(Number(s.usd) * cupRate).toLocaleString('es-ES', {maximumFractionDigits: 0})} CUP</p>}
-                                      </div>
-                                      {extraEntries.length > 0 && (
-                                        <button onClick={() => toggleSal(s.id + '_h')}
-                                          className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/8 flex items-center justify-center shrink-0">
-                                          {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-white/30" /> : <ChevronDown className="w-3.5 h-3.5 text-white/30" />}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {isOpen && extraEntries.length > 0 && (
-                                    <div className="px-5 pb-4 border-t border-white/5 pt-3 space-y-1.5">
-                                      {extraEntries.map(([k, v]) => (
-                                        <div key={k} className="flex items-center justify-between">
-                                          <span className="text-white/30 text-xs">{k}</span>
-                                          <span className="text-white/50 text-xs font-semibold">{String(v)}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-            </>
-          )}
 
         </div>
       </div>
