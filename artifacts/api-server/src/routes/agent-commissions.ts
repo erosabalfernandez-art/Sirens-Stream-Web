@@ -196,6 +196,12 @@ import { Router } from 'express';
           if (Array.isArray(erRows)) for (const r of erRows) exchangeRates[r.id] = Number(r.rate) || 0;
         }
 
+        // If all exchange rates are 0, the week was closed via cierre-semanal.
+        // Agents must not see any salary data until admin re-publishes for the new week.
+        const allRatesZero = Object.keys(exchangeRates).length === 0 ||
+          Object.values(exchangeRates).every((v) => (v as number) === 0);
+        if (allRatesZero) return res.json({ salaries: [], exchange_rates: {} });
+
         // Enrich each salary row with worker info + rates
         const enriched = salaries.map(s => {
           const wInfo = workerMap[`${s.user_id}__${s.app_name}`] ?? {};
