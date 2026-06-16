@@ -778,64 +778,12 @@ import React, { useState, useEffect } from 'react'
                 {pubCommsLoading ? (
                   <div className="text-white/30 text-sm text-center py-12 animate-pulse">Cargando comisiones...</div>
                 ) : publishedComms.length === 0 ? (
-                    <>
-                      {workerSalariesLoading ? (
-                        <div className="text-white/30 text-sm text-center py-12 animate-pulse">Cargando salarios...</div>
-                      ) : workerSalaries.length > 0 ? (
-                        <div className="space-y-3">
-                          <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2">💰 Salarios de tus trabajadoras</p>
-                          {[...new Set(workerSalaries.map(s => s.semana))].sort((a, b) => b.localeCompare(a)).map(semana => {
-                            const semRows = workerSalaries.filter(s => s.semana === semana)
-                            return (
-                              <div key={semana} className="bg-[#0d0d1e] border border-purple-500/15 rounded-2xl overflow-hidden">
-                                <div className="px-5 py-3 border-b border-purple-500/10 flex items-center justify-between">
-                                  <span className="text-white/50 text-xs font-bold uppercase tracking-wider">Semana {semana}</span>
-                                  <span className="text-white/25 text-xs">{semRows.length} trabajadora{semRows.length !== 1 ? 's' : ''}</span>
-                                </div>
-                                <div className="divide-y divide-white/5">
-                                  {semRows.map((s, i) => {
-                                    const met = (s.metodo_pago ?? '').toLowerCase()
-                                    const isCuban = met.includes('cuba')
-                                    const isEfectivo = met.includes('efectivo')
-                                    const customEf = Number(s.custom_efectivo_rate ?? 0)
-                                    const customTr = Number(s.custom_transferencia_rate ?? 0)
-                                    const globalEf = workerExchangeRates['efectivo_worker'] ?? exchangeRates['efectivo_worker'] ?? 0
-                                    const globalTr = workerExchangeRates['transferencia_worker'] ?? exchangeRates['transferencia_worker'] ?? 0
-                                    const efRate = customEf > 0 ? customEf : globalEf
-                                    const trRate = customTr > 0 ? customTr : globalTr
-                                    const rate = isEfectivo ? efRate : trRate
-                                    const hasExclusive = customEf > 0 || customTr > 0
-                                    const cupAmount = isCuban && rate > 0 ? Number(s.usd) * rate : 0
-                                    const methodLabel = s.metodo_pago ? (met.includes('efectivo') ? '💵 Efectivo' : met.includes('transferencia') ? '🏦 Transf.' : s.metodo_pago) : ''
-                                    return (
-                                      <div key={i} className="px-5 py-3 flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                          <p className="text-white/75 text-sm font-semibold">{s.nombre_en_app ?? s.nombre_real ?? '—'}</p>
-                                          <p className="text-white/30 text-xs">{s.app_name}{methodLabel ? ` · ${methodLabel}` : ''}</p>
-                                          {isCuban && rate > 0 && <p className="text-white/20 text-xs mt-0.5">💱 1 USD = {rate.toLocaleString('es-ES')} CUP{hasExclusive ? ' ✦' : ''}</p>}
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                          <p className="text-green-400 font-extrabold text-base">${Number(s.usd).toLocaleString('es-ES', { minimumFractionDigits: 2 })} <span className="text-green-400/60 text-sm font-bold">USD</span></p>
-                                          {isCuban && cupAmount > 0 && <p className={`text-sm font-bold mt-0.5 ${isEfectivo ? 'text-amber-400' : 'text-blue-400'}`}>{cupAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })} CUP</p>}
-                                          {isCuban && rate <= 0 && <p className="text-white/25 text-xs mt-0.5">⏳ Tasa pendiente</p>}
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      ) : (
-                        <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
-                          <DollarSign className="w-8 h-8 text-white/15 mx-auto mb-3" />
-                          <p className="text-white/35 text-sm font-semibold">Comisión pendiente</p>
-                          <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
-                        </div>
-                      )}
-                    </>
-                ) : (() => {
+                    <div className="bg-[#0d0d1e] border border-purple-500/10 rounded-2xl p-12 text-center">
+                      <DollarSign className="w-8 h-8 text-white/15 mx-auto mb-3" />
+                      <p className="text-white/35 text-sm font-semibold">Sin comisiones publicadas esta semana</p>
+                      <p className="text-white/20 text-xs mt-1">El admin publicará tu comisión cuando esté lista.</p>
+                    </div>
+                  ) : (() => {
                   const bySemana: Record<string, any[]> = {}
                   for (const c of publishedComms) { if (!bySemana[c.semana]) bySemana[c.semana] = []; bySemana[c.semana].push(c) }
                   return (
