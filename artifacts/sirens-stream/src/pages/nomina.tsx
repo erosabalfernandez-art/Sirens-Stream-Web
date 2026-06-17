@@ -31,6 +31,7 @@ function isoWeekLabel(date = new Date()): string {
     extras: Record<string, string | number>
   }
 
+  type ColConfig = { uid: number; usd: number; apodo: number; semana: number; metric: number; metricLabel: string; currency: 'USD' | 'BRL' }
   interface WorkerRow extends WorkerEntry { profile_email: string }
   interface Matched  { worker: WorkerRow; nomina: NominaRow }
   interface NoCobro  { worker: WorkerRow; nomina: NominaRow | null }
@@ -705,7 +706,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   }
 
   // Per-app state
-  const [step, setStep] = useState<'upload' | 'results'>('upload')
+  const [step, setStep] = useState<'upload' | 'configuring' | 'results'>('upload')
   const [dragging, setDragging] = useState(false)
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
@@ -724,6 +725,12 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [publishingAgents, setPublishingAgents] = useState(false)
   const [agentPublishOk, setAgentPublishOk] = useState(false)
   const [commissionPct, setCommissionPct] = useState<number>(() => { try { return parseFloat(localStorage.getItem(`ea_comm_pct_${app}`) ?? '10') || 10 } catch { return 10 } })
+    const [savedColConfig, setSavedColConfig] = useState<ColConfig | null>(() => { try { const s = localStorage.getItem(`ea_col_cfg_${app}`); return s ? JSON.parse(s) as ColConfig : null } catch { return null } })
+    const [pendingHeaders, setPendingHeaders] = useState<string[]>([])
+    const [pendingRaw, setPendingRaw] = useState<unknown[][]>([])
+    const [pendingFileName, setPendingFileName] = useState('')
+    const [wizardCfg, setWizardCfg] = useState<ColConfig>({ uid: -1, usd: -1, apodo: -1, semana: -1, metric: -1, metricLabel: 'Diamantes', currency: 'USD' })
+    const [wizardLoading, setWizardLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const [paidMarks, setPaidMarks] = useState<Set<string>>(new Set())
   const [togglingPaid, setTogglingPaid] = useState<string | null>(null)
@@ -1000,207 +1007,185 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
       setPublishingAgents(false)
     }
   
-  async function detectColumnsWithAI(headers: string[]): Promise<Record<string, number>> {
-    const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined
-    if (!apiKey) return {}
-    try {
-      const prompt = [
-        'You are analyzing a streaming platform payroll spreadsheet.',
-        'Given these column headers (as a JSON array), return a JSON object mapping each field to its 0-based column index.',
-        'Fields to identify: uid (user/host ID), usd (dollar earnings), apodo (nickname/display name), semana (week/period), diamantes (diamonds/gems/coins), agencia (agency name).',
-        'If a field is not present use -1. Return ONLY valid JSON, no markdown, no explanation.',
-        'Headers: ' + JSON.stringify(headers),
-      ].join(' ')
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: prompt }], max_tokens: 120, temperature: 0 }),
-      })
-      const data = await res.json()
-      const raw = data.choices?.[0]?.message?.content ?? '{}'
-      const jsonStr = raw.replace(/```json?\n?/gi, '').replace(/```/g, '').trim()
-      return JSON.parse(jsonStr) as Record<string, number>
-    } catch { return {} }
-  }
-
-  async function processFile(file: File) {
-    if (!file.name.match(/\.xlsx?$/i)) return
-    setParsing(true); setAiSummary(null); setParseError(null)
-    setFileName(file.name)
-    try {
-      const buf = await file.arrayBuffer()
-      const wb = XLSX.read(buf, { type: 'array' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
-
-      const rawHeaders = (raw[0] as unknown[]) ?? []
-      const headers = rawHeaders.map(h => String(h ?? '').trim())
-
-      const COLUMN_ALIASES: [string, string[]][] = [
-        ['UID del Host',        ['uid', 'host id', 'id del host', 'id host', 'host_id', 'userid', 'user id']],
-        ['USD',                 ['usd', 'host salary', 'salario en usd', 'dólar', 'dollar', 'monto', 'pago usd', 'ganancia', 'ingreso', 'earning']],
-        ['Apodo',               ['name', 'nombre', 'apodo', 'nick', 'nickname', 'nombre en app', 'nombre_app', 'username']],
-        ['Semana',              ['week', 'semana', 'periodo', 'período', 'date', 'fecha']],
-        ['Diamantes Totales',   ['total monedas', 'total diamante', 'diamante', 'diamond', 'gem', 'piedra', 'coins', 'moneda', 'total dia']],
-        ['Nombre de la agencia',['agency', 'agencia', 'manager', 'nombre agencia']],
-        ['Comisión',            ['agc salary', '10 porciento', '12% del salario', 'commission', 'comisión', 'comision', '10%', '12%']],
-        ['Agente',              ['info de pago', 'agente', 'agent', 'host agent', 'nombre agente', 'canal de pago']],
-      ]
-
-      function smartCOL(canonical: string): number {
-        const exact = headers.indexOf(canonical)
-        if (exact !== -1) return exact
-        const lower = canonical.toLowerCase()
-        const ci = headers.findIndex(h => h.toLowerCase() === lower)
-        if (ci !== -1) return ci
-        const aliases = COLUMN_ALIASES.find(([c]) => c === canonical)
-        if (aliases) {
-          for (const kw of aliases[1]) {
-            const idx = headers.findIndex(h => h.toLowerCase() === kw)
-            if (idx !== -1) return idx
-          }
-          for (const kw of aliases[1]) {
-            const idx = headers.findIndex(h => h.toLowerCase().includes(kw))
-            if (idx !== -1) return idx
-          }
-        }
-        const words = lower.split(/\s+/)
-        const idx = headers.findIndex(h => { const hl = h.toLowerCase(); return words.every(w => hl.includes(w)) })
-        return idx
-      }
-
-      let uidCol    = smartCOL('UID del Host')
-      let usdCol    = smartCOL('USD')
-      let apodoCol  = smartCOL('Apodo')
-      let semanaCol = smartCOL('Semana')
-      let diaCol    = smartCOL('Diamantes Totales')
-      let agenciaCol  = smartCOL('Nombre de la agencia')
-      let comisionCol = smartCOL('Comisión')
-      let agenteCol   = smartCOL('Agente')
-
-      if (uidCol === -1 || usdCol === -1) {
-        setAiColDetect('🤖 Columnas no reconocidas — usando IA para identificarlas…')
-        const aiMap = await detectColumnsWithAI(headers)
-        if (uidCol    === -1 && aiMap.uid       !== undefined) uidCol    = aiMap.uid
-        if (usdCol    === -1 && aiMap.usd       !== undefined) usdCol    = aiMap.usd
-        if (apodoCol  === -1 && aiMap.apodo     !== undefined) apodoCol  = aiMap.apodo
-        if (semanaCol === -1 && aiMap.semana    !== undefined) semanaCol = aiMap.semana
-        if (diaCol    === -1 && aiMap.diamantes !== undefined) diaCol    = aiMap.diamantes
-        if (agenciaCol=== -1 && aiMap.agencia   !== undefined) agenciaCol= aiMap.agencia
-
-        if (uidCol >= 0 && usdCol >= 0) {
-          const names = [
-            uidCol>=0 && `UID→"${headers[uidCol]}"`,
-            usdCol>=0 && `USD→"${headers[usdCol]}"`,
-            apodoCol>=0 && `Apodo→"${headers[apodoCol]}"`,
-            semanaCol>=0 && `Semana→"${headers[semanaCol]}"`,
-          ].filter(Boolean).join(', ')
-          setAiColDetect(`✅ IA identificó las columnas: ${names}`)
-        } else {
-          const found = headers.filter(Boolean).join(' | ')
-          throw new Error(
-            'No se encontraron las columnas de UID o USD (ni con IA).\n\nColumnas en el archivo:\n' + (found || '(ninguna)') + '\n\nRevisa que el Excel tenga una columna con el ID del usuario y otra con el monto.'
-          )
-        }
-      } else {
-        setAiColDetect(null)
-      }
-
-      const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
-      const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, diaCol, agenciaCol, comisionCol, agenteCol].filter(i => i !== -1))
-
-      const nominaRows: NominaRow[] = dataRows.map(r => {
-        const extras: Record<string, string | number> = {}
-        headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
-          const usd = parseFloat(String(usdCol !== -1 ? (r[usdCol] ?? 0) : 0)) || 0
-        return {
-          uid: normalizeUID(uidCol !== -1 ? r[uidCol] : ''),
-          apodo: String(apodoCol !== -1 ? (r[apodoCol] ?? '') : ''),
-          usd,
-          diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
-          comision: (app === 'Waha' || app === 'Howdy') ? usd * (commissionPct / 100) : (parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0),
-          semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : isoWeekLabel()),
-          agente: agenteCol !== -1 ? (String(r[agenteCol] ?? '').trim() || null) : null,
-          extras,
-        }
-      }).filter(r => r.uid !== '')
-
-      const sem = nominaRows[0]?.semana || isoWeekLabel()
-      setSemana(sem)
-      try { localStorage.setItem('ea_active_semana', sem) } catch {}
-
-      const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', app)
-      if (entriesErr) throw new Error('Error de base de datos: ' + entriesErr.message)
-
-      const [{ data: profs }, { data: agentProfsNom }] = await Promise.all([
-        supabase.from('profiles').select('id, email'),
-        supabase.from('profiles').select('id, agent_name, colider_name, agent_code, phone, telefono').or('is_agent.eq.true,is_colider.eq.true'),
-      ])
-      const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
-      const am2: Record<string,string> = Object.fromEntries(
-        ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.colider_name ?? a.agent_code])
-      )
-      setAgentNameMap(am2)
-      const idMap2: Record<string,string> = Object.fromEntries(
-        ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code && a.id).map((a: any) => [a.agent_code as string, a.id as string])
-      )
-      setAgentIdMap(idMap2)
-      const pm2: Record<string,string> = Object.fromEntries(
-        ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code && (a.phone || a.telefono)).map((a: any) => [a.agent_code, String(a.phone || a.telefono)])
-      )
-      setAgentPhoneMap(pm2)
-      const workers: WorkerRow[] = (entries ?? []).map((e: any) => ({ ...e, profile_email: emailMap[e.user_id] ?? '' }))
-
-      const cobradasList: Matched[] = []
-      const noCobroList: NoCobro[] = []
-      const sinPerfilList: NominaRow[] = []
-      const matchedWorkerIDs = new Set<string>()
-
-      for (const nom of nominaRows) {
-        const worker = workers.find(w => normalizeUID(w.id_aplicacion) === nom.uid)
-        if (worker) {
-          matchedWorkerIDs.add(worker.id)
-          nom.usd > 0 ? cobradasList.push({ worker, nomina: nom }) : noCobroList.push({ worker, nomina: nom })
-        } else { sinPerfilList.push(nom) }
-      }
-      for (const w of workers) { if (!matchedWorkerIDs.has(w.id)) noCobroList.push({ worker: w, nomina: null }) }
-      cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
-
-      setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
-      // ▶ FIX: Save to localStorage immediately using local vars — React state isn't committed yet
-      // This keeps nomina data alive across navigation, tab switch, and page refresh for ALL 3 apps
+  async function getAIColumnSuggestions(headers: string[], appName: string): Promise<Partial<ColConfig>> {
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined
+      if (!apiKey) return {}
       try {
-        const _nomCache = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
-        _nomCache[app] = { cobradas: cobradasList, noCobro: noCobroList, sinPerfil: sinPerfilList, semana: sem, fileName: file.name, aiSummary: null }
-        localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_nomCache))
-      } catch {}
-      loadPaidMarks(app, sem)
-      // Save via API server (service role → bypasses RLS) so data persists across navigation/sessions
-      try {
-        const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
-        await fetch(`${apiBase}/api/nomina-state`, {
+        const prompt = [
+          `You are an expert data analyst for a streaming platform payroll system. App: "${appName}".`,
+          'Given these spreadsheet column headers (JSON array), identify the best 0-based column index for each field.',
+          'Headers: ' + JSON.stringify(headers),
+          'Return a JSON object with keys:',
+          '- uid: column index for worker unique app ID/username (numeric or string IDs like host_id, user_id, UID, Host ID)',
+          '- usd: column index for salary or earnings amount',
+          '- apodo: column index for display name or nickname of the worker',
+          '- semana: column index for week, period, or date',
+          '- metric: column index for any engagement metric (points/coins/diamonds/gems). Use -1 if none exists.',
+          '- metricLabel: natural Spanish label for the metric based on the column name (e.g. "Diamantes", "Monedas", "Coins", "Puntos"). Default "Diamantes".',
+          '- currency: "USD" if salary column suggests US dollars (USD, $, dólar, dollar, salary, earning), "BRL" if Brazilian reais (BRL, R$, reais, real). Default "USD".',
+          'Think carefully — column names may be in English, Spanish, Portuguese, or mixed. Use -1 for integer fields not found. Return ONLY valid JSON, no markdown.',
+        ].join(' ')
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            app_name: app,
-            semana: sem,
-            total_usd: cobradasList.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0),
-            total_diamantes: cobradasList.reduce((s, m) => s + (m.nomina?.diamantes ?? 0), 0),
-            cobradas: cobradasList,
-            noCobro: noCobroList,
-            sinPerfil: sinPerfilList,
-            file_name: file.name,
-          }),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0 }),
         })
-      } catch {}
-      setStep('results'); setSectionOpen(true); persistOpen(true)
-      callGroq(cobradasList, noCobroList, sem)
-    } catch (err: any) {
-      setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
-    } finally {
-      setParsing(false)
+        const data = await res.json()
+        const raw = data.choices?.[0]?.message?.content ?? '{}'
+        const jsonStr = raw.replace(/```json?\n?/gi, '').replace(/```/g, '').trim()
+        return JSON.parse(jsonStr) as Partial<ColConfig>
+      } catch { return {} }
     }
-  }
+
+    async function applyColConfig(headers: string[], raw: unknown[][], cfg: ColConfig, fileName: string) {
+      const { uid: uidCol, usd: usdCol, apodo: apodoCol, semana: semanaCol, metric: metricCol } = cfg
+      if (uidCol < 0 || usdCol < 0) {
+        setParseError('Necesitas configurar al menos la columna de ID de trabajadora y la de salario.')
+        setStep('upload')
+        setParsing(false)
+        return
+      }
+      try {
+        setParsing(true)
+        // Save config for future uploads
+        try { localStorage.setItem(`ea_col_cfg_${app}`, JSON.stringify(cfg)) } catch {}
+        setSavedColConfig(cfg)
+        setAiColDetect(null)
+
+        const dataRows = (raw.slice(1) as unknown[][]).filter(r => r.length > 0)
+        const mainCols = new Set([semanaCol, uidCol, apodoCol, usdCol, metricCol].filter(i => i >= 0))
+
+        const nominaRows: NominaRow[] = dataRows.map(r => {
+          const extras: Record<string, string | number> = {}
+          headers.forEach((h, i) => { if (!mainCols.has(i) && h && r[i] !== undefined && r[i] !== null && r[i] !== '') extras[h] = r[i] as string | number })
+          const usd = parseFloat(String(usdCol >= 0 ? (r[usdCol] ?? 0) : 0)) || 0
+          return {
+            uid: normalizeUID(uidCol >= 0 ? r[uidCol] : ''),
+            apodo: String(apodoCol >= 0 ? (r[apodoCol] ?? '') : ''),
+            usd,
+            diamantes: parseFloat(String(metricCol >= 0 ? (r[metricCol] ?? 0) : 0)) || 0,
+            comision: (app === 'Waha' || app === 'Howdy') ? usd * (commissionPct / 100) : usd * 0.10,
+            semana: String(semanaCol >= 0 ? (r[semanaCol] ?? '') : isoWeekLabel()),
+            agente: null,
+            extras,
+          }
+        }).filter(r => r.uid !== '')
+
+        if (nominaRows.length === 0) throw new Error('No se encontraron filas válidas. Verifica que el archivo tenga datos y que las columnas seleccionadas sean correctas.')
+
+        const sem = nominaRows[0]?.semana || isoWeekLabel()
+        setSemana(sem)
+        try { localStorage.setItem('ea_active_semana', sem) } catch {}
+
+        const { data: entries, error: entriesErr } = await supabase.from('worker_entries').select('*').eq('app_name', app)
+        if (entriesErr) throw new Error('Error de base de datos: ' + entriesErr.message)
+
+        const [{ data: profs }, { data: agentProfsNom }] = await Promise.all([
+          supabase.from('profiles').select('id, email'),
+          supabase.from('profiles').select('id, agent_name, colider_name, agent_code, phone, telefono').or('is_agent.eq.true,is_colider.eq.true'),
+        ])
+        const emailMap: Record<string, string> = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]))
+        const am2: Record<string,string> = Object.fromEntries(
+          ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code).map((a: any) => [a.agent_code, a.agent_name ?? a.colider_name ?? a.agent_code])
+        )
+        setAgentNameMap(am2)
+        const idMap2: Record<string,string> = Object.fromEntries(
+          ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code && a.id).map((a: any) => [a.agent_code as string, a.id as string])
+        )
+        setAgentIdMap(idMap2)
+        const pm2: Record<string,string> = Object.fromEntries(
+          ((agentProfsNom ?? []) as any[]).filter((a: any) => a.agent_code && (a.phone || a.telefono)).map((a: any) => [a.agent_code, String(a.phone || a.telefono)])
+        )
+        setAgentPhoneMap(pm2)
+        const workers: WorkerRow[] = (entries ?? []).map((e: any) => ({ ...e, profile_email: emailMap[e.user_id] ?? '' }))
+
+        const cobradasList: Matched[] = []
+        const noCobroList: NoCobro[] = []
+        const sinPerfilList: NominaRow[] = []
+        const matchedWorkerIDs = new Set<string>()
+
+        for (const nom of nominaRows) {
+          const worker = workers.find(w => normalizeUID(w.id_aplicacion) === nom.uid)
+          if (worker) {
+            matchedWorkerIDs.add(worker.id)
+            nom.usd > 0 ? cobradasList.push({ worker, nomina: nom }) : noCobroList.push({ worker, nomina: nom })
+          } else { sinPerfilList.push(nom) }
+        }
+        for (const w of workers) { if (!matchedWorkerIDs.has(w.id)) noCobroList.push({ worker: w, nomina: null }) }
+        cobradasList.sort((a, b) => b.nomina.usd - a.nomina.usd)
+
+        setCobradas(cobradasList); setNoCobro(noCobroList); setSinPerfil(sinPerfilList)
+        try {
+          const _nomCache = JSON.parse(localStorage.getItem('ea_nomina_apps_v1') || '{}')
+          _nomCache[app] = { cobradas: cobradasList, noCobro: noCobroList, sinPerfil: sinPerfilList, semana: sem, fileName, aiSummary: null }
+          localStorage.setItem('ea_nomina_apps_v1', JSON.stringify(_nomCache))
+        } catch {}
+        loadPaidMarks(app, sem)
+        try {
+          const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+          await fetch(`${apiBase}/api/nomina-state`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              app_name: app, semana: sem,
+              total_usd: cobradasList.reduce((s, m) => s + (m.nomina?.usd ?? 0), 0),
+              total_diamantes: cobradasList.reduce((s, m) => s + (m.nomina?.diamantes ?? 0), 0),
+              cobradas: cobradasList, noCobro: noCobroList, sinPerfil: sinPerfilList, file_name: fileName,
+            }),
+          })
+        } catch {}
+        setStep('results'); setSectionOpen(true); persistOpen(true)
+        callGroq(cobradasList, noCobroList, sem)
+      } catch (err: any) {
+        setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
+      } finally {
+        setParsing(false)
+      }
+    }
+
+    async function processFile(file: File) {
+      if (!file.name.match(/\.xlsx?$/i)) return
+      setParsing(true); setAiSummary(null); setParseError(null)
+      setFileName(file.name)
+      try {
+        const buf = await file.arrayBuffer()
+        const wb = XLSX.read(buf, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
+        const rawHeaders = (raw[0] as unknown[]) ?? []
+        const headers = rawHeaders.map(h => String(h ?? '').trim())
+
+        // Check if saved config is valid for this file's columns
+        const saved = savedColConfig
+        const isValid = saved && saved.uid >= 0 && saved.uid < headers.length && saved.usd >= 0 && saved.usd < headers.length
+        if (isValid && saved) {
+          setParsing(false)
+          await applyColConfig(headers, raw, saved, file.name)
+        } else {
+          // Launch wizard — get AI suggestions
+          setPendingHeaders(headers)
+          setPendingRaw(raw)
+          setPendingFileName(file.name)
+          setParsing(false)
+          setStep('configuring')
+          setWizardLoading(true)
+          const sugg = await getAIColumnSuggestions(headers, app)
+          setWizardCfg({
+            uid: typeof sugg.uid === 'number' ? sugg.uid : -1,
+            usd: typeof sugg.usd === 'number' ? sugg.usd : -1,
+            apodo: typeof sugg.apodo === 'number' ? sugg.apodo : -1,
+            semana: typeof sugg.semana === 'number' ? sugg.semana : -1,
+            metric: typeof sugg.metric === 'number' ? sugg.metric : -1,
+            metricLabel: typeof sugg.metricLabel === 'string' && sugg.metricLabel ? sugg.metricLabel : 'Diamantes',
+            currency: sugg.currency === 'BRL' ? 'BRL' : 'USD',
+          })
+          setWizardLoading(false)
+        }
+      } catch (err: any) {
+        setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
+        setParsing(false)
+      }
+    }
 
   async function loadPaidMarks(a: string, week: string) {
     const _apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
@@ -1335,6 +1320,129 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
             </div>
           )}
 
+
+            {/* ── Column Config Wizard ── */}
+            {step === 'configuring' && (
+              <div className="p-5">
+                <div className="bg-[#0d0d1e] border border-purple-500/25 rounded-2xl p-6 space-y-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-base">Configurar columnas de la nómina</p>
+                      <p className="text-white/40 text-xs mt-0.5">Archivo: {pendingFileName} · {pendingHeaders.length} columnas detectadas</p>
+                    </div>
+                  </div>
+                  {wizardLoading ? (
+                    <div className="flex items-center gap-3 bg-purple-500/10 rounded-xl px-4 py-3">
+                      <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                      <p className="text-purple-300 text-sm">La IA está analizando las columnas del archivo...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-sm font-semibold">1. ID de la trabajadora en la app</span>
+                          <span className="text-red-400 text-xs font-bold bg-red-500/10 px-2 py-0.5 rounded-full">Obligatorio</span>
+                        </div>
+                        <p className="text-white/40 text-xs">Columna con el identificador único de cada trabajadora en la plataforma</p>
+                        <select value={wizardCfg.uid} onChange={e => setWizardCfg(c => ({ ...c, uid: parseInt(e.target.value) }))}
+                          className="w-full bg-[#0a0a18] border border-purple-500/20 text-white text-sm rounded-xl px-3 py-2.5 outline-none focus:border-purple-400">
+                          <option value={-1}>— Seleccionar columna —</option>
+                          {pendingHeaders.map((h, i) => <option key={i} value={i}>[col {i}] {h}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-sm font-semibold">2. Salario / Ganancias</span>
+                          <span className="text-red-400 text-xs font-bold bg-red-500/10 px-2 py-0.5 rounded-full">Obligatorio</span>
+                        </div>
+                        <p className="text-white/40 text-xs">Columna con el monto ganado por cada trabajadora</p>
+                        <select value={wizardCfg.usd} onChange={e => setWizardCfg(c => ({ ...c, usd: parseInt(e.target.value) }))}
+                          className="w-full bg-[#0a0a18] border border-purple-500/20 text-white text-sm rounded-xl px-3 py-2.5 outline-none focus:border-purple-400">
+                          <option value={-1}>— Seleccionar columna —</option>
+                          {pendingHeaders.map((h, i) => <option key={i} value={i}>[col {i}] {h}</option>)}
+                        </select>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-white/50 text-xs shrink-0">¿En qué moneda?</span>
+                          {(['USD', 'BRL'] as const).map(cur => (
+                            <button key={cur} onClick={() => setWizardCfg(c => ({ ...c, currency: cur }))}
+                              className={`text-xs font-bold px-3 py-1 rounded-lg border transition-all ${wizardCfg.currency === cur ? 'bg-purple-600 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}>
+                              {cur === 'USD' ? '$ USD' : 'R$ BRL'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white text-sm font-semibold">3. Nombre / Apodo</span>
+                          <button onClick={() => setWizardCfg(c => ({ ...c, apodo: -1 }))} className="text-white/30 text-xs hover:text-white/60 transition-colors">Saltar →</button>
+                        </div>
+                        <select value={wizardCfg.apodo} onChange={e => setWizardCfg(c => ({ ...c, apodo: parseInt(e.target.value) }))}
+                          className="w-full bg-[#0a0a18] border border-purple-500/20 text-white text-sm rounded-xl px-3 py-2.5 outline-none focus:border-purple-400">
+                          <option value={-1}>No aplica / Saltar</option>
+                          {pendingHeaders.map((h, i) => <option key={i} value={i}>[col {i}] {h}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white text-sm font-semibold">4. Semana / Periodo</span>
+                          <button onClick={() => setWizardCfg(c => ({ ...c, semana: -1 }))} className="text-white/30 text-xs hover:text-white/60 transition-colors">Saltar →</button>
+                        </div>
+                        <select value={wizardCfg.semana} onChange={e => setWizardCfg(c => ({ ...c, semana: parseInt(e.target.value) }))}
+                          className="w-full bg-[#0a0a18] border border-purple-500/20 text-white text-sm rounded-xl px-3 py-2.5 outline-none focus:border-purple-400">
+                          <option value={-1}>No aplica / Saltar (usará semana actual)</option>
+                          {pendingHeaders.map((h, i) => <option key={i} value={i}>[col {i}] {h}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white text-sm font-semibold">5. Puntos / Métrica adicional</span>
+                          <button onClick={() => setWizardCfg(c => ({ ...c, metric: -1 }))} className="text-white/30 text-xs hover:text-white/60 transition-colors">Saltar →</button>
+                        </div>
+                        <p className="text-white/40 text-xs">Diamantes, monedas, coins u otra métrica de la app (opcional)</p>
+                        <select value={wizardCfg.metric} onChange={e => setWizardCfg(c => ({ ...c, metric: parseInt(e.target.value) }))}
+                          className="w-full bg-[#0a0a18] border border-purple-500/20 text-white text-sm rounded-xl px-3 py-2.5 outline-none focus:border-purple-400">
+                          <option value={-1}>No aplica / Saltar</option>
+                          {pendingHeaders.map((h, i) => <option key={i} value={i}>[col {i}] {h}</option>)}
+                        </select>
+                        {wizardCfg.metric >= 0 && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-white/50 text-xs shrink-0">¿Cómo llamar a esta métrica?</span>
+                            <input type="text" value={wizardCfg.metricLabel}
+                              onChange={e => setWizardCfg(c => ({ ...c, metricLabel: e.target.value || 'Diamantes' }))}
+                              placeholder="Ej: Diamantes, Monedas, Coins..."
+                              className="flex-1 bg-[#0a0a18] border border-purple-500/20 text-white text-sm rounded-xl px-3 py-1.5 outline-none focus:border-purple-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 pt-2 border-t border-white/5">
+                        <button
+                          onClick={async () => {
+                            if (wizardCfg.uid < 0 || wizardCfg.usd < 0) { setParseError('Selecciona al menos la columna de ID y la de salario.'); return }
+                            setParseError(null)
+                            await applyColConfig(pendingHeaders, pendingRaw, wizardCfg, pendingFileName)
+                          }}
+                          disabled={wizardCfg.uid < 0 || wizardCfg.usd < 0}
+                          className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-all">
+                          ✓ Confirmar y procesar nómina
+                        </button>
+                        <button onClick={() => { setStep('upload'); setParseError(null) }}
+                          className="text-white/40 hover:text-white/70 text-sm px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all">
+                          Cancelar
+                        </button>
+                      </div>
+                      {parseError && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+                          <p className="text-red-400 text-sm">{parseError}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           {/* ── Results ── */}
           {step === 'results' && (
             <>
@@ -1360,7 +1468,13 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                   className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
                   <Upload className="w-4 h-4" /> {publishedOk ? '➕ Agregar otro lote' : 'Nueva nómina'}
                 </button>
-                {(app === 'Waha' || app === 'Howdy') && (
+                <button
+                    onClick={() => { try { localStorage.removeItem(`ea_col_cfg_${app}`) } catch {} setSavedColConfig(null) }}
+                    title="Reconfigurar columnas de la nómina"
+                    className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 text-xs font-semibold px-3 py-2 rounded-xl transition-all">
+                    ⚙ Columnas
+                  </button>
+                  {(app === 'Waha' || app === 'Howdy') && (
                   <div className="flex items-center gap-1.5 ml-auto bg-white/5 border border-white/10 rounded-xl px-3 py-2">
                     <span className="text-white/50 text-xs font-semibold whitespace-nowrap">% Comisión agentes:</span>
                     <input
