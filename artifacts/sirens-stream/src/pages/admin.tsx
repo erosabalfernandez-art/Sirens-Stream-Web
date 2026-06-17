@@ -2060,10 +2060,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['efectivo_agent']}</span>}
                                                   {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
                                                   {metodo && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodo}</span>}
+                                                  {billetera && (
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'ae'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
                                                       <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[120px]">{billetera}</span>
                                                       <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
                                                         <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[110px]">{billetera}</span>
+                                                      {copiedBilletera === row.id + 'ae' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}
                                                     </button>
                                                   )}
                                                 </div>
@@ -2254,12 +2256,15 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
                                                       {row.has_custom ? '★ Excl' : 'Global'}{usedRate ? ` ×${usedRate}` : ''}
                                                     </span>
-                                                    {row.metodo_pago && <span className="text-[10px] text-white/30 truncate">{row.metodo_pago}</span>}
+
                                                     {row.metodo_pago && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {row.metodo_pago}</span>}
-                                                      <span className="text-[10px] font-mono text-purple-300/60 group-hover:text-purple-200 transition-colors truncate max-w-[120px]">{row.billetera}</span>
+                                                    {row.billetera && (
+                                                      <button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera((row.user_id || '') + 'wa'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
                                                       <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
                                                         <span className="text-[10px] font-mono text-purple-300/60 group-hover:text-purple-200 transition-colors truncate max-w-[110px]">{row.billetera}</span>
-                                                    </button>)}
+                                                        {copiedBilletera === (row.user_id || '') + 'wa' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-purple-400 shrink-0 transition-colors" />}
+                                                      </button>
+                                                    )}
                                                   </div>
                                                   <div className="flex items-center gap-1.5 shrink-0">
                                                     {row.confirmed ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
