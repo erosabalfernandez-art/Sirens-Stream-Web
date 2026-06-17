@@ -2400,6 +2400,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     <p className="text-base font-bold text-violet-300 leading-tight">${totalA.toFixed(2)}</p>
 
                                                     {totalCupA ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{totalCupA.toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
+                                                  </div>
                                                 </div>
                                                 {/* Bottom strip */}
                                                 <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
