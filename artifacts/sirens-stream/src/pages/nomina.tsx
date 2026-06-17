@@ -723,6 +723,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
   const [publishedOk, setPublishedOk] = useState(false)
   const [publishingAgents, setPublishingAgents] = useState(false)
   const [agentPublishOk, setAgentPublishOk] = useState(false)
+  const [commissionPct, setCommissionPct] = useState<number>(() => { try { return parseFloat(localStorage.getItem(`ea_comm_pct_${app}`) ?? '10') || 10 } catch { return 10 } })
   const fileRef = useRef<HTMLInputElement>(null)
   const [paidMarks, setPaidMarks] = useState<Set<string>>(new Set())
   const [togglingPaid, setTogglingPaid] = useState<string | null>(null)
@@ -1117,7 +1118,7 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
           apodo: String(apodoCol !== -1 ? (r[apodoCol] ?? '') : ''),
           usd,
           diamantes: parseFloat(String(diaCol !== -1 ? (r[diaCol] ?? 0) : 0)) || 0,
-          comision: app === 'Waha' ? usd * 0.10 : (parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0),
+          comision: (app === 'Waha' || app === 'Howdy') ? usd * (commissionPct / 100) : (parseFloat(String(comisionCol !== -1 ? (r[comisionCol] ?? 0) : 0)) || 0),
           semana: String(semanaCol !== -1 ? (r[semanaCol] ?? '') : isoWeekLabel()),
           agente: agenteCol !== -1 ? (String(r[agenteCol] ?? '').trim() || null) : null,
           extras,
@@ -1359,6 +1360,25 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
                   className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
                   <Upload className="w-4 h-4" /> {publishedOk ? '➕ Agregar otro lote' : 'Nueva nómina'}
                 </button>
+                {(app === 'Waha' || app === 'Howdy') && (
+                  <div className="flex items-center gap-1.5 ml-auto bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                    <span className="text-white/50 text-xs font-semibold whitespace-nowrap">% Comisión agentes:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={commissionPct}
+                      onChange={e => {
+                        const v = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0))
+                        setCommissionPct(v)
+                        try { localStorage.setItem(`ea_comm_pct_${app}`, String(v)) } catch {}
+                      }}
+                      className="w-14 bg-transparent text-white text-sm font-bold text-center outline-none border-b border-purple-400/40 focus:border-purple-400"
+                    />
+                    <span className="text-purple-400/70 text-xs font-bold">%</span>
+                  </div>
+                )}
               </div>
 
               <div className="p-5 space-y-6">
