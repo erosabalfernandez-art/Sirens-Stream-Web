@@ -1144,25 +1144,67 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
     }
 
     async function processFile(file: File) {
-      if (!file.name.match(/\.xlsx?$/i)) return
-      setParsing(true); setAiSummary(null); setParseError(null)
-      setFileName(file.name)
-      try {
-        const buf = await file.arrayBuffer()
-        const wb = XLSX.read(buf, { type: 'array' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
-        const rawHeaders = (raw[0] as unknown[]) ?? []
-        const headers = rawHeaders.map(h => String(h ?? '').trim())
+        if (!file.name.match(/\.xlsx?$/i)) return
+        setParsing(true); setAiSummary(null); setParseError(null)
+        setFileName(file.name)
+        try {
+          const buf = await file.arrayBuffer()
+          const wb = XLSX.read(buf, { type: 'array' })
+          const ws = wb.Sheets[wb.SheetNames[0]]
+          const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][]
+          const rawHeaders = (raw[0] as unknown[]) ?? []
+          const headers = rawHeaders.map(h => String(h ?? '').trim())
 
-        // Check if saved config is valid for this file's columns
-        const saved = savedColConfig
-        const isValid = saved && saved.uid >= 0 && saved.uid < headers.length && saved.usd >= 0 && saved.usd < headers.length
-        if (isValid && saved) {
-          setParsing(false)
-          await applyColConfig(headers, raw, saved, file.name)
-        } else {
-          // Launch wizard — get AI suggestions
+          // ── Step 1: saved config valid for this file → use it directly ──
+          const saved = savedColConfig
+          const isValid = saved && saved.uid >= 0 && saved.uid < headers.length && saved.usd >= 0 && saved.usd < headers.length
+          if (isValid && saved) {
+            setParsing(false)
+            await applyColConfig(headers, raw, saved, file.name)
+            return
+          }
+
+          // ── Step 2: try smartCOL alias detection — Waha always passes here ──
+          const COLUMN_ALIASES: [string, string[]][] = [
+            ['UID del Host',      ['uid', 'host id', 'id del host', 'id host', 'host_id', 'userid', 'user id']],
+            ['USD',               ['usd', 'host salary', 'salario en usd', 'dólar', 'dollar', 'monto', 'pago usd', 'ganancia', 'ingreso', 'earning']],
+            ['Apodo',             ['name', 'nombre', 'apodo', 'nick', 'nickname', 'nombre en app', 'nombre_app', 'username']],
+            ['Semana',            ['week', 'semana', 'periodo', 'período', 'date', 'fecha']],
+            ['Diamantes Totales', ['total monedas', 'total diamante', 'diamante', 'diamond', 'gem', 'piedra', 'coins', 'moneda', 'total dia']],
+          ]
+          function smartCOL(canonical: string): number {
+            const exact = headers.indexOf(canonical)
+            if (exact !== -1) return exact
+            const lower = canonical.toLowerCase()
+            const ci = headers.findIndex(h => h.toLowerCase() === lower)
+            if (ci !== -1) return ci
+            const aliases = COLUMN_ALIASES.find(([c]) => c === canonical)
+            if (aliases) {
+              for (const kw of aliases[1]) {
+                const idx = headers.findIndex(h => h.toLowerCase() === kw); if (idx !== -1) return idx
+              }
+              for (const kw of aliases[1]) {
+                const idx = headers.findIndex(h => h.toLowerCase().includes(kw)); if (idx !== -1) return idx
+              }
+            }
+            const words = lower.split(/\s+/)
+            return headers.findIndex(h => { const hl = h.toLowerCase(); return words.every(w => hl.includes(w)) })
+          }
+          const uidAuto  = smartCOL('UID del Host')
+          const usdAuto  = smartCOL('USD')
+          if (uidAuto >= 0 && usdAuto >= 0) {
+            // Auto-detected — save config and process directly (no wizard needed)
+            const autoCfg: ColConfig = {
+              uid: uidAuto, usd: usdAuto,
+              apodo: smartCOL('Apodo'), semana: smartCOL('Semana'), metric: smartCOL('Diamantes Totales'),
+              metricLabel: 'Diamantes', currency: 'USD',
+            }
+            setParsing(false)
+            await applyColConfig(headers, raw, autoCfg, file.name)
+            return
+          }
+
+          // ── Step 3: smartCOL failed → launch AI wizard ──
           setPendingHeaders(headers)
           setPendingRaw(raw)
           setPendingFileName(file.name)
@@ -1180,14 +1222,12 @@ function AppNominaSection({ app, reloadKey, exchangeRates = {} }: { app: 'Waha' 
             currency: sugg.currency === 'BRL' ? 'BRL' : 'USD',
           })
           setWizardLoading(false)
+        } catch (err: any) {
+          setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
+          setParsing(false)
         }
-      } catch (err: any) {
-        setParseError(err?.message ?? 'Error desconocido al procesar el archivo.')
-        setParsing(false)
       }
-    }
-
-  async function loadPaidMarks(a: string, week: string) {
+    async function loadPaidMarks(a: string, week: string) {
     const _apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
     const res = await fetch(`${_apiUrl}/api/admin-paid-marks?app_name=${encodeURIComponent(a)}&semana=${encodeURIComponent(week)}`).then(r => r.json()).catch(() => ({ uids: [] }))
     setPaidMarks(new Set<string>((res.uids ?? []) as string[]))
