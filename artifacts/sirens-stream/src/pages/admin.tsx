@@ -462,8 +462,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             const confSet = new Set(((confs ?? []) as any[]).map((c: any) => c.commission_id))
             const confMap: Record<string, string> = {}
             ;((confs ?? []) as any[]).forEach((c: any) => { confMap[c.commission_id] = c.confirmed_at })
-            const all = (comms ?? []) as any[]
-            // Enrich with colider_marks for agents
+            // Filter deleted agents (profile no longer has is_agent=true → "phantom agents")
+              const { data: _activeAgentProfs } = await supabase.from('profiles').select('id').eq('is_agent', true)
+              const _activeAgentIdSet = new Set((_activeAgentProfs ?? []).map((p: any) => p.id as string))
+              const all = (comms ?? []).filter((c: any) => !c.agent_user_id || _activeAgentIdSet.has(c.agent_user_id)) as any[]
+              // Enrich with colider_marks for agents
             const _agentUids = all.filter((c: any) => c.agent_user_id).map((c: any) => c.agent_user_id as string)
             let _agentColiderMap: Record<string, boolean> = {}
             let _agentMetodoMapLocal: Record<string, string> = {}
@@ -1996,7 +1999,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                     <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${row.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
                                                       {row.has_custom ? '★ Excl' : 'Global'}{usedRate ? ` ×${usedRate}` : ''}
                                                     </span>
-                                                    {row.metodo_pago && <span className="text-[10px] text-white/30 truncate">{row.metodo_pago}</span>}
+                                                    {row.metodo_pago && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {row.metodo_pago}</span>}
+                                                      {row.billetera ? (
+                                                        <button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera(row.salary_id + 'w'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
+                                                          <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
+                                                          <span className="text-[10px] font-mono text-teal-300/60 group-hover:text-teal-200 transition-colors truncate max-w-[110px]">{row.billetera}</span>
+                                                          {copiedBilletera === row.salary_id + 'w' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-teal-400 shrink-0 transition-colors" />}
+                                                        </button>
+                                                      ) : null}
                                                   </div>
                                                   <div className="flex items-center gap-1.5 shrink-0">
                                                     {row.colider_paid === true && <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span>}
@@ -2049,10 +2059,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                                   {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['efectivo_agent']}</span>}
                                                   {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
-                                                  {billetera && (
+                                                  {metodo && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodo}</span>}
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'ae'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
                                                       <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[120px]">{billetera}</span>
-                                                      {copiedBilletera === row.id + 'ae' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}
+                                                      <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
+                                                        <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[110px]">{billetera}</span>
                                                     </button>
                                                   )}
                                                 </div>
@@ -2081,7 +2092,13 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                             const agentConfirmedD = agentConfirmedIds.has(d.agentRow.id)
                                             const metodoD = agentMetodoMap[d.agent_user_id] ?? d.workerRows[0]?.metodo_pago ?? ''
                                             const billeteraD = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
-                                            return (
+                                            const billeteraD = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
+                                              const workerCupD = d.workerRows.reduce((s: number, r: any) => s + (Number(r.cup_amount) || 0), 0)
+                                              const agentCupD = (rates['efectivo_agent'] ?? 0) > 0 ? Math.round(agentTotalD * rates['efectivo_agent']) : null
+                                              const totalCupD = agentCupD !== null || workerCupD > 0 ? Math.round(workerCupD + (agentCupD ?? 0)) : null
+                                              const workerCupD = d.workerRows.reduce((s: number, r: any) => s + (Number(r.cup_amount) || 0), 0)
+                                              const agentCupD = (rates['efectivo_agent'] ?? 0) > 0 ? Math.round(agentTotalD * rates['efectivo_agent']) : null
+                                              const totalCupD = agentCupD !== null || workerCupD > 0 ? Math.round(workerCupD + (agentCupD ?? 0)) : null
                                               <div key={d.agent_user_id} className="bg-black/30 border border-violet-500/25 rounded-2xl px-4 py-3">
                                                 <div className="flex items-start gap-3">
                                                   <div className="w-7 h-7 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0 mt-0.5">
@@ -2106,26 +2123,47 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   <div className="text-right shrink-0">
                                                     <p className="text-base font-bold text-violet-300 leading-tight">${totalD.toFixed(2)}</p>
                                                     {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(totalD * rates['efectivo_agent']).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p>}
-                                                  </div>
+                                                    {totalCupD ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{totalCupD.toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
                                                 </div>
                                                 {/* Bottom strip */}
                                                 <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                   <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                    {d.workerRows[0]?.has_custom !== undefined && (
-                                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
-                                                        {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
-                                                      </span>
-                                                    )}
-                                                    <span className="text-[10px] text-white/25">👑 ${agentTotalD.toFixed(2)} comisión</span>
-                                                    {metodoD && <span className="text-[10px] text-white/25 truncate">{metodoD}</span>}
+                                                  <div className="flex items-start gap-2 min-w-0 flex-1 flex-col">
+
+
+
+
+
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                      {d.workerRows[0]?.has_custom !== undefined && (
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
+                                                          {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
+                                                        </span>
+                                                      )}
+                                                      {metodoD && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodoD}</span>}
+                                                    </div>
+                                                    <div className="flex flex-col gap-0.5 mt-0.5 w-full">
+                                                      <span className="text-[10px] text-violet-300/70">👑 Comisión: <span className="font-bold">${agentTotalD.toFixed(2)}</span>{agentCupD != null ? <span className="text-amber-300/60"> / {agentCupD.toLocaleString('es-ES')} CUP</span> : null}</span>
+                                                      {d.workerRows.map((r: any) => (
+                                                        <span key={r.salary_id} className="text-[10px] text-teal-300/70">💼 {r.app_name}{r.nombre_en_app || r.apodo ? ` · ${r.nombre_en_app || r.apodo}` : ''}: <span className="font-bold">${Number(r.usd||0).toFixed(2)}</span>{r.cup_amount ? <span className="text-amber-300/60"> / {Math.round(Number(r.cup_amount)).toLocaleString('es-ES')} CUP</span> : null}</span>
+                                                      ))}
+                                                      <span className="text-[10px] text-white/60 font-bold border-t border-white/10 pt-0.5 mt-0.5">= Total: ${totalD.toFixed(2)}{totalCupD ? <span className="text-amber-300/70"> / {totalCupD.toLocaleString('es-ES')} CUP</span> : null}</span>
+                                                    </div>
                                                     {billeteraD && (
-                                                      <button onClick={() => { navigator.clipboard.writeText(billeteraD); setCopiedBilletera(d.agent_user_id + 'de'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
-                                                        <span className="text-[10px] font-mono text-violet-300/60 group-hover:text-violet-200 transition-colors truncate max-w-[100px]">{billeteraD}</span>
+                                                      <button onClick={() => { navigator.clipboard.writeText(billeteraD); setCopiedBilletera(d.agent_user_id + 'de'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group mt-0.5">
+                                                        <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
+                                                        <span className="text-[10px] font-mono text-violet-300/60 group-hover:text-violet-200 transition-colors truncate max-w-[130px]">{billeteraD}</span>
                                                         {copiedBilletera === d.agent_user_id + 'de' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-violet-400 shrink-0 transition-colors" />}
                                                       </button>
                                                     )}
+
+
+
+
+
+
+
                                                   </div>
-                                                  <div className="flex items-center gap-1.5 shrink-0">
                                                     {coliderPaidD ? <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
                                                     {agentConfirmedD ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                   </div>
@@ -2215,9 +2253,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                       {row.has_custom ? '★ Excl' : 'Global'}{usedRate ? ` ×${usedRate}` : ''}
                                                     </span>
                                                     {row.metodo_pago && <span className="text-[10px] text-white/30 truncate">{row.metodo_pago}</span>}
-                                                    {row.billetera && (<button onClick={() => { navigator.clipboard.writeText(row.billetera); setCopiedBilletera(row.salary_id + 't'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
+                                                    {row.metodo_pago && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {row.metodo_pago}</span>}
                                                       <span className="text-[10px] font-mono text-purple-300/60 group-hover:text-purple-200 transition-colors truncate max-w-[120px]">{row.billetera}</span>
-                                                      {copiedBilletera === row.salary_id + 't' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-purple-400 shrink-0 transition-colors" />}
+                                                      <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
+                                                        <span className="text-[10px] font-mono text-purple-300/60 group-hover:text-purple-200 transition-colors truncate max-w-[110px]">{row.billetera}</span>
                                                     </button>)}
                                                   </div>
                                                   <div className="flex items-center gap-1.5 shrink-0">
@@ -2279,10 +2318,11 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                                   {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['transferencia_agent']}</span>}
                                                   {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
-                                                  {billetera && (
+                                                  {metodo && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodo}</span>}
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
                                                       <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[120px]">{billetera}</span>
-                                                      {copiedBilletera === row.id + 'a' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}
+                                                      <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
+                                                        <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[110px]">{billetera}</span>
                                                     </button>
                                                   )}
                                                 </div>
@@ -2319,6 +2359,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                             const metodoA = agentMetodoMap[d.agent_user_id] ?? d.workerRows[0]?.metodo_pago ?? ''
                                             const billeteraA = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
                                             return (
+                                              const workerCupA = d.workerRows.reduce((s: number, r: any) => s + (Number(r.cup_amount) || 0), 0)
+                                              const agentCupA = (rates['transferencia_agent'] ?? 0) > 0 ? Math.round(agentTotalA * rates['transferencia_agent']) : null
+                                              const totalCupA = agentCupA !== null || workerCupA > 0 ? Math.round(workerCupA + (agentCupA ?? 0)) : null
                                               <div key={d.agent_user_id} className={`rounded-2xl overflow-hidden border transition-all ${adminPaidA && agentConfirmedA ? 'border-violet-500/30 bg-gradient-to-br from-violet-950/40 to-black/50' : 'border-white/8 bg-gradient-to-br from-white/3 to-black/40'}`}>
                                                 {/* Top row */}
                                                 <div className="px-4 pt-3 pb-2 flex items-start gap-3">
@@ -2344,26 +2387,47 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   <div className="text-right shrink-0">
                                                     <p className="text-base font-bold text-violet-300 leading-tight">${totalA.toFixed(2)}</p>
                                                     {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(totalA * rates['transferencia_agent']).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p>}
-                                                  </div>
+                                                    {totalCupA ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{totalCupA.toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
                                                 </div>
                                                 {/* Bottom strip */}
                                                 <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                   <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                    {d.workerRows[0]?.has_custom !== undefined && (
-                                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
-                                                        {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
-                                                      </span>
-                                                    )}
-                                                    <span className="text-[10px] text-white/25 shrink-0">👑 ${agentTotalA.toFixed(2)} comisión</span>
-                                                    {metodoA && <span className="text-[10px] text-white/25 truncate">{metodoA}</span>}
+                                                  <div className="flex items-start gap-2 min-w-0 flex-1 flex-col">
+
+
+
+
+
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                      {d.workerRows[0]?.has_custom !== undefined && (
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${d.workerRows[0]?.has_custom ? 'bg-yellow-500/15 border border-yellow-500/30 text-yellow-300' : 'bg-white/5 border border-white/10 text-white/35'}`}>
+                                                          {d.workerRows[0]?.has_custom ? '★ Excl' : 'Global'}
+                                                        </span>
+                                                      )}
+                                                      {metodoA && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodoA}</span>}
+                                                    </div>
+                                                    <div className="flex flex-col gap-0.5 mt-0.5 w-full">
+                                                      <span className="text-[10px] text-violet-300/70">👑 Comisión: <span className="font-bold">${agentTotalA.toFixed(2)}</span>{agentCupA != null ? <span className="text-amber-300/60"> / {agentCupA.toLocaleString('es-ES')} CUP</span> : null}</span>
+                                                      {d.workerRows.map((r: any) => (
+                                                        <span key={r.salary_id} className="text-[10px] text-teal-300/70">💼 {r.app_name}{r.nombre_en_app || r.apodo ? ` · ${r.nombre_en_app || r.apodo}` : ''}: <span className="font-bold">${Number(r.usd||0).toFixed(2)}</span>{r.cup_amount ? <span className="text-amber-300/60"> / {Math.round(Number(r.cup_amount)).toLocaleString('es-ES')} CUP</span> : null}</span>
+                                                      ))}
+                                                      <span className="text-[10px] text-white/60 font-bold border-t border-white/10 pt-0.5 mt-0.5">= Total: ${totalA.toFixed(2)}{totalCupA ? <span className="text-amber-300/70"> / {totalCupA.toLocaleString('es-ES')} CUP</span> : null}</span>
+                                                    </div>
                                                     {billeteraA && (
-                                                      <button onClick={() => { navigator.clipboard.writeText(billeteraA); setCopiedBilletera(d.agent_user_id + 'd'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
-                                                        <span className="text-[10px] font-mono text-violet-300/60 group-hover:text-violet-200 transition-colors truncate max-w-[100px]">{billeteraA}</span>
+                                                      <button onClick={() => { navigator.clipboard.writeText(billeteraA); setCopiedBilletera(d.agent_user_id + 'd'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group mt-0.5">
+                                                        <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
+                                                        <span className="text-[10px] font-mono text-violet-300/60 group-hover:text-violet-200 transition-colors truncate max-w-[130px]">{billeteraA}</span>
                                                         {copiedBilletera === d.agent_user_id + 'd' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-violet-400 shrink-0 transition-colors" />}
                                                       </button>
                                                     )}
+
+
+
+
+
+
+
                                                   </div>
-                                                  <div className="flex items-center gap-1.5 shrink-0">
                                                     {agentConfirmedA ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                     <button onClick={() => toggleAgentAdminPaid(d.agent_user_id, d.agentRow.app_name, d.agentRow.semana)} disabled={!d.agent_user_id || togglingAgentAdminPaid === d.agent_user_id} className={`flex items-center gap-1 transition-all ${!d.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
                                                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${adminPaidA ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
