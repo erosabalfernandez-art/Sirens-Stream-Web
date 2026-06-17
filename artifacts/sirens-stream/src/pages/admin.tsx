@@ -2092,13 +2092,13 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                             const agentConfirmedD = agentConfirmedIds.has(d.agentRow.id)
                                             const metodoD = agentMetodoMap[d.agent_user_id] ?? d.workerRows[0]?.metodo_pago ?? ''
                                             const billeteraD = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
-                                            const billeteraD = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
+
                                               const workerCupD = d.workerRows.reduce((s: number, r: any) => s + (Number(r.cup_amount) || 0), 0)
                                               const agentCupD = (rates['efectivo_agent'] ?? 0) > 0 ? Math.round(agentTotalD * rates['efectivo_agent']) : null
                                               const totalCupD = agentCupD !== null || workerCupD > 0 ? Math.round(workerCupD + (agentCupD ?? 0)) : null
-                                              const workerCupD = d.workerRows.reduce((s: number, r: any) => s + (Number(r.cup_amount) || 0), 0)
-                                              const agentCupD = (rates['efectivo_agent'] ?? 0) > 0 ? Math.round(agentTotalD * rates['efectivo_agent']) : null
-                                              const totalCupD = agentCupD !== null || workerCupD > 0 ? Math.round(workerCupD + (agentCupD ?? 0)) : null
+
+
+
                                               <div key={d.agent_user_id} className="bg-black/30 border border-violet-500/25 rounded-2xl px-4 py-3">
                                                 <div className="flex items-start gap-3">
                                                   <div className="w-7 h-7 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0 mt-0.5">
@@ -2122,12 +2122,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="text-right shrink-0">
                                                     <p className="text-base font-bold text-violet-300 leading-tight">${totalD.toFixed(2)}</p>
-                                                    {(rates['efectivo_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(totalD * rates['efectivo_agent']).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p>}
+
                                                     {totalCupD ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{totalCupD.toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
                                                 </div>
                                                 {/* Bottom strip */}
                                                 <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
-                                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+
                                                   <div className="flex items-start gap-2 min-w-0 flex-1 flex-col">
 
 
@@ -2317,10 +2317,10 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                                   {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['transferencia_agent']}</span>}
-                                                  {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
+
                                                   {metodo && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodo}</span>}
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
-                                                      <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[120px]">{billetera}</span>
+
                                                       <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
                                                         <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[110px]">{billetera}</span>
                                                     </button>
@@ -2358,10 +2358,13 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                             const adminPaidA = agentAdminPaidIds.has(d.agent_user_id)
                                             const metodoA = agentMetodoMap[d.agent_user_id] ?? d.workerRows[0]?.metodo_pago ?? ''
                                             const billeteraA = agentBilleteraMap[d.agent_user_id] ?? d.workerRows[0]?.billetera ?? ''
-                                            return (
-                                              const workerCupA = d.workerRows.reduce((s: number, r: any) => s + (Number(r.cup_amount) || 0), 0)
+                                            const workerCupA = d.workerRows.reduce((s: number, r: any) => s + (Number(r.cup_amount) || 0), 0)
                                               const agentCupA = (rates['transferencia_agent'] ?? 0) > 0 ? Math.round(agentTotalA * rates['transferencia_agent']) : null
                                               const totalCupA = agentCupA !== null || workerCupA > 0 ? Math.round(workerCupA + (agentCupA ?? 0)) : null
+                                              return (
+
+
+
                                               <div key={d.agent_user_id} className={`rounded-2xl overflow-hidden border transition-all ${adminPaidA && agentConfirmedA ? 'border-violet-500/30 bg-gradient-to-br from-violet-950/40 to-black/50' : 'border-white/8 bg-gradient-to-br from-white/3 to-black/40'}`}>
                                                 {/* Top row */}
                                                 <div className="px-4 pt-3 pb-2 flex items-start gap-3">
@@ -2386,12 +2389,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   </div>
                                                   <div className="text-right shrink-0">
                                                     <p className="text-base font-bold text-violet-300 leading-tight">${totalA.toFixed(2)}</p>
-                                                    {(rates['transferencia_agent'] ?? 0) > 0 && <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{Math.round(totalA * rates['transferencia_agent']).toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p>}
+
                                                     {totalCupA ? <p className="text-xs text-amber-300/75 font-semibold mt-0.5">{totalCupA.toLocaleString('es-ES')} <span className="text-amber-300/40 font-normal text-[10px]">CUP</span></p> : null}
                                                 </div>
                                                 {/* Bottom strip */}
                                                 <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
-                                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+
                                                   <div className="flex items-start gap-2 min-w-0 flex-1 flex-col">
 
 
