@@ -2057,8 +2057,8 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               </div>
                                               <div className="px-4 pb-2.5 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                  {(rates['efectivo_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['efectivo_agent']}</span>}
-                                                  {metodo && <span className="text-[10px] text-white/30 truncate">{metodo}</span>}
+
+
                                                   {metodo && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodo}</span>}
                                                   {billetera && (
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'ae'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
