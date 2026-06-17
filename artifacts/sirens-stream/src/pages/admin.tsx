@@ -2326,10 +2326,12 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                                   {(rates['transferencia_agent'] ?? 0) > 0 && <span className="text-[10px] text-white/30 shrink-0">×{rates['transferencia_agent']}</span>}
 
                                                   {metodo && <span className="text-[10px] text-white/45"><span className="text-white/25">Método:</span> {metodo}</span>}
+                                                  {billetera && (
                                                     <button onClick={() => { navigator.clipboard.writeText(billetera); setCopiedBilletera(row.id + 'a'); setTimeout(() => setCopiedBilletera(null), 1500) }} className="flex items-center gap-1 group">
 
                                                       <span className="text-[10px] text-white/25 shrink-0 font-semibold">Billetera:</span>
                                                         <span className="text-[10px] font-mono text-amber-300/60 group-hover:text-amber-200 transition-colors truncate max-w-[110px]">{billetera}</span>
+                                                      {copiedBilletera === row.id + 'a' ? <Check className="w-3 h-3 text-green-400 shrink-0" /> : <Copy className="w-3 h-3 text-white/20 group-hover:text-amber-400 shrink-0 transition-colors" />}
                                                     </button>
                                                   )}
                                                 </div>
