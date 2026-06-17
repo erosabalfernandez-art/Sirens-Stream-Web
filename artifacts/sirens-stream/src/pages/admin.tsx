@@ -2097,7 +2097,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                               const agentCupD = (rates['efectivo_agent'] ?? 0) > 0 ? Math.round(agentTotalD * rates['efectivo_agent']) : null
                                               const totalCupD = agentCupD !== null || workerCupD > 0 ? Math.round(workerCupD + (agentCupD ?? 0)) : null
 
-
+                                            return (
 
                                               <div key={d.agent_user_id} className="bg-black/30 border border-violet-500/25 rounded-2xl px-4 py-3">
                                                 <div className="flex items-start gap-3">
@@ -2165,7 +2165,9 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
                                                   </div>
                                                     {coliderPaidD ? <span className="text-[10px] bg-teal-500/15 border border-teal-500/25 text-teal-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Colider ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin marcar</span>}
+                                                  <div className="flex items-center gap-1.5 shrink-0">
                                                     {agentConfirmedD ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
+                                                  </div>
                                                   </div>
                                                 </div>
                                               </div>
@@ -2431,6 +2433,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
 
                                                   </div>
+                                                  <div className="flex items-center gap-1.5 shrink-0">
                                                     {agentConfirmedA ? <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">Confirmó ✓</span> : <span className="text-[10px] text-white/20 whitespace-nowrap">Sin confirmar</span>}
                                                     <button onClick={() => toggleAgentAdminPaid(d.agent_user_id, d.agentRow.app_name, d.agentRow.semana)} disabled={!d.agent_user_id || togglingAgentAdminPaid === d.agent_user_id} className={`flex items-center gap-1 transition-all ${!d.agent_user_id ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}>
                                                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${adminPaidA ? 'bg-purple-500 border-purple-500' : 'border-white/25 hover:border-purple-400/60'}`}>
