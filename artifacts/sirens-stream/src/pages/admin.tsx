@@ -173,6 +173,35 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
           const [pushTestLoading, setPushTestLoading] = useState(false)
           const [pushTestResult, setPushTestResult] = useState<{sent:number;ok:boolean;subs:number}|null>(null)
+          const [pushSubs, setPushSubs] = useState<{user_id:string;email:string|null;display_name:string;is_admin:boolean;is_agent:boolean;is_colider:boolean;created_at:string}[]>([])
+          const [pushSubsLoading, setPushSubsLoading] = useState(false)
+          const [deletingPushSub, setDeletingPushSub] = useState<string|null>(null)
+          const [deletePushSubMsg, setDeletePushSubMsg] = useState<{userId:string;ok:boolean;msg:string}|null>(null)
+          const [pushSubSearch, setPushSubSearch] = useState('')
+          async function fetchPushSubs() {
+            setPushSubsLoading(true)
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const r = await fetch(apiBase + '/api/push/subscriptions')
+              if (r.ok) { const d = await r.json(); setPushSubs(d.subscriptions ?? []) }
+            } catch { /**/ } finally { setPushSubsLoading(false) }
+          }
+          async function deletePushSub(userId: string) {
+            setDeletingPushSub(userId)
+            setDeletePushSubMsg(null)
+            try {
+              const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+              const r = await fetch(apiBase + '/api/push/subscription/' + encodeURIComponent(userId), { method: 'DELETE' })
+              if (r.ok) {
+                setPushSubs(prev => prev.filter(s => s.user_id !== userId))
+                setDeletePushSubMsg({ userId, ok: true, msg: 'Suscripción eliminada. El usuario puede volver a suscribirse.' })
+              } else {
+                const d = await r.json().catch(() => ({}))
+                setDeletePushSubMsg({ userId, ok: false, msg: d.error ?? 'Error al eliminar' })
+              }
+            } catch { setDeletePushSubMsg({ userId, ok: false, msg: 'Error de red' }) }
+            finally { setDeletingPushSub(null) }
+          }
         const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { const _sv = localStorage.getItem('ea_pagos_app'); return (['Waha','Layla','Howdy','Agentes'].includes(_sv ?? '') ? _sv : 'Waha') as 'Waha'|'Layla'|'Howdy'|'Agentes' } catch { return 'Waha' } })
           const [agentPayData, setAgentPayData] = useState<{confirmed: any[], pending: any[]}>({confirmed: [], pending: []})
           const [agentPayLoading, setAgentPayLoading] = useState(false)
@@ -3498,6 +3527,92 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
 
 
           {/* Reset History Modal */}
+
+          {tab === 'push' && (
+            <div className="space-y-4 max-w-3xl">
+              <div className="bg-[#0d0d1e] border border-cyan-500/15 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-cyan-400" />
+                    <span className="text-sm font-semibold text-white/70">Suscripciones Push</span>
+                    {!pushSubsLoading && (
+                      <span className="ml-1 px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 text-xs font-bold">{pushSubs.length}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => void fetchPushSubs()}
+                    disabled={pushSubsLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 transition-all disabled:opacity-40">
+                    {pushSubsLoading ? <><div className="w-3 h-3 border-2 border-cyan-300/30 border-t-cyan-300 rounded-full animate-spin" /> Cargando...</> : '↻ Recargar'}
+                  </button>
+                </div>
+                <p className="text-xs text-white/40 mb-4 leading-relaxed">
+                  Elimina la suscripción de un usuario para que pueda volver a suscribirse desde otro dispositivo o reactivarla en caso de error.
+                </p>
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 pointer-events-none" />
+                  <input
+                    value={pushSubSearch}
+                    onChange={e => setPushSubSearch(e.target.value)}
+                    placeholder="Buscar por email o nombre..."
+                    className="w-full bg-[#07070f] border border-cyan-500/15 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/40"
+                  />
+                </div>
+                {deletePushSubMsg && (
+                  <div className={`mb-4 px-4 py-3 rounded-xl border text-sm font-semibold ${deletePushSubMsg.ok ? 'bg-green-500/10 border-green-500/20 text-green-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
+                    {deletePushSubMsg.msg}
+                  </div>
+                )}
+                {pushSubsLoading && pushSubs.length === 0 ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-6 h-6 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+                  </div>
+                ) : pushSubs.length === 0 ? (
+                  <div className="text-center py-10 text-white/30 text-sm">
+                    No hay suscripciones activas. Carga la lista con el botón Recargar.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {pushSubs
+                      .filter(s => {
+                        if (!pushSubSearch.trim()) return true
+                        const q = pushSubSearch.toLowerCase()
+                        return (s.email ?? '').toLowerCase().includes(q) || (s.display_name ?? '').toLowerCase().includes(q)
+                      })
+                      .map(s => (
+                        <div key={s.user_id} className="flex items-center justify-between gap-3 px-4 py-3 bg-[#07070f] border border-white/5 rounded-xl hover:border-cyan-500/20 transition-all">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{s.display_name ?? s.email ?? s.user_id}</p>
+                            {s.display_name !== s.email && s.email && (
+                              <p className="text-xs text-white/35 truncate mt-0.5">{s.email}</p>
+                            )}
+                            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                              {s.is_admin && <span className="px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-300 text-[10px] font-bold">ADMIN</span>}
+                              {s.is_agent && <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-[10px] font-bold">AGENTE</span>}
+                              {s.is_colider && <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-300 text-[10px] font-bold">COLIDER</span>}
+                              {!s.is_admin && !s.is_agent && !s.is_colider && <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-white/30 text-[10px] font-bold">TRABAJADORA</span>}
+                              <span className="text-[10px] text-white/20">· {new Date(s.created_at).toLocaleDateString('es-ES')}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => { if (window.confirm(`¿Eliminar suscripción push de ${s.display_name ?? s.email ?? s.user_id}?`)) void deletePushSub(s.user_id) }}
+                            disabled={deletingPushSub === s.user_id}
+                            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500/10 border border-red-500/20 text-red-300 hover:bg-red-500/20 hover:border-red-500/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                            {deletingPushSub === s.user_id
+                              ? <><div className="w-3 h-3 border-2 border-red-300/30 border-t-red-300 rounded-full animate-spin" /></>
+                              : <><Trash2 className="w-3 h-3" /> Eliminar</>
+                            }
+                          </button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {showResetModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
               <div className="w-full max-w-md bg-[#0d0d1e] border border-red-500/30 rounded-2xl p-6 shadow-2xl">
