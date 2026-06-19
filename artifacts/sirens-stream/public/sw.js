@@ -1,16 +1,6 @@
 const CACHE_NAME = 'eclipse-angels-v6';
     const SHELL_ASSETS = ['/index.html'];
     const API_BASE = 'https://eclipse-angels-web-api.onrender.com';
-    const VAPID_PUBLIC_KEY = 'BBdr3GZcSw_p6_54VakfGxtgou8XSB1mJBV0btx_aHxpXHI3FZsRaGPd6Fex1fvW7aplnZbCpFow0gdxskYk-S8';
-
-    function urlBase64ToUint8Array(base64String) {
-      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-      const rawData = atob(base64);
-      const output = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
-      return output;
-    }
 
     // ── Cache helpers ─────────────────────────────────────────────────────────────
     async function getLastSeen() {
@@ -101,37 +91,6 @@ const CACHE_NAME = 'eclipse-angels-v6';
         );
       }
     });
-
-    // ── Web Push (FCM / APNs / Mozilla) ──────────────────────────────────────────
-    self.addEventListener('push', (event) => {
-      const data = event.data ? event.data.json() : {};
-      const options = {
-        body: data.body || 'Tienes una nueva notificación.',
-        icon: '/images/eclipse-angels-logo.png',
-        badge: '/images/eclipse-angels-logo.png',
-        data: { url: data.url || '/' },
-        vibrate: [200, 100, 200],
-      };
-      event.waitUntil(
-        Promise.all([
-          self.registration.showNotification(data.title || 'Eclipse Angels Agency', options),
-          setLastSeen(new Date().toISOString()),
-        ])
-      );
-    });
-
-    // ── Push Subscription Change ──────────────────────────────────────────────────
-    // Fires when Firefox/browser rotates the push subscription (e.g. after offline period).
-    // Re-subscribes automatically and updates the backend so notifications keep arriving.
-    self.addEventListener('pushsubscriptionchange', (event) => {
-      event.waitUntil(
-        (async () => {
-          try {
-            const newSub = event.newSubscription
-              || await self.registration.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-                });
             const userId = await getCachedUserId();
             if (!userId) return; // app will re-subscribe when opened
             await fetch(API_BASE + '/api/push/subscribe', {
