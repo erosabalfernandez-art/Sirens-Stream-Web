@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
+import WizardVisualGuide from './WizardVisualGuide'
     import { useLocation } from 'wouter'
     import { useAuth } from '@/contexts/AuthContext'
     import { supabase, type WorkerEntry, COUNTRIES, getPaymentMethods, getWalletLabel } from '@/lib/supabase'
-    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users, Shield, ImagePlus } from 'lucide-react'
+    import { Search, Filter, X, ChevronDown, ChevronUp, Copy, Check, CheckCircle2, Clock, DollarSign, AlertTriangle, Eye, EyeOff, Settings, MessageSquare, Send, Trash2, Radio, Bell, BellOff, Users, Shield, ImagePlus, Plus, Edit2, Power, Package } from 'lucide-react'
   import { sendPushViaApi } from '@/lib/push'
 import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
 
@@ -21,14 +22,8 @@ import { PushNotificationCard } from '@/components/layout/PushNotificationCard'
       error?: string
     }
 
-    const APPS = ['', 'Waha', 'Layla', 'Howdy']
     const PAYMENT_METHODS = ['', 'Binance', 'Pix', 'Efectivo (Cuba)', 'Transferencia Bancaria (Cuba)']
-    const COUNTRIES = [
-      '','Argentina','Bolivia','Brasil','Chile','Colombia','Costa Rica','Cuba',
-      'Ecuador','El Salvador','España','Estados Unidos','Guatemala','Honduras',
-      'México','Nicaragua','Panamá','Paraguay','Perú','Puerto Rico',
-      'República Dominicana','Uruguay','Venezuela','Otro',
-    ]
+    const COUNTRIES_FILTER = ['', ...COUNTRIES]
 
 function cleanNum(s: string | null | undefined): string { return (s ?? '').replace(/[^0-9]/g, '') }
 function cleanFullPhone(code: string | null | undefined, tel: string | null | undefined): string { return (`${code ?? ''}${tel ?? ''}`).replace(/[\s\-\+\(\)]/g, '') }
@@ -77,6 +72,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
       const [, navigate] = useLocation()
       const [workers, setWorkers] = useState<WorkerRow[]>([])
       const [loadingData, setLoadingData] = useState(true)
+      const [catalogApps, setCatalogApps] = useState<string[]>(['Waha', 'Layla', 'Howdy'])
       const emailMapRef = useRef<Record<string, string>>({})
       const [filterApp, setFilterApp] = useState(() => { try { return localStorage.getItem('ea_af_app') ?? '' } catch { return '' } })
       const [filterPais, setFilterPais] = useState(() => { try { return localStorage.getItem('ea_af_pais') ?? '' } catch { return '' } })
@@ -94,6 +90,209 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
       .then(d => { if (d && d.value !== null) setShowAgencia(d.value !== 'false'); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    fetch(`${apiBase}/api/apps-catalog`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.apps) setCatalogApps(d.apps.map((a: { name: string }) => a.name)) })
+      .catch(() => {})
+  }, [])
+  // Apps catalog management state
+  interface ManualField { key: string; label: string; type: 'number' | 'text'; is_usd_base?: boolean; is_commission_base?: boolean; combine_op?: '+' | '-' | '×' }
+  interface AppSpec { label: string; value: string }
+  interface GuideStep { step: number; title: string; text: string; image_url?: string; type?: string }
+  interface AppCatalogEntry {
+    id: string; name: string; display_name: string; ios_name: string | null;
+    description_es: string | null; description_pt: string | null;
+    earnings_info_es: string | null; earnings_info_pt: string | null;
+    color_hex: string; color_hex_secondary: string | null;
+    icon_url: string | null; download_url_android: string | null;
+    download_url_ios: string | null; telegram_channel_url: string | null;
+    agency_code: string | null; is_active: boolean; sort_order: number;
+    tagline: string | null; badge_label: string | null; badge_color: string | null;
+    specs: AppSpec[] | null; requisitos: string[] | null;
+    nomina_type: 'upload' | 'manual' | null;
+    nomina_col_uid: string | null; nomina_col_usd: string | null;
+    nomina_col_commission: string | null;
+    nomina_col_apodo: string | null; nomina_col_semana: string | null;
+    nomina_col_metric: string | null; nomina_metric_label: string | null;
+    nomina_currency: 'USD' | 'BRL' | null;
+    nomina_manual_fields: ManualField[] | null;
+    nomina_rate: number | null;
+    payment_frequency: 'semanal' | 'acumulativo' | null;
+    payment_min_usd: number | null;
+    uses_cup_exchange: boolean | null;
+    commission_pct_default: number | null;
+    guide_steps: GuideStep[] | null;
+    guide_whatsapp: string | null;
+    uses_direct_payment_notification: boolean | null;
+    ai_knowledge_es: string | null;
+    ai_knowledge_pt: string | null;
+  }
+  const [appsCatalogFull, setAppsCatalogFull] = useState<AppCatalogEntry[]>([])
+  const [appsLoading, setAppsLoading] = useState(false)
+  const [appsError, setAppsError] = useState<string | null>(null)
+
+  // Telegram links state
+  interface TelegramLinkRow {
+    user_id: string; chat_id: string; username: string | null; first_name: string | null; linked_at: string;
+    profile: { email: string | null; display_name: string | null; is_admin: boolean; is_agent: boolean; is_colider: boolean } | null
+  }
+  const [telegramLinks, setTelegramLinks] = useState<TelegramLinkRow[]>([])
+  const [telegramLoading, setTelegramLoading] = useState(false)
+  const [telegramSearch, setTelegramSearch] = useState('')
+  const [telegramDeleting, setTelegramDeleting] = useState<string | null>(null)
+
+  async function fetchTelegramLinks() {
+    setTelegramLoading(true)
+    try {
+      const r = await fetch(`${apiBase}/api/telegram/admin/links`)
+      const d = await r.json()
+      setTelegramLinks(d.links ?? [])
+    } catch { /* ignore */ }
+    setTelegramLoading(false)
+  }
+
+  async function deleteTelegramLink(userId: string) {
+    setTelegramDeleting(userId)
+    try {
+      await fetch(`${apiBase}/api/telegram/link/${encodeURIComponent(userId)}`, { method: 'DELETE' })
+      setTelegramLinks(prev => prev.filter(l => l.user_id !== userId))
+    } catch { /* ignore */ }
+    setTelegramDeleting(null)
+  }
+
+  const [editingApp, setEditingApp] = useState<AppCatalogEntry | null>(null)
+  const [showAddAppForm, setShowAddAppForm] = useState(false)
+  const emptyAppForm: Partial<AppCatalogEntry> = {
+    name: '', display_name: '', ios_name: '', description_es: '', description_pt: '',
+    earnings_info_es: '', earnings_info_pt: '', color_hex: '#888888', color_hex_secondary: '',
+    icon_url: '', download_url_android: '', download_url_ios: '', telegram_channel_url: '',
+    agency_code: '', sort_order: 0, is_active: true,
+    tagline: '', badge_label: 'Retiro semanal', badge_color: 'red',
+    specs: [], requisitos: [],
+    nomina_type: 'upload',
+    nomina_col_uid: 'UID del Host', nomina_col_usd: 'USD', nomina_col_commission: null,
+    nomina_col_apodo: 'Apodo', nomina_col_semana: 'Semana',
+    nomina_col_metric: 'Diamantes Totales', nomina_metric_label: 'Diamantes',
+    nomina_currency: 'USD', nomina_manual_fields: [], nomina_rate: null,
+    payment_frequency: 'semanal', payment_min_usd: 2.5,
+    uses_cup_exchange: true, commission_pct_default: 10,
+    guide_steps: [], guide_whatsapp: '', uses_direct_payment_notification: false,
+    ai_knowledge_es: '', ai_knowledge_pt: '',
+  }
+  const [appFormData, setAppFormData] = useState<Partial<AppCatalogEntry>>(emptyAppForm)
+  const [savingApp, setSavingApp] = useState(false)
+  const [appSaveMsg, setAppSaveMsg] = useState<{ok: boolean; text: string} | null>(null)
+  const [wizardStep, setWizardStep] = useState(1)
+  const [wizardMode, setWizardMode] = useState<'list' | 'wizard'>('list')
+  const [uploadingIcon, setUploadingIcon] = useState(false)
+  const [uploadingGuideImgs, setUploadingGuideImgs] = useState<Record<number, boolean>>({})
+  const iconFileRef = useRef<HTMLInputElement>(null)
+  const [earningsES, setEarningsES] = useState<{title:string;subtitle?:string;headers?:string[];rows:string[][]}[]>([])
+  const [earningsPT, setEarningsPT] = useState<{title:string;subtitle?:string;headers?:string[];rows:string[][]}[]>([])
+
+  async function uploadAppImage(file: File, type: 'icon' | 'guide', guideIdx?: number) {
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    if (type === 'icon') setUploadingIcon(true)
+    else if (guideIdx !== undefined) setUploadingGuideImgs(p => ({...p, [guideIdx]: true}))
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const b64 = (e.target?.result as string)?.split(',')[1]
+      if (!b64) { setUploadingIcon(false); setUploadingGuideImgs(p => ({...p, [guideIdx??0]: false})); return }
+      try {
+        const res = await fetch(`${apiBase}/api/apps-catalog/upload-image`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: b64, mime: file.type, filename: file.name, type }),
+        })
+        if (res.ok) {
+          const { url } = await res.json()
+          if (type === 'icon') setAppFormData(p => ({...p, icon_url: url}))
+          else if (guideIdx !== undefined) setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr[guideIdx]={...arr[guideIdx],image_url:url}; return {...p,guide_steps:arr} })
+        }
+      } catch (_) {}
+      finally {
+        if (type === 'icon') setUploadingIcon(false)
+        else if (guideIdx !== undefined) setUploadingGuideImgs(p => ({...p, [guideIdx]: false}))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+
+  function getAppIconUrl(appName: string): string {
+    const found = appsCatalogFull.find(a => a.name === appName)
+    if (found?.icon_url) return found.icon_url
+    return `https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${appName.toLowerCase()}.jpg`
+  }
+  function _parseEarnings(json:string|null|undefined):{title:string;subtitle?:string;headers?:string[];rows:string[][]}[]{if(!json)return[];try{const p=JSON.parse(json);return(p.sections||[]).map((s:any)=>({title:s.title||'',subtitle:s.subtitle||undefined,headers:s.headers,rows:s.rows||[]}))}catch{return[]}}
+  function _serializeEarnings(secs:{title:string;subtitle?:string;headers?:string[];rows:string[][]}[]):string{if(!secs.length)return'';return JSON.stringify({sections:secs.map(s=>{const o:any={title:s.title,rows:s.rows};if(s.subtitle)o.subtitle=s.subtitle;if(s.headers?.length)o.headers=s.headers;return o})})}
+  function _updEarningsES(s:{title:string;subtitle?:string;headers?:string[];rows:string[][]}[]){setEarningsES(s);setAppFormData(p=>({...p,earnings_info_es:_serializeEarnings(s)||''}))}
+  function _updEarningsPT(s:{title:string;subtitle?:string;headers?:string[];rows:string[][]}[]){setEarningsPT(s);setAppFormData(p=>({...p,earnings_info_pt:_serializeEarnings(s)||''}))}
+
+  useEffect(()=>{
+    if(wizardMode==='wizard'){
+      setEarningsES(_parseEarnings(appFormData.earnings_info_es))
+      setEarningsPT(_parseEarnings(appFormData.earnings_info_pt))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[editingApp?.id,wizardMode])
+  async function fetchAppsCatalog() {
+    setAppsLoading(true); setAppsError(null)
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    try {
+      const r = await fetch(`${apiBase}/api/apps-catalog?admin=true`)
+      const d = await r.json()
+      if (d?.apps) setAppsCatalogFull(d.apps)
+      else setAppsError('No se pudo cargar el catálogo')
+    } catch { setAppsError('Error de red') }
+    setAppsLoading(false)
+  }
+
+  async function saveApp(isEdit: boolean) {
+    setSavingApp(true); setAppSaveMsg(null)
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    try {
+      const url = isEdit ? `${apiBase}/api/apps-catalog/${encodeURIComponent(editingApp!.name)}` : `${apiBase}/api/apps-catalog`
+      const r = await fetch(url, {
+        method: isEdit ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appFormData),
+      })
+      const d = await r.json()
+      if (!r.ok) { setAppSaveMsg({ ok: false, text: d.error ?? 'Error al guardar' }) }
+      else {
+        setAppSaveMsg({ ok: true, text: isEdit ? 'App actualizada correctamente' : 'App creada correctamente' })
+        setShowAddAppForm(false); setEditingApp(null); setAppFormData(emptyAppForm)
+        setWizardMode('list'); setWizardStep(1)
+        await fetchAppsCatalog()
+        const rd = await fetch(`${apiBase}/api/apps-catalog`)
+        const rj = await rd.json()
+        if (rj?.apps) setCatalogApps(rj.apps.map((a: { name: string }) => a.name))
+      }
+    } catch { setAppSaveMsg({ ok: false, text: 'Error de red' }) }
+    setSavingApp(false)
+  }
+
+  async function toggleAppActive(app: AppCatalogEntry) {
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    try {
+      const r = await fetch(`${apiBase}/api/apps-catalog/${encodeURIComponent(app.name)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !app.is_active }),
+      })
+      if (r.ok) await fetchAppsCatalog()
+    } catch {}
+  }
+
+  async function deactivateApp(appName: string) {
+    const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
+    try {
+      const r = await fetch(`${apiBase}/api/apps-catalog/${encodeURIComponent(appName)}`, { method: 'DELETE' })
+      if (r.ok) await fetchAppsCatalog()
+    } catch {}
+  }
 
   async function toggleAgencia() {
     setLoadingAgencia(true);
@@ -118,14 +317,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
       const [filterIdApp, setFilterIdApp] = useState(() => { try { return localStorage.getItem('ea_af_id_app') ?? '' } catch { return '' } })
       const [filterTelefono, setFilterTelefono] = useState(() => { try { return localStorage.getItem('ea_af_telefono') ?? '' } catch { return '' } })
       const [expanded, setExpanded] = useState<string | null>(null)
-      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'pagos' | 'agentes' | 'cambio' | 'nocobro' | 'chicas'>('list')
+      const [tab, setTab] = useState<'list' | 'dupes' | 'config' | 'solicitudes' | 'canales' | 'pagos' | 'agentes' | 'cambio' | 'nocobro' | 'chicas' | 'apps' | 'telegram'>('list')
         const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
         const [chicasModal, setChicasModal] = useState<WorkerRow[] | null>(null)
 
         // Channel state
         const [solicitudes, setSolicitudes] = useState<{id:string;user_id:string;app_name:string;status:string;created_at:string;profile_email:string}[]>([])
         const [loadingSol, setLoadingSol] = useState(false)
-        const [channelApp, setChannelApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
+        const [channelApp, setChannelApp] = useState<string>('Waha')
         const [channelMessages, setChannelMessages] = useState<{id:string;app_name:string;content:string|null;image_url:string|null;created_at:string}[]>([])
         const [channelContent, setChannelContent] = useState('')
         const [channelImage, setChannelImage] = useState('')
@@ -135,7 +334,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [channelPosting, setChannelPosting] = useState(false)
           const [adminPayStk, setAdminPayStk] = useState<{id:string;user_id:string;app_name:string;nombre_en_app:string|null;sticker_index:number;created_at:string}[]>([])
           const [loadingPayStk, setLoadingPayStk] = useState(false)
-          const [adminPayApp, setAdminPayApp] = useState<'Waha'|'Layla'|'Howdy'>('Waha')
+          const [adminPayApp, setAdminPayApp] = useState<string>('Waha')
           const [tgOpen, setTgOpen] = useState(true)
           const [waOpen, setWaOpen] = useState(true)
         const [loadingMsgs, setLoadingMsgs] = useState(false)
@@ -173,7 +372,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
         const [notifLogs, setNotifLogs] = useState<NotifLog[]>([])
           const [pushTestLoading, setPushTestLoading] = useState(false)
           const [pushTestResult, setPushTestResult] = useState<{sent:number;ok:boolean;subs:number}|null>(null)
-        const [pagosApp, setPagosApp] = useState<'Waha'|'Layla'|'Howdy'|'Agentes'>(() => { try { const _sv = localStorage.getItem('ea_pagos_app'); return (['Waha','Layla','Howdy','Agentes'].includes(_sv ?? '') ? _sv : 'Waha') as 'Waha'|'Layla'|'Howdy'|'Agentes' } catch { return 'Waha' } })
+        const [pagosApp, setPagosApp] = useState<string>(() => { try { const _sv = localStorage.getItem('ea_pagos_app'); return _sv ?? 'Waha' } catch { return 'Waha' } })
           const [agentPayData, setAgentPayData] = useState<{confirmed: any[], pending: any[]}>({confirmed: [], pending: []})
           const [agentPayLoading, setAgentPayLoading] = useState(false)
           const [coliderMarks, setColiderMarks] = useState<{paid: any[], pending: any[]}>({paid: [], pending: []})
@@ -1254,7 +1453,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
             </div>
 
             {/* Tabs */}
-            <div className="flex rounded-xl bg-[#0d0d1e] border border-purple-500/10 p-1 mb-6 w-fit gap-1">
+            <div className="flex rounded-xl bg-[#0d0d1e] border border-purple-500/10 p-1 mb-6 gap-1 flex-wrap">
               <button onClick={() => setTab('list')}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'list' ? 'bg-purple-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 Trabajadoras ({filtered.length})
@@ -1279,7 +1478,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                   </span>
                 )}
               </button>
-              <button onClick={() => { setTab('canales'); fetchChannelMessages(channelApp); fetchAdminPayStk(adminPayApp) }}
+              <button onClick={() => { setTab('canales'); fetchChannelMessages(channelApp); fetchAdminPayStk(adminPayApp); if(appsCatalogFull.length===0) fetchAppsCatalog() }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'canales' ? 'bg-blue-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 <Radio className="w-3.5 h-3.5" />
                 Canales
@@ -1302,6 +1501,15 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                 <button onClick={() => { setTab('nocobro'); fetchNoCobro() }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'nocobro' ? 'bg-red-600 text-white' : 'text-white/40 hover:text-white'}`}>
                 🚨 No Cobraron
+              </button>
+              <button onClick={() => { setTab('apps'); fetchAppsCatalog() }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'apps' ? 'bg-violet-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                <Package className="w-3.5 h-3.5" />
+                Apps
+              </button>
+              <button onClick={() => { setTab('telegram'); fetchTelegramLinks() }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'telegram' ? 'bg-sky-600 text-white' : 'text-white/40 hover:text-white'}`}>
+                📲 Telegram
               </button>
             </div>
 
@@ -1380,14 +1588,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       <label className="block text-xs text-white/40 mb-1">App</label>
                       <select value={filterApp} onChange={e => setFilterApp(e.target.value)}
                         className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                        {APPS.map(a => <option key={a} value={a}>{a || 'Todas'}</option>)}
+                        {['', ...catalogApps].map(a => <option key={a} value={a}>{a || 'Todas'}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-xs text-white/40 mb-1">País</label>
                       <select value={filterPais} onChange={e => setFilterPais(e.target.value)}
                         className="w-full bg-[#07070f] border border-purple-500/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
-                        {COUNTRIES.map(c => <option key={c} value={c}>{c || 'Todos'}</option>)}
+                        {COUNTRIES_FILTER.map(c => <option key={c} value={c}>{c || 'Todos'}</option>)}
                       </select>
                     </div>
                     <div>
@@ -1613,7 +1821,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
 
                   {/* ── App selector ───────────────────────────────────── */}
                   <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
-                    {(['Waha','Layla','Howdy'] as const).map(app => (
+                    {catalogApps.map(app => (
                       <button key={app} onClick={() => { setChannelApp(app); setChannelContent(''); setChannelFile(null); setChannelPreview(null); setChannelImage(''); fetchChannelMessages(app); if(adminPayApp===app) fetchAdminPayStk(app) }}
                         style={{display:'flex',alignItems:'center',gap:9,padding:'8px 18px',borderRadius:30,border:'none',cursor:'pointer',fontWeight:700,fontSize:14,transition:'all 0.2s',
                           background: channelApp === app ? 'linear-gradient(135deg,#2ca5e0,#1a7fba)' : 'rgba(255,255,255,0.06)',
@@ -1621,7 +1829,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                           boxShadow: channelApp === app ? '0 4px 14px rgba(44,165,224,0.4)' : 'none',
                           transform: channelApp === app ? 'translateY(-1px)' : 'none'}}>
                         <span style={{width:24,height:24,borderRadius:'50%',overflow:'hidden',display:'inline-flex',flexShrink:0,boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>
-                          <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${app.toLowerCase()}.jpg`} alt={app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                          <img src={getAppIconUrl(app)} alt={app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                         </span>
                         {app}
                       </button>
@@ -1654,7 +1862,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                         {/* Channel header bar */}
                         <div style={{background:'#242f3d',padding:'12px 16px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                           <div style={{width:42,height:42,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid #2ca5e0',boxShadow:'0 2px 8px rgba(44,165,224,0.3)'}}>
-                            <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${channelApp.toLowerCase()}.jpg`} alt={channelApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                            <img src={getAppIconUrl(channelApp)} alt={channelApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                           </div>
                           <div style={{flex:1}}>
                             <div style={{display:'flex',alignItems:'center',gap:7}}>
@@ -1684,7 +1892,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                 <div key={msg.id} style={{background:'#1a2838',borderRadius:14,overflow:'hidden',border:'1px solid rgba(44,165,224,0.08)'}}>
                                   <div style={{display:'flex',alignItems:'center',gap:8,padding:'9px 13px 7px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                                     <div style={{width:27,height:27,borderRadius:'50%',overflow:'hidden',flexShrink:0}}>
-                                      <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${channelApp.toLowerCase()}.jpg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                                      <img src={getAppIconUrl(channelApp)} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                                     </div>
                                     <span style={{color:'#2ca5e0',fontWeight:700,fontSize:13,flex:1}}>Canal {channelApp}</span>
                                     <span style={{color:'rgba(255,255,255,0.22)',fontSize:11}}>{new Date(msg.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span>
@@ -1752,7 +1960,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       onMouseEnter={e=>(e.currentTarget.style.background='rgba(37,211,102,0.14)')}
                       onMouseLeave={e=>(e.currentTarget.style.background='rgba(37,211,102,0.08)')}>
                       <div style={{width:36,height:36,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(37,211,102,0.5)',boxShadow:'0 2px 8px rgba(37,211,102,0.4)'}}>
-                          <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${adminPayApp.toLowerCase()}.jpg`} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                          <img src={getAppIconUrl(adminPayApp)} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                         </div>
                       <div style={{flex:1}}>
                         <div style={{color:'white',fontWeight:700,fontSize:15}}>Pagos WhatsApp — {adminPayApp}</div>
@@ -1770,7 +1978,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                         {/* Channel header bar */}
                         <div style={{background:'#1f2c34',padding:'12px 16px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(0,0,0,0.3)'}}>
                           <div style={{width:42,height:42,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid #25d366',boxShadow:'0 2px 8px rgba(37,211,102,0.3)'}}>
-                            <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${adminPayApp.toLowerCase()}.jpg`} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                            <img src={getAppIconUrl(adminPayApp)} alt={adminPayApp} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                           </div>
                           <div style={{flex:1}}>
                             <div style={{display:'flex',alignItems:'center',gap:7}}>
@@ -1782,14 +1990,14 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                         </div>
                         {/* App sub-selector */}
                         <div style={{padding:'12px 16px 8px',background:'#111c22',display:'flex',gap:6,flexWrap:'wrap',borderBottom:'1px solid rgba(255,255,255,0.04)',alignItems:'center'}}>
-                          {(['Waha','Layla','Howdy'] as const).map(app=>(
+                          {catalogApps.map(app=>(
                             <button key={app} onClick={()=>{setAdminPayApp(app);fetchAdminPayStk(app)}}
                               style={{display:'flex',alignItems:'center',gap:7,padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:13,fontWeight:700,transition:'all 0.15s',
                                 background:adminPayApp===app?'#25d366':'rgba(255,255,255,0.06)',
                                 color:adminPayApp===app?'white':'rgba(255,255,255,0.4)',
                                 boxShadow:adminPayApp===app?'0 2px 8px rgba(37,211,102,0.35)':'none'}}>
                               <span style={{width:20,height:20,borderRadius:'50%',overflow:'hidden',display:'inline-flex',flexShrink:0}}>
-                                <img src={`https://eyeklnjwbyvsgirsglbx.supabase.co/storage/v1/object/public/app-icons/${app.toLowerCase()}.jpg`} alt={app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                                <img src={getAppIconUrl(app)} alt={app} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                               </span>
                               {app}
                             </button>
@@ -1926,7 +2134,6 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                       const totalDone = coliderDone + agenciaDone
                       const totalTotal = coliderTotal + agenciaTotal
                       const totalPct = totalTotal > 0 ? Math.round(totalDone / totalTotal * 100) : 0
-                      const APPS = ['Waha', 'Layla', 'Howdy'] as const
                       return (
                         <div className="space-y-4">
                           {/* ── BARRA EFECTIVO ─────────────────────────────── */}
@@ -1953,7 +2160,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                   <>
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400/60 mb-2 px-1">👩‍💻 Trabajadora</p>
                                     {/* Workers per app */}
-                                    {APPS.map(app => {
+                                    {catalogApps.map(app => {
                                       const appRows = efectivoRows.filter((r: any) => r.app_name === app)
                                       if (!appRows.length) return null
                                       return (
@@ -2210,7 +2417,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
                                 ) : (
                                   <>
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-2 px-1">👩‍💻 Trabajadora</p>
-                                    {APPS.map(app => {
+                                    {catalogApps.map(app => {
                                       const appRows = agenciaRows.filter((r: any) => r.app_name === app)
                                       if (!appRows.length) return null
                                       return (
@@ -3006,7 +3213,7 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                     if (b === '(Sin agente)') return -1
                     return resolveAgentName(a).localeCompare(resolveAgentName(b))
                   })
-                  const APPS_ORDER = ['Waha', 'Layla', 'Howdy']
+                  const APPS_ORDER = catalogApps
 
                   // Group girl entries by real name key
                   function groupGirls(rows: WorkerRow[]) {
@@ -3497,6 +3704,1024 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
 
 
 
+          {tab === 'apps' && (
+            <div className="space-y-4 max-w-4xl">
+
+              {/* Migration notice */}
+              <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl px-4 py-3 flex items-start gap-3">
+                <span className="text-amber-400 shrink-0 mt-0.5 text-base">⚠️</span>
+                <div>
+                  <p className="text-xs font-bold text-amber-300">Migración de base de datos requerida (una sola vez)</p>
+                  <p className="text-white/40 text-xs mt-0.5">Para que todos los campos del wizard se guarden, ejecuta <span className="font-mono text-amber-300/80">MIGRATION.sql</span> en <a href="https://supabase.com/dashboard/project/eyeklnjwbyvsgirsglbx/sql" target="_blank" rel="noreferrer" className="text-amber-300 underline">Supabase Studio → SQL Editor</a>. Solo necesitas hacerlo una vez.</p>
+                </div>
+              </div>
+
+              {/* Progress bar — 10 steps */}
+              {wizardMode === 'wizard' && (
+                <div className="bg-[#0d0d1e] border border-violet-500/20 rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-violet-400" />
+                      <span className="text-sm font-bold text-white">{editingApp ? `Editando: ${editingApp.display_name}` : 'Nueva App — Configuración Completa'}</span>
+                    </div>
+                    <button onClick={() => { setWizardMode('list'); setWizardStep(1); setEditingApp(null); setAppFormData(emptyAppForm); setAppSaveMsg(null) }}
+                      className="text-xs text-white/30 hover:text-white/60 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">✕ Cancelar</button>
+                  </div>
+                  <div className="flex gap-0.5 mb-2">
+                    {['Nombre','Visual','Desc','Ganar','Nómina','Comis','Specs','Guía','Descarga','Config','IA'].map((_, i) => (
+                      <button key={i} onClick={() => setWizardStep(i + 1)}
+                        className={`flex-1 h-1.5 rounded-full transition-all ${wizardStep > i + 1 ? 'bg-violet-500' : wizardStep === i + 1 ? 'bg-violet-400' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                  <div className="flex justify-between px-0.5">
+                    {['1·Nombre','2·Visual','3·Desc','4·Ganar','5·Nómina','6·Comis','7·Specs','8·Guía','9·Links','10·Config','11·IA'].map((s, i) => (
+                      <span key={i} className={`text-[10px] transition-colors ${wizardStep === i + 1 ? 'text-violet-300 font-bold' : 'text-white/15'}`}>{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {wizardMode === 'list' ? (
+                /* ═══════════════ LIST VIEW ═══════════════ */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-5 h-5 text-violet-400" />
+                      <h2 className="text-lg font-bold text-white">Gestión de Apps</h2>
+                      <span className="text-xs text-white/30 font-medium">{appsCatalogFull.length} en el catálogo</span>
+                    </div>
+                    <button onClick={() => { setWizardMode('wizard'); setWizardStep(1); setEditingApp(null); setAppFormData(emptyAppForm); setAppSaveMsg(null) }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-all">
+                      <Plus className="w-4 h-4" /> Nueva App
+                    </button>
+                  </div>
+                  {appsError && <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-4 text-red-300 text-sm font-semibold">{appsError}</div>}
+                  {appSaveMsg && <div className={`p-3 rounded-xl text-sm font-semibold ${appSaveMsg.ok ? 'bg-green-500/10 border border-green-500/25 text-green-300' : 'bg-red-500/10 border border-red-500/25 text-red-300'}`}>{appSaveMsg.text}</div>}
+                  {appsLoading ? (
+                    <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>
+                  ) : appsCatalogFull.length === 0 ? (
+                    <div className="bg-[#0d0d1e] border border-white/5 rounded-2xl p-8 text-center">
+                      <Package className="w-10 h-10 text-white/15 mx-auto mb-3" />
+                      <p className="text-white/40 text-sm">No hay apps en el catálogo.</p>
+                      <p className="text-white/25 text-xs mt-1">Crea la primera con el botón "Nueva App".</p>
+                    </div>
+                  ) : appsCatalogFull.map(app => (
+                    <div key={app.name} className={`bg-[#0d0d1e] border rounded-2xl p-5 transition-all ${app.is_active ? 'border-white/8 hover:border-violet-500/25' : 'border-white/4 opacity-60'}`}>
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white font-black text-xl overflow-hidden"
+                          style={{ background: app.color_hex || '#888888' }}>
+                          {app.icon_url ? <img src={app.icon_url} alt={app.name} className="w-full h-full object-cover" /> : app.display_name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-white font-bold">{app.display_name}</p>
+                            {app.ios_name && app.ios_name !== app.display_name && <span className="text-xs text-white/35">iOS: {app.ios_name}</span>}
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${app.is_active ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>{app.is_active ? 'Activa' : 'Inactiva'}</span>
+                            {app.nomina_type && <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 font-bold">{app.nomina_type === 'manual' ? '✏️ Manual' : '📂 Upload'}</span>}
+                          </div>
+                          <p className="text-white/40 text-xs mt-0.5">clave: <span className="font-mono text-violet-300/70">{app.name}</span> · orden: {app.sort_order}{app.tagline ? ` · ${app.tagline.slice(0, 40)}` : ''}</p>
+                          {app.agency_code && <p className="text-white/35 text-xs mt-0.5">🔑 {app.agency_code}</p>}
+                          {app.badge_label && <p className="text-white/30 text-xs mt-0.5">🏷 {app.badge_label} · {(app.specs ?? []).length} specs · {(app.guide_steps ?? []).length} pasos guía</p>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button onClick={() => { setEditingApp(app); setAppFormData({...app, specs: app.specs ?? [], requisitos: app.requisitos ?? [], guide_steps: app.guide_steps ?? [], nomina_manual_fields: app.nomina_manual_fields ?? []}); setWizardMode('wizard'); setWizardStep(1); setAppSaveMsg(null) }}
+                            className="p-2 rounded-lg bg-white/5 hover:bg-violet-500/15 text-white/40 hover:text-violet-300 transition-all" title="Editar">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => toggleAppActive(app)}
+                            className={`p-2 rounded-lg transition-all ${app.is_active ? 'bg-green-500/10 hover:bg-red-500/15 text-green-400 hover:text-red-400' : 'bg-red-500/10 hover:bg-green-500/15 text-red-400 hover:text-green-400'}`}
+                            title={app.is_active ? 'Desactivar' : 'Activar'}>
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+                          {!['Waha','Layla','Howdy'].includes(app.name) && (
+                            <button onClick={() => { if (window.confirm(`¿Eliminar "${app.display_name}"? Esta acción desactiva la app permanentemente.`)) deactivateApp(app.name) }}
+                              className="p-2 rounded-lg bg-white/5 hover:bg-red-500/15 text-white/25 hover:text-red-400 transition-all" title="Eliminar app">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* ═══════════════ WIZARD VIEW — 10 STEPS ═══════════════ */
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+
+                  {/* LEFT — Form */}
+                  <div className="space-y-4">
+
+                    {/* ── STEP 1: Identidad ── */}
+                    {wizardStep === 1 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Nombre e Identidad</p>
+                          <p className="text-white/40 text-sm leading-relaxed">Ponle nombre a tu app. Tiene <strong className="text-white/60">dos nombres</strong>: uno <em>interno</em> (solo lo ve el sistema, sin espacios) y uno <em>visible</em> (lo que leerán las trabajadoras). Mira la guía a la derecha — verás exactamente dónde aparece cada uno. →</p>
+                        </div>
+                        {!editingApp && (
+                          <div>
+                            <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Nombre interno (clave) *</label>
+                            <input type="text" placeholder="Ej: NuevaApp" value={appFormData.name ?? ''} onChange={e => setAppFormData(p => ({ ...p, name: e.target.value.replace(/\s/g, '') }))}
+                              className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60 font-mono" />
+                            <p className="text-white/25 text-xs mt-1.5">Solo letras y números, sin espacios. Ej: <span className="font-mono text-violet-300/50">Waha</span> · <span className="font-mono text-violet-300/50">Layla</span></p>
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Nombre visible para las trabajadoras *</label>
+                          <input type="text" placeholder="Ej: Nueva App" value={appFormData.display_name ?? ''} onChange={e => setAppFormData(p => ({ ...p, display_name: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <p className="text-white/25 text-xs mt-1.5">Aparece en Apps, Nómina, Perfil y en toda la web.</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Nombre en iOS <span className="text-white/30 font-normal normal-case">(si es diferente al de Android)</span></label>
+                          <input type="text" placeholder="Ej: Liyo (Waha en iOS se llama Liyo)" value={appFormData.ios_name ?? ''} onChange={e => setAppFormData(p => ({ ...p, ios_name: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <div className="mt-2 bg-[#07070f] rounded-xl p-3 border border-white/5">
+                            <p className="text-white/25 text-xs">Waha → <span className="text-white/50 font-semibold">Liyo</span> · Layla → <span className="text-white/50 font-semibold">Nivi</span> · Howdy → <span className="text-white/40">Solo Android (dejar vacío)</span></p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 2: Visual + Tagline + Badge ── */}
+                    {wizardStep === 2 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Logo, Colores y Presentación</p>
+                          <p className="text-white/40 text-sm">La "cara" de tu app: el logo, los colores, el subtítulo (tagline) y la etiqueta de colores (badge). Mira la vista previa a la derecha — verás cómo quedará la tarjeta en la página Apps antes de guardar. →</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">URL del logo / icono</label>
+                          <div className="flex gap-2">
+                          <input type="text" placeholder="https://... o sube una imagen →" value={appFormData.icon_url ?? ''} onChange={e => setAppFormData(p => ({ ...p, icon_url: e.target.value }))}
+                            className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <input ref={iconFileRef} type="file" accept="image/*" className="hidden" onChange={e => { if(e.target.files?.[0]) uploadAppImage(e.target.files[0], 'icon'); e.target.value='' }} />
+                          <button type="button" onClick={() => iconFileRef.current?.click()} disabled={uploadingIcon}
+                            className="shrink-0 px-3 py-2.5 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-300 text-xs font-bold hover:bg-violet-500/20 transition-all disabled:opacity-40 whitespace-nowrap">
+                            {uploadingIcon ? '⏳' : '📤 Subir'}
+                          </button>
+                          </div>
+                          <div className="mt-2 bg-violet-500/8 border border-violet-500/15 rounded-xl p-3">
+                            <p className="text-violet-300 text-xs font-semibold mb-1">💡 Subir logo:</p>
+                            <p className="text-white/35 text-xs">Supabase → Storage → app-icons → Sube PNG/JPG → clic derecho → "Get URL" → pegar aquí</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Color principal</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={appFormData.color_hex ?? '#888888'} onChange={e => setAppFormData(p => ({ ...p, color_hex: e.target.value }))}
+                                className="w-10 h-10 rounded-xl border border-white/10 bg-[#07070f] cursor-pointer shrink-0" />
+                              <input type="text" placeholder="#888888" value={appFormData.color_hex ?? ''} onChange={e => setAppFormData(p => ({ ...p, color_hex: e.target.value }))}
+                                className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/60 font-mono" />
+                            </div>
+                            <p className="text-white/20 text-xs mt-1">Waha: #ff4e6a · Layla: #a855f7 · Howdy: #f59e0b</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Color secundario <span className="text-white/25 font-normal">(opc.)</span></label>
+                            <div className="flex gap-2">
+                              <input type="color" value={appFormData.color_hex_secondary ?? '#888888'} onChange={e => setAppFormData(p => ({ ...p, color_hex_secondary: e.target.value }))}
+                                className="w-10 h-10 rounded-xl border border-white/10 bg-[#07070f] cursor-pointer shrink-0" />
+                              <input type="text" placeholder="#888888" value={appFormData.color_hex_secondary ?? ''} onChange={e => setAppFormData(p => ({ ...p, color_hex_secondary: e.target.value }))}
+                                className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/60 font-mono" />
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Tagline (subtítulo)</label>
+                          <input type="text" placeholder="Ej: Mensajería · Salas de Audio · Videollamadas" value={appFormData.tagline ?? ''} onChange={e => setAppFormData(p => ({ ...p, tagline: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <p className="text-white/25 text-xs mt-1">Debajo del nombre. Usa · para separar.</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Texto del badge</label>
+                          <input type="text" placeholder="Ej: Retiro semanal" value={appFormData.badge_label ?? ''} onChange={e => setAppFormData(p => ({ ...p, badge_label: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-2 uppercase tracking-wide">Color del badge</label>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries({red:'bg-red-500/15 text-red-300 border-red-500/30',purple:'bg-purple-500/15 text-purple-300 border-purple-500/30',yellow:'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',green:'bg-green-500/15 text-green-300 border-green-500/30',blue:'bg-blue-500/15 text-blue-300 border-blue-500/30',orange:'bg-orange-500/15 text-orange-300 border-orange-500/30',pink:'bg-pink-500/15 text-pink-300 border-pink-500/30'}).map(([c, cls]) => (
+                              <button key={c} onClick={() => setAppFormData(p => ({...p, badge_color: c}))}
+                                className={`px-3 py-1.5 rounded-full border text-xs font-bold transition-all ${cls} ${appFormData.badge_color === c ? 'ring-2 ring-white/40' : 'opacity-40 hover:opacity-70'}`}>
+                                {c}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-white/20 text-xs mt-2">Waha → red · Layla → purple · Howdy → yellow</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 3: Descripción ── */}
+                    {wizardStep === 3 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Descripción de la App</p>
+                          <p className="text-white/40 text-sm">Escribe una explicación de qué hace esta app. Aparece cuando alguien hace clic en la tarjeta para ver más detalles. La IA Ángela también usará este texto para responder preguntas. Si tienes usuarias en Brasil, agrega la versión en portugués. →</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Descripción en Español</label>
+                          <textarea rows={6} placeholder="Ej: App de chat y videollamadas donde conectas con usuarios de todo el mundo..." value={appFormData.description_es ?? ''} onChange={e => setAppFormData(p => ({ ...p, description_es: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60 resize-none leading-relaxed" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Descripción en Portugués</label>
+                          <textarea rows={6} placeholder="Ej: App de chat e videochamadas onde você se conecta com usuários..." value={appFormData.description_pt ?? ''} onChange={e => setAppFormData(p => ({ ...p, description_pt: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60 resize-none leading-relaxed" />
+                          <p className="text-white/25 text-xs mt-1.5">La web detecta el idioma del navegador automáticamente.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 4: Ganancias + Payment ── */}
+                    {wizardStep === 4 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Ganancias y Sistema de Pago</p>
+                          <p className="text-white/40 text-sm">Describe cuánto gana la trabajadora y cómo puede retirar su dinero. <strong className="text-red-400/70">⚠️ El Código de Agencia es obligatorio</strong> — sin él la trabajadora no puede cobrar. Mira a la derecha para ver exactamente dónde aparece. →</p>
+                        </div>
+                        {/* ── Earnings Visual Builder ── */}
+                        {(['es','pt'] as const).map(lang => {
+                          const isEs = lang==='es'
+                          const sections = isEs ? earningsES : earningsPT
+                          const updFn = isEs ? _updEarningsES : _updEarningsPT
+                          const ph = isEs
+                            ? {title:'ej: TARIFA DE LLAMADA PRIVADA',sub:'ej: 10,000 Puntos = $1 USD · Meta mínima: 100,000 pts',hdr:'ej: DURACIÓN',cell:'ej: 1800s+',val:'ej: $0.30/min'}
+                            : {title:'ej: TARIFA DE CHAMADA PRIVADA',sub:'ej: 10.000 Pontos = $1 USD · Meta mínima',hdr:'ej: DURAÇÃO',cell:'ej: 1800s+',val:'ej: $0,30/min'}
+                          const addSec=()=>updFn([...sections,{title:'',rows:[['','']]}])
+                          const delSec=(i:number)=>{const a=[...sections];a.splice(i,1);updFn(a)}
+                          const upd=(i:number,s:typeof sections[number])=>{const a=[...sections];a[i]=s;updFn(a)}
+                          const addRow=(si:number)=>{const s=sections[si];const cols=s.headers?s.headers.length:(s.rows[0]?.length??2);const a=[...sections];a[si]={...s,rows:[...s.rows,Array(cols).fill('')]};updFn(a)}
+                          const delRow=(si:number,ri:number)=>{const a=[...sections];const r=[...a[si].rows];r.splice(ri,1);a[si]={...a[si],rows:r};updFn(a)}
+                          const setCell=(si:number,ri:number,ci:number,v:string)=>{const a=[...sections];const rows=a[si].rows.map(r=>[...r]);rows[ri][ci]=v;a[si]={...a[si],rows};updFn(a)}
+                          const addHdr=(si:number)=>{const s=sections[si];const h=[...(s.headers||[]),''];const rows=s.rows.map(r=>[...r,'']);const a=[...sections];a[si]={...s,headers:h,rows};updFn(a)}
+                          const delHdr=(si:number,hi:number)=>{const s=sections[si];if(!s.headers)return;const h=s.headers.filter((_,i2)=>i2!==hi);const rows=s.rows.map(r=>r.filter((_,i2)=>i2!==hi));const a=[...sections];a[si]={...s,headers:h.length?h:undefined,rows};updFn(a)}
+                          const setHdr=(si:number,hi:number,v:string)=>{const s=sections[si];if(!s.headers)return;const h=[...s.headers];h[hi]=v;const a=[...sections];a[si]={...s,headers:h};updFn(a)}
+                          const toggleHdr=(si:number)=>{const s=sections[si];if(s.headers){const a=[...sections];a[si]={...s,headers:undefined};updFn(a)}else{const h=s.rows[0]?.map((_,i2)=>`Col ${i2+1}`)||['Col 1','Col 2'];const a=[...sections];a[si]={...s,headers:h};updFn(a)}}
+                          return (
+                            <div key={lang} className="border border-violet-500/15 rounded-2xl overflow-hidden mb-2">
+                              <div className="bg-violet-500/8 px-4 py-3 flex items-center justify-between border-b border-violet-500/15">
+                                <div>
+                                  <p className="text-white font-bold text-sm">{isEs?'🇪🇸 Ganancias en Español':'🇧🇷 Ganancias en Portugués'}</p>
+                                  <p className="text-white/30 text-xs mt-0.5">{isEs?'Texto que verán tus trabajadoras de habla hispana':'Texto que verán tus trabajadoras de habla portuguesa'}</p>
+                                </div>
+                                <span className="text-violet-300/40 text-xs">{sections.length} sección{sections.length!==1?'es':''}</span>
+                              </div>
+                              <div className="p-4 space-y-3">
+                                <div className="bg-sky-500/8 border border-sky-500/20 rounded-xl p-3">
+                                  <p className="text-sky-300 text-xs font-bold mb-1">📍 ¿Dónde aparece esto?</p>
+                                  <p className="text-white/35 text-xs leading-relaxed">En la tarjeta expandida de la app → sección <strong className="text-white/50">"Ganancias por actividad"</strong>. También lo usa la IA Ángela para responder preguntas de pago.</p>
+                                </div>
+                                {sections.length===0&&(
+                                  <div className="border border-dashed border-white/10 rounded-xl p-6 text-center">
+                                    <p className="text-white/25 text-sm mb-1">Sin secciones todavía</p>
+                                    <p className="text-white/15 text-xs">Haz clic en "+ Nueva sección" para agregar tu primera tabla de ganancias</p>
+                                  </div>
+                                )}
+                                {sections.map((section,si)=>(
+                                  <div key={si} className="bg-[#07070f] border border-white/8 rounded-xl p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-violet-300/70 text-xs font-bold uppercase tracking-wide">📋 Sección {si+1}</span>
+                                      <button type="button" onClick={()=>delSec(si)} className="text-red-400/50 hover:text-red-400 text-xs transition-colors">🗑️ Borrar sección</button>
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-white/40 mb-1 uppercase tracking-wide">Nombre de la sección <span className="text-red-400/60">*</span></label>
+                                      <p className="text-white/20 text-[10px] mb-1.5">Ej: "TARIFA DE LLAMADA PRIVADA" · Aparece como título en negrita en la tarjeta</p>
+                                      <input type="text" value={section.title} placeholder={ph.title} onChange={e=>upd(si,{...section,title:e.target.value})}
+                                        className="w-full bg-[#0d0d1e] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-white/40 mb-1 uppercase tracking-wide">Subtítulo <span className="text-white/20 normal-case font-normal">(opcional)</span></label>
+                                      <p className="text-white/20 text-[10px] mb-1.5">Ej: "10,000 Puntos = $1 USD · Meta mínima: 100,000 pts" · Aparece en gris debajo del nombre de la sección</p>
+                                      <input type="text" value={section.subtitle||''} placeholder={ph.sub} onChange={e=>upd(si,{...section,subtitle:e.target.value||undefined})}
+                                        className="w-full bg-[#0d0d1e] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                                    </div>
+                                    <div>
+                                      <label className="flex items-center gap-2 cursor-pointer mb-2">
+                                        <input type="checkbox" checked={!!section.headers} onChange={()=>toggleHdr(si)} className="accent-violet-500 w-4 h-4 shrink-0" />
+                                        <div>
+                                          <span className="text-xs text-white/60 font-semibold">Esta sección tiene cabeceras de columna</span>
+                                          <p className="text-white/20 text-[10px]">Ej: "DURACIÓN · PUNTOS/MIN · USD/MIN" — la fila de títulos que aparece arriba de los datos</p>
+                                        </div>
+                                      </label>
+                                      {section.headers&&(
+                                        <div className="p-3 bg-violet-500/5 border border-violet-500/15 rounded-lg space-y-2">
+                                          <p className="text-[10px] text-violet-300/50 font-bold uppercase tracking-wide">Nombres de columna (cabeceras)</p>
+                                          <div className="flex flex-wrap gap-2">
+                                          {section.headers.map((h,hi)=>(
+                                          <div key={hi} className="flex items-center gap-1">
+                                          <input type="text" value={h} placeholder={ph.hdr} onChange={e=>setHdr(si,hi,e.target.value)}
+                                            className="w-28 bg-[#0d0d1e] border border-violet-500/30 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500/60" />
+                                          <button type="button" onClick={()=>delHdr(si,hi)} className="text-red-400/50 hover:text-red-400 text-sm px-1 transition-colors">×</button>
+                                          </div>
+                                          ))}
+                                          <button type="button" onClick={()=>addHdr(si)} className="px-3 py-1.5 rounded-lg border border-violet-500/25 text-violet-300/60 text-xs hover:bg-violet-500/10 transition-all">+ Col</button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-white/40 mb-1 uppercase tracking-wide">
+                                        Filas de datos
+                                        {section.headers&&<span className="text-white/20 normal-case font-normal ml-1">— {section.headers.length} celda{section.headers.length!==1?'s':''} por fila (igual que las cabeceras)</span>}
+                                      </label>
+                                      <p className="text-white/20 text-[10px] mb-2">Cada fila es una línea de la tabla. Ej: primera celda "1800s+" · segunda celda "$0.30/min"</p>
+                                      <div className="space-y-2">
+                                        {section.rows.map((row,ri)=>(
+                                          <div key={ri} className="flex gap-2 items-center">
+                                          {row.map((cell,ci)=>(
+                                          <input key={ci} type="text" value={cell} placeholder={ci===0?ph.cell:ph.val} onChange={e=>setCell(si,ri,ci,e.target.value)}
+                                            className="flex-1 min-w-0 bg-[#0d0d1e] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500/50" />
+                                          ))}
+                                          <button type="button" onClick={()=>delRow(si,ri)} title="Borrar fila" className="shrink-0 text-red-400/40 hover:text-red-400 text-sm px-1.5 transition-colors">🗑️</button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <button type="button" onClick={()=>addRow(si)}
+                                        className="mt-2 w-full py-2 rounded-lg border border-dashed border-white/10 text-white/25 text-xs hover:border-violet-500/30 hover:text-violet-300/50 transition-all">
+                                        + Agregar fila
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                                <button type="button" onClick={addSec}
+                                  className="w-full py-2.5 rounded-xl border border-dashed border-violet-500/25 text-violet-300/50 text-sm font-semibold hover:bg-violet-500/8 hover:border-violet-500/40 hover:text-violet-300/80 transition-all">
+                                  + Nueva sección
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">🔑 Código de Agencia</label>
+                          <input type="text" placeholder="Ej: R3DKXB5 · G-84Y3AG7HL" value={appFormData.agency_code ?? ''} onChange={e => setAppFormData(p => ({ ...p, agency_code: e.target.value.toUpperCase() }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60 font-mono uppercase tracking-wider" />
+                          <p className="text-red-400/60 text-xs mt-1.5 font-semibold">⚠️ Sin este código la trabajadora NO puede monetizar. Se muestra en la guía de instalación.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Frecuencia de retiro</label>
+                            <select value={appFormData.payment_frequency ?? 'semanal'} onChange={e => setAppFormData(p => ({...p, payment_frequency: e.target.value as 'semanal' | 'acumulativo'}))}
+                              className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60">
+                              <option value="semanal">Semanal (no acumulable)</option>
+                              <option value="acumulativo">Acumulativo (sin fecha fija)</option>
+                            </select>
+                            <p className="text-white/20 text-xs mt-1">Waha/Howdy = semanal · Layla = acumulativo</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Meta mínima (USD)</label>
+                            <input type="number" min={0} step={0.5} placeholder="2.50" value={appFormData.payment_min_usd ?? ''} onChange={e => setAppFormData(p => ({...p, payment_min_usd: parseFloat(e.target.value) || null}))}
+                              className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                            <p className="text-white/20 text-xs mt-1">Waha: $2.50 · Layla/Howdy: $10</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 5: Nómina ── */}
+                    {wizardStep === 5 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Configuración de Nómina</p>
+                          <p className="text-white/40 text-sm">¿Cómo se procesa el pago de esta app cada semana?</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {([['upload','📂 Subida de Excel/CSV','Subes un archivo con las ganancias. Ej: Waha, Howdy'],['manual','✏️ Entrada Manual','Introduces datos una a una. Ej: Layla']] as const).map(([v, label, desc]) => (
+                            <button key={v} onClick={() => setAppFormData(p => ({...p, nomina_type: v}))}
+                              className={`p-4 rounded-xl border text-left transition-all ${appFormData.nomina_type === v ? 'border-violet-500/60 bg-violet-500/10' : 'border-white/10 bg-[#07070f] hover:border-white/20'}`}>
+                              <p className="font-bold text-sm text-white">{label}</p>
+                              <p className="text-xs text-white/35 mt-1 leading-relaxed">{desc}</p>
+                            </button>
+                          ))}
+                        </div>
+                        {appFormData.nomina_type !== 'manual' && (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-1 h-4 bg-violet-500 rounded-full" />
+                              <p className="text-xs font-bold text-white/50 uppercase tracking-wide">Nombres exactos de columnas del Excel</p>
+                            </div>
+                            <p className="text-white/30 text-xs">Escribe los nombres tal como aparecen en el archivo Excel/CSV de la app.</p>
+                            {([
+                              {key:'nomina_col_uid',label:'🔑 Columna: ID de la trabajadora *',placeholder:'ej: UID del Host',desc:'Identifica a cada chica en tu base de datos. Obligatorio.'},
+                              {key:'nomina_col_usd',label:'💚 Columna: Salario (USD) *',placeholder:'ej: USD',desc:'Valor que recibe la chica íntegro — sin descuentos. Obligatorio.'},
+                              {key:'nomina_col_commission',label:'🟡 Columna: Base de Comisión Admin',placeholder:'ej: Monedas Comerciales (opcional)',desc:'Columna sobre la que se calcula TU comisión. Si la dejas vacía, usa la columna de salario.'},
+                              {key:'nomina_col_apodo',label:'👤 Columna: Nombre / Apodo',placeholder:'ej: Apodo',desc:'Nombre visible en la nómina. Opcional.'},
+                              {key:'nomina_col_semana',label:'📅 Columna: Semana',placeholder:'ej: Semana',desc:'Período del pago. Se usa para organizar cobros. Opcional.'},
+                              {key:'nomina_col_metric',label:'📊 Columna: Métrica de actividad',placeholder:'ej: Diamantes Totales',desc:'Diamantes, monedas, puntos… solo informativo.'},
+                            ] as {key:keyof typeof appFormData;label:string;placeholder:string;desc:string}[]).map(f => (
+                              <div key={f.key}>
+                                <label className="block text-xs font-bold text-violet-300/70 mb-0.5 uppercase tracking-wide">{f.label}</label>
+                                <p className="text-white/25 text-[10px] mb-1.5 leading-relaxed">{f.desc}</p>
+                                <input type="text" placeholder={f.placeholder} value={(appFormData[f.key] as string) ?? ''}
+                                  onChange={e => setAppFormData(p => ({...p, [f.key]: e.target.value}))}
+                                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                              </div>
+                            ))}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-bold text-violet-300/70 mb-1 uppercase tracking-wide">Nombre de la métrica</label>
+                                <input type="text" placeholder="ej: Diamantes" value={appFormData.nomina_metric_label ?? ''} onChange={e => setAppFormData(p => ({...p, nomina_metric_label: e.target.value}))}
+                                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-violet-300/70 mb-1 uppercase tracking-wide">Moneda</label>
+                                <select value={appFormData.nomina_currency ?? 'USD'} onChange={e => setAppFormData(p => ({...p, nomina_currency: e.target.value as 'USD'|'BRL'}))}
+                                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60">
+                                  <option value="USD">USD (Dólares)</option>
+                                  <option value="BRL">BRL (Reais)</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {appFormData.nomina_type === 'manual' && (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-1 h-4 bg-violet-500 rounded-full" />
+                              <p className="text-xs font-bold text-white/50 uppercase tracking-wide">Campos de entrada manual</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-violet-300/70 mb-1 uppercase tracking-wide">Tasa de conversión (unidades → $1 USD)</label>
+                              <input type="number" placeholder="ej: 15500 (15500 monedas = $1 USD)" value={appFormData.nomina_rate ?? ''}
+                                onChange={e => setAppFormData(p => ({...p, nomina_rate: parseFloat(e.target.value) || null}))}
+                                className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                              <p className="text-white/20 text-xs mt-1">Layla: 15500 · Si paga directo en USD: pon 1</p>
+                            </div>
+                            {(appFormData.nomina_manual_fields ?? []).length === 0 && (
+                              <div className="bg-violet-500/8 border border-violet-500/20 rounded-xl p-3 text-xs text-violet-300">
+                                💡 <strong>Ejemplo Layla:</strong> "Monedas retiradas" (÷tasa=USD ✓) · "Monedas comerciales" (base comisión ✓) · "Porcentaje" (número). Tasa: 15500.
+                              </div>
+                            )}
+                            <div className="space-y-3">
+                              {(appFormData.nomina_manual_fields ?? []).map((field, idx) => (
+                                <div key={idx} className="bg-[#07070f] border border-white/10 rounded-xl p-4 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-violet-300/70 uppercase">Campo {idx + 1}</span>
+                                    <button onClick={() => setAppFormData(p => { const arr = [...(p.nomina_manual_fields ?? [])]; arr.splice(idx,1); return {...p, nomina_manual_fields: arr} })}
+                                      className="text-red-400/50 hover:text-red-400 text-xs transition-colors">✕ Eliminar</button>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Nombre del campo</label>
+                                      <input type="text" placeholder="ej: Monedas retiradas" value={field.label}
+                                        onChange={e => setAppFormData(p => { const arr=[...(p.nomina_manual_fields??[])]; arr[idx]={...arr[idx],label:e.target.value,key:e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')}; return {...p,nomina_manual_fields:arr} })}
+                                        className="w-full bg-[#0d0d1e] border border-white/8 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Tipo</label>
+                                      <select value={field.type}
+                                        onChange={e => setAppFormData(p => { const arr=[...(p.nomina_manual_fields??[])]; arr[idx]={...arr[idx],type:e.target.value as 'number'|'text'}; return {...p,nomina_manual_fields:arr} })}
+                                        className="w-full bg-[#0d0d1e] border border-white/8 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50">
+                                        <option value="number">Número</option>
+                                        <option value="text">Texto</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input type="checkbox" checked={field.is_usd_base ?? false}
+                                        onChange={e => setAppFormData(p => { const arr=[...(p.nomina_manual_fields??[])]; arr[idx]={...arr[idx],is_usd_base:e.target.checked}; return {...p,nomina_manual_fields:arr} })}
+                                        className="w-3.5 h-3.5 accent-violet-500" />
+                                      <span className="text-xs text-white/60">💚 Base Salario <span className="text-violet-300/50">(÷ tasa · marca varios para combinar)</span></span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input type="checkbox" checked={field.is_commission_base ?? false}
+                                        onChange={e => setAppFormData(p => { const arr=[...(p.nomina_manual_fields??[])]; arr[idx]={...arr[idx],is_commission_base:e.target.checked}; return {...p,nomina_manual_fields:arr} })}
+                                        className="w-3.5 h-3.5 accent-amber-500" />
+                                      <span className="text-xs text-white/60">🟡 Base Comisión Admin <span className="text-amber-300/50">(marca varios para combinar)</span></span>
+                                    </label>
+                                  </div>
+                                  {/* ── Combine operator: show only when this is 2nd+ field of same type ── */}
+                                  {(() => {
+                                    const fields = appFormData.nomina_manual_fields ?? [];
+                                    const prevUsdIdx = fields.slice(0, idx).findLastIndex((f: ManualField) => f.is_usd_base);
+                                    const prevCommIdx = fields.slice(0, idx).findLastIndex((f: ManualField) => f.is_commission_base);
+                                    const showSalaryOp = field.is_usd_base && prevUsdIdx >= 0;
+                                    const showCommOp = field.is_commission_base && prevCommIdx >= 0;
+                                    if (!showSalaryOp && !showCommOp) return null;
+                                    return (
+                                      <div className="mt-2 p-3 bg-[#0d0d1e] border border-white/8 rounded-xl space-y-2">
+                                        {showSalaryOp && (
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs text-white/40 shrink-0">💚 Este campo de salario se combina con el anterior:</span>
+                                            {(['+', '-', '×'] as const).map(op => (
+                                              <button key={op} type="button"
+                                                onClick={() => setAppFormData(p => { const arr=[...(p.nomina_manual_fields??[])]; arr[idx]={...arr[idx],combine_op:op}; return {...p,nomina_manual_fields:arr} })}
+                                                className={`px-3 py-1 rounded-lg text-sm font-bold transition-all border ${(field.combine_op ?? '+') === op ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300' : 'border-white/10 bg-[#07070f] text-white/35 hover:border-white/25 hover:text-white/60'}`}>
+                                                {op === '+' ? '＋ Sumar' : op === '-' ? '－ Restar' : '× Multiplicar'}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {showCommOp && (
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs text-white/40 shrink-0">🟡 Este campo de comisión se combina con el anterior:</span>
+                                            {(['+', '-', '×'] as const).map(op => (
+                                              <button key={op} type="button"
+                                                onClick={() => setAppFormData(p => { const arr=[...(p.nomina_manual_fields??[])]; arr[idx]={...arr[idx],combine_op:op}; return {...p,nomina_manual_fields:arr} })}
+                                                className={`px-3 py-1 rounded-lg text-sm font-bold transition-all border ${(field.combine_op ?? '+') === op ? 'border-amber-500/60 bg-amber-500/15 text-amber-300' : 'border-white/10 bg-[#07070f] text-white/35 hover:border-white/25 hover:text-white/60'}`}>
+                                                {op === '+' ? '＋ Sumar' : op === '-' ? '－ Restar' : '× Multiplicar'}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <p className="text-white/20 text-[10px]">ej: Salario = (Campo1 + Campo2) ÷ tasa · O (Campo1 - descuento) ÷ tasa · O (Campo1 × factor) ÷ tasa</p>
+                                      </div>
+                                    );
+                                  })()}
+                                  {field.key && <p className="text-white/20 text-xs">Clave: <span className="font-mono text-violet-300/50">{field.key}</span></p>}
+                                </div>
+                              ))}
+                            </div>
+                            <button onClick={() => setAppFormData(p => ({...p, nomina_manual_fields: [...(p.nomina_manual_fields??[]), {key:'',label:'',type:'number',is_usd_base:(p.nomina_manual_fields??[]).length===0,is_commission_base:false}]}))}
+                              className="w-full py-2.5 rounded-xl border border-dashed border-violet-500/30 text-violet-400/60 text-sm hover:border-violet-500/60 hover:text-violet-400 transition-all">
+                              + Agregar campo
+                            </button>
+                          </div>
+                        )}
+
+                        {/* ── Fórmula de cálculo en vivo ── */}
+                        {appFormData.nomina_type && (() => {
+                          const usdBases = appFormData.nomina_manual_fields?.filter(f => f.is_usd_base) ?? [];
+                          const commBases = appFormData.nomina_manual_fields?.filter(f => f.is_commission_base) ?? [];
+                          const rate = appFormData.nomina_rate ?? 15500;
+                          const pct = appFormData.commission_pct_default ?? 10;
+                          const usdCol = appFormData.nomina_col_usd || '[columna salario]';
+                          const commCol = (appFormData as any).nomina_col_commission || usdCol;
+                          const ex = 50;
+                          return (
+                            <div className="bg-[#07070f] border border-emerald-500/20 rounded-2xl p-5 space-y-4">
+                              <div className="flex items-center gap-2">
+                                <span className="text-emerald-400">⚡</span>
+                                <p className="text-sm font-bold text-white">Vista previa del cálculo</p>
+                                <span className="text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 px-2 py-0.5 rounded-full font-bold ml-1">AUTOMÁTICO</span>
+                              </div>
+
+                              {appFormData.nomina_type === 'upload' && (
+                                <div className="space-y-3">
+                                  <div className="bg-[#0d0d1e] border border-white/5 rounded-xl p-3.5 space-y-2.5">
+                                    <p className="text-[10px] font-bold text-violet-300/60 uppercase tracking-wider">Fórmula — Subida Excel/CSV</p>
+                                    <div className="space-y-2 text-xs font-mono">
+                                      <div className="flex items-start gap-2 flex-wrap">
+                                        <span className="text-emerald-400/80 shrink-0">💚 Salario chica =</span>
+                                        <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 px-2 py-0.5 rounded">{usdCol}</span>
+                                        <span className="text-white/30">(valor completo del Excel)</span>
+                                      </div>
+                                      <div className="flex items-start gap-2 flex-wrap">
+                                        <span className="text-amber-400/80 shrink-0">🟡 Comisión → tu Admin =</span>
+                                        <span className="bg-amber-500/15 text-amber-300 border border-amber-500/25 px-2 py-0.5 rounded">{commCol}</span>
+                                        <span className="text-white/30">× {pct}%</span>
+                                      </div>
+                                    </div>
+                                    <div className="bg-blue-500/8 border border-blue-500/15 rounded-lg p-2 mt-1">
+                                      <p className="text-blue-300 text-[10px] leading-relaxed">ℹ️ La comisión <strong>NO se descuenta</strong> del salario de la chica — va directo a <strong>Admin → Comisiones</strong> para que la revises y publiques al agente.</p>
+                                    </div>
+                                    {appFormData.nomina_currency === 'BRL' && (
+                                      <div className="bg-amber-500/8 border border-amber-500/20 rounded-lg p-2.5 mt-1">
+                                        <p className="text-amber-300 text-xs font-bold">💱 Moneda: BRL (Reais)</p>
+                                        <p className="text-amber-200/50 text-xs mt-0.5 leading-relaxed">La columna <span className="font-mono text-amber-300/70">{usdCol}</span> se lee como Reais. La conversión BRL→USD usa la <strong className="text-amber-300/60">tasa global</strong> en Admin → Nómina → Tipo de Cambio.</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="bg-[#0d0d1e] border border-white/5 rounded-xl p-3.5">
+                                    <p className="text-[10px] font-bold text-white/25 mb-2">EJEMPLO — chica con ${ex}.00 en columna {usdCol}:</p>
+                                    <div className="space-y-1 text-xs">
+                                      <div className="flex justify-between"><span className="text-emerald-300/70">Salario chica (íntegro)</span><span className="text-green-400 font-mono">${ex}.00 USD</span></div>
+                                      <div className="flex justify-between"><span className="text-amber-300/70">Comisión Admin ({pct}%) → tu panel</span><span className="text-amber-400/80 font-mono">${(ex * pct / 100).toFixed(2)} USD</span></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {appFormData.nomina_type === 'manual' && (
+                                <div className="space-y-3">
+                                  {(appFormData.nomina_manual_fields ?? []).length === 0 ? (
+                                    <p className="text-white/25 text-xs">← Agrega campos arriba para ver la fórmula.</p>
+                                  ) : (
+                                    <>
+                                      <div className="bg-[#0d0d1e] border border-white/5 rounded-xl p-3.5 space-y-2.5">
+                                        <p className="text-[10px] font-bold text-violet-300/60 uppercase tracking-wider">Fórmula — Entrada Manual</p>
+                                        <div className="space-y-2 text-xs font-mono">
+                                          <div className="flex items-start gap-1.5 flex-wrap">
+                                            <span className="text-white/40 shrink-0">USD bruto =</span>
+                                            {usdBases.length > 0 ? usdBases.map((f, i) => (
+                                              <span key={f.key} className="flex items-center gap-1">
+                                                <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 px-2 py-0.5 rounded">{f.label}</span>
+                                                {i < usdBases.length - 1 && <span className="text-white/30">+</span>}
+                                              </span>
+                                            )) : <span className="bg-red-500/10 text-red-400 border border-red-500/25 px-2 py-0.5 rounded">[ningún campo marcado]</span>}
+                                            <span className="text-white/30">÷ {rate.toLocaleString()}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-emerald-400/80 shrink-0">💚 Salario chica =</span>
+                                            <span className="text-emerald-400/60">USD bruto</span>
+                                            <span className="text-white/30">(valor completo)</span>
+                                          </div>
+                                          <div className="flex items-start gap-1.5 flex-wrap">
+                                            <span className="text-amber-400/80 shrink-0">🟡 Comisión → Admin =</span>
+                                            {commBases.length > 0 ? commBases.map((f, i) => (
+                                              <span key={f.key} className="flex items-center gap-1">
+                                                <span className="bg-amber-500/15 text-amber-300 border border-amber-500/25 px-2 py-0.5 rounded">{f.label}</span>
+                                                {i < commBases.length - 1 && <span className="text-white/30">+</span>}
+                                              </span>
+                                            )) : <span className="bg-emerald-500/10 text-emerald-300/60 border border-emerald-500/15 px-2 py-0.5 rounded text-[10px]">usa Base Salario</span>}
+                                            <span className="text-white/30">÷ {rate.toLocaleString()} × {pct}%</span>
+                                          </div>
+                                        </div>
+                                        <div className="bg-blue-500/8 border border-blue-500/15 rounded-lg p-2 mt-1">
+                                          <p className="text-blue-300 text-[10px] leading-relaxed">ℹ️ La comisión <strong>NO se descuenta</strong> del salario de la chica — va directo a <strong>Admin → Comisiones</strong>.</p>
+                                        </div>
+                                        {usdBases.length === 0 && (
+                                          <div className="bg-red-500/8 border border-red-500/20 rounded-lg p-2.5 mt-1">
+                                            <p className="text-red-400 text-xs">⚠ Ningún campo tiene <strong>"Base Salario"</strong> marcado — sin esto no se calcula el salario.</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {usdBases.length > 0 && (
+                                        <div className="bg-[#0d0d1e] border border-white/5 rounded-xl p-3.5">
+                                          <p className="text-[10px] font-bold text-white/25 mb-2">EJEMPLO — chica con {(rate * 30).toLocaleString()} unidades totales (Base Salario):</p>
+                                          <div className="space-y-1 text-xs">
+                                            {usdBases.map(f => (
+                                              <div key={f.key} className="flex justify-between"><span className="text-white/35">{f.label}</span><span className="text-white/60 font-mono">≈ {Math.round(rate * 30 / usdBases.length).toLocaleString()} unid.</span></div>
+                                            ))}
+                                            <div className="flex justify-between"><span className="text-white/35">USD bruto (÷ {rate.toLocaleString()})</span><span className="text-white/60 font-mono">$30.00 USD</span></div>
+                                            <div className="flex justify-between"><span className="text-emerald-300/70">Salario chica (íntegro)</span><span className="text-green-400 font-mono">$30.00 USD</span></div>
+                                            <div className="flex justify-between"><span className="text-amber-300/70">Comisión Admin ({pct}%) → tu panel</span><span className="text-amber-400/80 font-mono">${(30 * pct / 100).toFixed(2)} USD</span></div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                              <p className="text-white/15 text-[10px]">* El % de comisión exacto se define en el paso siguiente. Los valores del ejemplo son ilustrativos.</p>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* ── STEP 6: Comisiones ── */}
+                    {wizardStep === 6 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Comisión del Agente</p>
+                          <p className="text-white/40 text-sm">El porcentaje que recibes tú cuando una trabajadora cobra. <strong className="text-white/60">La trabajadora siempre recibe su salario completo</strong> — la comisión viene aparte y va a tu panel de Admin. Ej: 10% → ella gana $100, tú recibes $10 extra. →</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Porcentaje de comisión del agente (%)</label>
+                          <input type="number" min={0} max={100} step={1} placeholder="10" value={appFormData.commission_pct_default ?? ''}
+                            onChange={e => setAppFormData(p => ({...p, commission_pct_default: parseFloat(e.target.value) || null}))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <p className="text-white/25 text-xs mt-1.5">Ejemplo: si la chica gana $100 y el % es 10 → ella recibe $100, tú obtienes $10 de comisión en tu panel Admin.</p>
+                          <div className="mt-3 bg-blue-500/8 border border-blue-500/15 rounded-xl p-3.5">
+                            <p className="text-blue-300 text-xs font-bold mb-1">💡 ¿Cómo funciona la comisión? (Forma B)</p>
+                            <div className="space-y-1.5 text-[11px] text-white/50 leading-relaxed">
+                              <div className="flex gap-2"><span className="text-emerald-400 shrink-0">💚 Chica recibe:</span><span>Su salario <strong className="text-white/70">completo</strong>, sin descuento.</span></div>
+                              <div className="flex gap-2"><span className="text-amber-400 shrink-0">🟡 Tú recibes:</span><span>La comisión va a tu panel <strong className="text-white/70">Admin → Comisiones</strong>. La revisas y publicas cuando quieras al agente.</span></div>
+                              <div className="flex gap-2"><span className="text-red-400/60 shrink-0">❌ No aplica:</span><span>La comisión <strong className="text-white/70">no</strong> sale del bolsillo de la chica.</span></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between p-4 bg-[#07070f] rounded-xl border border-white/8 gap-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-white">Aplicar cambio CUP</p>
+                              <p className="text-white/35 text-xs mt-0.5 leading-relaxed">La comisión se mostrará en CUP (pesos cubanos) usando la tasa configurada en Nómina. <span className="text-white/50">Waha/Howdy ✅ · Layla ❌</span></p>
+                            </div>
+                            <button onClick={() => setAppFormData(p => ({...p, uses_cup_exchange: !p.uses_cup_exchange}))}
+                              className={`w-12 h-6 rounded-full transition-all relative shrink-0 ${appFormData.uses_cup_exchange ? 'bg-green-500' : 'bg-white/15'}`}>
+                              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${appFormData.uses_cup_exchange ? 'left-6' : 'left-0.5'}`} />
+                            </button>
+                          </div>
+                          <div className="flex items-start justify-between p-4 bg-[#07070f] rounded-xl border border-white/8 gap-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-white">Notificación de pago directo</p>
+                              <p className="text-white/35 text-xs mt-0.5 leading-relaxed">En Perfil aparecerá un aviso: esta app paga directamente a la trabajadora sin pasar por el agente. <span className="text-white/50">Layla ✅ · Waha/Howdy ❌</span></p>
+                            </div>
+                            <button onClick={() => setAppFormData(p => ({...p, uses_direct_payment_notification: !p.uses_direct_payment_notification}))}
+                              className={`w-12 h-6 rounded-full transition-all relative shrink-0 ${appFormData.uses_direct_payment_notification ? 'bg-green-500' : 'bg-white/15'}`}>
+                              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${appFormData.uses_direct_payment_notification ? 'left-6' : 'left-0.5'}`} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 7: Specs + Requisitos ── */}
+                    {wizardStep === 7 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Especificaciones y Requisitos</p>
+                          <p className="text-white/40 text-sm">Agrega datos concretos de la app (nombre Android, iOS, horas mínimas) y los requisitos para unirse (mayor de edad, WiFi, etc.). Mira la vista previa a la derecha para ver cómo se ven. →</p>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-white/50 uppercase tracking-wide">Especificaciones (tabla)</p>
+                            <button onClick={() => setAppFormData(p => ({...p, specs: [...(p.specs??[]), {label:'',value:''}]}))}
+                              className="text-xs text-violet-400/70 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-violet-500/10">+ Agregar fila</button>
+                          </div>
+                          {(appFormData.specs ?? []).length === 0 && (
+                            <div className="bg-[#07070f] border border-white/5 rounded-xl p-3 text-xs text-white/25">
+                              Ej: "Android" → "Waha" · "Tiempo diario" → "+4 Horas" · "Meta mínima" → "$2.50 USD"
+                            </div>
+                          )}
+                          {(appFormData.specs ?? []).map((spec, idx) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                              <input type="text" placeholder="Etiqueta (Android, Tiempo...)" value={spec.label}
+                                onChange={e => setAppFormData(p => { const arr=[...(p.specs??[])]; arr[idx]={...arr[idx],label:e.target.value}; return {...p,specs:arr} })}
+                                className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500/60" />
+                              <input type="text" placeholder="Valor (Waha, +4 Horas...)" value={spec.value}
+                                onChange={e => setAppFormData(p => { const arr=[...(p.specs??[])]; arr[idx]={...arr[idx],value:e.target.value}; return {...p,specs:arr} })}
+                                className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500/60" />
+                              <button onClick={() => setAppFormData(p => { const arr=[...(p.specs??[])]; arr.splice(idx,1); return {...p,specs:arr} })}
+                                className="p-2 text-red-400/40 hover:text-red-400 transition-colors shrink-0">✕</button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-y-3 pt-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-white/50 uppercase tracking-wide">Requisitos esenciales</p>
+                            <button onClick={() => setAppFormData(p => ({...p, requisitos: [...(p.requisitos??[]), '']}))}
+                              className="text-xs text-violet-400/70 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-violet-500/10">+ Agregar requisito</button>
+                          </div>
+                          {(appFormData.requisitos ?? []).length === 0 && (
+                            <div className="bg-[#07070f] border border-white/5 rounded-xl p-3 text-xs text-white/25">
+                              Ej: "Ser mayor de edad" · "WiFi / Datos estables" · "4–5 horas diarias"
+                            </div>
+                          )}
+                          {(appFormData.requisitos ?? []).map((req, idx) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                              <input type="text" placeholder="Ej: Ser mayor de edad" value={req}
+                                onChange={e => setAppFormData(p => { const arr=[...(p.requisitos??[])]; arr[idx]=e.target.value; return {...p,requisitos:arr} })}
+                                className="flex-1 bg-[#07070f] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500/60" />
+                              <button onClick={() => setAppFormData(p => { const arr=[...(p.requisitos??[])]; arr.splice(idx,1); return {...p,requisitos:arr} })}
+                                className="p-2 text-red-400/40 hover:text-red-400 transition-colors shrink-0">✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 8: Guía de instalación ── */}
+                    {wizardStep === 8 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Guía de Instalación</p>
+                          <p className="text-white/40 text-sm">El tutorial paso a paso para que la trabajadora sepa cómo instalar y registrarse. Aparece cuando hace clic en el botón 📖 Guía. Puedes subir imágenes con el botón 📤. El WhatsApp es para que envíe la captura confirmando su registro. →</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">WhatsApp para envío de capturas</label>
+                          <input type="text" placeholder="https://wa.me/NUMERO?text=..." value={appFormData.guide_whatsapp ?? ''}
+                            onChange={e => setAppFormData(p => ({...p, guide_whatsapp: e.target.value}))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <p className="text-white/25 text-xs mt-1">Ej: https://wa.me/5595984381686?text=Hola</p>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-white/50 uppercase tracking-wide">Pasos de instalación</p>
+                            <button onClick={() => setAppFormData(p => ({...p, guide_steps: [...(p.guide_steps??[]), {step:(p.guide_steps??[]).length+1,title:'',text:'',image_url:''}]}))}
+                              className="text-xs text-violet-400/70 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-violet-500/10">+ Agregar paso</button>
+                          </div>
+                          {(appFormData.guide_steps ?? []).length === 0 && (
+                            <div className="bg-violet-500/8 border border-violet-500/20 rounded-xl p-3 text-xs text-violet-300">
+                              💡 Ej: Paso 1 "Descarga la App" · Paso 2 "Crea tu cuenta" · Paso 3 "Código de agencia" · Paso 4 "Envía captura por WhatsApp"
+                            </div>
+                          )}
+                          {(appFormData.guide_steps ?? []).map((step, idx) => (
+                            <div key={idx} className="bg-[#07070f] border border-white/10 rounded-xl p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-violet-400">Paso {step.step}</span>
+                                <button onClick={() => setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr.splice(idx,1); return {...p,guide_steps:arr.map((s,i)=>({...s,step:i+1}))} })}
+                                  className="text-red-400/40 hover:text-red-400 text-xs transition-colors">✕ Eliminar</button>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-white/40 mb-1">Título del paso</label>
+                                <input type="text" placeholder="Ej: Descarga la App" value={step.title}
+                                  onChange={e => setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr[idx]={...arr[idx],title:e.target.value}; return {...p,guide_steps:arr} })}
+                                  className="w-full bg-[#0d0d1e] border border-white/8 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50" />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-white/40 mb-1">Instrucción</label>
+                                <textarea rows={2} placeholder="Ej: Selecciona el botón de descarga según tu dispositivo." value={step.text}
+                                  onChange={e => setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr[idx]={...arr[idx],text:e.target.value}; return {...p,guide_steps:arr} })}
+                                  className="w-full bg-[#0d0d1e] border border-white/8 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50 resize-none" />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-white/40 mb-1">Imagen del paso <span className="text-white/25">(opcional)</span></label>
+                                <div className="flex gap-2">
+                                <input type="text" placeholder="https://... o sube →" value={step.image_url ?? ''}
+                                  onChange={e => setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr[idx]={...arr[idx],image_url:e.target.value}; return {...p,guide_steps:arr} })}
+                                  className="flex-1 bg-[#0d0d1e] border border-white/8 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50" />
+                                <input type="file" accept="image/*" className="hidden" id={`guide-img-${idx}`} onChange={e => { if(e.target.files?.[0]) uploadAppImage(e.target.files[0], 'guide', idx); e.target.value='' }} />
+                                <button type="button" onClick={() => { const el=document.getElementById(`guide-img-${idx}`) as HTMLInputElement|null; el?.click() }} disabled={uploadingGuideImgs[idx]}
+                                  className="shrink-0 px-2.5 py-2 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-300 text-xs font-bold hover:bg-violet-500/20 transition-all disabled:opacity-40">
+                                  {uploadingGuideImgs[idx] ? '⏳' : '📤'}
+                                </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="bg-[#07070f] border border-white/5 rounded-xl p-3">
+                          <p className="text-violet-300/70 text-xs font-semibold mb-1">📸 Imágenes de los pasos:</p>
+                          <p className="text-white/30 text-xs">Usa el botón 📤 en cada paso para subir capturas directamente. Se guardan en Supabase Storage y el URL se completa automáticamente.</p>
+                        </div>
+                        {/* ── Galería de imágenes visuales ── */}
+                        <div className="space-y-3 pt-2 border-t border-white/5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-bold text-white/50 uppercase tracking-wide">Galería de imágenes visuales</p>
+                              <p className="text-white/25 text-xs mt-0.5">Capturas de la app que aparecen al final de la guía en cuadrícula ampliable (como Howdy con 6 imágenes). Ayudan a la chica a reconocer la app.</p>
+                            </div>
+                            <button onClick={() => setAppFormData(p => ({...p, guide_steps: [...(p.guide_steps??[]), {step:0, title:'', text:'', image_url:'', type:'gallery'}]}))}
+                              className="text-xs text-violet-400/70 hover:text-violet-300 transition-colors px-2 py-1 rounded-lg hover:bg-violet-500/10 shrink-0">+ Agregar imagen</button>
+                          </div>
+                          {(appFormData.guide_steps ?? []).filter(s => s.type === 'gallery').length === 0 && (
+                            <div className="bg-[#07070f] border border-white/5 rounded-xl p-3 text-xs text-white/25">
+                              Ej: pantalla principal de la app, cómo se ve el perfil, la tabla de ganancias, el chat, etc.
+                            </div>
+                          )}
+                          {(appFormData.guide_steps ?? []).map((step, realIdx) => step.type !== 'gallery' ? null : (
+                            <div key={realIdx} className="bg-[#07070f] border border-white/10 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-violet-400 font-bold">📷 Imagen de galería</p>
+                                <button onClick={() => setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr.splice(realIdx,1); return {...p,guide_steps:arr} })}
+                                  className="text-red-400/40 hover:text-red-400 text-xs transition-colors">✕ Eliminar</button>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-white/40 mb-1">Etiqueta <span className="text-white/25">(opcional, ej: "Pantalla principal")</span></label>
+                                <input type="text" placeholder="Ej: Pantalla principal, Tabla de ganancias..." value={step.title}
+                                  onChange={e => setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr[realIdx]={...arr[realIdx],title:e.target.value}; return {...p,guide_steps:arr} })}
+                                  className="w-full bg-[#0d0d1e] border border-white/8 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50" />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-white/40 mb-1">URL de la imagen</label>
+                                <div className="flex gap-2">
+                                  <input type="text" placeholder="https://... o sube →" value={step.image_url ?? ''}
+                                    onChange={e => setAppFormData(p => { const arr=[...(p.guide_steps??[])]; arr[realIdx]={...arr[realIdx],image_url:e.target.value}; return {...p,guide_steps:arr} })}
+                                    className="flex-1 bg-[#0d0d1e] border border-white/8 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50" />
+                                  <input type="file" accept="image/*" className="hidden" id={`gal-img-${realIdx}`} onChange={e => { if(e.target.files?.[0]) uploadAppImage(e.target.files[0], 'guide', realIdx); e.target.value='' }} />
+                                  <button type="button" onClick={() => { const el=document.getElementById(`gal-img-${realIdx}`) as HTMLInputElement|null; el?.click() }} disabled={uploadingGuideImgs[realIdx]}
+                                    className="shrink-0 px-2.5 py-2 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-300 text-xs font-bold hover:bg-violet-500/20 transition-all disabled:opacity-40">
+                                    {uploadingGuideImgs[realIdx] ? '⏳' : '📤'}
+                                  </button>
+                                </div>
+                                {step.image_url && <img src={step.image_url} alt={step.title||'preview'} className="mt-2 w-full h-24 object-cover rounded-lg border border-white/10" />}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 11: IA Ángela ── */}
+                    {wizardStep === 11 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">🤖 Conocimiento para Ángela (IA)</p>
+                          <p className="text-white/40 text-sm">Escribe todo lo que quieres que Ángela (la IA del chat) sepa sobre esta app. Cuando alguien le pregunte por ganancias, cómo registrarse o el código de agencia, usará exactamente este texto. <strong className="text-white/60">Si lo dejas vacío, Ángela solo sabrá el nombre.</strong> →</p>
+                        </div>
+                        <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300 leading-relaxed">
+                          💡 <strong>Incluye:</strong> nombre, tipo de actividad, ganancias (tarifas, metas), código de agencia, formas de retiro, requisitos, y cualquier dato que las usuarias suelen preguntar. Si lo dejas vacío, Ángela solo sabrá el nombre de la app.
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Conocimiento en Español</label>
+                          <textarea rows={10} placeholder={"APP — NombreApp:\nDescripción breve de la plataforma.\nGANANCIAS: X unidades/min | Meta mínima: X = $X USD\nCÓDIGO AGENCIA: XXXXXX\nRETIRO: semanal / acumulativo\nDESCARGA Android: https://...\nDESCARGA iOS: https://..."}
+                            value={appFormData.ai_knowledge_es ?? ''}
+                            onChange={e => setAppFormData(p => ({ ...p, ai_knowledge_es: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60 resize-none font-mono text-xs" />
+                          <p className="text-white/20 text-xs mt-1">Este texto se añade al prompt de Ángela en español. Copia el estilo de Waha/Layla/Howdy.</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Conocimiento en Portugués</label>
+                          <textarea rows={8} placeholder={"APP — NombreApp:\nDescrição breve da plataforma.\nGANHOS: X unidades/min | Meta mínima: X = $X USD\nCÓDIGO DE AGÊNCIA: XXXXXX"}
+                            value={appFormData.ai_knowledge_pt ?? ''}
+                            onChange={e => setAppFormData(p => ({ ...p, ai_knowledge_pt: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60 resize-none font-mono text-xs" />
+                          <p className="text-white/20 text-xs mt-1">Versión en portugués para usuarias de Brasil. Si lo dejas vacío, Ángela usará el bloque en español.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 9: Descarga ── */}
+                    {wizardStep === 9 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Links de Descarga</p>
+                          <p className="text-white/40 text-sm">Los links para instalar la app en el teléfono. Android va a Play Store o APK directo, iOS va a App Store. Si la app solo existe para Android, deja iOS vacío. También puedes agregar el canal de Telegram de la app. →</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">🤖 Descarga Android (Play Store o APK directo)</label>
+                          <input type="url" placeholder="https://play.google.com/store/apps/details?id=..." value={appFormData.download_url_android ?? ''} onChange={e => setAppFormData(p => ({ ...p, download_url_android: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">🍎 Descarga iOS (App Store)</label>
+                          <input type="url" placeholder="https://apps.apple.com/app/..." value={appFormData.download_url_ios ?? ''} onChange={e => setAppFormData(p => ({ ...p, download_url_ios: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <p className="text-white/25 text-xs mt-1.5">Si la app es solo Android (como Howdy), deja vacío.</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">📢 Canal de Telegram</label>
+                          <input type="url" placeholder="https://t.me/..." value={appFormData.telegram_channel_url ?? ''} onChange={e => setAppFormData(p => ({ ...p, telegram_channel_url: e.target.value }))}
+                            className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                          <p className="text-white/25 text-xs mt-1.5">Canal de novedades y pagos. Aparece como botón "Unirse al canal".</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STEP 10: Config Final ── */}
+                    {wizardStep === 10 && (
+                      <div className="bg-[#0d0d1e] border border-violet-500/15 rounded-2xl p-6 space-y-5">
+                        <div>
+                          <p className="text-white font-bold text-base mb-1">Configuración Final</p>
+                          <p className="text-white/40 text-sm">Elige en qué posición aparece tu app (1 = primera en la lista) y si está visible para el público. Puedes dejarla oculta mientras la configuras y activarla cuando esté lista. Revisa el resumen abajo antes de guardar. →</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Orden de aparición</label>
+                            <input type="number" min={0} max={99} value={appFormData.sort_order ?? 0} onChange={e => setAppFormData(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))}
+                              className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/60" />
+                            <p className="text-white/20 text-xs mt-1">1 = primera · Waha:1 · Layla:2 · Howdy:3</p>
+                          </div>
+                          <div className="flex flex-col justify-center">
+                            <label className="block text-xs font-bold text-violet-300/80 mb-1.5 uppercase tracking-wide">Estado</label>
+                            <button onClick={() => setAppFormData(p => ({ ...p, is_active: !p.is_active }))}
+                              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${appFormData.is_active ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                              <span className={`w-2 h-2 rounded-full ${appFormData.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
+                              {appFormData.is_active ? 'Activa' : 'Inactiva'}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="bg-[#07070f] border border-white/8 rounded-xl p-4 space-y-2">
+                          <p className="text-xs font-bold text-white/40 mb-3">✅ Revisión completa:</p>
+                          {([
+                            {k:'🔑 Clave', v:appFormData.name, req:!editingApp},
+                            {k:'📱 Nombre visible', v:appFormData.display_name, req:true},
+                            {k:'🍎 iOS name', v:appFormData.ios_name||'(mismo)', req:false},
+                            {k:'🏷 Badge', v:appFormData.badge_label?`${appFormData.badge_label} (${appFormData.badge_color})`:'—', req:false},
+                            {k:'💬 Tagline', v:appFormData.tagline?appFormData.tagline.slice(0,35):'—', req:false},
+                            {k:'🎨 Color', v:appFormData.color_hex, req:false},
+                            {k:'🖼 Logo', v:appFormData.icon_url?'✅ (subido)':'⚠️ SIN logo — app sin imagen', req:false},
+                            {k:'🔑 Código agencia', v:appFormData.agency_code||'—', req:false},
+                            {k:'💰 Retiro', v:appFormData.payment_frequency?`${appFormData.payment_frequency} · $${appFormData.payment_min_usd??'?'}`:'—', req:false},
+                            {k:'📊 Nómina', v:appFormData.nomina_type==='manual'?`Manual (${(appFormData.nomina_manual_fields??[]).length} campos)`:appFormData.nomina_type==='upload'?'Upload Excel':'—', req:false},
+                            {k:'% Comisión', v:appFormData.commission_pct_default?`${appFormData.commission_pct_default}% · CUP:${appFormData.uses_cup_exchange?'✅':'❌'} · Directo:${appFormData.uses_direct_payment_notification?'✅':'❌'}`:'—', req:false},
+                            {k:'📋 Specs', v:`${(appFormData.specs??[]).length} filas · ${(appFormData.requisitos??[]).length} requisitos`, req:false},
+                            {k:'📖 Guía', v:`${(appFormData.guide_steps??[]).length} pasos${appFormData.guide_whatsapp?' · WhatsApp ✅':''}`, req:false},
+                            {k:'🤖 Android', v:appFormData.download_url_android?'✅':'—', req:false},
+                            {k:'🍎 iOS link', v:appFormData.download_url_ios?'✅':'—', req:false},
+                            {k:'📢 Telegram', v:appFormData.telegram_channel_url?'✅':'—', req:false},
+                          ] as {k:string;v:string|undefined|null;req:boolean}[]).map(({k,v,req}) => (
+                            <div key={k} className="flex items-center justify-between gap-2 text-xs">
+                              <span className={`${req&&!v?'text-red-400':'text-white/35'}`}>{k}{req&&!v?' *':''}</span>
+                              <span className={`font-mono truncate max-w-[200px] text-right ${v?'text-white/60':'text-white/20'}`}>{v||'—'}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {appSaveMsg && <div className={`p-3 rounded-xl text-sm font-semibold ${appSaveMsg.ok ? 'bg-green-500/10 border border-green-500/25 text-green-300' : 'bg-red-500/10 border border-red-500/25 text-red-300'}`}>{appSaveMsg.text}</div>}
+                      </div>
+                    )}
+
+                    {/* Navigation */}
+                    <div className="flex gap-3">
+                      {wizardStep > 1 ? (
+                        <button onClick={() => setWizardStep(s => s - 1)}
+                          className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all">
+                          ← Atrás
+                        </button>
+                      ) : (
+                        <button onClick={() => { setWizardMode('list'); setWizardStep(1); setEditingApp(null); setAppFormData(emptyAppForm) }}
+                          className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all">
+                          ✕ Cancelar
+                        </button>
+                      )}
+                      {wizardStep < 11 ? (
+                        <button onClick={() => setWizardStep(s => s + 1)}
+                          disabled={wizardStep === 1 && (!appFormData.display_name || (!editingApp && !appFormData.name))}
+                          className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                          Siguiente →
+                        </button>
+                      ) : (
+                        <button onClick={() => saveApp(!!editingApp)} disabled={savingApp || !appFormData.display_name}
+                          className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                          {savingApp ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</> : editingApp ? '💾 Guardar cambios' : '🚀 Crear app'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* RIGHT — Visual Guide */}
+                  <div className="space-y-3 lg:sticky lg:top-4">
+                    <WizardVisualGuide step={wizardStep} form={appFormData} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Reset History Modal */}
 
 
@@ -3565,6 +4790,83 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                   </button>
                 )}
               </div>
+            </div>
+          )}
+
+
+          {tab === 'telegram' && (
+            <div className="space-y-4 max-w-3xl">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📲</span>
+                  <h2 className="text-lg font-bold text-white">Suscripciones Telegram</h2>
+                  <span className="text-xs text-white/30 font-medium">{telegramLinks.length} vinculadas</span>
+                </div>
+                <button onClick={fetchTelegramLinks} disabled={telegramLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-semibold transition-all border border-white/10 disabled:opacity-40">
+                  {telegramLoading ? <><div className="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" /> Cargando...</> : '↻ Actualizar'}
+                </button>
+              </div>
+
+              <div className="relative">
+                <input
+                  value={telegramSearch} onChange={e => setTelegramSearch(e.target.value)}
+                  placeholder="Buscar por nombre, email o usuario Telegram..."
+                  className="w-full bg-[#0d0d1e] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-sky-500/50"
+                />
+              </div>
+
+              {telegramLoading && !telegramLinks.length ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="w-6 h-6 border-2 border-sky-500/30 border-t-sky-400 rounded-full animate-spin" />
+                </div>
+              ) : telegramLinks.length === 0 ? (
+                <div className="text-center py-16 text-white/20 text-sm">No hay cuentas vinculadas a Telegram.</div>
+              ) : (
+                <div className="space-y-2">
+                  {telegramLinks
+                    .filter(l => {
+                      if (!telegramSearch) return true
+                      const q = telegramSearch.toLowerCase()
+                      return (
+                        (l.profile?.display_name ?? '').toLowerCase().includes(q) ||
+                        (l.profile?.email ?? '').toLowerCase().includes(q) ||
+                        (l.username ?? '').toLowerCase().includes(q) ||
+                        (l.first_name ?? '').toLowerCase().includes(q)
+                      )
+                    })
+                    .map(l => (
+                      <div key={l.user_id} className="bg-[#0d0d1e] border border-white/8 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-sky-500/15 flex items-center justify-center shrink-0 text-sky-400 font-black text-base">
+                            {(l.profile?.display_name ?? l.first_name ?? '?')[0]?.toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-white truncate">
+                              {l.profile?.display_name ?? l.first_name ?? 'Sin nombre'}
+                              {l.profile?.is_admin && <span className="ml-1.5 text-[10px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded-md">Admin</span>}
+                              {l.profile?.is_agent && <span className="ml-1.5 text-[10px] bg-blue-500/20 text-blue-300 font-bold px-1.5 py-0.5 rounded-md">Agente</span>}
+                              {l.profile?.is_colider && <span className="ml-1.5 text-[10px] bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.5 rounded-md">Colider</span>}
+                            </p>
+                            <p className="text-white/35 text-xs truncate">{l.profile?.email ?? l.user_id}</p>
+                            <p className="text-sky-400/70 text-xs mt-0.5">
+                              {l.username ? `@${l.username}` : l.first_name ?? 'Sin usuario'} · vinculado {new Date(l.linked_at).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteTelegramLink(l.user_id)}
+                          disabled={telegramDeleting === l.user_id}
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-xs font-bold border border-red-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                          {telegramDeleting === l.user_id
+                            ? <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                            : <Trash2 className="w-3 h-3" />}
+                          {telegramDeleting === l.user_id ? 'Eliminando...' : 'Desvincular'}
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           )}
 
