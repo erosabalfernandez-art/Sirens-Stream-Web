@@ -132,5 +132,31 @@ import { Router } from 'express';
     }
   });
 
+
+  // GET /api/telegram/admin/links  — lista todas las cuentas vinculadas (admin)
+  router.get('/telegram/admin/links', async (_req, res) => {
+    if (!process.env.SUPABASE_URL) return res.status(503).json({ error: 'No configurado' });
+    const r = await fetch(
+      sbUrl('telegram_links?select=user_id,chat_id,username,first_name,linked_at&order=linked_at.desc'),
+      { headers: sbH() }
+    );
+    if (!r.ok) return res.status(500).json({ error: 'Error al obtener links' });
+    const links = (await r.json()) as { user_id: string; chat_id: string; username: string | null; first_name: string | null; linked_at: string }[];
+
+    if (!links.length) return res.json({ links: [] });
+
+    const ids = links.map(l => l.user_id).join(',');
+    const pr = await fetch(
+      sbUrl(`profiles?id=in.(${ids})&select=id,email,display_name,is_admin,is_agent,is_colider`),
+      { headers: sbH() }
+    );
+    const profiles = pr.ok ? (await pr.json()) as { id: string; email: string | null; display_name: string | null; is_admin: boolean; is_agent: boolean; is_colider: boolean }[] : [];
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+
+    return res.json({
+      links: links.map(l => ({ ...l, profile: profileMap.get(l.user_id) ?? null }))
+    });
+  });
+
   export default router;
   
