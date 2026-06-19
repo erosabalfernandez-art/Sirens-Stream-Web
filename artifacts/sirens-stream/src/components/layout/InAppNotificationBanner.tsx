@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Bell, X, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { subscribeToPush, checkPushEndpointInDB, wasManuallyUnsubscribed } from '@/lib/push';
 
 const SEEN_KEY = 'ea_inapp_last_seen';
 
@@ -34,49 +33,6 @@ export function InAppNotificationBanner() {
       }
     } catch { /**/ }
   }, [user]);
-
-
-    // Register Periodic Background Sync (works for installed PWAs without FCM)
-    useEffect(() => {
-      async function registerPeriodicSync() {
-        if (!('serviceWorker' in navigator)) return;
-        try {
-          const reg = await navigator.serviceWorker.ready;
-          if (!('periodicSync' in reg)) return;
-          // @ts-expect-error periodicSync not yet in TS lib
-          const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
-          if (status.state === 'granted') {
-            // @ts-expect-error periodicSync not yet in TS lib
-            await reg.periodicSync.register('ea-check-notifs', { minInterval: 60 * 60 * 1000 });
-          }
-        } catch { /* browser doesn't support */ }
-      }
-      void registerPeriodicSync();
-    }, []);
-
-    // Auto-resubscribe silently when subscription is stale/expired (fixes inactivity push failure)
-      useEffect(() => {
-        if (!user?.id) return;
-        async function autoResubscribe() {
-          if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-          if (Notification.permission !== 'granted') return;
-          if (wasManuallyUnsubscribed(user!.id)) return;
-          try {
-            const synced = await checkPushEndpointInDB(user!.id);
-            if (!synced) await subscribeToPush(user!.id);
-          } catch { /* silent */ }
-        }
-        void autoResubscribe();
-        }, [user?.id]);
-
-        // Register Background Sync on every app open.
-        // Fires when device reconnects to internet (even app closed) — critical for Cuba.
-        useEffect(() => {
-          if (!('serviceWorker' in navigator)) return;
-          navigator.serviceWorker.ready.then(reg => {
-            (reg as any).sync?.register('ea-reconnect-check').catch(() => {});
-          }).catch(() => {});
-        }, []);
 
       useEffect(() => { void fetchNotifs(); }, [fetchNotifs]);
 
