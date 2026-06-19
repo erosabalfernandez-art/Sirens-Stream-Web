@@ -137,7 +137,7 @@ function cleanFullPhone(code: string | null | undefined, tel: string | null | un
   // Telegram links state
   interface TelegramLinkRow {
     user_id: string; chat_id: string; username: string | null; first_name: string | null; linked_at: string;
-    profile: { email: string | null; display_name: string | null; is_admin: boolean; is_agent: boolean; is_colider: boolean } | null
+    profile: { email: string | null; agent_name: string | null; colider_name: string | null; is_admin: boolean; is_agent: boolean; is_colider: boolean } | null
   }
   const [telegramLinks, setTelegramLinks] = useState<TelegramLinkRow[]>([])
   const [telegramLoading, setTelegramLoading] = useState(false)
@@ -4839,16 +4839,16 @@ GRANT ALL ON payment_method_locks TO service_role;`}</pre>
                       <div key={l.user_id} className="bg-[#0d0d1e] border border-white/8 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-sky-500/15 flex items-center justify-center shrink-0 text-sky-400 font-black text-base">
-                            {(l.profile?.display_name ?? l.first_name ?? '?')[0]?.toUpperCase()}
+                            {((l.profile?.agent_name ?? l.profile?.colider_name ?? l.first_name ?? '?')[0])?.toUpperCase()}
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-sm text-white truncate">
-                              {l.profile?.display_name ?? l.first_name ?? 'Sin nombre'}
+                              {l.profile?.agent_name ?? l.profile?.colider_name ?? l.first_name ?? 'Sin nombre'}
                               {l.profile?.is_admin && <span className="ml-1.5 text-[10px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded-md">Admin</span>}
                               {l.profile?.is_agent && <span className="ml-1.5 text-[10px] bg-blue-500/20 text-blue-300 font-bold px-1.5 py-0.5 rounded-md">Agente</span>}
                               {l.profile?.is_colider && <span className="ml-1.5 text-[10px] bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.5 rounded-md">Colider</span>}
                             </p>
-                            <p className="text-white/35 text-xs truncate">{l.profile?.email ?? l.user_id}</p>
+                            <p className="text-white/35 text-xs truncate">{l.profile?.email ?? l.user_id.slice(0,8) + '...'}</p>
                             <p className="text-sky-400/70 text-xs mt-0.5">
                               {l.username ? `@${l.username}` : l.first_name ?? 'Sin usuario'} · vinculado {new Date(l.linked_at).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </p>
