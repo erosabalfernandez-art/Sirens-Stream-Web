@@ -147,10 +147,10 @@ import { Router } from 'express';
 
     const ids = links.map(l => l.user_id).join(',');
     const pr = await fetch(
-      sbUrl(`profiles?id=in.(${ids})&select=id,email,display_name,is_admin,is_agent,is_colider`),
+      sbUrl(`profiles?id=in.(${ids})&select=id,email,agent_name,colider_name,is_admin,is_agent,is_colider`),
       { headers: sbH() }
     );
-    const profiles = pr.ok ? (await pr.json()) as { id: string; email: string | null; display_name: string | null; is_admin: boolean; is_agent: boolean; is_colider: boolean }[] : [];
+    const profiles = pr.ok ? (await pr.json()) as { id: string; email: string | null; agent_name: string | null; colider_name: string | null; is_admin: boolean; is_agent: boolean; is_colider: boolean }[] : [];
     const profileMap = new Map(profiles.map(p => [p.id, p]));
 
     return res.json({
