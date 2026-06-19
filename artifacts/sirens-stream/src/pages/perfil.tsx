@@ -485,6 +485,12 @@ import { TelegramLinkCard } from '@/components/layout/TelegramLinkCard'
                     )}
                     </>
                   )}
+                  {((profile as any)?.agent_code || profile?.is_agent || profile?.is_colider) && (
+                    <Field label="Billetera / Dirección de envío">
+                      <FInput value={form.billetera} onChange={v => setForm(f => ({ ...f, billetera: v }))} placeholder="Ej: número Binance, número Pix, cuenta bancaria…" />
+                      <p className="text-white/25 text-xs mt-1.5">El admin necesita esta dirección para pagarte tus ganancias de esta app.</p>
+                    </Field>
+                  )}
                   {!(profile as any)?.agent_code && !profile?.is_colider && !(profile as any)?.is_agent && (
                   <Field label={(profile as any)?.agent_code ? "Tu código de agente (requerido)" : lockedAgente ? "Agente asignado (permanente)" : "ID de agente (opcional)"}>
                       <FInput
