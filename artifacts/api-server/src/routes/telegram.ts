@@ -158,5 +158,33 @@ import { Router } from 'express';
     });
   });
 
+
+  // POST /api/telegram/verify/:userId — envía ping real al bot para verificar que la conexión funciona
+  router.post('/telegram/verify/:userId', async (req, res) => {
+    const { userId } = req.params;
+    if (!process.env.SUPABASE_URL || !BOT_TOKEN) return res.status(503).json({ ok: false, error: 'not_configured' });
+
+    const r = await fetch(
+      sbUrl(`telegram_links?user_id=eq.${userId}&select=chat_id`),
+      { headers: sbH() }
+    );
+    if (!r.ok) return res.json({ ok: false, error: 'db_error' });
+    const rows = (await r.json()) as { chat_id: string }[];
+    if (!rows.length) return res.json({ ok: false, error: 'no_link' });
+
+    const chatId = rows[0].chat_id;
+    try {
+      const tgRes = await fetch(`${TG_API}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: '✅ Tu Telegram está conectado correctamente con Eclipse Angels Agency.' }),
+      });
+      const tgData = await tgRes.json() as { ok: boolean; description?: string };
+      if (tgData.ok) return res.json({ ok: true });
+      return res.json({ ok: false, error: tgData.description ?? 'bot_error' });
+    } catch (e) {
+      return res.json({ ok: false, error: String(e) });
+    }
+  });
+
   export default router;
   
